@@ -6,9 +6,11 @@ import Quickshell.Io
 import qs.Commons
 import qs.Ui
 
-// Bar icon + popup listing installed coding agents and how many sessions of
-// each are running. Clicking an agent opens a new session of it in its own
-// terminal window. All process/launch logic lives in agents.sh.
+// Omarchy Umbra Agent Tool: bar icon + popup with two sections. LOCAL lists
+// on-device AI (custom apps from settings, Ollama models, or a guided setup
+// entry); ONLINE AGENTS lists installed coding agents with their running
+// sessions. Clicking an entry opens it in a new window. All process and
+// launch logic lives in agents.sh.
 Panel {
   id: root
   moduleName: "io.github.umbraxc.agent-launcher"
@@ -28,6 +30,10 @@ Panel {
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
 
   property var agents: []
+  readonly property var localAgents: agents.filter(function(a) { return a.section === "local" })
+  readonly property var onlineAgents: agents.filter(function(a) { return a.section !== "local" })
+  // Keyboard order follows the screen: local rows first.
+  readonly property var ordered: localAgents.concat(onlineAgents)
   property int cursorIndex: -1
   readonly property int totalRunning: {
     var n = 0
@@ -41,16 +47,19 @@ Panel {
 
   function launch(agent) {
     if (!agent) return
-    Quickshell.execDetached([root.script, "launch", agent.id])
+    if (agent.id.indexOf("app:") === 0)
+      Quickshell.execDetached([root.script, "launch-app", agent.id.substring(4)])
+    else
+      Quickshell.execDetached([root.script, "launch", agent.id])
     root.close()
     // Pick up the new session without waiting for the next poll.
     refreshSoon.restart()
   }
 
   function moveCursor(dy) {
-    if (agents.length === 0) return
+    if (ordered.length === 0) return
     if (cursorIndex < 0) { cursorIndex = 0; return }
-    cursorIndex = Math.max(0, Math.min(agents.length - 1, cursorIndex + dy))
+    cursorIndex = Math.max(0, Math.min(ordered.length - 1, cursorIndex + dy))
   }
 
   onOpenedChanged: {
@@ -59,7 +68,9 @@ Panel {
 
   Process {
     id: statusProc
-    command: [root.script, "status"]
+    command: [root.script, "status",
+      JSON.stringify(root.setting("localApps", [])),
+      root.setting("showOllamaModels", true) ? "true" : "false"]
     stdout: StdioCollector {
       onStreamFinished: {
         var list = []
@@ -91,12 +102,12 @@ Panel {
     id: button
     anchors.fill: parent
     bar: root.bar
-    // nf-md-brain; dimmed when no agent session is running.
+    // nf-md-brain; dimmed when nothing is running.
     text: "󰧑"
     foreground: root.totalRunning > 0 ? root.barForeground : Qt.darker(root.barForeground, 1.55)
     tooltipText: root.totalRunning === 0
       ? "Agents: none running"
-      : "Agents: " + root.totalRunning + " session" + (root.totalRunning === 1 ? "" : "s") + " running"
+      : "Agents: " + root.totalRunning + " running"
     onPressed: function(buttonCode) {
       if (buttonCode === Qt.MiddleButton) root.refresh()
       else root.toggle()
@@ -110,14 +121,14 @@ Panel {
     bar: root.bar
     open: root.opened
     focusTarget: keyCatcher
-    contentWidth: panel.fittedContentWidth(Style.space(300))
-    contentHeight: panel.fittedContentHeight(column.implicitHeight, Style.space(480))
+    contentWidth: panel.fittedContentWidth(Style.space(320))
+    contentHeight: panel.fittedContentHeight(column.implicitHeight, Style.space(560))
 
     PanelKeyCatcher {
       id: keyCatcher
       anchors.fill: parent
       onMoveRequested: function(dx, dy) { root.moveCursor(dy) }
-      onActivateRequested: if (root.cursorIndex >= 0) root.launch(root.agents[root.cursorIndex])
+      onActivateRequested: if (root.cursorIndex >= 0) root.launch(root.ordered[root.cursorIndex])
       onCloseRequested: root.close()
       onTabRequested: function(direction) { root.switchPanel(direction) }
       onTextKey: function(t) { if (t === "r" || t === "R") root.refresh() }
@@ -128,13 +139,35 @@ Panel {
         spacing: Style.space(8)
 
         PanelSectionHeader {
-          text: "AGENTS"
+          text: "LOCAL"
+          foreground: root.foreground
+          fontFamily: root.fontFamily
+        }
+
+        Repeater {
+          model: root.localAgents
+
+          AgentRow {
+            required property var modelData
+            required property int index
+            width: column.width
+            agent: modelData
+            rowIndex: index
+          }
+        }
+
+        PanelSeparator {
+          foreground: root.foreground
+        }
+
+        PanelSectionHeader {
+          text: "ONLINE AGENTS"
           foreground: root.foreground
           fontFamily: root.fontFamily
         }
 
         Text {
-          visible: root.agents.length === 0
+          visible: root.onlineAgents.length === 0
           width: parent.width
           text: "No coding agents installed. Set one up with: omarchy default agent <name>"
           color: root.dim
@@ -144,14 +177,14 @@ Panel {
         }
 
         Repeater {
-          model: root.agents
+          model: root.onlineAgents
 
           AgentRow {
             required property var modelData
             required property int index
             width: column.width
             agent: modelData
-            rowIndex: index
+            rowIndex: root.localAgents.length + index
           }
         }
 
@@ -172,11 +205,25 @@ Panel {
 
     property var agent: null
     property int rowIndex: -1
-    readonly property bool isOnline: agent && agent.running > 0
+    readonly property bool isLocal: agent && agent.section === "local"
+    readonly property bool isSetup: agent && agent.setup
+    readonly property bool isRunning: agent && agent.running > 0
 
     hasCursor: root.cursorIndex === rowIndex
     foreground: root.foreground
     implicitHeight: row.implicitHeight + Style.spacing.rowPaddingX
+
+    function statusText() {
+      if (!agent) return ""
+      if (isSetup) return agent.detail
+      var n = agent.running
+      if (isLocal) {
+        var unit = agent.id.indexOf("app:") === 0 ? "window" : "session"
+        var detail = agent.detail ? " · " + agent.detail : ""
+        return (n > 0 ? "Active · " + n + " " + unit + (n === 1 ? "" : "s") : "Ready") + detail
+      }
+      return n > 0 ? "Online · " + n + " session" + (n === 1 ? "" : "s") : "Offline"
+    }
 
     MouseArea {
       anchors.fill: parent
@@ -195,15 +242,32 @@ Panel {
       anchors.rightMargin: Style.space(10)
       spacing: Style.space(10)
 
-      // Online indicator.
-      Rectangle {
+      // Status mark: filled dot when running, ring when idle; local entries
+      // use a square to set them apart, the setup entry a download arrow.
+      Item {
         Layout.alignment: Qt.AlignVCenter
-        implicitWidth: Style.space(8)
-        implicitHeight: Style.space(8)
-        radius: width / 2
-        color: agentRow.isOnline ? root.online : "transparent"
-        border.width: agentRow.isOnline ? 0 : 1
-        border.color: root.dim
+        implicitWidth: Style.space(10)
+        implicitHeight: Style.space(10)
+
+        Rectangle {
+          visible: !agentRow.isSetup
+          anchors.centerIn: parent
+          width: Style.space(8)
+          height: Style.space(8)
+          radius: agentRow.isLocal ? 0 : width / 2
+          color: agentRow.isRunning ? root.online : "transparent"
+          border.width: agentRow.isRunning ? 0 : 1
+          border.color: agentRow.isLocal ? root.online : root.dim
+        }
+
+        Text {
+          visible: agentRow.isSetup
+          anchors.centerIn: parent
+          text: "󰇚"
+          color: root.online
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.body
+        }
       }
 
       ColumnLayout {
@@ -213,7 +277,7 @@ Panel {
         Text {
           Layout.fillWidth: true
           text: agentRow.agent ? agentRow.agent.name + (agentRow.agent.isDefault ? "  ·  default" : "") : ""
-          color: root.foreground
+          color: agentRow.isSetup ? root.online : root.foreground
           font.family: root.fontFamily
           font.pixelSize: Style.font.body
           elide: Text.ElideRight
@@ -221,11 +285,8 @@ Panel {
 
         Text {
           Layout.fillWidth: true
-          text: !agentRow.agent ? ""
-            : agentRow.isOnline
-              ? "Online · " + agentRow.agent.running + " session" + (agentRow.agent.running === 1 ? "" : "s")
-              : "Offline"
-          color: agentRow.isOnline ? root.online : root.dim
+          text: agentRow.statusText()
+          color: agentRow.isRunning || agentRow.isSetup ? root.online : root.dim
           font.family: root.fontFamily
           font.pixelSize: Style.font.caption
           elide: Text.ElideRight
@@ -234,7 +295,7 @@ Panel {
 
       Text {
         Layout.alignment: Qt.AlignVCenter
-        text: "󰐕"
+        text: agentRow.isSetup ? "󰁔" : "󰐕"
         color: root.dim
         font.family: root.fontFamily
         font.pixelSize: Style.font.heading

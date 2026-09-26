@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "id": "io.github.umbraxc.agent-launcher",
-  "name": "Agent Launcher",
-  "version": "1.0.0",
+  "name": "Omarchy Umbra Agent Tool",
+  "version": "2.0.0",
   "author": "umbraxc",
   "license": "MIT",
-  "description": "Shows which coding agents are installed and running, and opens a new session with one click",
+  "description": "Local and online AI agents in one bar icon: on-device AI apps and models, plus your coding agents, each opened with one click",
   "kinds": [
     "bar-widget"
   ],
@@ -13,13 +13,15 @@
     "barWidget": "Panel.qml"
   },
   "barWidget": {
-    "displayName": "Agent Launcher",
-    "description": "Installed coding agents with live session counts; click one to open a new session",
+    "displayName": "Omarchy Umbra Agent Tool",
+    "description": "LOCAL: on-device AI apps and Ollama models (or a guided setup). ONLINE AGENTS: coding agents with live session counts.",
     "category": "AI",
     "allowMultiple": false,
     "defaultSection": "right",
     "defaults": {
-      "pollIntervalMs": 5000
+      "pollIntervalMs": 5000,
+      "showOllamaModels": true,
+      "localApps": []
     },
     "schema": [
       {
@@ -30,6 +32,12 @@
         "max": 60000,
         "step": 1000,
         "defaultValue": 5000
+      },
+      {
+        "key": "showOllamaModels",
+        "type": "boolean",
+        "label": "List Ollama models under LOCAL",
+        "defaultValue": true
       }
     ]
   }
