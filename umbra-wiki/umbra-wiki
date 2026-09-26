@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+"""Umbra Wiki window: a native GTK window around the local UI.
+
+Starts the backend (umbra-wiki.service) on demand, then shows the UI in a
+WebKit view with no browser chrome. Each launch is its own window/process,
+so the Agent Launcher can count open sessions.
+"""
+
+import os
+import signal
+import subprocess
+import sys
+import time
+import urllib.parse
+import urllib.request
+
+# Draw on the CPU: the NVIDIA driver's GPU path corrupts the page (striped
+# artefacts) and crashes WebKitWebProcess. A text UI loses nothing by it.
+os.environ.setdefault("WEBKIT_DISABLE_COMPOSITING_MODE", "1")
+os.environ.setdefault("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
+
+import gi
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+gi.require_version("WebKit2", "4.1")
+from gi.repository import Gdk, Gio, GLib, Gtk, WebKit2  # noqa: E402
+
+APP_ID = "org.umbra.wiki"
+URL = "http://127.0.0.1:8766/"
+
+
+def backend_up():
+    try:
+        urllib.request.urlopen(URL + "api/ping", timeout=1)
+        return True
+    except Exception:
+        return False
+
+
+def ensure_backend():
+    if backend_up():
+        return True
+    subprocess.run(["systemctl", "--user", "start", "umbra-wiki.service"], check=False)
+    for _ in range(60):
+        if backend_up():
+            return True
+        time.sleep(0.25)
+    return False
+
+
+class UmbraWiki(Gtk.Application):
+    def __init__(self, question=""):
+        # NON_UNIQUE: every launch opens its own window and process.
+        super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.NON_UNIQUE)
+        self.question = question
+
+    def do_activate(self):
+        win = Gtk.ApplicationWindow(application=self, title="Umbra Wiki")
+        win.set_default_size(1180, 820)
+        win.set_icon_name(APP_ID)
+
+        view = WebKit2.WebView()
+        view.set_background_color(Gdk.RGBA(9 / 255, 9 / 255, 9 / 255, 1))
+        settings = view.get_settings()
+        settings.set_enable_developer_extras(False)
+        settings.set_javascript_can_open_windows_automatically(False)
+        settings.set_hardware_acceleration_policy(WebKit2.HardwareAccelerationPolicy.NEVER)
+        view.connect("context-menu", lambda *_: True)  # no browser right-click menu
+
+        if ensure_backend():
+            query = "?" + urllib.parse.urlencode({"q": self.question}) if self.question else ""
+            view.load_uri(URL + query)
+        else:
+            view.load_html(
+                "<body style='background:#090909;color:#d35f5f;font:15px monospace;padding:40px'>"
+                "UMBRA WIKI // backend failed to start.<br><br>"
+                "Check: systemctl --user status umbra-wiki</body>", None)
+
+        win.add(view)
+        win.show_all()
+
+
+if __name__ == "__main__":
+    GLib.set_prgname(APP_ID)
+    GLib.set_application_name("Umbra Wiki")
+    app = UmbraWiki(" ".join(sys.argv[1:]).strip())
+    # Quit through GTK on SIGTERM so WebKit's helper processes shut down
+    # cleanly instead of being orphaned (and crashing).
+    try:
+        gi.require_version("GLibUnix", "2.0")
+        from gi.repository import GLibUnix
+        GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, signal.SIGTERM, lambda *_: app.quit() or GLib.SOURCE_REMOVE)
+    except (ImportError, ValueError):
+        GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGTERM, lambda *_: app.quit() or GLib.SOURCE_REMOVE)
+    # `umbra-wiki "question"` opens the window and asks it right away.
+    sys.exit(app.run(sys.argv[:1]))

@@ -1,0 +1,65 @@
+[
+  {
+    "id": "umbra", "name": "Umbra", "tagline": "Matte black, signal yellow",
+    "bg": "#090909", "bg1": "#0d0d0d", "bg2": "#131313", "bg3": "#1e1e1e", "line": "#2a2a2a", "muted": "#363636",
+    "fg": "#cbcbcb", "fgBright": "#f0f0f0", "dim": "#96969a", "faint": "#606060",
+    "signal": "#e8d27c", "shade1": "#b99b3f", "shade2": "#8f6d1f", "shade3": "#5c3f0c",
+    "accent": "#e68e0d", "red": "#e06a6a", "net": "#5fb8c9"
+  },
+  {
+    "id": "ember", "name": "Ember", "tagline": "Campfire orange on charred wood",
+    "bg": "#171311", "bg1": "#1c1714", "bg2": "#241e1a", "bg3": "#332a24", "line": "#3d322a", "muted": "#4a3e34",
+    "fg": "#dccbab", "fgBright": "#fbf1c7", "dim": "#ab9c86", "faint": "#6e6358",
+    "signal": "#fe8a3a", "shade1": "#c46412", "shade2": "#8f470b", "shade3": "#5c2e07",
+    "accent": "#fabd2f", "red": "#fb5a45", "net": "#8ec07c"
+  },
+  {
+    "id": "radiation", "name": "Radiation", "tagline": "Geiger green in the fallout shelter",
+    "bg": "#060a07", "bg1": "#0a100b", "bg2": "#0f1711", "bg3": "#17231a", "line": "#1f3024", "muted": "#29402f",
+    "fg": "#bddcc4", "fgBright": "#e6f7ea", "dim": "#84a88f", "faint": "#4d6a57",
+    "signal": "#9eff6e", "shade1": "#6fc24a", "shade2": "#4d8a33", "shade3": "#2f561f",
+    "accent": "#d4ff4a", "red": "#ff6a6a", "net": "#5fd7ff"
+  },
+  {
+    "id": "frostbite", "name": "Frostbite", "tagline": "Arctic slate and glacier ice",
+    "bg": "#1a1e26", "bg1": "#1f232c", "bg2": "#252a34", "bg3": "#2e3440", "line": "#3a4151", "muted": "#454e62",
+    "fg": "#dce2ec", "fgBright": "#f2f4f8", "dim": "#a0aabd", "faint": "#66728c",
+    "signal": "#8fd0e2", "shade1": "#5e9aac", "shade2": "#447787", "shade3": "#2c5563",
+    "accent": "#ebcb8b", "red": "#d0707a", "net": "#c3a0ce"
+  },
+  {
+    "id": "rustbelt", "name": "Rust Belt", "tagline": "Oxidised steel and copper wire",
+    "bg": "#15100e", "bg1": "#1b1411", "bg2": "#231a16", "bg3": "#30241f", "line": "#3a2c25", "muted": "#473731",
+    "fg": "#dccbbb", "fgBright": "#f5e8da", "dim": "#ab9583", "faint": "#6e5c51",
+    "signal": "#e8845a", "shade1": "#b35a35", "shade2": "#843f24", "shade3": "#582916",
+    "accent": "#dcaa4a", "red": "#e86060", "net": "#80bdb8"
+  },
+  {
+    "id": "nightfall", "name": "Nightfall", "tagline": "Violet dusk over a dead city",
+    "bg": "#12131d", "bg1": "#161724", "bg2": "#1c1e2e", "bg3": "#25293d", "line": "#30354c", "muted": "#3c4263",
+    "fg": "#c8d1f6", "fgBright": "#eaedff", "dim": "#949dc8", "faint": "#5a638c",
+    "signal": "#c3a4fa", "shade1": "#8c6fd1", "shade2": "#6a51a3", "shade3": "#463571",
+    "accent": "#7fa6f8", "red": "#f7849a", "net": "#80d4ff"
+  },
+  {
+    "id": "bunker", "name": "Bunker", "tagline": "Olive drab and army canvas",
+    "bg": "#14160f", "bg1": "#191c13", "bg2": "#20241a", "bg3": "#2a2f22", "line": "#34392b", "muted": "#404734",
+    "fg": "#d7cbb0", "fgBright": "#f0e8cf", "dim": "#a9a78d", "faint": "#6d7058",
+    "signal": "#c9cb74", "shade1": "#979945", "shade2": "#6f7130", "shade3": "#4a4b1e",
+    "accent": "#e89c7a", "red": "#e88486", "net": "#83c0b8"
+  },
+  {
+    "id": "bloodmoon", "name": "Blood Moon", "tagline": "Crimson sky, last light",
+    "bg": "#0f0a0b", "bg1": "#140c0e", "bg2": "#1b1013", "bg3": "#26161a", "line": "#331d22", "muted": "#40252b",
+    "fg": "#ddc8cb", "fgBright": "#f7e7e9", "dim": "#ab8e93", "faint": "#6f535a",
+    "signal": "#ff7676", "shade1": "#c94a4a", "shade2": "#963434", "shade3": "#642222",
+    "accent": "#ffbd73", "red": "#ff9aad", "net": "#8fd1ff"
+  },
+  {
+    "id": "daybreak", "name": "Daybreak", "tagline": "Paper and ink for bright sunlight",
+    "bg": "#f2efe6", "bg1": "#ebe7db", "bg2": "#e3ded0", "bg3": "#d6d0bf", "line": "#c7c0ac", "muted": "#b3ab96",
+    "fg": "#2a2925", "fgBright": "#0e0d0c", "dim": "#58564f", "faint": "#86816f",
+    "signal": "#a55a12", "shade1": "#d49a55", "shade2": "#e3bc88", "shade3": "#ecd5b3",
+    "accent": "#9a2d6a", "red": "#b02e27", "net": "#1f7d75"
+  }
+]

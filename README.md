@@ -1,44 +1,71 @@
 # Omarchy Umbra Agent Tool
 
-An Omarchy bar widget for all your AI in one place: on-device AI you can use
-offline, and the coding agents you run online. See what's running and open a
-new session with one click.
+An Omarchy bar widget for all your AI in one place: **Umbra Wiki**, an
+offline survival assistant that runs entirely on your computer, and the
+coding agents you use online. See what's running, open anything with one
+click, and theme it all.
 
 ![Omarchy Umbra Agent Tool panel](preview.png)
 
-## Features
+## The widget
 
-- A bar icon that lights up while anything is running and dims when nothing
-  is. Hover it for the number of running sessions.
-- Left click opens a panel with two sections:
-  - **LOCAL**: AI that runs on this computer. Your own local AI apps (added in
-    settings), plus every installed [Ollama](https://ollama.com) model. Each
-    shows **Ready**, or **Active** with its window or session count.
+- A bar icon (the Umbra emblem) that lights up while anything is running and
+  dims when nothing is.
+- Left click opens a panel with three sections:
+  - **LOCAL**: **Umbra Wiki**. Shows **Ready**, or **Active** with its open
+    window count. Not installed yet? The entry reads **Set up Umbra Wiki**
+    and runs the guided setup below.
+  - **THEME**: one swatch per Umbra Wiki theme. Click to switch; an open
+    Umbra Wiki window follows instantly, and the panel's accent colour does
+    too.
   - **ONLINE AGENTS**: every installed coding agent, marked **Online** (with
     its session count) or **Offline**. Your default agent is labelled.
-- Click any entry to open it in a new window: coding agents and Ollama models
-  in a terminal, local apps as their own app.
-- **No local AI yet?** The LOCAL section offers **Set up a local AI**: a
-  guided setup in a terminal that installs Ollama, lets you pick a model
-  (small, recommended or large, with download sizes) and downloads it. Nothing
-  is installed until you confirm.
+- Click an entry to open it in a new window.
 - Keyboard: `j`/`k` or the arrow keys to move, Enter to open, `r` to refresh,
-  Esc to close. Middle click on the icon refreshes; otherwise it refreshes
-  every 5 seconds.
+  Esc to close.
 
-Coding agents open exactly the way `omarchy agent` opens them: the same
-unattended flags, the same `org.omarchy.agent` window class (so your window
-rules still apply), and starting in `~/Work` when that directory exists.
+## Umbra Wiki
 
-## Supported online agents
+A question-and-answer assistant that feels like a conversation, built for
+when there's no internet, no help and no time to search:
 
-Claude Code, Codex, OpenCode, Gemini, Cursor CLI, GitHub Copilot, Crush, Grok,
-Pi, Oh My Pi, Hermes and Muse Code — the same agents
-`omarchy default agent` offers.
+- **Answers from your own offline library**: it searches your archives,
+  picks the passages that matter, and a local AI model (via
+  [Ollama](https://ollama.com)) answers with citations. Hover a citation for
+  a summary; click it to read the full article.
+- **Talks back**: asks you questions when your situation is unclear, and
+  suggests a useful follow-up after each answer.
+- **Safe with numbers**: quantities, doses and times are only stated when
+  they appear in the sources.
+- **Local by default, online when you choose**: a LINK switch adds
+  Wikipedia search when you have a connection, with a clear warning and a
+  confirmation to go back to local only.
+- **Library**: install extra collections (medicine, repair, energy,
+  gardening, radio and more) from the Library panel; downloads resume and are
+  checked against their official checksums.
+- **Nine themes** (Umbra, Ember, Radiation, Frostbite, Rust Belt, Nightfall,
+  Bunker, Blood Moon, Daybreak), quiet interface sounds with a mute button,
+  and a lock that freezes the window until you unlock it.
 
-Only agents that are actually installed are listed. Omarchy puts
-install-on-first-run stubs in `~/.local/bin` for every agent it offers; the
-widget recognises those and hides them until the agent is really installed.
+### Set up Umbra Wiki
+
+Click **Set up Umbra Wiki** in the widget. A terminal walks you through:
+
+1. installing Ollama and a few system packages (asks for your password)
+2. choosing an AI model: `gemma3:4b` (recommended, 3.3 GB), `gemma3:1b`
+   (fastest, 0.8 GB) or `llama3.1:8b` (most capable, 4.9 GB)
+3. optionally downloading the **Survival Essentials** library (0.9 GB:
+   water treatment, food preparation, knots, field and military medicine,
+   post-disaster guides)
+4. installing the Umbra Wiki app (launcher, app menu entry, icon and a
+   background service)
+
+Nothing is installed until you confirm. Everything is stored in your home
+folder: the library in `~/UmbraWiki/library`, settings in
+`~/.config/umbra-wiki/`.
+
+Speed depends on your computer: on a laptop without a GPU, expect the first
+words after 15–40 seconds and a full answer in about a minute.
 
 ## Install
 
@@ -56,72 +83,60 @@ you like with `omarchy bar move`.
 omarchy plugin remove io.github.umbraxc.agent-launcher
 ```
 
-This disables the plugin, unloads it from the bar and deletes its folder. The
-widget itself writes no files anywhere else. If you used **Set up a local
-AI**, Ollama and its models stay installed; remove them with
-`omarchy pkg drop ollama` and `rm -rf ~/.ollama /var/lib/ollama` (the
-latter needs `sudo`) if you no longer want them.
+This disables the plugin, unloads it from the bar and deletes its folder. If
+you set up Umbra Wiki, also remove what it installed in your home folder:
+
+```bash
+systemctl --user disable --now umbra-wiki
+rm -f ~/.local/bin/umbra-wiki ~/.config/systemd/user/umbra-wiki.service \
+  ~/.local/share/applications/org.umbra.wiki.desktop \
+  ~/.local/share/icons/hicolor/scalable/apps/org.umbra.wiki.svg
+rm -rf ~/.config/umbra-wiki ~/UmbraWiki      # your settings and library
+```
+
+Ollama and its models stay installed; remove them with
+`omarchy pkg drop ollama` and `sudo rm -rf /var/lib/ollama` if you no longer
+want them.
 
 ## Settings
 
 | Key | Default | What it does |
 |---|---|---|
 | `pollIntervalMs` | `5000` | How often the running counts refresh |
-| `showOllamaModels` | `true` | List installed Ollama models under LOCAL |
-| `localApps` | `[]` | Your own local AI apps to list under LOCAL |
 
 ```bash
 omarchy bar set io.github.umbraxc.agent-launcher pollIntervalMs 10000 --json
-omarchy bar set io.github.umbraxc.agent-launcher showOllamaModels false --json
 ```
 
-### Adding your own local AI app
-
-Add an entry to `localApps` in the widget's block in
-`~/.config/omarchy/shell.json`. For example, an app started with the command
-`umbra-wiki`:
-
-```json
-"localApps": [
-  {
-    "id": "umbra-wiki",
-    "name": "Umbra Wiki",
-    "command": "umbra-wiki",
-    "process": "umbra-wiki",
-    "description": "Gemma 3 · offline"
-  }
-]
-```
-
-- `command`: what to run when the entry is clicked. The entry only appears
-  while this command is installed.
-- `process`: the program name to count open windows by (defaults to the
-  command). Programs run through `python`, `node` or `bun` are matched by
-  their script name.
-- `description`: a short line shown under the name.
+Umbra Wiki's own settings live in `~/.config/umbra-wiki/config.json`
+(`model`, `libraryDir`) and `settings.json` (`theme`, `muted`).
 
 ## How it works
 
-`Panel.qml` draws the bar icon and panel. `agents.sh` does the rest:
-
-- `agents.sh status` prints one JSON line per entry (section, name, running
-  count), found by matching process names and asking the local Ollama service
-  for its models.
-- `agents.sh launch <id>` opens a coding agent or Ollama model through
-  `omarchy-launch-tui`; `agents.sh launch-app <command>` starts a local app.
-- `agents.sh setup-local` is the guided local AI setup.
+- `Panel.qml` draws the bar icon and panel; `agents.sh` lists agents, opens
+  them, switches themes and runs the guided setup.
+- `umbra-wiki/` is the app: `server.py` (a local backend on 127.0.0.1 that
+  runs `kiwix-serve` over the library, searches it and streams the model's
+  answer), `ui/` (the interface), `umbra-wiki` (the window), `install.sh`,
+  `fetch-archive.sh` and `library.json` (the collection catalog with sizes
+  and checksums).
 
 ## Requirements
 
 - Omarchy shell with third-party bar-widget support
-- Optional: coding agents and/or Ollama. Without either, the panel offers the
-  guided setup.
+- Optional: coding agents for the ONLINE section
 
-Showing and opening entries uses only tools every Omarchy system has (`bash`,
-`ps`, `awk`, `jq`, `curl`, `gum`) plus Omarchy's own commands. It needs no
-network access and never uses `sudo`. Only **Set up a local AI**, after you
-confirm it, installs the `ollama` package (asking for your password) and
-downloads a model from ollama.com.
+Showing and opening entries needs no network access and never uses `sudo`.
+Only **Set up Umbra Wiki**, after you confirm, installs packages (`ollama`,
+`python-gobject`, `webkit2gtk-4.1`, `gst-plugins-good`, `kiwix-tools`) with
+your password and downloads the model and library you choose. Umbra Wiki
+listens only on `127.0.0.1`; in LOCAL mode nothing leaves your computer.
+
+## Credits
+
+Library collections are published by their respective projects and
+distributed by [Kiwix](https://kiwix.org). AI models are provided through
+[Ollama](https://ollama.com) under their own licenses.
 
 ## License
 

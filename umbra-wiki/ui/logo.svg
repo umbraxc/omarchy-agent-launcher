@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Umbra Wiki emblem: hazard diamond with a faceted compass star. -->
+  <defs>
+    <clipPath id="band"><polygon points="24,86 104,86 64,122"/></clipPath>
+  </defs>
+  <polygon points="64,6 122,64 64,122 6,64" fill="#0d0d0d"/>
+  <g clip-path="url(#band)" stroke="#e8d27c" stroke-width="6" opacity=".85"><line x1="38" y1="84" x2="-8" y2="130"/><line x1="50" y1="84" x2="4" y2="130"/><line x1="62" y1="84" x2="16" y2="130"/><line x1="74" y1="84" x2="28" y2="130"/><line x1="86" y1="84" x2="40" y2="130"/><line x1="98" y1="84" x2="52" y2="130"/><line x1="110" y1="84" x2="64" y2="130"/><line x1="122" y1="84" x2="76" y2="130"/><line x1="134" y1="84" x2="88" y2="130"/><line x1="146" y1="84" x2="100" y2="130"/><line x1="158" y1="84" x2="112" y2="130"/><line x1="170" y1="84" x2="124" y2="130"/><line x1="182" y1="84" x2="136" y2="130"/></g>
+  <polygon points="64,6 122,64 64,122 6,64" fill="none" stroke="#e8d27c" stroke-width="5"/>
+  <polygon points="64,22 106,64 84,86 44,86 22,64" fill="none" stroke="#e68e0d" stroke-width="1.5" opacity=".6"/>
+  <g transform="translate(64 54) scale(.66) translate(-64 -64)">
+    <path d="M64 16 L57 57 L64 64 Z" fill="#e8d27c"/><path d="M64 16 L71 57 L64 64 Z" fill="#8f6d1f"/>
+    <path d="M100 64 L71 57 L64 64 Z" fill="#e8d27c"/><path d="M100 64 L71 71 L64 64 Z" fill="#8f6d1f"/>
+    <path d="M64 112 L71 71 L64 64 Z" fill="#e8d27c"/><path d="M64 112 L57 71 L64 64 Z" fill="#8f6d1f"/>
+    <path d="M28 64 L57 71 L64 64 Z" fill="#e8d27c"/><path d="M28 64 L57 57 L64 64 Z" fill="#8f6d1f"/>
+  </g>
+</svg>

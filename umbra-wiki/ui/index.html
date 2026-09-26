@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Umbra Wiki</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <!-- Animated emblem: caution tape crawls, the star breathes. -->
+    <svg class="mark" viewBox="0 0 128 128" aria-hidden="true">
+      <defs><clipPath id="band"><polygon points="24,86 104,86 64,122"/></clipPath></defs>
+      <polygon class="m-face" points="64,6 122,64 64,122 6,64"/>
+      <g clip-path="url(#band)"><g class="m-tape">
+        <path d="M-10 84 L-56 130 M2 84 L-44 130 M14 84 L-32 130 M26 84 L-20 130 M38 84 L-8 130 M50 84 L4 130 M62 84 L16 130 M74 84 L28 130 M86 84 L40 130 M98 84 L52 130 M110 84 L64 130 M122 84 L76 130 M134 84 L88 130 M146 84 L100 130 M158 84 L112 130"/>
+      </g></g>
+      <polygon class="m-edge" points="64,6 122,64 64,122 6,64"/>
+      <polygon class="m-frame" points="64,22 106,64 84,86 44,86 22,64"/>
+      <g class="m-star">
+        <path class="lit" d="M64 22 L59.4 49.1 L64 53.7 Z M87.8 53.7 L68.6 49.1 L64 53.7 Z M64 85.4 L68.6 58.3 L64 53.7 Z M40.2 53.7 L59.4 58.3 L64 53.7 Z"/>
+        <path class="shade" d="M64 22 L68.6 49.1 L64 53.7 Z M87.8 53.7 L68.6 58.3 L64 53.7 Z M64 85.4 L59.4 58.3 L64 53.7 Z M40.2 53.7 L59.4 49.1 L64 53.7 Z"/>
+      </g>
+    </svg>
+    <div>
+      <div class="name">UMBRA<span class="slash">//</span>WIKI</div>
+      <div class="tag">OFFLINE SURVIVAL INTELLIGENCE</div>
+    </div>
+  </div>
+  <div class="telemetry">
+    <button id="link" class="cell link" title="Switch between local archives and online search">
+      <span class="k">LINK ⇄</span><span class="v"><i class="dot"></i><b id="link-label">LOCAL</b></span>
+    </button>
+    <div class="cell net" id="t-net-cell" hidden>
+      <span class="k" id="t-net-k">NETWORK</span>
+      <span class="v"><span class="mask" id="t-net-mask">********</span><span class="real" id="t-net">--</span></span>
+    </div>
+    <div class="cell archives"><span class="k">ARCHIVES</span><span class="v" id="t-archives">--</span></div>
+    <div class="cell core"><span class="k">CORE</span><span class="v" id="t-model">--</span></div>
+    <div class="cell status"><span class="k">STATUS</span><span class="v" id="t-status">BOOTING</span></div>
+    <div class="controls">
+      <button id="library-btn" class="ctl" title="Library"><span class="g">󱉟</span></button>
+      <button id="theme-btn" class="ctl" title="Themes"><span class="g">󰏘</span></button>
+      <button id="sound" class="ctl" title="Sound on (click to mute)"><span class="g" id="sound-icon">󰕾</span></button>
+      <button id="lock" class="ctl" title="Lock the screen"><span class="g" id="lock-icon">󰌿</span></button>
+    </div>
+  </div>
+</header>
+<div class="hazard" aria-hidden="true"></div>
+<div id="netbanner" class="netbanner" hidden><span class="blink">◉</span> ONLINE · WIKIPEDIA SEARCH ACTIVE · QUESTIONS LEAVE THIS DEVICE</div>
+
+<main id="feed">
+  <section id="intro" class="intro">
+    <pre id="intro-orb" class="orb" aria-hidden="true"></pre>
+<pre class="ascii" aria-label="Umbra">██╗   ██╗███╗   ███╗██████╗ ██████╗  █████╗
+██║   ██║████╗ ████║██╔══██╗██╔══██╗██╔══██╗
+██║   ██║██╔████╔██║██████╔╝██████╔╝███████║
+██║   ██║██║╚██╔╝██║██╔══██╗██╔══██╗██╔══██║
+╚██████╔╝██║ ╚═╝ ██║██████╔╝██║  ██║██║  ██║
+ ╚═════╝ ╚═╝     ╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝</pre>
+    <div class="subtitle"><span class="hz blink">☢</span><span class="wiki">W I K I</span> KNOWLEDGE THAT WORKS WHEN NOTHING ELSE DOES <span class="hz blink">☢</span></div>
+    <div class="prompts">
+      <button class="chip">Purify water with no equipment</button>
+      <button class="chip">Treat a second-degree burn</button>
+      <button class="chip">Start a fire in wet conditions</button>
+      <button class="chip">Build an emergency shelter</button>
+      <button class="chip">Stop severe bleeding</button>
+      <button class="chip">Power a phone without the grid</button>
+    </div>
+  </section>
+</main>
+
+<aside id="reader" class="reader" hidden>
+  <div class="reader-bar">
+    <span class="reader-label">ARCHIVE</span>
+    <span id="reader-title" class="reader-title"></span>
+    <button id="reader-close" class="ghost" title="Close (Esc)">CLOSE ✕</button>
+  </div>
+  <iframe id="reader-frame" title="Source article"></iframe>
+</aside>
+
+<div id="themes" class="themes" hidden>
+  <div class="themes-head">
+    <span class="themes-title"><span class="spin" data-spin>✻</span> THEMES</span>
+    <button id="themes-close" class="ghost" title="Close (Esc)">CLOSE ✕</button>
+  </div>
+  <div id="theme-grid" class="theme-grid"></div>
+</div>
+
+<div id="library" class="themes" hidden>
+  <div class="themes-head">
+    <span class="themes-title"><span class="spin" data-spin>✻</span> LIBRARY</span>
+    <button id="library-close" class="ghost" title="Close (Esc)">CLOSE ✕</button>
+  </div>
+  <div id="library-body" class="library-body"></div>
+</div>
+
+<div id="lockshield" class="lockshield" hidden>
+  <div class="lockcard"><span class="lockglyph">󰌾</span><span>LOCKED</span><small>Unlock with the lock in the top right</small></div>
+</div>
+
+<div id="pop" class="pop" hidden>
+  <div class="pop-head"><span id="pop-n" class="pop-n"></span><span id="pop-kind" class="pop-kind"></span></div>
+  <div id="pop-title" class="pop-title"></div>
+  <div id="pop-archive" class="pop-archive"></div>
+  <div id="pop-summary" class="pop-summary"></div>
+  <div class="pop-hint">CLICK TO OPEN</div>
+</div>
+
+<div id="modal" class="modal" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div id="modal-tag" class="dialog-tag">WARNING</div>
+    <h2 id="modal-title"></h2>
+    <p id="modal-body"></p>
+    <div class="dialog-actions">
+      <button id="modal-cancel" class="ghost"></button>
+      <button id="modal-ok" class="solid"></button>
+    </div>
+  </div>
+</div>
+
+<footer class="dock">
+  <div id="phase" class="phase" hidden>
+    <div class="steps">
+      <span class="spin" data-spin>✻</span>
+      <span data-step="search">SCAN ARCHIVES</span>
+      <span data-step="read">EXTRACT SOURCES</span>
+      <span data-step="think">ANALYSE</span>
+      <span data-step="write">TRANSMIT</span>
+    </div>
+    <div class="bar"><i></i></div>
+    <span id="elapsed" class="elapsed">0.0s</span>
+  </div>
+  <form id="ask" class="ask" autocomplete="off">
+    <span class="caret">&gt;</span>
+    <textarea id="q" rows="1" placeholder="Ask anything: water, fire, wounds, repairs, power…" autofocus></textarea>
+    <button id="send" type="submit">TRANSMIT <kbd>⏎</kbd></button>
+  </form>
+  <div class="hint">ENTER send · SHIFT+ENTER new line · ESC stop · answers cite their sources: verify critical steps there</div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

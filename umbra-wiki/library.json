@@ -1,0 +1,211 @@
+[
+  {
+    "id": "zimgit-medicine",
+    "name": "Medical Library",
+    "description": "Books on field and emergency medicine",
+    "category": "medical",
+    "essential": true,
+    "file": "zimgit-medicine_en_2024-08.zim",
+    "size": 70179840,
+    "url": "https://lb.download.kiwix.org/zim/other/zimgit-medicine_en_2024-08.zim",
+    "sha256": "a86c31b93e9800aae2cd812ef18cbf9c087a7537784c62fbc259db7f9f9d18c0"
+  },
+  {
+    "id": "irp.fas.org_en_military-medicine",
+    "name": "Military Medicine",
+    "description": "Military field medicine manuals",
+    "category": "medical",
+    "essential": true,
+    "file": "irp.fas.org_en_military-medicine_2026-05.zim",
+    "size": 75875328,
+    "url": "https://lb.download.kiwix.org/zim/zimit/irp.fas.org_en_military-medicine_2026-05.zim",
+    "sha256": "51861e46ed9de76ae6a014bbe81ada999bc9a1bbe968e9217a8d53261561396e"
+  },
+  {
+    "id": "zimgit-knots",
+    "name": "A Library of Knots",
+    "description": "Illustrated knots, lashings, ladders and sutures",
+    "category": "survival",
+    "essential": true,
+    "file": "zimgit-knots_en_2024-08.zim",
+    "size": 27945984,
+    "url": "https://lb.download.kiwix.org/zim/other/zimgit-knots_en_2024-08.zim",
+    "sha256": "7c3120b19fc2dc190b5ebfee01af54150136643d7b9d29d7fa9a6ba29787a57b"
+  },
+  {
+    "id": "zimgit-food-preparation",
+    "name": "Food for Preppers",
+    "description": "Preparing and preserving food without modern supplies",
+    "category": "survival",
+    "essential": true,
+    "file": "zimgit-food-preparation_en_2025-04.zim",
+    "size": 97822720,
+    "url": "https://lb.download.kiwix.org/zim/other/zimgit-food-preparation_en_2025-04.zim",
+    "sha256": "db92c6c9dac14ff30f1cbc15aa834a7c012c6e87d4ff0519f33a0902ab6e732b"
+  },
+  {
+    "id": "zimgit-post-disaster",
+    "name": "Post Disaster Resource Library",
+    "description": "Shelter, sanitation and rebuilding after a disaster",
+    "category": "survival",
+    "essential": true,
+    "file": "zimgit-post-disaster_en_2024-05.zim",
+    "size": 644666368,
+    "url": "https://lb.download.kiwix.org/zim/other/zimgit-post-disaster_en_2024-05.zim",
+    "sha256": "0ba9bb358b768b94eb0d7920752fe356bf097de514ee61843f3a4da6cce174f8"
+  },
+  {
+    "id": "zimgit-water",
+    "name": "Water Treatment Library",
+    "description": "Collecting and purifying water",
+    "category": "survival",
+    "essential": true,
+    "file": "zimgit-water_en_2024-08.zim",
+    "size": 20925440,
+    "url": "https://lb.download.kiwix.org/zim/other/zimgit-water_en_2024-08.zim",
+    "sha256": "392c7bc970a44fddd61dd17f6eabf1f4e21936f2d5c27c83093e1dc475cb56b6"
+  },
+  {
+    "id": "nhs.uk_en_medicines",
+    "name": "NHS Medicines A–Z",
+    "description": "What common medicines do and how to take them",
+    "category": "medical",
+    "essential": false,
+    "file": "nhs.uk_en_medicines_2026-09b.zim",
+    "size": 15323136,
+    "url": "https://lb.download.kiwix.org/zim/zimit/nhs.uk_en_medicines_2026-09b.zim",
+    "sha256": "349f7bc833aa1cfedd1cdd10fbb9ae575aac63b22e17639bfaee6568b6668b62"
+  },
+  {
+    "id": "wikem_en_all",
+    "name": "WikEM",
+    "description": "Emergency medicine, step by step",
+    "category": "medical",
+    "essential": false,
+    "file": "wikem_en_all_maxi_2026-07.zim",
+    "size": 374632448,
+    "url": "https://lb.download.kiwix.org/zim/other/wikem_en_all_maxi_2026-07.zim",
+    "sha256": "7bbdd705544616df1ff37f8b4e0e5382e7b4d92532feecea42227af4169fbd7f"
+  },
+  {
+    "id": "wikipedia_en_medicine",
+    "name": "WikiMed",
+    "description": "The large medical encyclopedia, with images",
+    "category": "medical",
+    "essential": false,
+    "file": "wikipedia_en_medicine_maxi_2026-04.zim",
+    "size": 2215521280,
+    "url": "https://lb.download.kiwix.org/zim/wikipedia/wikipedia_en_medicine_maxi_2026-04.zim",
+    "sha256": "6f67340a7cd7665bb57c27d2bbff97e26f2037477c9ea597345a118286820331"
+  },
+  {
+    "id": "wikivet.net_en_all",
+    "name": "WikiVet",
+    "description": "Animal health for livestock and pets",
+    "category": "medical",
+    "essential": false,
+    "file": "wikivet.net_en_all_maxi_2026-07a.zim",
+    "size": 56980480,
+    "url": "https://lb.download.kiwix.org/zim/other/wikivet.net_en_all_maxi_2026-07a.zim",
+    "sha256": "e61ac3cd607bfb85ea2256d0c75b5d741149421d8b1bf486a569c347adcab66a"
+  },
+  {
+    "id": "ham.stackexchange.com",
+    "name": "Amateur Radio Q&A",
+    "description": "Communication when phones and internet are down",
+    "category": "practical",
+    "essential": false,
+    "file": "ham.stackexchange.com_en_all_2026-08.zim",
+    "size": 75931648,
+    "url": "https://lb.download.kiwix.org/zim/stack_exchange/ham.stackexchange.com_en_all_2026-08.zim",
+    "sha256": "71480bd280ffaede3084fa2c9f47f87c3178f8ce8d67cdb19fb66a8025a7b93e"
+  },
+  {
+    "id": "appropedia_en_all",
+    "name": "Appropedia",
+    "description": "Low-tech solutions: water, stoves, building",
+    "category": "practical",
+    "essential": false,
+    "file": "appropedia_en_all_maxi_2026-02.zim",
+    "size": 581642240,
+    "url": "https://lb.download.kiwix.org/zim/other/appropedia_en_all_maxi_2026-02.zim",
+    "sha256": "dcf200ba723c27397e1c9a2e4891ff91fa13993df1fa285315190d8525a53469"
+  },
+  {
+    "id": "cooking.stackexchange.com",
+    "name": "Cooking Q&A",
+    "description": "Cooking and food safety",
+    "category": "practical",
+    "essential": false,
+    "file": "cooking.stackexchange.com_en_all_2026-07.zim",
+    "size": 237005824,
+    "url": "https://lb.download.kiwix.org/zim/stack_exchange/cooking.stackexchange.com_en_all_2026-07.zim",
+    "sha256": "b0529b24e964e2552e6a1fc41ca7573ed269635802c01fb4cb082b25b7099ae1"
+  },
+  {
+    "id": "gardening.stackexchange.com",
+    "name": "Gardening Q&A",
+    "description": "Growing food, soil and pests",
+    "category": "practical",
+    "essential": false,
+    "file": "gardening.stackexchange.com_en_all_2026-08.zim",
+    "size": 926806016,
+    "url": "https://lb.download.kiwix.org/zim/stack_exchange/gardening.stackexchange.com_en_all_2026-08.zim",
+    "sha256": "b8a3e0db65d8a678b47accefd8565f78af0caeb454672fe0d5f365336c71c25e"
+  },
+  {
+    "id": "gardenology.org",
+    "name": "Gardenology",
+    "description": "Plant and garden encyclopedia",
+    "category": "practical",
+    "essential": false,
+    "file": "gardenology.org_en_all_2026-09.zim",
+    "size": 112499712,
+    "url": "https://lb.download.kiwix.org/zim/other/gardenology.org_en_all_2026-09.zim",
+    "sha256": "796c4930a18174ef39c2f7aa676d9773d4d9c0f7c9f0eeae9a9338889edfd6c9"
+  },
+  {
+    "id": "sustainability.stackexchange.com",
+    "name": "Sustainable Living Q&A",
+    "description": "Self-sufficient living",
+    "category": "practical",
+    "essential": false,
+    "file": "sustainability.stackexchange.com_en_all_2026-08.zim",
+    "size": 27667456,
+    "url": "https://lb.download.kiwix.org/zim/stack_exchange/sustainability.stackexchange.com_en_all_2026-08.zim",
+    "sha256": "e9a00e1d1032bc1a5859e1a7553e6b243fcecd0c82ba372548af517119ebd75d"
+  },
+  {
+    "id": "energypedia_en_all",
+    "name": "energypedia",
+    "description": "Solar, wind and off-grid power",
+    "category": "practical",
+    "essential": false,
+    "file": "energypedia_en_all_maxi_2026-06.zim",
+    "size": 799713280,
+    "url": "https://lb.download.kiwix.org/zim/other/energypedia_en_all_maxi_2026-06.zim",
+    "sha256": "c328df321497003e30f96af67340c04bff52e2831e09cf2b0c0fde52bba23bd0"
+  },
+  {
+    "id": "ifixit_en_all",
+    "name": "iFixit",
+    "description": "Repair guides for devices, tools and machines",
+    "category": "practical",
+    "essential": false,
+    "file": "ifixit_en_all_2025-12.zim",
+    "size": 3570696192,
+    "url": "https://lb.download.kiwix.org/zim/ifixit/ifixit_en_all_2025-12.zim",
+    "sha256": "9bb5f3408707fd0300c6ef47a425c3217187f144cd9154a928183816aa72eead"
+  },
+  {
+    "id": "outdoors.stackexchange.com",
+    "name": "The Great Outdoors Q&A",
+    "description": "Wilderness skills: fire, navigation, shelter",
+    "category": "survival",
+    "essential": false,
+    "file": "outdoors.stackexchange.com_en_all_2026-08.zim",
+    "size": 141408256,
+    "url": "https://lb.download.kiwix.org/zim/stack_exchange/outdoors.stackexchange.com_en_all_2026-08.zim",
+    "sha256": "78dccd2b5f784b17d1a22b1f65e64a74c53fa473e08f995440ff38bd8417cf1b"
+  }
+]

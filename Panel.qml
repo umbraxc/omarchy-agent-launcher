@@ -7,11 +7,10 @@ import Quickshell.Io
 import qs.Commons
 import qs.Ui
 
-// Omarchy Umbra Agent Tool: bar icon + popup with two sections. LOCAL lists
-// on-device AI (custom apps from settings, Ollama models, or a guided setup
-// entry); ONLINE AGENTS lists installed coding agents with their running
-// sessions. Clicking an entry opens it in a new window. All process and
-// launch logic lives in agents.sh.
+// Omarchy Umbra Agent Tool: bar icon + popup. LOCAL is Umbra Wiki (or its
+// guided setup), ONLINE AGENTS lists installed coding agents with their
+// running sessions, and THEME switches Umbra Wiki's colours. Clicking an
+// entry opens it in a new window. All process logic lives in agents.sh.
 Panel {
   id: root
   moduleName: "io.github.umbraxc.agent-launcher"
@@ -27,7 +26,14 @@ Panel {
 
   readonly property color foreground: bar ? bar.foreground : Color.foreground
   readonly property color dim: Qt.darker(foreground, 1.55)
-  readonly property color online: Color.accent
+  // The panel's accent follows the Umbra Wiki theme.
+  property var themes: []
+  property string currentTheme: ""
+  readonly property var themeInfo: {
+    for (var i = 0; i < themes.length; i++) if (themes[i].id === currentTheme) return themes[i]
+    return null
+  }
+  readonly property color online: themeInfo ? themeInfo.signal : Color.accent
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
 
   property var agents: []
@@ -44,14 +50,17 @@ Panel {
 
   function refresh() {
     if (!statusProc.running) statusProc.running = true
+    if (!themeProc.running) themeProc.running = true
+  }
+
+  function setTheme(id) {
+    currentTheme = id
+    Quickshell.execDetached([root.script, "theme", id])
   }
 
   function launch(agent) {
     if (!agent) return
-    if (agent.id.indexOf("app:") === 0)
-      Quickshell.execDetached([root.script, "launch-app", agent.id.substring(4)])
-    else
-      Quickshell.execDetached([root.script, "launch", agent.id])
+    Quickshell.execDetached([root.script, "launch", agent.id])
     root.close()
     // Pick up the new session without waiting for the next poll.
     refreshSoon.restart()
@@ -69,9 +78,7 @@ Panel {
 
   Process {
     id: statusProc
-    command: [root.script, "status",
-      JSON.stringify(root.setting("localApps", [])),
-      root.setting("showOllamaModels", true) ? "true" : "false"]
+    command: [root.script, "status"]
     stdout: StdioCollector {
       onStreamFinished: {
         var list = []
@@ -81,6 +88,20 @@ Panel {
           try { list.push(JSON.parse(lines[i])) } catch (e) {}
         }
         root.agents = list
+      }
+    }
+  }
+
+  Process {
+    id: themeProc
+    command: [root.script, "themes"]
+    stdout: StdioCollector {
+      onStreamFinished: {
+        try {
+          var t = JSON.parse(String(text || "{}"))
+          root.themes = t.themes || []
+          root.currentTheme = t.current || ""
+        } catch (e) {}
       }
     }
   }
@@ -161,6 +182,62 @@ Panel {
         }
 
         PanelSeparator {
+          visible: root.themes.length > 0
+          foreground: root.foreground
+        }
+
+        PanelSectionHeader {
+          visible: root.themes.length > 0
+          text: "THEME · " + (root.themeInfo ? root.themeInfo.name.toUpperCase() : "")
+          foreground: root.foreground
+          fontFamily: root.fontFamily
+        }
+
+        // One swatch per Umbra Wiki theme; the open window follows along.
+        Flow {
+          visible: root.themes.length > 0
+          width: parent.width
+          spacing: Style.space(6)
+
+          Repeater {
+            model: root.themes
+
+            Rectangle {
+              required property var modelData
+              readonly property bool current: modelData.id === root.currentTheme
+              width: Style.space(26)
+              height: Style.space(26)
+              color: modelData.bg
+              border.width: current ? 2 : 1
+              border.color: current ? modelData.signal : Qt.darker(root.foreground, 2.2)
+
+              Rectangle {
+                anchors.centerIn: parent
+                width: parent.width * (parent.current ? 0.5 : 0.36)
+                height: width
+                rotation: 45
+                color: parent.modelData.signal
+                Behavior on width { NumberAnimation { duration: 120 } }
+              }
+
+              MouseArea {
+                id: swatchMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.setTheme(parent.modelData.id)
+              }
+
+              PanelToolTip {
+                visible: swatchMouse.containsMouse
+                text: parent.modelData.name
+                fontFamily: root.fontFamily
+              }
+            }
+          }
+        }
+
+        PanelSeparator {
           foreground: root.foreground
         }
 
@@ -222,9 +299,8 @@ Panel {
       if (isSetup) return agent.detail
       var n = agent.running
       if (isLocal) {
-        var unit = agent.id.indexOf("app:") === 0 ? "window" : "session"
         var detail = agent.detail ? " · " + agent.detail : ""
-        return (n > 0 ? "Active · " + n + " " + unit + (n === 1 ? "" : "s") : "Ready") + detail
+        return (n > 0 ? "Active · " + n + " window" + (n === 1 ? "" : "s") : "Ready") + detail
       }
       return n > 0 ? "Online · " + n + " session" + (n === 1 ? "" : "s") : "Offline"
     }
