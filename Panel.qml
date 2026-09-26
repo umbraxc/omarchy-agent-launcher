@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Shapes
 import Quickshell
 import Quickshell.Io
 import qs.Commons
@@ -102,9 +103,12 @@ Panel {
     id: button
     anchors.fill: parent
     bar: root.bar
-    // nf-md-brain; dimmed when nothing is running.
-    text: "󰧑"
-    foreground: root.totalRunning > 0 ? root.barForeground : Qt.darker(root.barForeground, 1.55)
+    // The Umbra Wiki emblem in the bar's own colour; dimmed when idle.
+    iconComponent: Component {
+      UmbraMark {
+        color: root.totalRunning > 0 ? root.barForeground : Qt.darker(root.barForeground, 1.55)
+      }
+    }
     tooltipText: root.totalRunning === 0
       ? "Agents: none running"
       : "Agents: " + root.totalRunning + " running"
@@ -299,6 +303,46 @@ Panel {
         color: root.dim
         font.family: root.fontFamily
         font.pixelSize: Style.font.heading
+      }
+    }
+  }
+
+  // Hazard diamond with a compass star, drawn in the 128-unit space of the
+  // Umbra Wiki logo and scaled to the bar's icon canvas. The star's two
+  // facets use full and half strength so it keeps its depth in one colour.
+  component UmbraMark: Item {
+    id: mark
+    property color color: root.barForeground
+    readonly property real unit: Math.min(width, height) / 128
+
+    Shape {
+      width: 128
+      height: 128
+      scale: mark.unit
+      transformOrigin: Item.TopLeft
+      preferredRendererType: Shape.CurveRenderer
+
+      ShapePath {
+        strokeColor: mark.color
+        strokeWidth: 9
+        fillColor: "transparent"
+        joinStyle: ShapePath.MiterJoin
+        PathSvg { path: "M64 8 L120 64 L64 120 L8 64 Z" }
+      }
+      ShapePath {
+        strokeWidth: -1
+        fillColor: Qt.rgba(mark.color.r, mark.color.g, mark.color.b, 0.45)
+        PathSvg { path: "M40 98 L88 98 L64 122 Z" }
+      }
+      ShapePath {
+        strokeWidth: -1
+        fillColor: mark.color
+        PathSvg { path: "M64 20 L54 48 L64 58 Z M98 58 L74 48 L64 58 Z M64 96 L74 68 L64 58 Z M30 58 L54 68 L64 58 Z" }
+      }
+      ShapePath {
+        strokeWidth: -1
+        fillColor: Qt.rgba(mark.color.r, mark.color.g, mark.color.b, 0.55)
+        PathSvg { path: "M64 20 L74 48 L64 58 Z M98 58 L74 68 L64 58 Z M64 96 L54 68 L64 58 Z M30 58 L54 48 L64 58 Z" }
       }
     }
   }
