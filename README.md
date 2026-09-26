@@ -42,6 +42,16 @@ omarchy bar put io.github.umbraxc.agent-launcher --before omarchy.network
 The second command puts the icon just left of the Wi-Fi icon. Put it anywhere
 you like with `omarchy bar move`.
 
+## Uninstall
+
+```bash
+omarchy plugin remove io.github.umbraxc.agent-launcher
+```
+
+This disables the plugin, unloads it from the bar and deletes its folder. The
+plugin writes no files of its own anywhere else, so there is nothing else to
+clean up.
+
 ## Settings
 
 | Key | Default | What it does |
@@ -64,6 +74,11 @@ omarchy bar set io.github.umbraxc.agent-launcher pollIntervalMs 10000 --json
 
 - Omarchy shell with third-party bar-widget support
 - At least one supported coding agent installed
+
+No external dependencies. The widget uses only `bash`, `ps` and `awk`, which
+every Omarchy system has, plus Omarchy's own `omarchy-default-agent` and
+`omarchy-launch-tui` commands. It downloads nothing, needs no network access
+and never uses `sudo`.
 
 ## License
 
