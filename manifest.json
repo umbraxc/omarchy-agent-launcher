@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.umbraxc.agent-launcher",
+  "name": "Agent Launcher",
+  "version": "1.0.0",
+  "author": "umbraxc",
+  "license": "MIT",
+  "description": "Shows which coding agents are installed and running, and opens a new session with one click",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Agent Launcher",
+    "description": "Installed coding agents with live session counts; click one to open a new session",
+    "category": "AI",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "pollIntervalMs": 5000
+    },
+    "schema": [
+      {
+        "key": "pollIntervalMs",
+        "type": "integer",
+        "label": "Status refresh (ms)",
+        "min": 1000,
+        "max": 60000,
+        "step": 1000,
+        "defaultValue": 5000
+      }
+    ]
+  }
+}
