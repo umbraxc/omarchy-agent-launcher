@@ -899,6 +899,45 @@ def history_delete(conv_id):
     return history_list()
 
 
+SCENARIOS_FILE = os.path.join(CONFIG_DIR, "scenarios.json")  # made in the editor
+SCENARIO_STATS = ("Threat", "Scarcity", "Isolation", "Urgency", "Duration")
+
+
+def custom_scenarios():
+    try:
+        with open(SCENARIOS_FILE) as f:
+            items = json.load(f)
+        return items if isinstance(items, list) else []
+    except (OSError, ValueError):
+        return []
+
+
+def save_scenario(item):
+    if not isinstance(item, dict) or not re.fullmatch(r"custom-[a-z0-9-]{1,24}", str(item.get("id", ""))):
+        raise ValueError("bad id")
+    clean = {
+        "id": item["id"], "custom": True,
+        "name": str(item.get("name", "Custom"))[:28] or "Custom",
+        "tagline": str(item.get("tagline", ""))[:48],
+        "situation": str(item.get("situation", ""))[:500],
+        "base": str(item.get("base", "everyday"))[:24] if re.fullmatch(r"[a-z-]{1,24}", str(item.get("base", ""))) else "everyday",
+        "stats": {t: max(1, min(5, int((item.get("stats") or {}).get(t, 2)))) for t in SCENARIO_STATS},
+    }
+    items = [x for x in custom_scenarios() if x.get("id") != clean["id"]] + [clean]
+    write_json_list(SCENARIOS_FILE, items)
+    return items
+
+
+def delete_scenario(item_id):
+    items = [x for x in custom_scenarios() if x.get("id") != item_id]
+    write_json_list(SCENARIOS_FILE, items)
+    settings = read_json(SETTINGS_FILE, {})
+    if settings.get("scenario") == item_id:
+        settings["scenario"] = "everyday"
+        write_json(SETTINGS_FILE, settings)
+    return items
+
+
 def trait_lines(stats, no_humor):
     """Turn the 1–5 trait values into short style instructions."""
     lines = []
@@ -954,7 +993,11 @@ def build_system_prompt(online=False):
         loadout = json.load(open(LOADOUT_FILE))
     except (OSError, ValueError):
         return SYSTEM_PROMPT
-    scenario = next((x for x in loadout["scenarios"] if x["id"] == settings.get("scenario")), loadout["scenarios"][0])
+    scenario = next((x for x in loadout["scenarios"] + custom_scenarios() if x["id"] == settings.get("scenario")),
+                    loadout["scenarios"][0])
+    if scenario.get("custom"):
+        scenario = {**scenario, "prompt": f"The user's situation, in their own words: {(scenario.get('situation') or scenario['name']).rstrip('. ')}. "
+                    "Adapt your help to it; if it isn't about survival, you may answer from your own knowledge."}
     people = loadout["personalities"] + custom_personalities()
     person = next((x for x in people if x["id"] == settings.get("personality")), loadout["personalities"][0])
     if person.get("custom"):
@@ -1030,6 +1073,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(conv or {"error": "not found"}, 200 if conv else 404)
         if path == "/api/personalities":
             return self.send_json(custom_personalities())
+        if path == "/api/scenarios":
+            return self.send_json(custom_scenarios())
         if path == "/api/themes":
             return self.send_json(custom_themes())
         if path == "/api/omarchy-theme":
@@ -1092,6 +1137,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(save_personality(self.read_json().get("personality")))
             except (ValueError, TypeError) as e:
                 return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/scenarios":
+            try:
+                return self.send_json(save_scenario(self.read_json().get("scenario")))
+            except (ValueError, TypeError) as e:
+                return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/scenarios/delete":
+            return self.send_json(delete_scenario(str(self.read_json().get("id", ""))))
         if self.path == "/api/personalities/delete":
             return self.send_json(delete_personality(str(self.read_json().get("id", ""))))
         if self.path == "/api/themes":

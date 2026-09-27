@@ -6,7 +6,8 @@
 (() => {
   const state = {
     data: { scenarios: [], personalities: [] },
-    custom: [],
+    custom: [],           // personalities made in the editor
+    customScenarios: [],  // scenarios made in the editor
     scenario: "everyday",
     personality: "umbra",
     tab: "personality",
@@ -27,18 +28,22 @@
   const detail = overlay.querySelector(".lo-detail");
 
   const personalities = () => state.data.personalities.concat(state.custom);
+  const scenarios = () => state.data.scenarios.concat(state.customScenarios);
   const faces = () => state.data.personalities.map((p) => p.art);
-  const artOf = (item) => item.art || faces()[item.face || 0] || faces()[0];
-  const list = () => (state.tab === "scenario" ? state.data.scenarios : personalities());
+  // A custom scenario borrows the look (and waiting scenes) of a built-in one.
+  const baseScenario = (item) => state.data.scenarios.find((x) => x.id === item.base) || state.data.scenarios[0];
+  const artOf = (item) => item.art || (item.base ? baseScenario(item).art : null) || faces()[item.face || 0] || faces()[0];
+  const list = () => (state.tab === "scenario" ? scenarios() : personalities());
   const current = () => (state.tab === "scenario" ? state.scenario : state.personality);
   const find = (id, kind = state.tab) =>
-    (kind === "scenario" ? state.data.scenarios : personalities()).find((x) => x.id === id);
+    (kind === "scenario" ? scenarios() : personalities()).find((x) => x.id === id);
 
   // ---------------------------------------------------------- loading
 
   async function load() {
     try { state.data = await (await fetch("loadout.json")).json(); } catch {}
     try { state.custom = await (await fetch("/api/personalities")).json(); } catch {}
+    try { state.customScenarios = await (await fetch("/api/scenarios")).json(); } catch {}
     try {
       const s = await (await fetch("/api/settings")).json();
       if (s.scenario && find(s.scenario, "scenario")) state.scenario = s.scenario;
@@ -55,7 +60,7 @@
     if (chip && sc && pe) chip.textContent = `${sc.name} · ${pe.name}`.toUpperCase();
     window.loadoutQuips = (pe && pe.quips) || [];
     window.loadoutPersona = (pe && pe.name) || "";
-    window.loadoutScenario = state.scenario;
+    window.loadoutScenario = sc && sc.custom ? sc.base : state.scenario;   // picks the waiting scenes
   }
 
   // ----------------------------------------------------------- motion
@@ -103,14 +108,14 @@
       card.addEventListener("click", () => { state.selected = item.id; Sound.click(); render(); });
       grid.appendChild(card);
     });
-    if (state.tab === "personality") {
-      const create = document.createElement("button");
-      create.className = "lo-card lo-create";
-      create.innerHTML = `<span class="lo-plus">+</span><span class="lo-name">Create personality</span><span class="lo-tag">Your own voice and traits</span>`;
-      create.addEventListener("mouseenter", Sound.hover);
-      create.addEventListener("click", () => editor(null));
-      grid.appendChild(create);
-    }
+    const create = document.createElement("button");
+    create.className = "lo-card lo-create";
+    create.innerHTML = state.tab === "personality"
+      ? `<span class="lo-plus">+</span><span class="lo-name">Create personality</span><span class="lo-tag">Your own voice and traits</span>`
+      : `<span class="lo-plus">+</span><span class="lo-name">Create scenario</span><span class="lo-tag">Any situation or purpose</span>`;
+    create.addEventListener("mouseenter", Sound.hover);
+    create.addEventListener("click", () => (state.tab === "personality" ? editor(null) : scenarioEditor(null)));
+    grid.appendChild(create);
     showDetail(find(state.selected));
   }
 
@@ -138,11 +143,11 @@
       </div>`;
     detail.querySelector(".lo-dname").textContent = item.name.toUpperCase();
     detail.querySelector(".lo-dtag").textContent = item.tagline || "";
-    detail.querySelector(".lo-desc").textContent = item.description || item.voice || "";
+    detail.querySelector(".lo-desc").textContent = item.description || item.voice || item.situation || "";
     if (item.sample) detail.querySelector(".lo-sample").textContent = `“${item.sample}”`;
     state.stopAnim = animate(detail.querySelector(".lo-portrait"), artOf(item), state.tab);
     detail.querySelector(".lo-deploy").addEventListener("click", () => deploy(item));
-    detail.querySelector(".lo-edit")?.addEventListener("click", () => editor(item));
+    detail.querySelector(".lo-edit")?.addEventListener("click", () => (state.tab === "scenario" ? scenarioEditor(item) : editor(item)));
     detail.querySelector(".lo-del")?.addEventListener("click", () => remove(item));
   }
 
@@ -157,16 +162,24 @@
   }
 
   async function remove(item) {
+    const scenario = state.tab === "scenario";
     const ok = await confirmDialog({
       kind: "to-local", tag: "DELETE", title: `DELETE "${item.name.toUpperCase()}"?`,
-      body: "This personality will be removed. You can always create it again.", ok: "DELETE", cancel: "KEEP",
+      body: `This ${scenario ? "scenario" : "personality"} will be removed. You can always create it again.`, ok: "DELETE", cancel: "KEEP",
     });
     if (!ok) return;
-    state.custom = await (await fetch("/api/personalities/delete", {
+    const res = await (await fetch(scenario ? "/api/scenarios/delete" : "/api/personalities/delete", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: item.id }),
     })).json();
-    if (state.personality === item.id) state.personality = "umbra";
-    state.selected = state.personality;
+    if (scenario) {
+      state.customScenarios = res;
+      if (state.scenario === item.id) state.scenario = "everyday";
+      state.selected = state.scenario;
+    } else {
+      state.custom = res;
+      if (state.personality === item.id) state.personality = "umbra";
+      state.selected = state.personality;
+    }
     applyLoadout();
     render();
   }
@@ -239,6 +252,79 @@
       });
       if (!res.ok) { Sound.error(); return; }
       state.custom = await res.json();
+      if (stop) stop();
+      state.selected = draft.id;
+      await deploy(find(draft.id));
+    });
+    Sound.click();
+  }
+
+  // Your own scenario: a name, the situation in your own words, a look
+  // (borrowed from a built-in scenario, with its waiting scenes) and stats.
+  function scenarioEditor(existing) {
+    if (state.stopAnim) state.stopAnim();
+    const draft = existing ? JSON.parse(JSON.stringify(existing)) : {
+      name: "", tagline: "", situation: "", base: "everyday",
+      stats: { Threat: 2, Scarcity: 2, Isolation: 2, Urgency: 2, Duration: 2 },
+    };
+    detail.innerHTML = `
+      <div class="lo-ed-title">${existing ? "EDIT SCENARIO" : "CREATE SCENARIO"}</div>
+      <div class="lo-face">
+        <button class="ghost lo-prev" title="Previous look">◂</button>
+        <pre class="lo-portrait"></pre>
+        <button class="ghost lo-next" title="Next look">▸</button>
+      </div>
+      <label class="lo-field"><span>NAME</span><input class="lo-in-name" maxlength="28" placeholder="Sailing Trip"></label>
+      <label class="lo-field"><span>TAGLINE</span><input class="lo-in-tag" maxlength="48" placeholder="A week at sea on a small boat"></label>
+      <label class="lo-field"><span>THE SITUATION</span><textarea class="lo-in-voice" maxlength="500" rows="4"
+        placeholder="I'm crewing on a small sailboat for a week. Help with knots, weather, seasickness, cooking on board and what to do if something goes wrong. Or anything else: 'I'm learning Spanish', 'I'm planning a garden'…"></textarea></label>
+      <div class="lo-sliders"></div>
+      <div class="lo-actions">
+        <button class="ghost lo-cancel">CANCEL</button>
+        <button class="solid lo-save">SAVE &amp; DEPLOY</button>
+      </div>`;
+    const q = (sel) => detail.querySelector(sel);
+    q(".lo-in-name").value = draft.name;
+    q(".lo-in-tag").value = draft.tagline || "";
+    q(".lo-in-voice").value = draft.situation || "";
+    const looks = state.data.scenarios;
+    let look = Math.max(0, looks.findIndex((x) => x.id === draft.base));
+    let stop = null;
+    const showLook = () => {
+      if (stop) stop();
+      draft.base = looks[look].id;
+      stop = animate(q(".lo-portrait"), looks[look].art, "scenario");
+    };
+    showLook();
+    q(".lo-prev").addEventListener("click", () => { look = (look + looks.length - 1) % looks.length; Sound.click(); showLook(); });
+    q(".lo-next").addEventListener("click", () => { look = (look + 1) % looks.length; Sound.click(); showLook(); });
+
+    const sliders = q(".lo-sliders");
+    for (const t of Object.keys(draft.stats)) {
+      const row = document.createElement("label");
+      row.className = "lo-slider";
+      row.innerHTML = `<span class="lo-sk"></span><input type="range" min="1" max="5" step="1"><b></b>`;
+      row.querySelector(".lo-sk").textContent = t.toUpperCase();
+      const input = row.querySelector("input");
+      const val = row.querySelector("b");
+      input.value = draft.stats[t];
+      val.textContent = input.value;
+      input.addEventListener("input", () => { draft.stats[t] = Number(input.value); val.textContent = input.value; });
+      sliders.appendChild(row);
+    }
+
+    q(".lo-cancel").addEventListener("click", () => { if (stop) stop(); Sound.click(); render(); });
+    q(".lo-save").addEventListener("click", async () => {
+      draft.name = q(".lo-in-name").value.trim() || "My scenario";
+      draft.tagline = q(".lo-in-tag").value.trim();
+      draft.situation = q(".lo-in-voice").value.trim();
+      const slug = draft.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "scenario";
+      draft.id = existing ? existing.id : `custom-${slug}`;
+      const res = await fetch("/api/scenarios", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scenario: draft }),
+      });
+      if (!res.ok) { Sound.error(); return; }
+      state.customScenarios = await res.json();
       if (stop) stop();
       state.selected = draft.id;
       await deploy(find(draft.id));

@@ -118,11 +118,12 @@ themes() {
 }
 
 loadout() {
-  local settings='{}' custom='[]'
+  local settings='{}' custom='[]' scenarios='[]'
   [[ -f $umbra_config/settings.json ]] && settings=$(cat "$umbra_config/settings.json")
   [[ -f $umbra_config/personalities.json ]] && custom=$(cat "$umbra_config/personalities.json")
-  jq -c --argjson s "$settings" --argjson custom "$custom" '
-    (.scenarios[] | select(.id == ($s.scenario // "everyday"))) as $sc
+  [[ -f $umbra_config/scenarios.json ]] && scenarios=$(cat "$umbra_config/scenarios.json")
+  jq -c --argjson s "$settings" --argjson custom "$custom" --argjson scenarios "$scenarios" '
+    (first((.scenarios + $scenarios)[] | select(.id == ($s.scenario // "everyday"))) // .scenarios[0]) as $sc
     | ((.personalities + $custom)[] | select(.id == ($s.personality // "umbra"))) as $pe
     | {scenario: $sc.name, personality: $pe.name,
        face: ($pe.art // .personalities[($pe.face // 0)].art)[0]}' \

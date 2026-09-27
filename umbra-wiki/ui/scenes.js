@@ -232,6 +232,80 @@
         },
       };
     })(),
+
+    // ------------------------------------------- homestead, workshop
+    garden: {
+      ms: 480,
+      frame: (t) => {
+        const ground = "▁▁▁▁▁▁▁▁▁";
+        return [
+          ["         ", "         ", "         ", "    .    ", ground],
+          ["         ", "         ", "         ", "    |    ", ground],
+          ["         ", "         ", "   \\|    ", "    |    ", ground],
+          ["         ", "         ", "   \\|/   ", "    |    ", ground],
+          ["         ", "    |    ", "   \\|/   ", "    |    ", ground],
+          ["   (*)   ", "    |    ", "   \\|/   ", "    |    ", ground],
+        ][Math.min(t % 9, 5)];
+      },
+    },
+
+    gears: {
+      ms: 200,
+      frame: (t) => ["  .-.   .-.  ", ` ( ${"|/-\\"[t % 4]} )=( ${"|\\-/"[t % 4]} ) `, "  '-'   '-'  ", "   ||   ||   ", " =========== "],
+    },
+
+    // ------------------------------------------ code dojo, study hall
+    terminal: (() => {
+      const script = ["$ python3 hello.py", "Hello, world!", "$ ls lessons/", "01-loops  02-lists", "$ git commit -am 'learned'", "1 file changed"];
+      const w = 20;
+      return {
+        ms: 90,
+        frame: (t) => {
+          let n = t % 150;
+          const lines = [];
+          for (const l of script) {
+            if (n <= 0) break;
+            if (l.startsWith("$")) { lines.push(l.slice(0, Math.min(l.length, n))); n -= l.length + 8; }
+            else { lines.push(l); n -= 6; }
+          }
+          const shown = lines.slice(-3);
+          while (shown.length < 3) shown.push("");
+          const cursor = t % 6 < 3 ? "▌" : " ";
+          const last = shown.map((l) => l).findLastIndex((l) => l);
+          return ["┌─ dojo " + "─".repeat(w - 9) + "┐",
+                  ...shown.map((l, i) => "│" + (l + (i === last ? cursor : "")).slice(0, w - 2).padEnd(w - 2) + "│"),
+                  "└" + "─".repeat(w - 2) + "┘"];
+        },
+      };
+    })(),
+
+    build: {
+      ms: 260,
+      frame: (t) => {
+        const p = t % 14;
+        if (p >= 11) return [" BUILD OK ✓  ", "[██████████] ", "  100%       "];
+        return [" COMPILING…  ", "[" + "█".repeat(p) + "░".repeat(10 - p) + "] ", `  ${String(p * 10).padStart(3)}%       `];
+      },
+    },
+
+    bulb: {
+      ms: 520,
+      frame: (t) => (t % 4 < 2
+        ? ["           ", "    .-.    ", "   (   )   ", "    \\ /    ", "    |=|    "]
+        : ["  \\  |  /  ", "    .-.    ", " --( * )-- ", "    \\ /    ", "    |=|    "]),
+    },
+
+    flashcards: {
+      ms: 650,
+      frame: (t) => [
+        ["┌───────┐", "│   ?   │", "│  ~~~  │", "└───────┘"],
+        ["┌───────┐", "│   ?   │", "│  ~~~  │", "└───────┘"],
+        ["   ┌─┐   ", "   │ │   ", "   │ │   ", "   └─┘   "],
+        ["┌───────┐", "│   !   │", "│  ~~~  │", "└───────┘"],
+        ["┌───────┐", "│   !   │", "│  ~~~  │", "└───────┘"],
+        ["   ┌─┐   ", "   │ │   ", "   │ │   ", "   └─┘   "],
+      ][t % 6],
+    },
   };
 
   const SETS = {
@@ -241,6 +315,11 @@
     disaster: ["tornado", "flood", "storm"],
     medical: ["ecg", "firstaid", "breathe"],
     wasteland: ["mushroom", "masked", "geiger"],
+    homestead: ["garden", "pantry", "boil"],
+    workshop: ["gears", "radio", "tally"],
+    codedojo: ["terminal", "build"],
+    studyhall: ["bulb", "flashcards", "checklist"],
+    tales: ["campfire", "tent", "storm"],
   };
 
   // A scene for this scenario, avoiding the one shown last time.
