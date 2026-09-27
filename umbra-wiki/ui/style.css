@@ -534,6 +534,51 @@ kbd { font: inherit; opacity: .7; margin-left: 4px; }
 .lib-note code { color: var(--signal); }
 .lib-all { width: 100%; margin: 4px 0 16px; }
 
+/* ------------------------------------------------------- greeting & labels */
+
+.greet { margin: 26px auto 0; max-width: 640px; text-align: center; opacity: 0; transition: opacity .6s; }
+.greet.in { opacity: 1; }
+.gname { color: var(--signal); font-weight: 800; letter-spacing: .3em; font-size: 12px; }
+.gtext { margin-top: 8px; color: var(--fg); font-size: 13.5px; line-height: 1.6; min-height: 1.6em; }
+.gtext .spin { color: var(--faint); }
+.msg .label .persona { color: var(--accent); margin-left: 4px; }
+.msg .label .who { letter-spacing: .2em; }
+.msg .label .avatar {
+  width: 18px; height: 18px; object-fit: cover; margin-right: -2px;
+  border: 1px solid var(--signal);
+}
+
+/* ----------------------------------------------------------------- profile */
+
+.loadout.profile .lo-grid { display: block; }
+.pf-builder { max-width: 460px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.pf-stage { padding: 26px 0; margin: 0; }
+.pf-parts { display: grid; gap: 8px; }
+.pf-part { display: grid; grid-template-columns: 70px auto 1fr auto; align-items: center; gap: 10px; }
+.pf-part .ghost { padding: 4px 10px; }
+.pf-val { text-align: center; color: var(--fg-bright); font-size: 11.5px; letter-spacing: .2em; }
+.pf-random { align-self: center; }
+.pf-pic-row { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 14px; }
+.pf-pic {
+  position: relative; flex: none; width: 104px; height: 104px; padding: 0; cursor: pointer; overflow: visible;
+  background: var(--bg); border: 1px dashed var(--muted); color: var(--dim); font: 10px var(--font); letter-spacing: .2em;
+}
+.pf-pic:hover { border-color: var(--signal); color: var(--signal); }
+.pf-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pf-pic img:not([hidden]) ~ .pf-pic-empty { display: none; }
+.pf-pic::before, .pf-pic::after { content: ""; position: absolute; width: 10px; height: 10px; border: 2px solid var(--signal); }
+.pf-pic::before { top: -2px; left: -2px; border-right: 0; border-bottom: 0; }
+.pf-pic::after { bottom: -2px; right: -2px; border-left: 0; border-top: 0; }
+.pf-pic-side { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.pf-pic-side .lo-desc { margin: 0; font-size: 11.5px; color: var(--dim); }
+.lo-field input::placeholder, .lo-field textarea::placeholder { color: var(--faint); }
+/* Narrow window: builder and form stack and scroll together. */
+@media (max-width: 760px) {
+  .loadout.profile .lo-body { display: block; overflow-y: auto; }
+  .loadout.profile .lo-grid { max-height: none; overflow: visible; }
+  .loadout.profile .lo-detail { overflow: visible; }
+}
+
 /* ----------------------------------------------------------------- history */
 
 .hist-tools { display: flex; gap: 10px; padding: 14px 16px 6px; }

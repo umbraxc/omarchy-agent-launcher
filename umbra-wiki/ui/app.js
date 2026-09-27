@@ -567,6 +567,7 @@ function showIntro(first = false) {
     stopRain();
     feed.innerHTML = "";
     feed.appendChild(introTemplate.cloneNode(true));
+    showGreeting();
   }
   orb($("#intro-orb"), 19, 13);
   startRain();
@@ -577,6 +578,31 @@ function showIntro(first = false) {
 }
 showIntro(true);
 Sound.launch();
+
+// A welcome on the start screen: your name, and a line in the current
+// personality's voice that picks up from the last conversation.
+let greeting = null;
+async function showGreeting() {
+  const box = $("#intro .greet");
+  if (!box) return;
+  const who = box.querySelector(".gname"), line = box.querySelector(".gtext");
+  const name = await fetch("/api/profile").then((r) => r.json()).then((p) => p.name || "").catch(() => "");
+  who.textContent = name ? `WELCOME BACK, ${name}` : "WELCOME, SURVIVOR";
+  box.classList.add("in");
+  if (!greeting) greeting = fetch("/api/greeting").then((r) => r.json()).catch(() => null);
+  const g = await greeting;
+  if (!line.isConnected) return;
+  if (!g || !g.text) { line.remove(); return; }
+  line.textContent = "";
+  let i = 0;
+  const type = () => {
+    if (!line.isConnected) return;
+    line.textContent = g.text.slice(0, ++i);
+    if (i < g.text.length) setTimeout(type, 18);
+  };
+  type();
+}
+showGreeting();
 
 // ------------------------------------------------------------------ dialog
 
@@ -899,16 +925,23 @@ document.addEventListener("mouseout", (e) => { if (tipFor && !tipFor.contains(e.
 function addUser(text, wasOnline = online) {
   const el = document.createElement("div");
   el.className = "msg user";
-  el.innerHTML = `<div class="label">YOU${wasOnline ? " · ONLINE" : ""}</div><div class="body"></div>`;
+  const me = (window.UmbraProfile && window.UmbraProfile.data) || {};
+  el.innerHTML = `<div class="label">${me.picture ? '<img class="avatar" alt="">' : ""}<span class="who"></span>${wasOnline ? " · ONLINE" : ""}</div><div class="body"></div>`;
+  el.querySelector(".who").textContent = me.name || "YOU";
+  if (me.picture) el.querySelector(".avatar").src = me.picture;
   el.querySelector(".body").textContent = text;
   feed.appendChild(el);
 }
 
-function addBot() {
+// UMBRA, plus which personality is talking, so a conversation shows who
+// said what even when the loadout changes midway.
+function addBot(persona = window.loadoutPersona || "") {
   const el = document.createElement("div");
   el.className = "msg bot";
-  el.innerHTML = `<div class="label"><span class="spin" data-spin>✻</span> UMBRA</div>
+  const who = persona && persona.toLowerCase() !== "umbra" ? ` <span class="persona"></span>` : "";
+  el.innerHTML = `<div class="label"><span class="spin" data-spin>✻</span> UMBRA${who}</div>
     <div class="card"><div class="answer"></div></div>`;
+  if (who) el.querySelector(".persona").textContent = `(${persona.toUpperCase()})`;
   feed.appendChild(el);
   return el;
 }
@@ -1127,6 +1160,7 @@ async function ask(question, shownAs = "") {
   if (!stopped) { typer.set(shown); await typer.drained(); }
   const rec = {
     question, shown: shownAs, answer: shown, offer: stopped ? "" : next, sources, online,
+    persona: window.loadoutPersona || "",
     meta: meta ? `${meta.tokens} TOKENS · ${meta.seconds}s · ${sources.length} SOURCES · ${online ? "ONLINE" : "OFFLINE"}` : "",
   };
   finishAnswer(msg, rec);
@@ -1247,7 +1281,17 @@ input.addEventListener("keydown", (e) => {
   if (e.key.length === 1 || e.key === "Backspace") Sound.key();
 });
 
-function autosize() { input.style.height = "auto"; input.style.height = input.scrollHeight + "px"; }
+// Grows the prompt with its text. Measuring briefly collapses the box, which
+// would pull the chat up and down on every key; the chat's scroll position
+// is held still around it.
+function autosize() {
+  const keep = feed.scrollTop, before = input.style.height;
+  input.style.height = "auto";
+  const height = input.scrollHeight + "px";
+  input.style.height = height;
+  if (height !== before && follow) feed.scrollTop = feed.scrollHeight;
+  else feed.scrollTop = keep;
+}
 input.addEventListener("input", () => { autosize(); Undo.snap(true); });
 
 document.addEventListener("keydown", (e) => {

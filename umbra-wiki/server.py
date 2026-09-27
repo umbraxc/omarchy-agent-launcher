@@ -672,6 +672,72 @@ def delete_personality(item_id):
     return items
 
 
+# ------------------------------------------------------------------ profile
+
+# The user's own profile: a name Umbra calls them by, a few lines about
+# them, an ASCII character and an optional picture. Stays on this computer.
+PROFILE_FILE = os.path.join(CONFIG_DIR, "profile.json")
+
+
+def get_profile():
+    return read_json(PROFILE_FILE, {})
+
+
+def save_profile(p):
+    if not isinstance(p, dict):
+        raise ValueError("bad profile")
+    picture = str(p.get("picture") or "")
+    if picture and (not re.match(r"^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$", picture)
+                    or len(picture) > 600_000):
+        raise ValueError("bad picture")
+    character = p.get("character") if isinstance(p.get("character"), dict) else {}
+    clean = {
+        "name": re.sub(r"\s+", " ", str(p.get("name", ""))).strip()[:32],
+        "about": str(p.get("about", "")).strip()[:500],
+        "character": {k: max(0, min(40, int(v))) for k, v in character.items()
+                      if re.fullmatch(r"[a-z]{1,12}", str(k)) and str(v).isdigit()},
+        "picture": picture,
+    }
+    write_json(PROFILE_FILE, clean)
+    return clean
+
+
+def profile_prompt():
+    p = get_profile()
+    lines = []
+    if p.get("name"):
+        lines.append(f"The user's name is {p['name']}; address them by name now and then, naturally.")
+    if p.get("about"):
+        lines.append(f"What the user says about themselves: {p['about']}")
+    return " ".join(lines)
+
+
+def greeting():
+    """A short, warm welcome in the current personality's voice, picking up
+    where the last conversation left off."""
+    name = get_profile().get("name", "")
+    last = history_list()["items"][:1]
+    topic = ""
+    if last:
+        conv = read_json(history_path(last[0]["id"]), {})
+        msgs = conv.get("messages") or []
+        if msgs:
+            topic = msgs[-1].get("question") or conv.get("title", "")
+            days = (time.time() * 1000 - (last[0].get("updated") or 0)) / 864e5
+            when = "earlier today" if days < 1 else "yesterday" if days < 2 else f"{int(days)} days ago"
+    hour = time.localtime().tm_hour
+    part = "morning" if 5 <= hour < 12 else "afternoon" if hour < 18 else "evening"
+    about = f"The user is {name}. " if name else "You don't know the user's name. "
+    context = (f"Last time ({when}) they asked you: \"{topic[:200]}\". Warmly ask how that went or "
+               "whether they want to pick it up again.") if topic else "Ask how they are doing today."
+    text = quick_generate(
+        f"{about}It is the {part}. They just opened you, Umbra, their survival assistant. {context}\n"
+        "Write ONE short greeting of at most 25 words, in your own voice. No lists, no citations. "
+        "Reply with only the greeting.", 50, system=persona_prompt())
+    text = re.sub(r"(?i)^(greeting)\s*:\s*", "", text).strip(" \"'“”‘’")
+    return {"name": name, "text": text[:240]}
+
+
 # ---------------------------------------------------------------- attention
 
 # A new answer arrived while the window was in the background: this flag
@@ -734,6 +800,7 @@ def history_save(conv):
             "offer": str(m.get("offer", ""))[:400],
             "meta": str(m.get("meta", ""))[:200],
             "online": bool(m.get("online")),
+            "persona": str(m.get("persona", ""))[:40],
             "sources": sources,
         })
     now = int(time.time() * 1000)
@@ -792,8 +859,22 @@ MODE_ONLINE = (
 )
 
 
+def persona_prompt():
+    """Just the current personality's voice (for short side prompts)."""
+    settings = read_json(SETTINGS_FILE, {})
+    try:
+        loadout = json.load(open(LOADOUT_FILE))
+    except (OSError, ValueError):
+        return DEFAULT_PERSONA
+    people = loadout["personalities"] + custom_personalities()
+    person = next((x for x in people if x["id"] == settings.get("personality")), loadout["personalities"][0])
+    if person.get("custom"):
+        return f"Speak as {person['name'].upper()}: {person.get('voice') or person.get('description') or 'a helpful survival expert'}."
+    return person["prompt"]
+
+
 def build_system_prompt(online=False):
-    """Persona + scenario + trait style + the fixed rules."""
+    """Persona + scenario + trait style + the user's profile + the fixed rules."""
     settings = read_json(SETTINGS_FILE, {})
     try:
         loadout = json.load(open(LOADOUT_FILE))
@@ -810,7 +891,7 @@ def build_system_prompt(online=False):
         persona = person["prompt"]
     no_humor = bool(scenario.get("noHumor"))
     parts = [persona, trait_lines(person.get("stats", {}), no_humor),
-             "SCENARIO: " + scenario["prompt"], MODE_ONLINE if online else MODE_LOCAL, RULES]
+             "SCENARIO: " + scenario["prompt"], MODE_ONLINE if online else MODE_LOCAL, profile_prompt(), RULES]
     return " ".join(x for x in parts if x)
 
 
@@ -859,6 +940,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(json.load(open(os.path.join(APP_DIR, "facts.json"))))
             except (OSError, ValueError):
                 return self.send_json([])
+        if path == "/api/profile":
+            return self.send_json(get_profile())
+        if path == "/api/greeting":
+            return self.send_json(greeting())
         if path == "/api/history":
             return self.send_json(history_list())
         if path.startswith("/api/history/"):
@@ -905,6 +990,11 @@ class Handler(BaseHTTPRequestHandler):
                     settings[key] = update[key]
             write_json(SETTINGS_FILE, settings)
             return self.send_json(settings)
+        if self.path == "/api/profile":
+            try:
+                return self.send_json(save_profile(self.read_json()))
+            except (ValueError, TypeError) as e:
+                return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/attention":
             set_attention(bool(self.read_json().get("on")))
             return self.send_json({"ok": True})
@@ -1075,10 +1165,13 @@ def stream_chat(messages, emit):
     return full, done_event
 
 
-def quick_generate(prompt, num_predict):
+def quick_generate(prompt, num_predict, system=None):
     """A short one-line completion from the local model ('' on failure)."""
-    body = json.dumps({"model": MODEL, "prompt": prompt, "stream": False, "keep_alive": "30m",
-                       "options": {"num_ctx": 4096, "temperature": 0.4, "num_predict": num_predict}}).encode()
+    req = {"model": MODEL, "prompt": prompt, "stream": False, "keep_alive": "30m",
+           "options": {"num_ctx": 4096, "temperature": 0.4, "num_predict": num_predict}}
+    if system:
+        req["system"] = system
+    body = json.dumps(req).encode()
     try:
         r = json.loads(urllib.request.urlopen(urllib.request.Request(
             OLLAMA + "/api/generate", body, {"Content-Type": "application/json"}), timeout=120).read())

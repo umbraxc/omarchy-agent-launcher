@@ -121,7 +121,7 @@
     chat.length = 0;
     for (const m of convo.messages) {
       addUser(m.shown || m.question, m.online);
-      finishAnswer(addBot(), m);
+      finishAnswer(addBot(m.persona || ""), m);
       chat.push({ role: "user", content: m.question }, { role: "assistant", content: m.answer });
     }
     const last = convo.messages[convo.messages.length - 1];

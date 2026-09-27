@@ -73,6 +73,8 @@ class UmbraWiki(Gtk.Application):
         if ensure_backend():
             if self.question == "--loadout":
                 query = "?view=loadout"
+            elif self.question == "--profile":
+                query = "?view=profile"
             else:
                 query = "?" + urllib.parse.urlencode({"q": self.question}) if self.question else ""
             view.load_uri(URL + query)

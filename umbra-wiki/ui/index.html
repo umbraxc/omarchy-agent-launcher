@@ -42,7 +42,7 @@
     <div class="cell core"><span class="k">CORE</span><span class="v" id="t-model">--</span></div>
     <div class="cell status"><span class="k">STATUS</span><span class="v" id="t-status">BOOTING</span></div>
     <div class="controls">
-      <button id="loadout-btn" class="ctl" title="Loadout"><span class="g">󰀄</span></button>
+      <button id="loadout-btn" class="ctl" title="Profile and loadout"><span class="g">󰀄</span></button>
       <button id="history-btn" class="ctl" title="History"><span class="g">󰋚</span></button>
       <button id="library-btn" class="ctl" title="Library"><span class="g">󱉟</span></button>
       <button id="theme-btn" class="ctl" title="Themes"><span class="g">󰏘</span></button>
@@ -65,6 +65,7 @@
 ╚██████╔╝██║ ╚═╝ ██║██████╔╝██║  ██║██║  ██║
  ╚═════╝ ╚═╝     ╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝</pre>
     <div class="subtitle"><svg class="hz" viewBox="31 20.7 66 66" aria-hidden="true"><g class="hz-star"><path class="lit" d="M64 22 L59.4 49.1 L64 53.7 Z M87.8 53.7 L68.6 49.1 L64 53.7 Z M64 85.4 L68.6 58.3 L64 53.7 Z M40.2 53.7 L59.4 58.3 L64 53.7 Z"/><path class="shade" d="M64 22 L68.6 49.1 L64 53.7 Z M87.8 53.7 L68.6 58.3 L64 53.7 Z M64 85.4 L59.4 58.3 L64 53.7 Z M40.2 53.7 L59.4 49.1 L64 53.7 Z"/></g></svg><span class="wiki">W I K I</span> KNOWLEDGE THAT WORKS WHEN NOTHING ELSE DOES <svg class="hz" viewBox="31 20.7 66 66" aria-hidden="true"><g class="hz-star"><path class="lit" d="M64 22 L59.4 49.1 L64 53.7 Z M87.8 53.7 L68.6 49.1 L64 53.7 Z M64 85.4 L68.6 58.3 L64 53.7 Z M40.2 53.7 L59.4 58.3 L64 53.7 Z"/><path class="shade" d="M64 22 L68.6 49.1 L64 53.7 Z M87.8 53.7 L68.6 58.3 L64 53.7 Z M64 85.4 L59.4 58.3 L64 53.7 Z M40.2 53.7 L59.4 49.1 L64 53.7 Z"/></g></svg></div>
+    <div class="greet" aria-live="polite"><div class="gname"></div><div class="gtext"><span class="spin" data-spin>✻</span></div></div>
     <div class="prompts">
       <button class="chip">Purify water with no equipment</button>
       <button class="chip">Treat a second-degree burn</button>
@@ -117,7 +118,7 @@
 <div id="loadout" class="loadout" hidden>
   <div class="lo-head">
     <span class="lo-title"><span class="spin" data-spin>✻</span> LOADOUT</span>
-    <div class="lo-tabs"><button data-tab="scenario">SCENARIO</button><button data-tab="personality">PERSONALITY</button></div>
+    <div class="lo-tabs"><button data-tab="profile">PROFILE</button><button data-tab="scenario">SCENARIO</button><button data-tab="personality">PERSONALITY</button></div>
     <button class="ghost lo-close" title="Close (Esc)">CLOSE ✕</button>
   </div>
   <div class="lo-body"><div class="lo-grid"></div><div class="lo-detail"></div></div>
@@ -170,6 +171,7 @@
 <script src="scenes.js"></script>
 <script src="app.js"></script>
 <script src="loadout.js"></script>
+<script src="profile.js"></script>
 <script src="history.js"></script>
 </body>
 </html>

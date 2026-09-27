@@ -54,6 +54,7 @@
     const chip = $("#loadout-chip");
     if (chip && sc && pe) chip.textContent = `${sc.name} · ${pe.name}`.toUpperCase();
     window.loadoutQuips = (pe && pe.quips) || [];
+    window.loadoutPersona = (pe && pe.name) || "";
     window.loadoutScenario = state.scenario;
   }
 
@@ -82,6 +83,12 @@
 
   function render() {
     overlay.querySelectorAll(".lo-tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === state.tab));
+    overlay.classList.toggle("profile", state.tab === "profile");
+    if (state.tab === "profile") {
+      if (state.stopAnim) state.stopAnim();
+      state.stopAnim = window.UmbraProfile.render(grid, detail, animate);
+      return;
+    }
     if (!state.selected || !find(state.selected)) state.selected = current();
     grid.innerHTML = "";
     list().forEach((item, i) => {
@@ -263,8 +270,9 @@
     if (quiet !== true) Sound.click();
   }
 
-  $("#loadout-btn").addEventListener("click", () => (overlay.hidden ? open() : close()));
-  $("#loadout-chip").addEventListener("click", () => open());
+  // The header's person button opens your profile; the chip opens the loadout.
+  $("#loadout-btn").addEventListener("click", () => (overlay.hidden ? open("profile") : close()));
+  $("#loadout-chip").addEventListener("click", () => open(state.tab === "profile" ? "personality" : null));
   overlay.querySelector(".lo-close").addEventListener("click", close);
   overlay.querySelectorAll(".lo-tabs button").forEach((b) => b.addEventListener("click", () => {
     if (state.tab === b.dataset.tab) return;
@@ -296,6 +304,8 @@
   window.openLoadout = open;
   window.closeLoadout = close;
   load().then(() => {
-    if (new URLSearchParams(location.search).get("view") === "loadout") open();
+    const view = new URLSearchParams(location.search).get("view");
+    if (view === "loadout") open();
+    else if (view === "profile") open("profile");
   });
 })();
