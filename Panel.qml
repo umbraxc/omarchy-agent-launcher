@@ -37,6 +37,8 @@ Panel {
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
 
   property var agents: []
+  property string fieldNote: ""
+  readonly property bool umbraInstalled: agents.some(function(a) { return a.id === "umbra-wiki" })
   readonly property var localAgents: agents.filter(function(a) { return a.section === "local" })
   readonly property var onlineAgents: agents.filter(function(a) { return a.section !== "local" })
   // Keyboard order follows the screen: local rows first.
@@ -51,6 +53,13 @@ Panel {
   function refresh() {
     if (!statusProc.running) statusProc.running = true
     if (!themeProc.running) themeProc.running = true
+    if (!factProc.running) factProc.running = true
+  }
+
+  function askAbout(note) {
+    Quickshell.execDetached([root.script, "ask", "Tell me more about this survival fact: " + note])
+    root.close()
+    refreshSoon.restart()
   }
 
   function setTheme(id) {
@@ -88,6 +97,16 @@ Panel {
           try { list.push(JSON.parse(lines[i])) } catch (e) {}
         }
         root.agents = list
+      }
+    }
+  }
+
+  Process {
+    id: factProc
+    command: [root.script, "fact"]
+    stdout: StdioCollector {
+      onStreamFinished: {
+        try { root.fieldNote = JSON.parse(String(text || "{}")).text || "" } catch (e) {}
       }
     }
   }
@@ -269,13 +288,71 @@ Panel {
           }
         }
 
-        Text {
+        // Field note: a survival fact that changes every hour. Clicking it
+        // asks Umbra Wiki to tell you more.
+        PanelSeparator {
+          visible: root.fieldNote !== ""
+          foreground: root.foreground
+        }
+
+        Item {
+          id: note
+          visible: root.fieldNote !== ""
           width: parent.width
-          text: "Click an agent to open a new session"
-          color: root.dim
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.caption
-          horizontalAlignment: Text.AlignHCenter
+          implicitHeight: noteColumn.implicitHeight + Style.space(4)
+
+          Column {
+            id: noteColumn
+            width: parent.width
+            spacing: Style.space(4)
+
+            Text {
+              text: "FIELD NOTE"
+              color: root.online
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.letterSpacing: Style.space(2)
+            }
+
+            Row {
+              width: parent.width
+              spacing: Style.space(6)
+
+              Text {
+                id: noteArrow
+                text: "↳"
+                color: root.online
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption
+              }
+
+              Text {
+                width: parent.width - noteArrow.width - parent.spacing
+                text: root.fieldNote
+                color: noteMouse.containsMouse ? root.foreground : root.dim
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption
+                font.italic: true
+                wrapMode: Text.WordWrap
+                lineHeight: 1.15
+              }
+            }
+          }
+
+          MouseArea {
+            id: noteMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            enabled: root.umbraInstalled
+            cursorShape: root.umbraInstalled ? Qt.PointingHandCursor : Qt.ArrowCursor
+            onClicked: root.askAbout(root.fieldNote)
+          }
+
+          PanelToolTip {
+            visible: noteMouse.containsMouse && root.umbraInstalled
+            text: "Ask Umbra Wiki about this"
+            fontFamily: root.fontFamily
+          }
         }
       }
     }

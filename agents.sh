@@ -9,6 +9,8 @@
 #   agents.sh launch <id>   Open a coding agent, Umbra Wiki, or the setup.
 #   agents.sh themes        Umbra Wiki themes and the current one, as JSON.
 #   agents.sh theme <id>    Switch the Umbra Wiki theme.
+#   agents.sh fact          This hour's survival field note, as JSON.
+#   agents.sh ask <text>    Open Umbra Wiki and ask it a question.
 #   agents.sh setup-local   Guided install of Umbra Wiki (run by the widget).
 
 known_agents=(claude codex opencode gemini cursor-agent copilot crush grok pi omp hermes muse)
@@ -112,6 +114,16 @@ themes() {
     '{current: $current,
       themes: ((if $auto then [$auto] else [] end) + . + $custom) | map({id, name, signal, fg, bg: .bg1})}' \
     "$umbra_dir/ui/themes.json"
+}
+
+# A new field note every hour, cycling through the whole list in a
+# shuffled but stable order so neighbouring hours aren't similar.
+fact() {
+  local facts="$umbra_dir/facts.json" hour
+  [[ -f $facts ]] || { echo '{}'; return; }
+  hour=$(( $(date +%s) / 3600 ))
+  jq -c --argjson hour "$hour" \
+    'length as $n | {text: .[(($hour * 37) % $n)], index: (($hour * 37) % $n), total: $n}' "$facts"
 }
 
 set_theme() {
@@ -219,10 +231,12 @@ case "${1:-}" in
 status) status ;;
 launch) launch "${2:-}" ;;
 themes) themes ;;
+fact) fact ;;
+ask) exec setsid uwsm-app -- umbra-wiki "${2:-}" ;;
 theme) set_theme "${2:-}" ;;
 setup-local) setup_local ;;
 *)
-  echo "Usage: agents.sh status | launch <id> | themes | theme <id> | setup-local" >&2
+  echo "Usage: agents.sh status | launch <id> | themes | theme <id> | fact | ask <text> | setup-local" >&2
   exit 1
   ;;
 esac
