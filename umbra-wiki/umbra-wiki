@@ -83,6 +83,8 @@ class UmbraWiki(Gtk.Application):
                 query = "?view=loadout"
             elif self.question == "--profile":
                 query = "?view=profile"
+            elif self.question.startswith("--manual "):
+                query = "?" + urllib.parse.urlencode({"manual": self.question[9:].strip()})   # a field-manual page
             elif self.question.startswith("--open "):
                 query = "?" + urllib.parse.urlencode({"open": self.question[7:].strip()})   # a saved conversation
             elif self.question == "--autotour":

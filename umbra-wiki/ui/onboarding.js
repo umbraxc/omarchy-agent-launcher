@@ -75,7 +75,7 @@
       skipHooks.push(() => reject(SKIP));
       wake();
       setTimeout(() => inp.focus(), 50);
-      if (AUTO) { inp.value = multiline || secret ? "" : "Tester"; autoClick(box.querySelector(secret ? ".ghost" : ".solid")); }
+      if (AUTO) { inp.value = multiline || secret ? "" : "Alex"; autoClick(box.querySelector(secret ? ".ghost" : ".solid")); }
     });
   }
 

@@ -85,8 +85,6 @@ Umbra is fully offline by default. When you have internet, switch **LINK** to
 you which facts came from where. It always asks first, and every launch starts
 local.
 
-![Online mode](docs/online.png)
-
 ### Loadout: scenarios and personalities
 
 A **scenario** tells Umbra the situation you're in: Everyday Prep, Wilderness,
@@ -107,6 +105,7 @@ suggests questions that fit you. An optional password keeps the screen
 private.
 
 ![Profile](docs/profile.png)
+![The password lock](docs/lock.png)
 
 ### History, export and backup
 
@@ -269,6 +268,8 @@ Umbra Wiki speaks and understands English.
 | Ctrl+M | mute |
 | Ctrl+, | settings |
 | F1 | all shortcuts |
+
+![Keyboard shortcuts](docs/shortcuts.png)
 
 ---
 

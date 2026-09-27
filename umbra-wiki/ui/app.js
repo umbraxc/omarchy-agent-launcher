@@ -45,7 +45,7 @@ const QUIPS = {
 };
 let quipTimer = 0, noteTimer = 0, stopArt = null;
 let facts = [];
-fetch("/api/facts").then((r) => r.json()).then((f) => { facts = f; }).catch(() => {});
+const factsReady = fetch("/api/facts").then((r) => r.json()).then((f) => { facts = f; }).catch(() => {});
 
 function startQuips(answerEl, phase) {
   clearInterval(quipTimer);
@@ -69,7 +69,8 @@ function startQuips(answerEl, phase) {
 // A field note under the waiting line, changing every few seconds.
 function startNotes(answerEl) {
   clearInterval(noteTimer);
-  if (!facts.length) return;
+  // A question asked right at launch can arrive before the notes have loaded.
+  if (!facts.length) { factsReady.then(() => { if (facts.length && answerEl.isConnected) startNotes(answerEl); }); return; }
   let i = Math.floor(Math.random() * facts.length);
   const show = () => {
     const n = answerEl.querySelector(".wnote .ntext");
@@ -2176,7 +2177,12 @@ document.addEventListener("selectionchange", () => { if (document.activeElement 
 addEventListener("resize", placeCaret);
 setTimeout(placeCaret, 300);
 
+// umbra-wiki --manual <page> opens a field-manual page.
+const manualParam = new URLSearchParams(location.search).get("manual");
+if (manualParam) setTimeout(() => openManual(manualParam), 700);
+
 // umbra-wiki "question" passes it as ?q= to ask on open.
 const initial = new URLSearchParams(location.search).get("q");
 if (initial) ask(initial);
+
 
