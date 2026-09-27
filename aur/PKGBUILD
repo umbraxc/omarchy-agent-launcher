@@ -15,7 +15,7 @@ optdepends=('pipewire-audio: sounds and voice recording'
             'ollama-rocm: run the AI on an AMD graphics card')
 install=umbra-wiki.install
 source=("$pkgname-$pkgver.tar.gz::https://github.com/umbraxc/omarchy-umbra/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('SKIP')
+sha256sums=('599ebaa78ed0cdebe86060fce916c1bb69e64fb34a4d6e59d262797173a49e75')
 
 package() {
   cd "omarchy-umbra-$pkgver/umbra-wiki"
