@@ -738,6 +738,80 @@ def greeting():
     return {"name": name, "text": text[:240]}
 
 
+# -------------------------------------------------------------------- voice
+
+# Voice input through voxtype's offline speech engine (Whisper base.en).
+# When the voxtype service is running (Omarchy: hold F9 anywhere), Umbra
+# drives it and the words are typed into the prompt box. Without the
+# service, Umbra records the microphone itself and transcribes the clip.
+VOICE_FILE = os.path.join(os.environ.get("XDG_RUNTIME_DIR") or "/tmp", "umbra-wiki-voice.wav")
+voice_proc = None
+
+
+def voxtype_daemon():
+    try:
+        pid = int(open(os.path.join(os.environ.get("XDG_RUNTIME_DIR") or "/tmp", "voxtype", "pid")).read().strip())
+        os.kill(pid, 0)
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def voice_status():
+    if not shutil.which("voxtype"):
+        return {"available": False, "daemon": False, "state": "idle"}
+    daemon = voxtype_daemon()
+    state = "idle"
+    if daemon:
+        try:
+            out = subprocess.run(["voxtype", "status", "--format", "json"], capture_output=True, text=True, timeout=2)
+            state = json.loads(out.stdout or "{}").get("class", "idle")
+        except (OSError, ValueError, subprocess.SubprocessError):
+            pass
+    elif voice_proc and voice_proc.poll() is None:
+        state = "recording"
+    return {"available": True, "daemon": daemon, "state": state}
+
+
+def voice_action(action):
+    global voice_proc
+    status = voice_status()
+    if not status["available"]:
+        return {"error": "voxtype is not installed"}
+    if status["daemon"]:
+        if action in ("start", "stop", "cancel", "toggle"):
+            subprocess.run(["voxtype", "record", action], capture_output=True, timeout=5)
+        return voice_status()
+    # No service: record here, transcribe on stop.
+    if action == "start" and not (voice_proc and voice_proc.poll() is None):
+        voice_proc = subprocess.Popen(["pw-record", "--rate", "16000", "--channels", "1", "--format", "s16", VOICE_FILE],
+                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return {**voice_status(), "state": "recording"}
+    if action in ("stop", "cancel") and voice_proc:
+        voice_proc.send_signal(signal.SIGINT)
+        try:
+            voice_proc.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            voice_proc.kill()
+        voice_proc = None
+        if action == "cancel":
+            return voice_status()
+        try:
+            out = subprocess.run(["voxtype", "-q", "transcribe", VOICE_FILE], capture_output=True, text=True, timeout=120)
+            # Progress lines share stdout with the words; keep only the words.
+            text = " ".join(l.strip() for l in out.stdout.splitlines() if l.strip()
+                            and not re.match(r"(Loading audio file|Audio format|Processing \d)", l.strip()))
+        except (OSError, subprocess.SubprocessError):
+            text = ""
+        finally:
+            try:
+                os.remove(VOICE_FILE)
+            except OSError:
+                pass
+        return {**voice_status(), "text": text}
+    return voice_status()
+
+
 # ---------------------------------------------------------------- attention
 
 # A new answer arrived while the window was in the background: this flag
@@ -940,6 +1014,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(json.load(open(os.path.join(APP_DIR, "facts.json"))))
             except (OSError, ValueError):
                 return self.send_json([])
+        if path == "/api/voice":
+            return self.send_json(voice_status())
         if path == "/api/profile":
             return self.send_json(get_profile())
         if path == "/api/greeting":
@@ -990,6 +1066,8 @@ class Handler(BaseHTTPRequestHandler):
                     settings[key] = update[key]
             write_json(SETTINGS_FILE, settings)
             return self.send_json(settings)
+        if self.path == "/api/voice":
+            return self.send_json(voice_action(str(self.read_json().get("action", ""))))
         if self.path == "/api/profile":
             try:
                 return self.send_json(save_profile(self.read_json()))

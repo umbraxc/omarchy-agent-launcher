@@ -201,6 +201,7 @@ setup_local() {
           2. download an AI model of your choice (1–5 GB)
           3. download the Survival Essentials library (0.9 GB, optional)
           4. install the Umbra Wiki app
+          5. voice input: hold F9 to talk (offline English model, optional)
 
 INTRO
   gum confirm "Continue?" || exit 130
@@ -231,6 +232,16 @@ INTRO
     bash "$umbra_dir/fetch-archive.sh" $(jq -r '.[] | select(.essential) | .id' "$umbra_dir/library.json")
   else
     echo "Skipped. Add collections any time from the Library button in Umbra Wiki."
+  fi
+
+  # Voice input: Omarchy's own voxtype installer asks first, downloads the
+  # offline English speech model and binds F9 (hold to talk) everywhere.
+  echo
+  if command -v voxtype &>/dev/null; then
+    echo "Voice input is already set up: hold F9 to talk."
+  elif command -v omarchy-voxtype-install &>/dev/null; then
+    echo "Voice input lets you talk to Umbra instead of typing (hold F9)."
+    omarchy-voxtype-install || echo "Skipped. Install later with: omarchy-voxtype-install"
   fi
 
   echo

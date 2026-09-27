@@ -405,6 +405,20 @@ button#send, .ghost, .solid {
   transition: background-color .15s, color .15s, border-color .15s, transform .1s;
 }
 button#send:hover { filter: brightness(1.12); }
+button#mic {
+  display: flex; align-items: center; gap: 7px; padding: 8px 11px; cursor: pointer;
+  font: 700 10.5px var(--font); letter-spacing: .12em; color: var(--dim);
+  background: transparent; border: 1px solid var(--line);
+  transition: color .15s, border-color .15s, background-color .15s;
+}
+#mic .g { font-size: 16px; line-height: 1; }
+#mic kbd { margin: 0; opacity: .7; }
+#mic:hover { color: var(--signal); border-color: var(--signal); }
+#mic.rec { color: var(--red); border-color: var(--red); animation: micpulse 1.2s ease-in-out infinite; }
+#mic.busy { color: var(--signal); border-color: var(--signal); }
+#mic.busy .g { animation: blink .7s ease-in-out infinite; }
+#mic.off { opacity: .45; }
+@keyframes micpulse { 50% { background: color-mix(in srgb, var(--red) 18%, transparent); } }
 button#send:active { transform: translateY(1px); }
 button#send.stop { background: transparent; color: var(--red); border-color: var(--red); }
 kbd { font: inherit; opacity: .7; margin-left: 4px; }

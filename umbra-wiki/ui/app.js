@@ -1189,6 +1189,78 @@ $("#reader-close").addEventListener("click", closeReader);
 
 // ------------------------------------------------------------------ inputs
 
+// ------------------------------------------------------------------- voice
+
+// Voice input through voxtype (offline Whisper). With the voxtype service
+// running (Omarchy's F9), it types straight into the focused prompt; the
+// button drives the same service and lights up whenever it records.
+// Without the service, the backend records and returns the words here.
+const mic = $("#mic");
+let voice = { available: false, daemon: false, state: "idle" };
+function showVoice(v) {
+  voice = { ...voice, ...v };
+  mic.classList.toggle("rec", voice.state === "recording");
+  mic.classList.toggle("busy", voice.state === "transcribing");
+  mic.classList.toggle("off", !voice.available);
+}
+function insertText(text) {
+  const a = input.selectionStart, b = input.selectionEnd, v = input.value;
+  const sep = a > 0 && !/\s$/.test(v.slice(0, a)) ? " " : "";
+  input.value = v.slice(0, a) + sep + text + v.slice(b);
+  const at = a + sep.length + text.length;
+  input.setSelectionRange(at, at);
+  autosize();
+  Undo.snap();
+}
+async function voiceCall(action) {
+  try {
+    const r = await (await fetch("/api/voice", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }),
+    })).json();
+    showVoice(r);
+    if (r.text) insertText(r.text);
+  } catch {}
+}
+async function refreshVoice() {
+  if (!document.hasFocus() && voice.state === "idle") return;
+  try { showVoice(await (await fetch("/api/voice")).json()); } catch {}
+}
+refreshVoice();
+setInterval(refreshVoice, 800);
+
+mic.addEventListener("mousedown", (e) => e.preventDefault());   // keep the prompt focused for dictation
+mic.addEventListener("click", () => {
+  if (locked) return;
+  if (!voice.available) {
+    confirmDialog({
+      kind: "to-local", tag: "VOICE", title: "VOICE INPUT ISN'T INSTALLED",
+      body: "Voice input uses voxtype, an offline speech-to-text tool. On Omarchy, install it with:\n\nomarchy-voxtype-install\n\nThen hold F9 to talk, here or in any app.",
+      cancel: "OK",
+    });
+    return;
+  }
+  input.focus();
+  Sound.click();
+  if (voice.state === "recording") {
+    if (!voice.daemon) showVoice({ state: "transcribing" });
+    voiceCall("stop");
+  } else if (voice.state === "idle") voiceCall("start");
+});
+// Hold F9 to talk. With the voxtype service running, Omarchy's own F9
+// binding already does this everywhere, so Umbra leaves the key to it.
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "F9" || e.repeat || voice.daemon || !voice.available || locked) return;
+  e.preventDefault();
+  input.focus();
+  voiceCall("start");
+});
+document.addEventListener("keyup", (e) => {
+  if (e.key !== "F9" || voice.daemon || !voice.available || voice.state !== "recording") return;
+  e.preventDefault();
+  showVoice({ state: "transcribing" });
+  voiceCall("stop");
+});
+
 // An answer that lands while the window is in the background lights up the
 // bar widget's emblem; coming back to the window clears it.
 let attention = false;
