@@ -321,13 +321,14 @@
     await postSettings({ onboarded: true });
     if (window.prefs) window.prefs.onboarded = true;
     // From the tour to the home screen through an ASCII transition.
-    await asciiWipe(() => { showIntro(); window.scrollTo(0, 0); });
+    const me = (window.UmbraProfile && window.UmbraProfile.data.name) || "";
+    await asciiWipe(() => { showIntro(); window.scrollTo(0, 0); }, { welcome: me ? `WELCOME, ${me}` : "WELCOME, SURVIVOR" });
     input.focus();
   }
   window.startTour = startTour;
 
   // First launch (or after a reset): no "onboarded" in the settings yet.
   fetch("/api/settings").then((r) => r.json()).then((s) => {
-    if (!s.onboarded && !new URLSearchParams(location.search).get("q")) setTimeout(startTour, 2300);   // after the boot animation
+    if (!s.onboarded && !new URLSearchParams(location.search).get("q")) setTimeout(startTour, 3300);   // as the boot animation opens up
   }).catch(() => {});
 })();

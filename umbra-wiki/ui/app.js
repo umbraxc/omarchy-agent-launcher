@@ -605,12 +605,13 @@ function startRain() {
 }
 function stopRain() { cancelAnimationFrame(rainRaf); rainRaf = 0; }
 
-// A full-window ASCII transition: a wave of glyphs sweeps in and leaves the
-// screen dark, "UMBRA // ONLINE" boots in the middle while swap() changes
-// what's underneath, then the glyphs dissolve from the centre outwards.
-// With covered, it starts already dark (used at launch, behind the
-// "booting" cover so the page never flashes first).
-function asciiWipe(swap, lines = ["UMBRA // ONLINE", "LOADOUT DEPLOYED · LIBRARY LINKED · CORE READY"], { covered = false } = {}) {
+// A full-window ASCII transition. The screen closes to dark from the edges
+// while the start screen's glyph rain falls; UMBRA // ONLINE boots and
+// welcomes the user by name; then the dark opens from the centre with a
+// soft edge and the rain slowly dies away, revealing what swap() put
+// underneath. With covered it starts already dark (at launch, behind the
+// "booting" cover, so the page never flashes first).
+function asciiWipe(swap, { covered = false, welcome = "" } = {}) {
   return new Promise((resolve) => {
     if (document.body.classList.contains("reduce-motion")) {
       swap(); document.body.classList.remove("booting"); resolve(); return;
@@ -618,83 +619,107 @@ function asciiWipe(swap, lines = ["UMBRA // ONLINE", "LOADOUT DEPLOYED · LIBRAR
     const canvas = document.createElement("canvas");
     canvas.className = "wipe";
     document.body.appendChild(canvas);
-    const ctx = canvas.getContext("2d");
-    const w = innerWidth, h = innerHeight, cw = 11, ch = 20;
+    const w = innerWidth, h = innerHeight;
     canvas.width = w; canvas.height = h;
-    const cols = Math.ceil(w / cw), rows = Math.ceil(h / ch);
-    // Colours are read every frame: at launch the theme arrives a moment later.
+    const ctx = canvas.getContext("2d");
+    // The rain lives on its own layer so its trails fade like the start screen's.
+    const rain = document.createElement("canvas");
+    rain.width = w; rain.height = h;
+    const rctx = rain.getContext("2d");
+    const size = 14;
+    const glyphs = "アイウエオカキクケコサシスセソ0123456789ABCDEFGHJKLMNPQRSTUVWXYZ#$%&*+=<>?/".split("");
+    const drops = Array.from({ length: Math.ceil(w / size) }, () => ({ y: Math.random() * -h, speed: 0.6 + Math.random() * 0.9 }));
+    const title = "UMBRA // ONLINE", sub = "LOADOUT DEPLOYED · LIBRARY LINKED · CORE READY";
+    const IN = covered ? 0 : 1100, HOLD = 2700, OUT = 2800;
+    const ease = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+    const R = Math.hypot(w, h) / 2 * 1.15, soft = R * 0.45;
     const color = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-    let bg, signal, shade, bright, dim, font;
-    const glyphs = "░▒▓█#%&@*+=:·アイウエオカキクケコ0123456789".split("");
-    // Each cell has its own moment in the wave: diagonal on the way in,
-    // from the centre outwards on the way out.
-    const inAt = [], outAt = [];
-    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
-      inAt.push((x / cols) * 0.55 + (y / rows) * 0.25 + Math.random() * 0.2);
-      outAt.push(Math.hypot((x - cols / 2) / cols, (y - rows / 2) / rows) * 1.3 + Math.random() * 0.25);
-    }
-    const IN = 700, HOLD = 1100, OUT = 850;
-    const start = performance.now() - (covered ? IN : 0);
-    let swapped = false, last = 0, first = true;
-    const band = 0.18;   // how wide the glyph wave is
+    const start = performance.now();
+    let swapped = false, first = true, lastRain = 0;
+
     const frame = (now) => {
       const t = now - start;
-      if (now - last < 33) { requestAnimationFrame(frame); return; }   // ~30 fps is plenty
-      last = now;
-      [bg, signal, shade, bright, dim, font] = ["--bg", "--signal", "--shade-2", "--fg-bright", "--dim", "--font"].map(color);
-      ctx.clearRect(0, 0, w, h);
-      ctx.font = `${ch - 6}px ${font}`;
-      ctx.textBaseline = "top";
-      const phaseIn = t < IN, phaseOut = t > IN + HOLD;
-      const p = phaseIn ? t / IN * 1.2 : phaseOut ? (t - IN - HOLD) / OUT * 1.3 : 2;
-      for (let i = 0; i < inAt.length; i++) {
-        const x = (i % cols) * cw, y = Math.floor(i / cols) * ch;
-        // How far the wave has passed this cell: <0 not yet, 0..band glyphs, >band dark.
-        const k = phaseOut ? p - outAt[i] : p - inAt[i];
-        if (phaseOut) {
-          if (k > band) continue;                          // revealed
-          ctx.fillStyle = bg;
-          if (k < 0) { ctx.fillRect(x, y, cw, ch); continue; }   // still dark
-          ctx.globalAlpha = 1 - k / band;
-          ctx.fillRect(x, y, cw, ch);
-          ctx.globalAlpha = 1;
-        } else {
-          if (k < 0) continue;                             // wave hasn't arrived
-          ctx.fillStyle = bg;
-          ctx.globalAlpha = Math.min(1, k / band);
-          ctx.fillRect(x, y, cw, ch);
-          ctx.globalAlpha = 1;
-          if (k > band && Math.random() > 0.015) continue; // dark, a few embers left
-        }
-        ctx.fillStyle = Math.random() < 0.15 ? signal : shade;
-        ctx.fillText(glyphs[(Math.random() * glyphs.length) | 0], x, y + 2);
+      // Colours every frame: at launch the theme arrives a moment later.
+      const [bg, signal, shade, bright, dim, accent, font] =
+        ["--bg", "--signal", "--shade-2", "--fg-bright", "--dim", "--accent", "--font"].map(color);
+      const outP = ease((t - IN - HOLD) / OUT);
+
+      // Rain: a new glyph per column every 60 ms, older ones fading out;
+      // fewer new glyphs as the reveal goes on, so it dies away naturally.
+      if (now - lastRain >= 60) {
+        lastRain = now;
+        rctx.globalCompositeOperation = "destination-out";
+        rctx.fillStyle = "rgba(0,0,0,0.18)";
+        rctx.fillRect(0, 0, w, h);
+        rctx.globalCompositeOperation = "source-over";
+        rctx.font = `${size}px ${font}`;
+        drops.forEach((d, i) => {
+          if (Math.random() > 1 - outP * 0.95) { d.y += size * d.speed; return; }
+          rctx.fillStyle = Math.random() < 0.08 ? signal : shade;
+          rctx.fillText(glyphs[(Math.random() * glyphs.length) | 0], i * size, d.y);
+          d.y += size * d.speed;
+          if (d.y > h + size * 4) { d.y = Math.random() * -h * 0.4; d.speed = 0.6 + Math.random() * 0.9; }
+        });
       }
+
+      // The dark cover, with a soft round opening: shrinking on the way in,
+      // growing from the centre on the way out.
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, w, h);
+      const hole = t < IN ? (1 - ease(t / IN)) * (R + soft) : outP * (R + soft);
+      if (hole > 0) {
+        ctx.globalCompositeOperation = "destination-out";
+        const g = ctx.createRadialGradient(w / 2, h / 2, Math.max(0, hole - soft), w / 2, h / 2, hole);
+        g.addColorStop(0, "rgba(0,0,0,1)");
+        g.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, w, h);
+        ctx.globalCompositeOperation = "source-over";
+      }
+      ctx.globalAlpha = t < IN ? ease(t / IN) : 1 - outP;
+      ctx.drawImage(rain, 0, 0);
+      ctx.globalAlpha = 1;
+
       if (t >= IN && !swapped) { swapped = true; swap(); }
       if (first) { first = false; document.body.classList.remove("booting"); }
-      // The boot text, typed in during the hold and fading on the way out.
-      if (t >= IN && t < IN + HOLD + OUT * 0.5) {
-        const typed = Math.min(1, (t - IN) / (HOLD * 0.6));
-        ctx.globalAlpha = phaseOut ? Math.max(0, 1 - (t - IN - HOLD) / (OUT * 0.5)) : 1;
+
+      // The boot text: title typed, the status line fading in, then the
+      // welcome typed; all of it drifts up and fades as the screen opens.
+      const k = t - IN;
+      if (k > 0 && outP < 1) {
+        const fade = 1 - ease(Math.min(1, outP * 2.2));
+        const lift = outP * 18;
         ctx.textAlign = "center";
-        ctx.font = `800 26px ${font}`;
+        ctx.textBaseline = "middle";
+        const typed = (text, from, dur) => text.slice(0, Math.max(0, Math.ceil(text.length * Math.min(1, (k - from) / dur))));
+        const cursor = (text, full) => (text.length < full.length && (now / 140 | 0) % 2 ? "▌" : "");
+        ctx.globalAlpha = fade;
+        ctx.font = `800 28px ${font}`;
         ctx.fillStyle = signal;
-        const a = lines[0].slice(0, Math.ceil(lines[0].length * typed));
-        ctx.fillText(a + (typed < 1 && (t / 120 | 0) % 2 ? "▌" : ""), w / 2, h / 2 - 26);
-        if (lines[1] && typed >= 1) {
-          ctx.font = `11px ${font}`;
-          ctx.fillStyle = dim;
-          ctx.fillText(lines[1], w / 2, h / 2 + 14);
+        const a = typed(title, 150, 750);
+        ctx.fillText(a + cursor(a, title), w / 2, h / 2 - 34 - lift);
+        ctx.globalAlpha = fade * Math.min(1, Math.max(0, (k - 1000) / 450));
+        ctx.font = `11px ${font}`;
+        ctx.fillStyle = dim;
+        ctx.fillText(sub, w / 2, h / 2 - 2 - lift);
+        if (welcome) {
+          ctx.globalAlpha = fade;
+          ctx.font = `700 15px ${font}`;
+          ctx.fillStyle = accent || bright;
+          const b = typed(welcome, 1450, 700);
+          if (b) ctx.fillText(b + cursor(b, welcome), w / 2, h / 2 + 30 - lift);
         }
-        ctx.textAlign = "left";
         ctx.globalAlpha = 1;
-        ctx.fillStyle = bright;
+        ctx.textAlign = "left";
       }
+
       if (t < IN + HOLD + OUT) requestAnimationFrame(frame);
       else { canvas.remove(); resolve(); }
     };
     requestAnimationFrame(frame);
     if (!covered) Sound.theme();
-    setTimeout(() => Sound.launch(), (covered ? 0 : IN) + HOLD - 150);
+    setTimeout(() => Sound.launch(), IN + HOLD - 100);
   });
 }
 
@@ -717,39 +742,93 @@ function showIntro(first = false) {
 
 // The start screen's suggested questions: the scenario's own starters at
 // once, then a few written for you (from your profile and conversations),
-// marked ✦, when the local AI has them ready.
+// marked ✦, when the local AI has them ready. Every 100 seconds a fresh
+// set rotates in; every so often a slow wave runs through the text.
+let starterPool = { personal: [], scenario: [] }, starterShown = [], starterTurn = 0;
 async function showStarters() {
   const box = $("#intro .prompts");
   if (!box) return;
   const token = ++startersToken;
-  const fill = (personal, scenario) => {
-    const items = [...personal.map((t) => [t, true]), ...scenario.filter((t) => !personal.includes(t)).map((t) => [t, false])];
+  try {
+    const quick = await (await fetch("/api/starters?personal=0")).json();
+    if (token !== startersToken || !box.isConnected) return;
+    starterPool = { personal: [], scenario: quick.scenario || [] };
+    starterTurn = 0;
+    if (starterPool.scenario.length) renderStarters(false);
+    const full = await (await fetch("/api/starters")).json();
+    if (token !== startersToken || !box.isConnected) return;
+    if (full.personal && full.personal.length) {
+      starterPool = full;
+      starterTurn = 0;
+      renderStarters(true);
+    }
+  } catch {}
+}
+
+// Up to four personal questions (rotating through them), the rest from the
+// scenario's pool, avoiding what was just on screen.
+function pickStarters() {
+  const { personal, scenario } = starterPool;
+  const n = Math.min(4, personal.length);
+  const mine = Array.from({ length: n }, (_, i) => personal[(starterTurn * n + i) % personal.length]);
+  starterTurn++;
+  const fresh = scenario.filter((t) => !starterShown.includes(t) && !mine.includes(t));
+  const pool = (fresh.length >= 6 - n ? fresh : scenario.filter((t) => !mine.includes(t))).slice();
+  for (let i = pool.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  return [...mine.map((t) => [t, true]), ...pool.slice(0, 6 - n).map((t) => [t, false])];
+}
+
+function renderStarters(animate) {
+  const box = $("#intro .prompts");
+  if (!box) return;
+  const items = pickStarters();
+  starterShown = items.map(([t]) => t);
+  const build = () => {
     box.innerHTML = "";
-    items.slice(0, 6).forEach(([text, mine], i) => {
+    items.forEach(([text, mine], i) => {
       const c = document.createElement("button");
       c.className = "chip" + (mine ? " mine" : "");
-      c.textContent = text;
+      c.innerHTML = '<span class="ct"></span>';
+      c.querySelector(".ct").textContent = text;
       if (mine) c.title = "Suggested for you";
-      c.style.animationDelay = i * 45 + "ms";
+      c.style.animationDelay = i * 70 + "ms";
       c.addEventListener("mouseenter", Sound.hover);
       c.addEventListener("click", () => ask(text));
       box.appendChild(c);
     });
   };
-  try {
-    const quick = await (await fetch("/api/starters?personal=0")).json();
-    if (token !== startersToken || !box.isConnected) return;
-    if (quick.scenario.length) fill([], quick.scenario);
-    const full = await (await fetch("/api/starters")).json();
-    if (token !== startersToken || !box.isConnected) return;
-    if (full.personal.length) fill(full.personal, full.scenario);
-  } catch {}
+  if (!animate || !box.children.length) { build(); return; }
+  [...box.children].forEach((c, i) => { c.style.animationDelay = i * 50 + "ms"; c.classList.add("leaving"); });
+  setTimeout(build, 600);
 }
+
+const startersIdle = () => {
+  const box = $("#intro .prompts");
+  return box && box.children.length && !box.matches(":hover") && !input.value && !controller && document.hasFocus()
+    && !document.body.classList.contains("touring") && !document.body.classList.contains("reduce-motion");
+};
+setInterval(() => { if (startersIdle()) renderStarters(true); }, 100000);
+function starterWave() {
+  if (startersIdle()) {
+    $("#intro .prompts").querySelectorAll(".ct").forEach((t, i) => {
+      t.classList.remove("wave");
+      void t.offsetWidth;
+      t.style.animationDelay = i * 180 + "ms";
+      t.classList.add("wave");
+    });
+  }
+  setTimeout(starterWave, 14000 + Math.random() * 6000);
+}
+setTimeout(starterWave, 9000);
 showIntro(true);
 // Every launch boots through the ASCII transition; "Reduce motion" skips it.
-fetch("/api/settings").then((r) => r.json()).catch(() => ({})).then((s) => {
+Promise.all([
+  fetch("/api/settings").then((r) => r.json()).catch(() => ({})),
+  fetch("/api/profile").then((r) => r.json()).catch(() => ({})),
+]).then(([s, p]) => {
   if (s.reduceMotion) { document.body.classList.remove("booting"); Sound.launch(); return; }
-  asciiWipe(() => {}, undefined, { covered: true });
+  const welcome = !s.onboarded ? "" : p.name ? `WELCOME BACK, ${p.name}` : "WELCOME BACK, SURVIVOR";
+  asciiWipe(() => {}, { covered: true, welcome });
 });
 
 // A welcome on the start screen: your name, and a line in the current

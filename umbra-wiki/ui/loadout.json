@@ -35,7 +35,15 @@
         "Start a fire in wet conditions",
         "Store food for the long term",
         "Stop severe bleeding",
-        "Power a phone without the grid"
+        "Power a phone without the grid",
+        "What should be in a car emergency kit?",
+        "How much water should I store?",
+        "Make a family emergency plan",
+        "Which first aid skills matter most?",
+        "Cook without power at home",
+        "Keep important documents safe",
+        "Build a basic tool kit",
+        "Prepare for a winter storm"
       ]
     },
     {
@@ -73,7 +81,15 @@
         "Find water in the wild",
         "Start a fire in wet conditions",
         "Navigate without a compass",
-        "Signal for rescue"
+        "Signal for rescue",
+        "Treat blisters on a long hike",
+        "Which wild plants are safe to eat?",
+        "Stay warm during a cold night",
+        "Cross a river safely",
+        "Tie a knot for a shelter line",
+        "What if I meet a bear?",
+        "Ration food on the trail",
+        "Make a torch or light at night"
       ]
     },
     {
@@ -111,7 +127,15 @@
         "Keep food safe without a fridge",
         "Run a generator safely",
         "Light the house safely",
-        "Toilet with no running water"
+        "Toilet with no running water",
+        "Charge devices without mains power",
+        "Cook indoors safely with no power",
+        "Keep medicine cool without a fridge",
+        "Stay informed when the phones are down",
+        "Save phone battery for days",
+        "Stay cool in a heatwave blackout",
+        "Keep pipes from freezing",
+        "Make a simple oil lamp"
       ]
     },
     {
@@ -149,7 +173,15 @@
         "Prepare for a flood",
         "Wildfire is coming: what now?",
         "Pack a go-bag fast",
-        "Find family after a disaster"
+        "Find family after a disaster",
+        "Turn off gas and water safely",
+        "What to do after an earthquake",
+        "Keep drinking water safe after a flood",
+        "Make a safe room in a storm",
+        "Protect my lungs from wildfire smoke",
+        "Signal for help from a building",
+        "Check a house is safe to re-enter",
+        "What goes in a family meeting plan?"
       ]
     },
     {
@@ -188,7 +220,15 @@
         "Someone isn't breathing",
         "Splint a broken bone",
         "Signs of shock and what to do",
-        "Treat hypothermia"
+        "Treat hypothermia",
+        "How do I do CPR?",
+        "Treat a deep cut without stitches",
+        "Someone is choking",
+        "Recognise a stroke fast",
+        "Treat heatstroke",
+        "Help someone having a seizure",
+        "Clean a wound to prevent infection",
+        "Treat an allergic reaction"
       ]
     },
     {
@@ -226,7 +266,15 @@
         "Make soap from scratch",
         "Build a rocket stove",
         "Preserve meat without power",
-        "Trade and barter safely"
+        "Trade and barter safely",
+        "Save seeds for next year",
+        "Build a simple water filter",
+        "Make charcoal",
+        "Keep a wound clean with no supplies",
+        "Build a root cellar",
+        "Make candles from fat",
+        "Organise a small community",
+        "Keep tools sharp and working"
       ]
     },
     {
@@ -264,7 +312,15 @@
         "Can tomatoes safely",
         "Set up a small solar system",
         "Collect rainwater",
-        "Compost kitchen scraps"
+        "Compost kitchen scraps",
+        "Start seeds indoors",
+        "Make butter or cheese",
+        "Dry herbs and fruit",
+        "Keep bees for honey",
+        "Build raised beds",
+        "Deal with garden pests naturally",
+        "Store potatoes over winter",
+        "Pick a good goat breed"
       ]
     },
     {
@@ -302,7 +358,15 @@
         "Sharpen a knife properly",
         "Build a simple solar charger",
         "Set up a ham radio",
-        "Patch a bicycle tyre"
+        "Patch a bicycle tyre",
+        "Replace a laptop battery",
+        "Fix a flat bike chain",
+        "Wire a 12V light safely",
+        "Solder a loose wire",
+        "Unclog a drain without chemicals",
+        "Repair a torn tent",
+        "Sharpen an axe",
+        "Test a car battery"
       ]
     },
     {
@@ -340,7 +404,15 @@
         "Write my first Bash script",
         "Explain Git like I'm five",
         "How do loops work?",
-        "Give me a small coding exercise"
+        "Give me a small coding exercise",
+        "What is a function?",
+        "Make a to-do list app in Python",
+        "What's the difference between a list and a dict?",
+        "Explain recursion simply",
+        "How do I read a file in Python?",
+        "What does the terminal actually do?",
+        "Debug my first error",
+        "What should I learn after the basics?"
       ]
     },
     {
@@ -378,7 +450,15 @@
         "Why is the sky blue?",
         "Quiz me on world capitals",
         "How do plants make food?",
-        "Help me learn some Spanish"
+        "Help me learn some Spanish",
+        "How do vaccines work?",
+        "Explain gravity simply",
+        "Teach me basic statistics",
+        "How does the internet work?",
+        "Summarise the Roman Empire",
+        "How do batteries store energy?",
+        "Teach me 10 useful Spanish words",
+        "Why do seasons happen?"
       ]
     },
     {
@@ -416,7 +496,15 @@
         "Tell me a true survival story",
         "Let's play twenty questions",
         "Tell me a spooky legend",
-        "Teach me a survival myth vs fact"
+        "Teach me a survival myth vs fact",
+        "Tell me a story about a lighthouse keeper",
+        "Give me a hard riddle",
+        "What's the strangest true survival story?",
+        "Tell me a legend about the stars",
+        "Let's play a word association game",
+        "Tell me a funny camping story",
+        "Give me a nature trivia question",
+        "Tell me a story in three sentences"
       ]
     }
   ],

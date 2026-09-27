@@ -750,8 +750,12 @@ def greeting():
     text = quick_generate(
         f"{about}It is the {part}. They just opened you, Umbra, their survival assistant. {context}\n"
         "Write ONE short greeting of at most 25 words, in your own voice. No lists, no citations. "
-        "Reply with only the greeting.", 50, system=persona_prompt())
+        "Reply with only the greeting.", 90, system=persona_prompt())
     text = re.sub(r"(?i)^(greeting)\s*:\s*", "", text).strip(" \"'“”‘’")
+    # Never show a greeting cut off mid-sentence.
+    if text and text[-1] not in ".!?…":
+        ends = [m.end() for m in re.finditer(r"[.!?…](?=\s|$)", text)]
+        text = text[:ends[-1]] if ends else ""
     return {"name": name, "text": text[:240]}
 
 
@@ -1072,7 +1076,7 @@ def current_scenario():
 
 def starters(personal=True):
     sc = current_scenario()
-    out = {"scenario": sc.get("starters", [])[:6], "personal": []}
+    out = {"scenario": sc.get("starters", []), "personal": []}
     if not personal:
         return out
     profile = get_profile()
@@ -1082,24 +1086,24 @@ def starters(personal=True):
         return out
     key = json.dumps([sc.get("id"), about, [(r["id"], r.get("updated")) for r in recent]])
     cache = read_json(STARTERS_CACHE, {})
-    if cache.get("key") == key:
+    if cache.get("key") == key and len(cache.get("personal", [])) > 4:
         out["personal"] = cache.get("personal", [])
         return out
     asked = "\n".join(f"- {r.get('title', '')}" for r in recent) or "- (none yet)"
     lines = quick_generate(
-        f"Suggest 4 questions this user would likely want to ask their assistant next.\n"
+        f"Suggest 8 different questions this user would likely want to ask their assistant next.\n"
         f"About the user: {about or 'unknown'}\n"
         f"Their recent questions:\n{asked}\n"
         f"Current scenario: {sc.get('name', '')}: {sc.get('prompt', '')[:300]}\n\n"
         "Make them personal: follow up on their recent topics or fit their life, and suit the scenario. "
-        "Each under 9 words, written the way the user would type it, and not a copy of a recent question. "
-        "One per line, no numbers, no quotes, nothing else.", 80, lines=True)
+        "Each under 8 words, written the way the user would type it, varied, and not a copy of a recent question. "
+        "One per line, no numbers, no quotes, nothing else.", 180, lines=True)
     personal = []
     for l in lines:
         l = re.sub(r"^\s*(\d+[.)]|[-*•])\s*", "", l).strip(" \"'“”")
-        if 3 <= len(l) <= 70 and len(l.split()) <= 11 and l.lower() not in {x.lower() for x in personal}:
+        if 3 <= len(l) <= 60 and len(l.split()) <= 10 and l.lower() not in {x.lower() for x in personal}:
             personal.append(l)
-    personal = personal[:4]
+    personal = personal[:8]
     if personal:
         write_json(STARTERS_CACHE, {"key": key, "personal": personal})
     out["personal"] = personal
