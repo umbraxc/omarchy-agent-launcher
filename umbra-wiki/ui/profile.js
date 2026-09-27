@@ -91,6 +91,16 @@
       <label class="lo-field"><span>ABOUT YOU</span><textarea class="pf-about" maxlength="500" rows="4"
         placeholder="For example: I live in the countryside with my partner and two dogs, and I'm new to camping."></textarea></label>
       <div class="lo-actions"><button class="solid pf-save">SAVE PROFILE</button></div>
+      <div class="pf-password">
+        <div class="lo-ed-title">PASSWORD <span class="pf-pw-state"></span></div>
+        <p class="lo-desc">Optional. Umbra asks for it when it starts and whenever you lock the screen. It keeps the screen private;
+          it doesn't encrypt the files on this computer.</p>
+        <label class="lo-field pf-pw-old" hidden><span>CURRENT PASSWORD</span><input type="password" class="pf-old" autocomplete="off"></label>
+        <label class="lo-field"><span class="pf-new-label">NEW PASSWORD</span><input type="password" class="pf-new" autocomplete="off" maxlength="200"></label>
+        <label class="lo-field"><span>REPEAT IT</span><input type="password" class="pf-new2" autocomplete="off" maxlength="200"></label>
+        <div class="lo-actions"><small class="pf-pw-msg"></small><button class="ghost pf-pw-remove" hidden>REMOVE PASSWORD</button>
+          <button class="solid pf-pw-set">SET PASSWORD</button></div>
+      </div>
       <div class="pf-danger"><span>Start over: delete your profile, settings, custom items and every conversation.</span>
         <button class="ghost pf-reset">RESET UMBRA…</button></div>`;
     const q = (sel) => detail.querySelector(sel);
@@ -112,6 +122,36 @@
       try { draft.picture = await squarePicture(file); showPic(); Sound.theme(); } catch { Sound.error(); }
     });
     q(".pf-reset").addEventListener("click", () => window.resetUmbra && window.resetUmbra());
+    // Password: set, change or remove (the current one is needed to change it).
+    const pwMsg = (text, bad) => { const m = q(".pf-pw-msg"); m.textContent = text; m.classList.toggle("bad", !!bad); };
+    const showPw = async () => {
+      const has = !!(await fetch("/api/lock").then((r) => r.json()).catch(() => ({}))).password;
+      q(".pf-pw-state").textContent = has ? "· ON" : "· OFF";
+      q(".pf-pw-old").hidden = !has;
+      q(".pf-pw-remove").hidden = !has;
+      q(".pf-pw-set").textContent = has ? "CHANGE PASSWORD" : "SET PASSWORD";
+      return has;
+    };
+    showPw();
+    const sendPw = async (next) => {
+      const r = await fetch("/api/password", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ old: q(".pf-old").value, new: next }),
+      }).then((x) => x.json()).catch(() => ({ error: "failed" }));
+      ["pf-old", "pf-new", "pf-new2"].forEach((c) => (q("." + c).value = ""));
+      if (r.error) { pwMsg(r.error === "wrong password" ? "The current password is wrong." : "Couldn't save it.", true); Sound.error(); return; }
+      pwMsg(next ? "Password saved. Umbra will ask for it when it starts." : "Password removed.");
+      Sound.theme();
+      await showPw();
+      if (window.refreshPasswordLock) window.refreshPasswordLock();
+    };
+    q(".pf-pw-set").addEventListener("click", () => {
+      const a = q(".pf-new").value, b = q(".pf-new2").value;
+      if (!a) { pwMsg("Type a new password first.", true); return; }
+      if (a !== b) { pwMsg("The two passwords don't match.", true); Sound.error(); return; }
+      sendPw(a);
+    });
+    q(".pf-pw-remove").addEventListener("click", () => sendPw(""));
     q(".pf-save").addEventListener("click", async () => {
       draft.name = q(".pf-name").value.trim();
       draft.about = q(".pf-about").value.trim();

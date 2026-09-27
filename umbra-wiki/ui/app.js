@@ -627,6 +627,39 @@ function startRain() {
 }
 function stopRain() { cancelAnimationFrame(rainRaf); rainRaf = 0; }
 
+// Transition styles (Settings → Transition): each gives every character cell
+// its moment in the wave, from 0 (first) to about 1 (last), for the way in
+// and the way out. The boot, the tour's end, previews and the outro use it.
+const cellNoise = (x) => { const v = Math.sin(x * 12.9898 + 78.233) * 43758.5453; return v - Math.floor(v); };
+const TRANSITIONS = {
+  wave: { name: "Glyph wave",
+    in: (x, y) => x * 0.55 + y * 0.25 + Math.random() * 0.2,
+    out: (x, y) => Math.hypot(x - 0.5, y - 0.5) * 1.3 + Math.random() * 0.25 },
+  rain: { name: "Glyph rain",
+    in: (x, y) => y * 0.75 + cellNoise(x * 7) * 0.3 + Math.random() * 0.05,
+    out: (x, y) => y * 0.75 + cellNoise(x * 3) * 0.35 + Math.random() * 0.06 },
+  scan: { name: "Scanlines",
+    in: (x, y) => y * 0.95 + Math.random() * 0.05,
+    out: (x, y) => (1 - y) * 0.95 + Math.random() * 0.05 },
+  static: { name: "Static",
+    in: () => Math.random() * 1.0,
+    out: () => Math.random() * 1.0 },
+  blinds: { name: "Blinds",
+    in: (x, y, rows) => ((y * rows) % 5) / 5 * 0.8 + x * 0.15 + Math.random() * 0.05,
+    out: (x, y, rows) => ((y * rows) % 5) / 5 * 0.8 + (1 - x) * 0.15 + Math.random() * 0.05 },
+  split: { name: "Split",
+    in: (x) => (1 - Math.abs(x - 0.5) * 2) * 0.95 + Math.random() * 0.08,
+    out: (x) => Math.abs(x - 0.5) * 2 * 0.95 + Math.random() * 0.08 },
+  diamond: { name: "Diamond",
+    in: (x, y) => (1 - (Math.abs(x - 0.5) + Math.abs(y - 0.5))) * 1.0 + Math.random() * 0.12,
+    out: (x, y) => (Math.abs(x - 0.5) + Math.abs(y - 0.5)) * 1.0 + Math.random() * 0.12 },
+  spiral: { name: "Spiral",
+    in: (x, y) => ((Math.atan2(y - 0.5, x - 0.5) + Math.PI) / (2 * Math.PI)) * 0.7 + Math.hypot(x - 0.5, y - 0.5) * 0.4 + Math.random() * 0.08,
+    out: (x, y) => ((Math.atan2(y - 0.5, x - 0.5) + Math.PI) / (2 * Math.PI)) * 0.7 + Math.hypot(x - 0.5, y - 0.5) * 0.4 + Math.random() * 0.08 },
+};
+window.UmbraTransitions = Object.entries(TRANSITIONS).map(([id, t]) => [id, t.name]);
+const transition = () => TRANSITIONS[(window.prefs && window.prefs.transition) || "wave"] || TRANSITIONS.wave;
+
 // A full-window ASCII transition. A wave of glyphs sweeps diagonally over
 // the screen and leaves it dark with a few embers; UMBRA // ONLINE types
 // in and beeps, the status line fades in and the user is welcomed by name;
@@ -660,10 +693,11 @@ function asciiWipe(swap, { covered = false, welcome = "" } = {}) {
     // Each cell's moment in the wave: diagonal on the way in, from the
     // centre outwards on the way out.
     const inAt = new Float32Array(n), outAt = new Float32Array(n);
+    const style = transition();
     for (let i = 0; i < n; i++) {
-      const x = i % cols, y = (i / cols) | 0;
-      inAt[i] = (x / cols) * 0.55 + (y / rows) * 0.25 + Math.random() * 0.2;
-      outAt[i] = Math.hypot((x - cols / 2) / cols, (y - rows / 2) / rows) * 1.3 + Math.random() * 0.25;
+      const x = (i % cols) / cols, y = ((i / cols) | 0) / rows;
+      inAt[i] = style.in(x, y, rows);
+      outAt[i] = style.out(x, y, rows);
     }
     const IN = covered ? 0 : 1000, HOLD = 4300, OUT = 2800, band = 0.2;
     const GLITCH = [3650, 4200];   // after a moment to read the welcome, the text glitches out
@@ -1079,23 +1113,54 @@ $("#link").addEventListener("click", async () => {
 
 // Freezes the window where it is: no scrolling, typing or clicking until the
 // same button unlocks it. An answer in progress keeps streaming underneath.
+// With a password (Profile), unlocking asks for it, and the shield hides the
+// screen completely; without one, the lock button locks and unlocks.
+let hasPassword = false;
 function setLocked(value) {
   locked = value;
   document.body.classList.toggle("locked", locked);
   $("#lockshield").hidden = !locked;
+  $("#lockshield").classList.toggle("secure", locked && hasPassword);
+  $(".lock-form").hidden = !hasPassword;
+  $(".lock-hint").textContent = hasPassword ? "Enter your password to continue" : "Unlock with the lock in the top right";
+  $(".lock-error").textContent = "";
+  if (locked && hasPassword) { $(".lock-pass").value = ""; setTimeout(() => $(".lock-pass").focus(), 60); }
   $("#lock-icon").textContent = locked ? "󰌾" : "󰌿";
   $("#lock").classList.toggle("on", locked);
   $("#lock").title = locked ? "Unlock" : "Lock the screen";
   hidePop();
-  if (locked) { $("#themes").hidden = $("#library").hidden = true; $("#theme-btn").classList.remove("on"); $("#library-btn").classList.remove("on"); document.activeElement?.blur(); Sound.lock(); }
+  if (locked) {
+    $("#themes").hidden = $("#library").hidden = true; $("#theme-btn").classList.remove("on"); $("#library-btn").classList.remove("on");
+    if (!hasPassword) document.activeElement?.blur();
+    Sound.lock();
+  }
   else { input.focus(); Sound.unlock(); }
 }
-$("#lock").addEventListener("click", () => setLocked(!locked));
+$("#lock").addEventListener("click", () => {
+  if (locked && hasPassword) { $(".lock-pass").focus(); return; }   // the password unlocks, not the button
+  setLocked(!locked);
+});
+$(".lock-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const field = $(".lock-pass");
+  const r = await fetch("/api/unlock", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: field.value }),
+  }).then((x) => x.json()).catch(() => ({}));
+  if (r.ok) { field.value = ""; setLocked(false); }
+  else { $(".lock-error").textContent = "Wrong password"; field.value = ""; field.focus(); Sound.error(); }
+});
+// With a password, Umbra starts locked.
+window.refreshPasswordLock = async (lockNow = false) => {
+  hasPassword = !!(await fetch("/api/lock").then((r) => r.json()).catch(() => ({}))).password;
+  if (lockNow && hasPassword) setLocked(true);
+};
+window.refreshPasswordLock(true);
 
 // While locked, swallow keys before anything else sees them.
 document.addEventListener("keydown", (e) => {
   if (!locked) return;
   if (document.activeElement === $("#lock") && (e.key === "Enter" || e.key === " ")) return;
+  if (document.activeElement === $(".lock-pass")) return;   // typing the password
   e.preventDefault();
   e.stopImmediatePropagation();
 }, true);
@@ -1552,7 +1617,7 @@ async function ask(question, shownAs = "") {
 // edges, UMBRA // OFFLINE types in and blinks, the farewell appears, then
 // everything collapses into a bright line and a dot, like an old screen
 // switching off.
-function asciiOutro(farewell) {
+function asciiOutro(farewell, { keep = true } = {}) {
   return new Promise((resolve) => {
     const canvas = document.createElement("canvas");
     canvas.className = "wipe";
@@ -1571,11 +1636,14 @@ function asciiOutro(farewell) {
     const glyphs = "░▒▓█#%&@*+=:·アイウエオカキクケコ0123456789".split("");
     // Far cells close first, so the dark closes in on the centre.
     const at = new Float32Array(n);
+    // The chosen style, played in reverse: it closes where the boot opens.
+    const style = transition();
     for (let i = 0; i < n; i++) {
-      const x = i % cols, y = (i / cols) | 0;
-      at[i] = 1.2 - Math.hypot((x - cols / 2) / cols, (y - rows / 2) / rows) * 1.3 + Math.random() * 0.2;
+      const x = (i % cols) / cols, y = ((i / cols) | 0) / rows;
+      at[i] = 1.2 - style.out(x, y, rows);
     }
-    const CLOSE = 1100, HOLD = 2000, COLLAPSE = 650, FADE = 300, band = 0.2;
+    // The farewell stays fully on screen for about two seconds before the switch-off.
+    const CLOSE = 1100, HOLD = 3600, COLLAPSE = 650, FADE = 300, band = 0.2;
     const title = "UMBRA // OFFLINE", sub = "HISTORY SAVED · SETTINGS KEPT · STAY SAFE";
     const color = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
     const rgb = (c) => {
@@ -1661,7 +1729,10 @@ function asciiOutro(farewell) {
         ctx.globalAlpha = 1;
       }
       if (t < CLOSE + HOLD + COLLAPSE + FADE) requestAnimationFrame(frame);
-      else resolve();   // the canvas stays: the window is closing
+      else {
+        if (!keep) canvas.remove();   // a preview; when leaving, the canvas stays while the window closes
+        resolve();
+      }
     };
     requestAnimationFrame(frame);
   });
@@ -1687,6 +1758,13 @@ async function leaveUmbra() {
   }
   closeWindow();
 }
+// Settings previews.
+window.previewTransition = async (which) => {
+  const name = (window.UmbraProfile && window.UmbraProfile.data.name) || "SURVIVOR";
+  if (which === "outro") await asciiOutro(`SEE YOU SOON, ${name}`, { keep: false });
+  else await asciiWipe(() => {}, { welcome: `WELCOME BACK, ${name}` });
+};
+
 window.umbraExit = () => {
   if (exiting) return "ok";
   if (exitAsked || (window.prefs && window.prefs.confirmExit === false)) { leaveUmbra(); return "ok"; }
@@ -2021,6 +2099,81 @@ document.addEventListener("keydown", (e) => {
   const act = actions[e.key.toLowerCase()];
   if (act) { e.preventDefault(); act(); }
 });
+
+// ------------------------------------------------------------ prompt status
+
+// A short mechanical status line above the prompt, typed in whenever the
+// situation changes (idle, composing, suggestion, working, listening…).
+const barLeft = $("#promptbar .pb-left"), barRight = $("#promptbar .pb-right");
+let barState = "", barTimer = 0;
+function promptBarState() {
+  if (voice.state === "recording") return ["◉ LISTENING", voice.daemon ? "RELEASE F9 TO STOP" : "CLICK THE MIC OR RELEASE F9 TO STOP", true];
+  if (voice.state === "transcribing") return ["◌ TRANSCRIBING", "", true];
+  if (controller) return ["▸ UMBRA IS WORKING", "ESC ABORT", true];
+  const n = input.value.length;
+  if (n) return [`▸ COMPOSING · ${n} ${n === 1 ? "CHAR" : "CHARS"}`, "⏎ TRANSMIT · ⇧⏎ NEW LINE · CTRL+Z UNDO", false];
+  if (suggestion) return ["▸ SUGGESTION READY", "⇥ ACCEPT · ⏎ TRANSMIT", true];
+  return [`▸ AWAITING INPUT${online ? " · LINK ONLINE" : ""}${window.offgrid ? " · OFF-GRID" : ""}`, "⏎ TRANSMIT · F9 VOICE · F1 KEYS", false];
+}
+function updatePromptBar() {
+  const [left, right, hot] = promptBarState();
+  const key = left + "|" + right;
+  if (key === barState) return;
+  barState = key;
+  clearInterval(barTimer);
+  barLeft.classList.toggle("hot", hot);
+  if (document.body.classList.contains("reduce-motion")) { barLeft.textContent = left; barRight.textContent = right; return; }
+  // Typed out like a teleprinter, both sides at once.
+  let i = 0;
+  const len = Math.max(left.length, right.length);
+  barTimer = setInterval(() => {
+    i += 2;
+    barLeft.textContent = left.slice(0, i) + (i < left.length ? "▌" : "");
+    barRight.textContent = right.slice(0, i);
+    if (i >= len) clearInterval(barTimer);
+  }, 14);
+}
+setInterval(updatePromptBar, 200);
+updatePromptBar();
+
+// ------------------------------------------------------------ block cursor
+
+// The prompt's cursor is a thick block, like a terminal's. The native one
+// is hidden; this one is placed with a hidden mirror of the text.
+const fakeCaret = document.createElement("span");
+fakeCaret.className = "fake-caret";
+fakeCaret.hidden = true;
+form.appendChild(fakeCaret);
+const mirror = document.createElement("div");
+mirror.setAttribute("aria-hidden", "true");
+Object.assign(mirror.style, { position: "absolute", visibility: "hidden", whiteSpace: "pre-wrap", wordWrap: "break-word", top: "0", left: "-9999px" });
+document.body.appendChild(mirror);
+let caretIdle = 0;
+function placeCaret() {
+  if (document.activeElement !== input || input.selectionStart !== input.selectionEnd || locked) { fakeCaret.hidden = true; return; }
+  const cs = getComputedStyle(input);
+  for (const p of ["fontFamily", "fontSize", "fontWeight", "lineHeight", "letterSpacing", "paddingTop", "paddingLeft", "paddingRight", "borderLeftWidth", "boxSizing"]) mirror.style[p] = cs[p];
+  mirror.style.width = input.clientWidth + "px";
+  mirror.textContent = input.value.slice(0, input.selectionStart);
+  const mark = document.createElement("span");
+  mark.textContent = input.value.slice(input.selectionStart, input.selectionStart + 1).replace("\n", "") || " ";
+  mirror.appendChild(mark);
+  const lineH = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.5;
+  fakeCaret.style.left = input.offsetLeft + mark.offsetLeft + "px";
+  fakeCaret.style.top = input.offsetTop + mark.offsetTop - input.scrollTop + (lineH - parseFloat(cs.fontSize) * 1.2) / 2 + "px";
+  fakeCaret.style.width = Math.max(7, mark.offsetWidth || parseFloat(cs.fontSize) * 0.6) + "px";
+  fakeCaret.style.height = parseFloat(cs.fontSize) * 1.2 + "px";
+  fakeCaret.hidden = false;
+  // Solid while typing, blinking when idle.
+  fakeCaret.classList.add("solid");
+  clearTimeout(caretIdle);
+  caretIdle = setTimeout(() => fakeCaret.classList.remove("solid"), 600);
+}
+["input", "focus", "blur", "click", "keyup", "scroll", "select"].forEach((ev) => input.addEventListener(ev, placeCaret));
+input.addEventListener("keydown", () => requestAnimationFrame(placeCaret));
+document.addEventListener("selectionchange", () => { if (document.activeElement === input) placeCaret(); });
+addEventListener("resize", placeCaret);
+setTimeout(placeCaret, 300);
 
 // umbra-wiki "question" passes it as ?q= to ask on open.
 const initial = new URLSearchParams(location.search).get("q");

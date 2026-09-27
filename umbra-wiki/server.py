@@ -490,6 +490,50 @@ _last_sound = {}
 _hum = None
 
 
+def audio_devices():
+    """Speakers/headphones and microphones known to PipeWire (via pactl)."""
+    def listing(kind):
+        try:
+            out = subprocess.run(["pactl", "-f", "json", "list", kind], capture_output=True, text=True, timeout=4).stdout
+            return [{"name": d["name"], "description": d.get("description") or d["name"]}
+                    for d in json.loads(out or "[]") if not d["name"].endswith(".monitor")]
+        except (OSError, ValueError, subprocess.SubprocessError, KeyError):
+            return []
+    settings = read_json(SETTINGS_FILE, {})
+    return {"outputs": listing("sinks"), "inputs": listing("sources"),
+            "out": settings.get("audioOut", ""), "in": settings.get("audioIn", "")}
+
+
+def set_audio(out=None, source=None):
+    """Choose where Umbra plays and records ('' = the system default). The
+    microphone is also given to voxtype, so F9 dictation uses the same one."""
+    devices = audio_devices()
+    update = {}
+    if out is not None:
+        if out and out not in [d["name"] for d in devices["outputs"]]:
+            raise ValueError("unknown output")
+        update["audioOut"] = out
+    if source is not None:
+        if source and source not in [d["name"] for d in devices["inputs"]]:
+            raise ValueError("unknown input")
+        update["audioIn"] = source
+        if shutil.which("voxtype"):
+            subprocess.run(["voxtype", "config", "set", "audio.device", source or "default"], capture_output=True, timeout=5)
+            if voxtype_daemon():
+                subprocess.run(["systemctl", "--user", "restart", "voxtype"], capture_output=True, timeout=10)
+    with SETTINGS_LOCK:
+        settings = read_json(SETTINGS_FILE, {})
+        settings.update(update)
+        write_json(SETTINGS_FILE, settings)
+    return audio_devices()
+
+
+def audio_target(key):
+    """pw-play / pw-record arguments for the chosen device, if any."""
+    name = read_json(SETTINGS_FILE, {}).get(key, "")
+    return ["--target", name] if name else []
+
+
 def sound_volume():
     """The volume chosen in Settings (0-1), 0.9 by default."""
     try:
@@ -507,7 +551,7 @@ def hum(on):
     path = os.path.join(SOUNDS_DIR, "hum.ogg")
     if on and os.path.isfile(path) and shutil.which("pw-play"):
         _hum = subprocess.Popen(
-            ["pw-play", "--volume", sound_volume(), "-P", "{ application.name = \"Umbra Wiki\" media.role = \"Notification\" }", path],
+            ["pw-play", *audio_target("audioOut"), "--volume", sound_volume(), "-P", "{ application.name = \"Umbra Wiki\" media.role = \"Notification\" }", path],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
@@ -521,7 +565,7 @@ def play_sound(name):
         return True
     _last_sound[name] = now
     subprocess.Popen(
-        ["pw-play", "--volume", sound_volume(), "-P", "{ application.name = \"Umbra Wiki\" media.role = \"Notification\" }", path],
+        ["pw-play", *audio_target("audioOut"), "--volume", sound_volume(), "-P", "{ application.name = \"Umbra Wiki\" media.role = \"Notification\" }", path],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return True
 
@@ -965,7 +1009,7 @@ def reset_umbra():
     """Back to a fresh install: settings, profile, custom themes, personalities
     and scenarios, and all saved conversations are deleted. The AI model,
     the library and config.json (model, library folder) are kept."""
-    for path in (SETTINGS_FILE, PROFILE_FILE, CUSTOM_THEMES_FILE, PERSONALITIES_FILE, SCENARIOS_FILE):
+    for path in (SETTINGS_FILE, PROFILE_FILE, CUSTOM_THEMES_FILE, PERSONALITIES_FILE, SCENARIOS_FILE, LOCK_FILE):
         try:
             os.remove(path)
         except OSError:
@@ -1025,7 +1069,7 @@ def voice_action(action):
         return voice_status()
     # No service: record here, transcribe on stop.
     if action == "start" and not (voice_proc and voice_proc.poll() is None):
-        voice_proc = subprocess.Popen(["pw-record", "--rate", "16000", "--channels", "1", "--format", "s16", VOICE_FILE],
+        voice_proc = subprocess.Popen(["pw-record", *audio_target("audioIn"), "--rate", "16000", "--channels", "1", "--format", "s16", VOICE_FILE],
                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return {**voice_status(), "state": "recording"}
     if action in ("stop", "cancel") and voice_proc:
@@ -1128,6 +1172,8 @@ def apply_settings(update):
         if update.get("background") in ("rain", "rise", "rings", "stars", "forest", "snow", "aurora",
                                          "embers", "radar", "none"):
             settings["background"] = update["background"]
+        if update.get("transition") in ("wave", "rain", "scan", "static", "blinds", "split", "diamond", "spiral"):
+            settings["transition"] = update["transition"]
         if update.get("offgrid") in ("off", "on", "auto"):
             settings["offgrid"] = update["offgrid"]
         if isinstance(update.get("textScale"), (int, float)):
@@ -1139,6 +1185,50 @@ def apply_settings(update):
                 settings[key] = update[key]
         write_json(SETTINGS_FILE, settings)
     return settings
+
+
+# ----------------------------------------------------------------- password
+
+# An optional password that locks Umbra's screen at launch. Only a salted,
+# slow hash is kept (PBKDF2-SHA256), in its own file that backups leave out.
+# It guards the screen, not the files: they stay readable to this account.
+LOCK_FILE = os.path.join(CONFIG_DIR, "lock.json")
+LOCK_ROUNDS = 200_000
+
+
+def has_password():
+    return bool(read_json(LOCK_FILE, {}).get("hash"))
+
+
+def check_password(password):
+    lock = read_json(LOCK_FILE, {})
+    if not lock.get("hash"):
+        return True
+    import hashlib, hmac
+    digest = hashlib.pbkdf2_hmac("sha256", str(password).encode(), bytes.fromhex(lock["salt"]),
+                                 int(lock.get("rounds", LOCK_ROUNDS))).hex()
+    return hmac.compare_digest(digest, lock["hash"])
+
+
+def set_password(old, new):
+    if has_password() and not check_password(old):
+        time.sleep(0.6)
+        raise ValueError("wrong password")
+    if not new:
+        try:
+            os.remove(LOCK_FILE)
+        except OSError:
+            pass
+        return {"password": False}
+    import hashlib
+    salt = os.urandom(16)
+    digest = hashlib.pbkdf2_hmac("sha256", str(new)[:200].encode(), salt, LOCK_ROUNDS).hex()
+    write_json(LOCK_FILE, {"salt": salt.hex(), "hash": digest, "rounds": LOCK_ROUNDS})
+    try:
+        os.chmod(LOCK_FILE, 0o600)
+    except OSError:
+        pass
+    return {"password": True}
 
 
 # ------------------------------------------------------------- field manual
@@ -1584,6 +1674,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json([])
         if path == "/api/voice":
             return self.send_json(voice_status())
+        if path == "/api/audio":
+            return self.send_json(audio_devices())
+        if path == "/api/lock":
+            return self.send_json({"password": has_password()})
         if path == "/api/models":
             return self.send_json(list_models())
         if path == "/api/system":
@@ -1653,6 +1747,23 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(apply_settings(update))
         if self.path == "/api/voice":
             return self.send_json(voice_action(str(self.read_json().get("action", ""))))
+        if self.path == "/api/audio":
+            req = self.read_json()
+            try:
+                return self.send_json(set_audio(req.get("out"), req.get("in")))
+            except ValueError as e:
+                return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/password":
+            req = self.read_json()
+            try:
+                return self.send_json(set_password(str(req.get("old", "")), str(req.get("new", ""))))
+            except ValueError as e:
+                return self.send_json({"error": str(e)}, 403)
+        if self.path == "/api/unlock":
+            ok = check_password(str(self.read_json().get("password", "")))
+            if not ok:
+                time.sleep(0.6)   # slows down guessing
+            return self.send_json({"ok": ok})
         if self.path == "/api/model":
             try:
                 return self.send_json(set_model(str(self.read_json().get("model", ""))))

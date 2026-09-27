@@ -57,13 +57,14 @@
   }
 
   // A text field under the last message; resolves with the text ("" = skipped).
-  function field(answer, placeholder, max, multiline = false) {
+  function field(answer, placeholder, max, multiline = false, secret = false) {
     return new Promise((resolve, reject) => {
       const box = document.createElement("div");
       box.className = "tour-field";
       box.innerHTML = `${multiline ? "<textarea rows='3'></textarea>" : "<input>"}
         <button class="solid">CONTINUE ⏎</button><button class="ghost">SKIP</button>`;
       const inp = box.querySelector("input, textarea");
+      if (secret) { inp.type = "password"; inp.autocomplete = "off"; }
       inp.placeholder = placeholder;
       inp.maxLength = max;
       const done = (v) => { box.remove(); Sound.click(); resolve(v); };
@@ -74,7 +75,7 @@
       skipHooks.push(() => reject(SKIP));
       wake();
       setTimeout(() => inp.focus(), 50);
-      if (AUTO) { inp.value = multiline ? "" : "Tester"; autoClick(box.querySelector(".solid")); }
+      if (AUTO) { inp.value = multiline || secret ? "" : "Tester"; autoClick(box.querySelector(secret ? ".ghost" : ".solid")); }
     });
   }
 
@@ -204,6 +205,25 @@
       if (window.UmbraProfile) Object.assign(window.UmbraProfile.data, { name, about: about || profile.about || "" });
     } else {
       who = "friend";
+    }
+
+    // An optional password: typed as dots, asked twice.
+    a = await say("Would you like a **password** on Umbra? It's optional. I'll ask for it when I start and when you lock the screen, " +
+      "so nobody else can read your conversations here. (It keeps the screen private; it doesn't encrypt your files.)");
+    if (await choose(a, [["SET A PASSWORD", "yes", true], ["NO THANKS", "no"]]) === "yes") {
+      a = await say("Type your password.");
+      const first = await field(a, "Password", 200, false, true);
+      if (first) {
+        a = await say("And once more, to be sure.");
+        const second = await field(a, "Repeat the password", 200, false, true);
+        if (first === second) {
+          await post("/api/password", { new: first });
+          if (window.refreshPasswordLock) window.refreshPasswordLock();
+          await say("Done. Your Umbra is locked with a password. You can change or remove it any time in your **Profile**.");
+        } else {
+          await say("Those didn't match, so I haven't set a password. You can set one any time in your **Profile**.");
+        }
+      }
     }
 
     await say("Here's what I'm for. Out of the box I'm built for **survival and off-grid life**: water, fire, shelter, first aid, food, " +

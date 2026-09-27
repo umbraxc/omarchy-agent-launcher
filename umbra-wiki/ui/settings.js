@@ -102,6 +102,10 @@
         <label class="set-row"><span class="set-text"><b>Volume</b><small>How loud Umbra's sounds are</small></span>
           <input type="range" class="set-volume" min="0" max="1" step="0.05"></label>
         ${toggle("hoverSounds", "Hover sounds", "Soft blips when the mouse moves over buttons")}
+        <label class="set-row"><span class="set-text"><b>Sound output</b><small>Where Umbra's sounds play</small></span>
+          <span class="set-previews"><select class="set-audio-out"></select><button class="ghost set-audio-test">▶ TEST</button></span></label>
+        <label class="set-row"><span class="set-text"><b>Microphone</b><small class="set-audio-in-note">What voice input listens to</small></span>
+          <select class="set-audio-in"></select></label>
       </section>
       <section class="set-section"><div class="lib-head">HEADER BUTTONS</div>
         ${CONTROLS.map(([id, label]) => `
@@ -110,6 +114,10 @@
         <p class="lib-note">Settings always stays, so you can bring the others back.</p>
       </section>
       <section class="set-section"><div class="lib-head">MOTION</div>
+        <label class="set-row"><span class="set-text"><b>Transition</b><small>How the boot, the goodbye and the end of the tour sweep across the screen</small></span>
+          <select class="set-transition">${(window.UmbraTransitions || [["wave", "Glyph wave"]]).map(([id, name]) => `<option value="${id}">${name}</option>`).join("")}</select></label>
+        <div class="set-row"><span class="set-text"><small>Try the chosen transition</small></span>
+          <span class="set-previews"><button class="ghost set-prev-boot">▶ BOOT</button><button class="ghost set-prev-outro">▶ GOODBYE</button></span></div>
         <label class="set-row"><span class="set-text"><b>Start screen background</b><small>The animation behind the globe and title</small></span>
           <select class="set-background">${BACKGROUNDS.map(([id, label]) => `<option value="${id}">${label}</option>`).join("")}</select></label>
         ${toggle("reduceMotion", "Reduce motion", "Calm the animations; good for slow computers")}
@@ -247,6 +255,36 @@
       if (!res || !res.ok) { Sound.error(); return; }
       location.reload();
     });
+    // Audio devices ("" = the system default).
+    const audio = await fetch("/api/audio").then((r) => r.json()).catch(() => ({ outputs: [], inputs: [] }));
+    const fill = (select, list, current) => {
+      select.innerHTML = `<option value="">System default</option>` +
+        list.map((d) => `<option value="${escapeHtml(d.name)}">${escapeHtml(d.description)}</option>`).join("");
+      select.value = current || "";
+    };
+    const outSel = body.querySelector(".set-audio-out"), inSel = body.querySelector(".set-audio-in");
+    fill(outSel, audio.outputs || [], audio.out);
+    fill(inSel, audio.inputs || [], audio.in);
+    if (voice.daemon) body.querySelector(".set-audio-in-note").textContent = "What voice input listens to; voxtype uses it too, so F9 works with the same microphone everywhere";
+    const setAudio = async (update) => {
+      const r = await fetch("/api/audio", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(update) })
+        .then((x) => x.json()).catch(() => ({ error: "failed" }));
+      if (r.error) Sound.error(); else Sound.click();
+    };
+    outSel.addEventListener("change", async () => { await setAudio({ out: outSel.value }); Sound.found(); });
+    inSel.addEventListener("change", () => setAudio({ in: inSel.value }));
+    body.querySelector(".set-audio-test").addEventListener("click", (e) => { e.preventDefault(); Sound.found(); });
+    const tr = body.querySelector(".set-transition");
+    tr.value = prefs.transition || "wave";
+    tr.addEventListener("change", () => { save({ transition: tr.value }); Sound.click(); });
+    const preview = async (which) => {
+      if (document.body.classList.contains("reduce-motion")) { Sound.error(); return; }
+      open(false, true);
+      await window.previewTransition(which);
+      open(true, true);
+    };
+    body.querySelector(".set-prev-boot").addEventListener("click", () => preview("boot"));
+    body.querySelector(".set-prev-outro").addEventListener("click", () => preview("outro"));
     const bgSelect = body.querySelector(".set-background");
     bgSelect.value = prefs.background || "rain";
     bgSelect.addEventListener("change", () => { save({ background: bgSelect.value }); Sound.theme(); });

@@ -413,8 +413,26 @@ main::-webkit-scrollbar-track { background: transparent; }
 }
 @keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
 
+/* The status line above the prompt: short, mechanical, typed in. */
+.promptbar {
+  display: flex; justify-content: space-between; gap: 16px; margin: 0 2px 6px; min-height: 14px;
+  font-size: 9.5px; letter-spacing: .28em; color: var(--faint); white-space: nowrap; overflow: hidden;
+}
+.promptbar .pb-left { color: var(--dim); }
+.promptbar .pb-left.hot { color: var(--signal); }
+.promptbar .pb-right { overflow: hidden; text-overflow: ellipsis; }
+body.locked .promptbar { visibility: hidden; }
+
+/* A thick block cursor in the prompt, drawn by app.js (the native one is hidden). */
+#q { caret-color: transparent; }
+.fake-caret {
+  position: absolute; pointer-events: none; background: var(--signal); opacity: .75;
+  animation: caret-blink 1.06s steps(1) infinite;
+}
+.fake-caret.solid { animation: none; }
+@keyframes caret-blink { 50% { opacity: 0; } }
 .ask {
-  display: flex; align-items: flex-end; gap: 12px;
+  display: flex; align-items: flex-end; gap: 12px; position: relative;
   padding: 10px 10px 10px 16px;
   background: var(--bg-2); border: 1px solid var(--line);
   transition: border-color .15s, box-shadow .15s;
@@ -685,11 +703,16 @@ kbd { font: inherit; opacity: .7; margin-left: 4px; }
 }
 .picker-item:hover { border-color: var(--signal); background: var(--signal-soft); }
 .picker-item small { color: var(--dim); font-size: 10.5px; }
+.set-previews { display: flex; gap: 6px; flex: none; }
 .set-uninstall-box { margin: 4px 0 0 14px; padding-left: 10px; border-left: 2px solid color-mix(in srgb, var(--red) 50%, transparent); }
 .set-un-go { font-weight: 800; }
 .goodbye { height: 100vh; display: grid; place-content: center; text-align: center; gap: 14px; color: var(--dim); }
 .goodbye .ascii { font-size: 22px; }
 .set-about { color: var(--faint); font-size: 10px; letter-spacing: .12em; text-align: center; margin: 8px 0 0; }
+.pf-password { margin-top: 26px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.pf-password .lo-field input { letter-spacing: .3em; }
+.pf-pw-msg { margin-right: auto; align-self: center; color: var(--dim); font-size: 11px; }
+.pf-pw-msg.bad { color: var(--red); }
 .pf-danger {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 26px; padding-top: 14px;
   border-top: 1px dashed color-mix(in srgb, var(--red) 40%, transparent); color: var(--dim); font-size: 11px; line-height: 1.5;
@@ -957,6 +980,14 @@ body.locked .brand, body.locked .telemetry > :not(.controls), body.locked .contr
 }
 .lockcard small { color: var(--dim); font-weight: 400; letter-spacing: .12em; font-size: 10.5px; }
 .lockglyph { font-size: 26px; letter-spacing: 0; }
+.lockshield.secure { background: var(--bg); }
+.lock-form { display: flex; gap: 8px; margin-top: 10px; }
+.lock-form input {
+  font: 14px var(--font); letter-spacing: .3em; color: var(--fg-bright); background: var(--bg-2);
+  border: 1px solid var(--line); padding: 8px 12px; outline: 0; width: 220px;
+}
+.lock-form input:focus { border-color: var(--signal); }
+.lock-error { color: var(--red); letter-spacing: .12em; font-weight: 400; font-size: 10.5px; min-height: 1em; }
 body.locked main { overflow: hidden; }
 
 /* --------------------------------------------------------- source popover */

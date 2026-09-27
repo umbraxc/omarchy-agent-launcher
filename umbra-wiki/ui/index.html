@@ -138,7 +138,10 @@
 </div>
 
 <div id="lockshield" class="lockshield" hidden>
-  <div class="lockcard"><span class="lockglyph">󰌾</span><span>LOCKED</span><small>Unlock with the lock in the top right</small></div>
+  <div class="lockcard"><span class="lockglyph">󰌾</span><span>LOCKED</span><small class="lock-hint">Unlock with the lock in the top right</small>
+    <form class="lock-form" hidden autocomplete="off"><input type="password" class="lock-pass" placeholder="Password" spellcheck="false">
+      <button class="solid" type="submit">UNLOCK</button></form>
+    <small class="lock-error"></small></div>
 </div>
 
 <div id="pop" class="pop" hidden>
@@ -173,13 +176,14 @@
     <div class="bar"><i></i></div>
     <span id="elapsed" class="elapsed">0.0s</span>
   </div>
+  <div id="promptbar" class="promptbar" aria-live="polite"><span class="pb-left"></span><span class="pb-right"></span></div>
   <form id="ask" class="ask" autocomplete="off">
     <span class="caret">&gt;</span>
     <textarea id="q" rows="1" placeholder="Ask anything: water, fire, wounds, repairs, power…" autofocus></textarea>
     <button id="mic" type="button" title="Voice input: hold F9, or click to talk and click again to stop"><span class="g">󰍬</span><kbd>F9</kbd></button>
     <button id="send" type="submit">TRANSMIT <kbd>⏎</kbd></button>
   </form>
-  <div class="hint">ENTER send · SHIFT+ENTER new line · TAB use suggestion · F9 talk · CTRL+Z undo · ESC stop · answers cite their sources: verify critical steps there</div>
+  <div class="hint">answers cite their sources · verify critical steps there</div>
 </footer>
 
 <script src="scenes.js"></script>
