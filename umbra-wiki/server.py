@@ -62,7 +62,8 @@ OLLAMA = "http://127.0.0.1:11434"
 MODEL = os.environ.get("UMBRA_MODEL") or CONFIG.get("model") or "gemma3:4b"
 
 WIKI_API = "https://en.wikipedia.org/w/api.php"
-WEB_HEADERS = {"User-Agent": "UmbraWiki/1.0 (personal offline survival assistant)"}
+# Wikimedia asks API clients to name themselves with a contact URL.
+WEB_HEADERS = {"User-Agent": "UmbraWiki/1.1 (https://github.com/umbraxc/omarchy-umbra; offline survival assistant)"}
 
 # Gemma reads context at ~25 tokens/s on this CPU, so the prompt budget is
 # what sets the wait before the first word. Three sources of ~800 chars keep
@@ -70,8 +71,9 @@ WEB_HEADERS = {"User-Agent": "UmbraWiki/1.0 (personal offline survival assistant
 # source for two Wikipedia articles.
 LOCAL_SOURCES = 3
 ONLINE_LOCAL_SOURCES = 2
-WIKI_SOURCES = 2
+WIKI_SOURCES = 3
 SNIPPET_CHARS = 800
+WIKI_SNIPPET_CHARS = 1300   # online: Wikipedia excerpts are longer and richer
 SUMMARY_CHARS = 150
 HISTORY_TURNS = 2
 
@@ -224,34 +226,63 @@ def local_sources(terms, limit):
 
 
 def wiki_sources(terms, limit):
-    query = urllib.parse.urlencode({
-        "action": "query", "list": "search", "srsearch": " ".join(terms),
-        "srlimit": 8, "format": "json", "utf8": 1,
-    })
-    hits = json.loads(fetch(f"{WIKI_API}?{query}", timeout=8, headers=WEB_HEADERS))["query"]["search"]
+    def wget(params):
+        url = f"{WIKI_API}?{urllib.parse.urlencode({**params, 'format': 'json', 'utf8': 1})}"
+        try:
+            return json.loads(fetch(url, timeout=8, headers=WEB_HEADERS))
+        except urllib.error.HTTPError as e:
+            if e.code != 429:
+                raise
+            time.sleep(1.5)   # rate limited: one polite retry
+            return json.loads(fetch(url, timeout=8, headers=WEB_HEADERS))
+
+    def wsearch(text, count):
+        return wget({"action": "query", "list": "search", "srsearch": text, "srlimit": count})["query"]["search"]
+
+    hits = wsearch(" ".join(terms), 8)
+    # The main article on the topic itself ("Hypothermia") often ranks below
+    # niche ones in full-text search. The topic is the question word the
+    # results' titles share most; it's looked up on its own too.
+    topical = [t for t in terms if t not in GENERIC] or terms
+    topic = max(topical, key=lambda t: (sum(1 for h in hits if t[:5] in h["title"].lower()), len(t)))
+    try:
+        hits += wsearch(topic, 2)
+    except Exception:
+        pass
+    unique = {}
+    for h in hits:
+        unique.setdefault(h["title"], h)
+    hits = list(unique.values())
     stems = [t[:5] for t in terms]
     need = min(2, len(stems))
 
     def relevance(hit):
         title = hit["title"].lower()
         snippet = re.sub(r"<[^>]+>", "", hit.get("snippet", "")).lower()
-        return sum(1 for st in stems if st in title) * 2 + sum(1 for st in stems if st in snippet)
+        score = sum(1 for st in stems if st in title) * 2 + sum(1 for st in stems if st in snippet)
+        words = title.split()
+        # A general article named after the topic itself ("Hypothermia").
+        if len(words) <= 2 and any(w.startswith(topic[:5]) for w in words) \
+                and all(any(w.startswith(st) for st in stems) for w in words):
+            score += 5
+        return score - max(0, len(words) - 3) * 0.5
 
     ranked = [h for h in hits
-              if not re.match(r"(?i)(list|index|outline) of ", h["title"])
-              and sum(1 for st in stems if st in (h["title"] + " " + h.get("snippet", "")).lower()) >= need]
+              if not re.match(r"(?i)(lists?|index|outline) of ", h["title"])
+              and (relevance(h) >= 5
+                   or sum(1 for st in stems if st in (h["title"] + " " + h.get("snippet", "")).lower()) >= need)]
     ranked.sort(key=relevance, reverse=True)
 
     sources = []
     for hit in ranked[:limit]:
         title = hit["title"]
-        query = urllib.parse.urlencode({
-            "action": "query", "prop": "extracts", "explaintext": 1, "exsectionformat": "plain",
-            "titles": title, "format": "json", "utf8": 1,
-        })
-        pages = json.loads(fetch(f"{WIKI_API}?{query}", timeout=8, headers=WEB_HEADERS))["query"]["pages"]
+        try:
+            pages = wget({"action": "query", "prop": "extracts", "explaintext": 1, "exsectionformat": "plain",
+                          "titles": title})["query"]["pages"]
+        except Exception:
+            continue   # one article failing (or rate limiting) shouldn't lose the rest
         text = next(iter(pages.values())).get("extract", "")
-        passage, summary = best_passage(text, terms)
+        passage, summary = best_passage(text, terms, WIKI_SNIPPET_CHARS)
         sources.append({
             "kind": "wiki", "title": title, "archive": "Wikipedia (online)",
             "url": "https://en.wikipedia.org/wiki/" + urllib.parse.quote(title.replace(" ", "_")),
@@ -296,7 +327,7 @@ def shorten(text, limit):
     return cut + "…"
 
 
-def best_passage(text, terms):
+def best_passage(text, terms, limit=SNIPPET_CHARS):
     """(passage, summary): the sentences that best answer the question, kept
     in page order, and the single most relevant sentence as a summary.
 
@@ -315,7 +346,7 @@ def best_passage(text, terms):
     sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+|\n", text)]
     sentences = [s for s in sentences if 25 <= len(s) <= 400 and not NOISE.search(s)]
     if not sentences:
-        return text[:SNIPPET_CHARS], shorten(text, SUMMARY_CHARS)
+        return text[:limit], shorten(text, SUMMARY_CHARS)
 
     stems = [t[:5] for t in terms]
     scored = []
@@ -331,7 +362,7 @@ def best_passage(text, terms):
     ranked = sorted(scored, reverse=True)
     picked, used = [], 0
     for score, i in ranked:
-        if score < 1 or used + len(sentences[i]) > SNIPPET_CHARS:
+        if score < 1 or used + len(sentences[i]) > limit:
             continue
         picked.append(i)
         used += len(sentences[i]) + 1
@@ -641,6 +672,23 @@ def delete_personality(item_id):
     return items
 
 
+# ---------------------------------------------------------------- attention
+
+# A new answer arrived while the window was in the background: this flag
+# file makes the bar widget's emblem light up until the window is focused.
+ATTENTION_FILE = os.path.join(os.environ.get("XDG_RUNTIME_DIR") or "/tmp", "umbra-wiki-attention")
+
+
+def set_attention(on):
+    try:
+        if on:
+            open(ATTENTION_FILE, "w").close()
+        elif os.path.exists(ATTENTION_FILE):
+            os.remove(ATTENTION_FILE)
+    except OSError:
+        pass
+
+
 # ------------------------------------------------------------------ history
 
 # Every conversation is kept as one JSON file on this computer.
@@ -728,7 +776,23 @@ def trait_lines(stats, no_humor):
     return " ".join(lines)
 
 
-def build_system_prompt():
+# Umbra knows whether it is offline or has the internet, and acts on it.
+MODE_LOCAL = (
+    "MODE: LOCAL. You are fully offline: your only sources are the offline survival archives on this "
+    "device. If a question needs current or live information (news, weather, prices, recent events), "
+    "say plainly that you are offline and suggest switching to ONLINE mode with the LINK button."
+)
+MODE_ONLINE = (
+    "MODE: ONLINE. You have internet access: besides the offline archives, you have live Wikipedia "
+    "articles (labelled 'WIKIPEDIA, ONLINE'). Use them to give a fuller, more precise and more up-to-date "
+    "answer than you could offline: more specifics, figures and background, still well organised. When "
+    "a key fact comes from a source labelled 'WIKIPEDIA, ONLINE', you may say so briefly (for example "
+    "'according to Wikipedia'); never say that about sources labelled 'OFFLINE ARCHIVE', and always cite the "
+    "number of the source the fact really comes from."
+)
+
+
+def build_system_prompt(online=False):
     """Persona + scenario + trait style + the fixed rules."""
     settings = read_json(SETTINGS_FILE, {})
     try:
@@ -746,7 +810,7 @@ def build_system_prompt():
         persona = person["prompt"]
     no_humor = bool(scenario.get("noHumor"))
     parts = [persona, trait_lines(person.get("stats", {}), no_humor),
-             "SCENARIO: " + scenario["prompt"], RULES]
+             "SCENARIO: " + scenario["prompt"], MODE_ONLINE if online else MODE_LOCAL, RULES]
     return " ".join(x for x in parts if x)
 
 
@@ -841,6 +905,9 @@ class Handler(BaseHTTPRequestHandler):
                     settings[key] = update[key]
             write_json(SETTINGS_FILE, settings)
             return self.send_json(settings)
+        if self.path == "/api/attention":
+            set_attention(bool(self.read_json().get("on")))
+            return self.send_json({"ok": True})
         if self.path == "/api/suggest":
             req = self.read_json()
             return self.send_json({"text": suggest_reply(str(req.get("question", ""))[:1000],
@@ -939,14 +1006,16 @@ def answer(req, emit):
         emit({"type": "notice", "message": notice})
 
     emit({"type": "phase", "phase": "read", "count": len(sources)})
-    blocks = [f"[{i}] {s['title']} ({s['archive']})\n{s['passage']}" for i, s in enumerate(sources, 1)]
+    # The label says plainly where each source comes from, so Umbra credits the right one.
+    blocks = [f"[{i}] {s['title']} ({'WIKIPEDIA, ONLINE' if s['kind'] == 'wiki' else 'OFFLINE ARCHIVE: ' + s['archive']})"
+              f"\n{s['passage']}" for i, s in enumerate(sources, 1)]
     emit({"type": "sources", "sources": [
         {"n": i, "kind": s["kind"], "title": s["title"], "archive": s["archive"],
          "summary": s["summary"], "url": s["url"]}
         for i, s in enumerate(sources, 1)
     ]})
 
-    messages = [{"role": "system", "content": build_system_prompt()}]
+    messages = [{"role": "system", "content": build_system_prompt(online)}]
     for turn in history[-HISTORY_TURNS * 2:]:
         role = "assistant" if turn.get("role") == "assistant" else "user"
         messages.append({"role": role, "content": str(turn.get("content", ""))[:600]})
@@ -1009,7 +1078,7 @@ def stream_chat(messages, emit):
 def quick_generate(prompt, num_predict):
     """A short one-line completion from the local model ('' on failure)."""
     body = json.dumps({"model": MODEL, "prompt": prompt, "stream": False, "keep_alive": "30m",
-                       "options": {"num_ctx": 2048, "temperature": 0.4, "num_predict": num_predict}}).encode()
+                       "options": {"num_ctx": 4096, "temperature": 0.4, "num_predict": num_predict}}).encode()
     try:
         r = json.loads(urllib.request.urlopen(urllib.request.Request(
             OLLAMA + "/api/generate", body, {"Content-Type": "application/json"}), timeout=120).read())
@@ -1046,7 +1115,7 @@ def suggest_reply(question, answer_text):
 def warm_model():
     """Load Gemma into memory ahead of the first question."""
     try:
-        body = json.dumps({"model": MODEL, "keep_alive": "30m"}).encode()
+        body = json.dumps({"model": MODEL, "keep_alive": "30m", "options": {"num_ctx": 4096}}).encode()
         urllib.request.urlopen(urllib.request.Request(
             OLLAMA + "/api/generate", body, {"Content-Type": "application/json"}), timeout=120).read()
     except Exception:
@@ -1057,6 +1126,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, stop_kiwix)
     signal.signal(signal.SIGINT, stop_kiwix)
     n = start_kiwix()
+    set_attention(False)
     threading.Thread(target=warm_model, daemon=True).start()
     print(f"umbra: {n} archives, model {MODEL}, http://{HOST}:{PORT}", flush=True)
     ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()

@@ -133,6 +133,8 @@ button.cell {
 .ctl:hover { color: var(--signal); border-color: var(--signal); background: var(--signal-soft); }
 .ctl.on { color: var(--signal); border-color: var(--signal); }
 .ctl.off { color: var(--faint); }
+/* The history glyph is drawn off-centre in the font; nudge it back. */
+#history-btn .g { display: inline-block; transform: translateX(-1.5px); }
 
 .hazard {
   height: 3px; flex: none;
@@ -200,9 +202,12 @@ main::-webkit-scrollbar-track { background: transparent; }
   color: var(--bg); background: var(--signal); padding: 1px 8px; margin: 0 10px 0 6px;
   font-weight: 800; letter-spacing: .5em;
 }
-.subtitle .hz { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; }
-.hz .trefoil { fill: var(--accent); }
-.hz .ring { fill: none; stroke: var(--accent); stroke-width: 1.4; }
+/* Umbra's compass star from the logo, turning in quarter steps like it. */
+.subtitle .hz { display: inline-block; width: 16px; height: 16px; vertical-align: -3px; }
+.hz .hz-star { transform-origin: 64px 53.7px; animation: compass 16s ease-in-out infinite; }
+.subtitle .hz:last-child .hz-star { animation-delay: -8s; }
+.hz .lit { fill: var(--logo, var(--signal)); }
+.hz .shade { fill: var(--shade-2); }
 
 .prompts {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));

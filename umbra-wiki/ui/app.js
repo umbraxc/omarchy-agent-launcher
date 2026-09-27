@@ -1132,6 +1132,7 @@ async function ask(question, shownAs = "") {
   finishAnswer(msg, rec);
   chat.push({ role: "user", content: question }, { role: "assistant", content: shown });
   if (window.recordTurn) window.recordTurn(rec);
+  if (!document.hasFocus()) setAttention(true);
   if (!stopped) suggestFor(rec);
   stopped ? Sound.error() : Sound.done();
   stopWorking();
@@ -1153,6 +1154,18 @@ function closeReader() {
 $("#reader-close").addEventListener("click", closeReader);
 
 // ------------------------------------------------------------------ inputs
+
+// An answer that lands while the window is in the background lights up the
+// bar widget's emblem; coming back to the window clears it.
+let attention = false;
+function setAttention(on) {
+  if (attention === on) return;
+  attention = on;
+  fetch("/api/attention", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ on }) })
+    .catch(() => {});
+}
+window.addEventListener("focus", () => setAttention(false));
+window.addEventListener("pagehide", () => setAttention(false));
 
 // The prompt box keeps its own undo history (Ctrl+Z, and Ctrl+Shift+Z or
 // Ctrl+Y to redo). It survives sending: Ctrl+Z brings a sent question back.

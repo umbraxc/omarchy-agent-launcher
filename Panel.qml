@@ -37,6 +37,8 @@ Panel {
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
 
   property var agents: []
+  // Umbra Wiki has an answer waiting in a background window.
+  property bool attention: false
   property string fieldNote: ""
   property var loadout: ({})
   readonly property bool umbraInstalled: agents.some(function(a) { return a.id === "umbra-wiki" })
@@ -145,6 +147,22 @@ Panel {
     onTriggered: root.refresh()
   }
 
+  // Cheap and quick, so the emblem reacts within a second.
+  Process {
+    id: attentionProc
+    command: ["sh", "-c", "[ -e \"${XDG_RUNTIME_DIR:-/tmp}/umbra-wiki-attention\" ] && echo 1 || echo 0"]
+    stdout: StdioCollector {
+      onStreamFinished: root.attention = String(text || "").trim() === "1"
+    }
+  }
+  Timer {
+    interval: 1000
+    running: true
+    repeat: true
+    triggeredOnStart: true
+    onTriggered: if (!attentionProc.running) attentionProc.running = true
+  }
+
   Timer {
     id: refreshSoon
     interval: 1500
@@ -158,10 +176,14 @@ Panel {
     // The Umbra Wiki emblem in the bar's own colour; dimmed when idle.
     iconComponent: Component {
       UmbraMark {
-        color: root.totalRunning > 0 ? root.barForeground : Qt.darker(root.barForeground, 1.55)
+        // Lights up in the theme colour while an answer is waiting.
+        color: root.attention ? root.online
+          : root.totalRunning > 0 ? root.barForeground : Qt.darker(root.barForeground, 1.55)
+        Behavior on color { ColorAnimation { duration: 900; easing.type: Easing.InOutQuad } }
       }
     }
-    tooltipText: root.totalRunning === 0
+    tooltipText: root.attention ? "Umbra Wiki: a new answer is waiting"
+      : root.totalRunning === 0
       ? "Agents: none running"
       : "Agents: " + root.totalRunning + " running"
     onPressed: function(buttonCode) {
