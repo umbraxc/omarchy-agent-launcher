@@ -6,7 +6,7 @@ pkgdesc="Offline survival assistant: a local AI that answers from an offline lib
 arch=('any')
 url="https://github.com/umbraxc/omarchy-umbra"
 license=('MIT')
-depends=('python' 'python-gobject' 'webkit2gtk-4.1' 'ollama' 'kiwix-tools' 'jq' 'curl' 'pciutils'
+depends=('python' 'python-gobject' 'gtk3' 'glib2' 'webkit2gtk-4.1' 'ollama' 'kiwix-tools' 'jq' 'curl' 'pciutils'
          'xdg-utils' 'xdg-user-dirs' 'libnotify' 'hicolor-icon-theme' 'ttf-jetbrains-mono-nerd')
 optdepends=('pipewire-audio: sounds and voice recording'
             'libpulse: sounds on systems that use PulseAudio'
