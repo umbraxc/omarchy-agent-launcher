@@ -90,7 +90,9 @@
       <label class="lo-field"><span>NAME</span><input class="pf-name" maxlength="32" placeholder="What should Umbra call you?"></label>
       <label class="lo-field"><span>ABOUT YOU</span><textarea class="pf-about" maxlength="500" rows="4"
         placeholder="For example: I live in the countryside with my partner and two dogs, and I'm new to camping."></textarea></label>
-      <div class="lo-actions"><button class="solid pf-save">SAVE PROFILE</button></div>`;
+      <div class="lo-actions"><button class="solid pf-save">SAVE PROFILE</button></div>
+      <div class="pf-danger"><span>Start over: delete your profile, settings, custom items and every conversation.</span>
+        <button class="ghost pf-reset">RESET UMBRA…</button></div>`;
     const q = (sel) => detail.querySelector(sel);
     q(".pf-name").value = draft.name || "";
     q(".pf-about").value = draft.about || "";
@@ -109,6 +111,7 @@
       if (!file) return;
       try { draft.picture = await squarePicture(file); showPic(); Sound.theme(); } catch { Sound.error(); }
     });
+    q(".pf-reset").addEventListener("click", () => window.resetUmbra && window.resetUmbra());
     q(".pf-save").addEventListener("click", async () => {
       draft.name = q(".pf-name").value.trim();
       draft.about = q(".pf-about").value.trim();

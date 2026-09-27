@@ -341,6 +341,7 @@
       while (lines.length < rows) lines.unshift("");
       width = Math.max(width, ...lines.map(len));
       el.textContent = lines.map((l) => l + " ".repeat(width - len(l))).join("\n");
+      if (document.body.classList.contains("reduce-motion")) return;
       setTimeout(tick, scene.ms);
     };
     tick();

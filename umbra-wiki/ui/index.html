@@ -48,6 +48,7 @@
       <button id="theme-btn" class="ctl" title="Themes"><span class="g">󰏘</span></button>
       <button id="sound" class="ctl" title="Sound on (click to mute)"><span class="g" id="sound-icon">󰕾</span></button>
       <button id="lock" class="ctl" title="Lock the screen"><span class="g" id="lock-icon">󰌿</span></button>
+      <button id="settings-btn" class="ctl" title="Settings"><span class="g">󰒓</span></button>
     </div>
   </div>
 </header>
@@ -115,6 +116,14 @@
   <div id="hist-foot" class="hist-foot"></div>
 </div>
 
+<div id="settings" class="themes" hidden>
+  <div class="themes-head">
+    <span class="themes-title"><span class="spin" data-spin>✻</span> SETTINGS</span>
+    <button id="settings-close" class="ghost" title="Close (Esc)">CLOSE ✕</button>
+  </div>
+  <div id="settings-body" class="library-body"></div>
+</div>
+
 <div id="loadout" class="loadout" hidden>
   <div class="lo-head">
     <span class="lo-title"><span class="spin" data-spin>✻</span> LOADOUT</span>
@@ -174,5 +183,7 @@
 <script src="loadout.js"></script>
 <script src="profile.js"></script>
 <script src="history.js"></script>
+<script src="settings.js"></script>
+<script src="onboarding.js"></script>
 </body>
 </html>

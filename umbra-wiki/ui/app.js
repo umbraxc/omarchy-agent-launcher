@@ -135,6 +135,7 @@ const Sound = (() => {
                  "lock", "unlock", "online", "local", "theme", "error"];
   const api = { get muted() { return muted; }, set muted(v) { muted = v; if (v) api.hum(false); } };
   names.forEach((n) => (api[n] = () => play(n)));
+  api.hover = () => { if (!window.prefs || window.prefs.hoverSounds !== false) play("hover"); };
   // The quiet background hum while Umbra searches and thinks.
   api.hum = (on) => {
     if (on && muted) return;
@@ -354,6 +355,7 @@ function toggleThemes(show = $("#themes").hidden, quiet = false) {
     $("#library").hidden = true;
     $("#library-btn").classList.remove("on");
     if (window.closeHistory) window.closeHistory();
+    if (window.closeSettings) window.closeSettings();
     renderThemeGrid();
   }
   if (!quiet) Sound.click();
@@ -420,7 +422,12 @@ function toggleLibrary(show = $("#library").hidden) {
   if (show && locked) return;
   $("#library").hidden = !show;
   $("#library-btn").classList.toggle("on", show);
-  if (show) { toggleThemes(false, true); if (window.closeHistory) window.closeHistory(); renderLibrary(); }
+  if (show) {
+    toggleThemes(false, true);
+    if (window.closeHistory) window.closeHistory();
+    if (window.closeSettings) window.closeSettings();
+    renderLibrary();
+  }
   Sound.click();
 }
 $("#library-btn").addEventListener("click", () => toggleLibrary());
@@ -526,7 +533,8 @@ function orb(el, w, h) {
 let rainRaf = 0;
 function startRain() {
   const canvas = $("#rain");
-  if (!canvas) return;
+  if (!canvas || document.body.classList.contains("no-rain") || document.body.classList.contains("reduce-motion")) return;
+  stopRain();
   const ctx = canvas.getContext("2d");
   const glyphs = "アイウエオカキクケコサシスセソ0123456789ABCDEFGHJKLMNPQRSTUVWXYZ#$%&*+=<>?/".split("");
   const size = 14;
@@ -586,6 +594,8 @@ async function showGreeting() {
   const box = $("#intro .greet");
   if (!box) return;
   const who = box.querySelector(".gname"), line = box.querySelector(".gtext");
+  const s = await fetch("/api/settings").then((r) => r.json()).catch(() => ({}));
+  if (s.greeting === false || !s.onboarded) { box.remove(); return; }
   const name = await fetch("/api/profile").then((r) => r.json()).then((p) => p.name || "").catch(() => "");
   who.textContent = name ? `WELCOME BACK, ${name}` : "WELCOME, SURVIVOR";
   box.classList.add("in");
@@ -1068,7 +1078,7 @@ function stopWorking() {
 // ------------------------------------------------------------------- ask
 
 async function ask(question, shownAs = "") {
-  if (controller || locked || !question.trim()) return;
+  if (controller || locked || !question.trim() || document.body.classList.contains("touring")) return;
   const intro = $("#intro");
   if (intro && !intro.classList.contains("leaving")) {
     intro.classList.add("leaving");
@@ -1166,7 +1176,7 @@ async function ask(question, shownAs = "") {
   finishAnswer(msg, rec);
   chat.push({ role: "user", content: question }, { role: "assistant", content: shown });
   if (window.recordTurn) window.recordTurn(rec);
-  if (!document.hasFocus()) setAttention(true);
+  if (!document.hasFocus() && (!window.prefs || window.prefs.barAlert !== false)) setAttention(true);
   if (!stopped) suggestFor(rec);
   stopped ? Sound.error() : Sound.done();
   stopWorking();
@@ -1311,6 +1321,7 @@ function setSuggestion(text, sendAs = "") {
 }
 async function suggestFor(rec) {
   const token = ++suggestToken;
+  if (window.prefs && window.prefs.suggestions === false) return setSuggestion("");
   if (rec.offer) return setSuggestion("Yes, please.", `Yes, please: ${rec.offer}`);
   setSuggestion("");
   try {

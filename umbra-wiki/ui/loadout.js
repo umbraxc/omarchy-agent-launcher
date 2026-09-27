@@ -339,6 +339,7 @@
     if (tab) state.tab = tab;
     state.selected = current();
     if (window.closeHistory) window.closeHistory();
+    if (window.closeSettings) window.closeSettings();
     $("#themes").hidden = true;
     $("#library").hidden = true;
     $("#theme-btn").classList.remove("on");
@@ -389,6 +390,7 @@
 
   window.openLoadout = open;
   window.closeLoadout = close;
+  window.reloadLoadout = load;
   load().then(() => {
     const view = new URLSearchParams(location.search).get("view");
     if (view === "loadout") open();

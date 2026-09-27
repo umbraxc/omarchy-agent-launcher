@@ -171,6 +171,7 @@
       $("#library").hidden = true;
       $("#library-btn").classList.remove("on");
       if (window.closeLoadout) window.closeLoadout(true);
+      if (window.closeSettings) window.closeSettings();
       filter.value = "";
       load();
     }

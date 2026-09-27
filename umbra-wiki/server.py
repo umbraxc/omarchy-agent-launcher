@@ -481,6 +481,14 @@ _last_sound = {}
 _hum = None
 
 
+def sound_volume():
+    """The volume chosen in Settings (0-1), 0.9 by default."""
+    try:
+        return f"{max(0.0, min(1.0, float(read_json(SETTINGS_FILE, {}).get('volume', 0.9)))):.2f}"
+    except (TypeError, ValueError):
+        return "0.90"
+
+
 def hum(on):
     """Start or stop the quiet background hum while Umbra works."""
     global _hum
@@ -490,7 +498,7 @@ def hum(on):
     path = os.path.join(SOUNDS_DIR, "hum.ogg")
     if on and os.path.isfile(path) and shutil.which("pw-play"):
         _hum = subprocess.Popen(
-            ["pw-play", "--volume", "0.9", "-P", "{ application.name = \"Umbra Wiki\" media.role = \"Notification\" }", path],
+            ["pw-play", "--volume", sound_volume(), "-P", "{ application.name = \"Umbra Wiki\" media.role = \"Notification\" }", path],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
@@ -504,7 +512,7 @@ def play_sound(name):
         return True
     _last_sound[name] = now
     subprocess.Popen(
-        ["pw-play", "--volume", "0.9", "-P", "{ application.name = \"Umbra Wiki\" media.role = \"Notification\" }", path],
+        ["pw-play", "--volume", sound_volume(), "-P", "{ application.name = \"Umbra Wiki\" media.role = \"Notification\" }", path],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return True
 
@@ -736,6 +744,44 @@ def greeting():
         "Reply with only the greeting.", 50, system=persona_prompt())
     text = re.sub(r"(?i)^(greeting)\s*:\s*", "", text).strip(" \"'“”‘’")
     return {"name": name, "text": text[:240]}
+
+
+# ------------------------------------------------------- settings: model, reset
+
+def list_models():
+    try:
+        tags = json.loads(urllib.request.urlopen(OLLAMA + "/api/tags", timeout=3).read())
+        names = sorted(m["name"] for m in tags.get("models", []))
+    except Exception:
+        names = []
+    return {"current": MODEL, "models": names}
+
+
+def set_model(name):
+    """Switch the local AI to another installed Ollama model."""
+    global MODEL
+    if name not in list_models()["models"]:
+        raise ValueError("model not installed")
+    MODEL = name
+    config = read_json(CONFIG_FILE, {})
+    config["model"] = name
+    write_json(CONFIG_FILE, config)
+    threading.Thread(target=warm_model, daemon=True).start()
+    return list_models()
+
+
+def reset_umbra():
+    """Back to a fresh install: settings, profile, custom themes, personalities
+    and scenarios, and all saved conversations are deleted. The AI model,
+    the library and config.json (model, library folder) are kept."""
+    for path in (SETTINGS_FILE, PROFILE_FILE, CUSTOM_THEMES_FILE, PERSONALITIES_FILE, SCENARIOS_FILE):
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+    shutil.rmtree(HISTORY_DIR, ignore_errors=True)
+    set_attention(False)
+    return {"ok": True}
 
 
 # -------------------------------------------------------------------- voice
@@ -1059,6 +1105,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json([])
         if path == "/api/voice":
             return self.send_json(voice_status())
+        if path == "/api/models":
+            return self.send_json(list_models())
+        if path == "/api/paths":
+            short = lambda x: x.replace(HOME, "~", 1)
+            return self.send_json({"library": short(LIBRARY_DIR), "config": short(CONFIG_DIR),
+                                   "history": short(HISTORY_DIR)})
         if path == "/api/profile":
             return self.send_json(get_profile())
         if path == "/api/greeting":
@@ -1104,8 +1156,11 @@ class Handler(BaseHTTPRequestHandler):
             settings = read_json(SETTINGS_FILE, {})
             if isinstance(update.get("theme"), str) and re.fullmatch(r"[a-z0-9-]{1,40}", update["theme"]):
                 settings["theme"] = update["theme"]
-            if isinstance(update.get("muted"), bool):
-                settings["muted"] = update["muted"]
+            for key in ("muted", "onboarded", "rain", "reduceMotion", "suggestions", "greeting", "barAlert", "hoverSounds"):
+                if isinstance(update.get(key), bool):
+                    settings[key] = update[key]
+            if isinstance(update.get("volume"), (int, float)):
+                settings["volume"] = max(0.0, min(1.0, float(update["volume"])))
             for key in ("scenario", "personality"):
                 if isinstance(update.get(key), str) and re.fullmatch(r"[a-z0-9-]{1,40}", update[key]):
                     settings[key] = update[key]
@@ -1113,6 +1168,24 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(settings)
         if self.path == "/api/voice":
             return self.send_json(voice_action(str(self.read_json().get("action", ""))))
+        if self.path == "/api/model":
+            try:
+                return self.send_json(set_model(str(self.read_json().get("model", ""))))
+            except ValueError as e:
+                return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/reset":
+            if self.read_json().get("confirm") != "RESET":
+                return self.send_json({"error": "not confirmed"}, 400)
+            return self.send_json(reset_umbra())
+        if self.path == "/api/open-folder":
+            which = str(self.read_json().get("which", ""))
+            folder = {"library": LIBRARY_DIR, "config": CONFIG_DIR, "history": HISTORY_DIR}.get(which)
+            if not folder:
+                return self.send_json({"ok": False}, 400)
+            os.makedirs(folder, exist_ok=True)
+            subprocess.Popen(["xdg-open", folder], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             start_new_session=True)
+            return self.send_json({"ok": True})
         if self.path == "/api/profile":
             try:
                 return self.send_json(save_profile(self.read_json()))
