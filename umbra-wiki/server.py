@@ -13,6 +13,7 @@ Wikipedia.
 import glob
 import html
 import json
+import math
 import os
 import re
 import shutil
@@ -56,8 +57,8 @@ CONFIG = read_json(CONFIG_FILE, {})
 LIBRARY_DIR = os.path.expanduser(CONFIG.get("libraryDir") or os.path.join(HOME, "UmbraWiki", "library"))
 
 HOST = "127.0.0.1"
-PORT = 8766
-KIWIX_PORT = 8765
+PORT = int(os.environ.get("UMBRA_PORT", 8766))
+KIWIX_PORT = int(os.environ.get("UMBRA_KIWIX_PORT", 8765))
 KIWIX = f"http://{HOST}:{KIWIX_PORT}"
 OLLAMA = "http://127.0.0.1:11434"
 MODEL = os.environ.get("UMBRA_MODEL") or CONFIG.get("model") or "gemma3:4b"
@@ -134,6 +135,19 @@ def start_kiwix():
         except Exception:
             time.sleep(0.2)
     return len(zims)
+
+
+def reload_library():
+    """New archives arrived: restart only kiwix-serve, so answers and model
+    downloads in progress carry on."""
+    global kiwix_proc
+    if kiwix_proc and kiwix_proc.poll() is None:
+        kiwix_proc.terminate()
+        try:
+            kiwix_proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            kiwix_proc.kill()
+    return start_kiwix()
 
 
 def stop_kiwix(*_):
@@ -461,20 +475,6 @@ def library():
     return {"dir": shown, "installed": installed, "available": available}
 
 
-def download(ids):
-    """Download collections in a visible terminal, where progress shows."""
-    script = os.path.join(APP_DIR, "fetch-archive.sh")
-    ids = [i for i in ids if re.fullmatch(r"[a-z0-9._-]{1,80}", i)]
-    if not ids:
-        return False
-    cmd = f"{script} {' '.join(ids)}"
-    runner = ["omarchy-launch-floating-terminal-with-presentation", cmd]
-    if not shutil.which(runner[0]):
-        runner = ["xdg-terminal-exec", "bash", "-c", cmd + "; read -rp 'Press Enter to close'"]
-    subprocess.Popen(runner, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
-    return True
-
-
 SOUNDS_DIR = os.path.join(APP_DIR, "sounds")
 _last_sound = {}
 
@@ -747,15 +747,192 @@ def greeting():
     return {"name": name, "text": text[:240]}
 
 
+# ------------------------------------------------- setup: hardware, models, packs
+
+# The AI models offered at setup, smallest to largest.
+MODEL_CHOICES = [
+    {"id": "gemma3:1b", "name": "Gemma 3 · 1B", "size": 0.8, "ram": 4,
+     "line": "Fastest, basic answers. Runs on any computer."},
+    {"id": "gemma3:4b", "name": "Gemma 3 · 4B", "size": 3.3, "ram": 8,
+     "line": "The recommended balance of speed and quality. Needs 8 GB of memory."},
+    {"id": "llama3.1:8b", "name": "Llama 3.1 · 8B", "size": 4.9, "ram": 16,
+     "line": "Most capable and detailed. Needs 16 GB of memory; slow without a graphics card."},
+]
+
+
+def system_info():
+    """What this computer can do, for choosing a model."""
+    cpu = "Unknown processor"
+    try:
+        for line in open("/proc/cpuinfo"):
+            if line.startswith("model name"):
+                cpu = re.sub(r"\s+", " ", line.split(":", 1)[1]).replace("(R)", "").replace("(TM)", "").strip()
+                break
+    except OSError:
+        pass
+    ram = 0
+    try:
+        for line in open("/proc/meminfo"):
+            if line.startswith("MemTotal"):
+                ram = math.ceil(int(line.split()[1]) / 1024 / 1024)  # usable memory is a bit under the installed size
+    except (OSError, ValueError):
+        pass
+    gpus = []
+    try:
+        out = subprocess.run(["lspci"], capture_output=True, text=True, timeout=3).stdout
+        for line in out.splitlines():
+            if re.search(r"VGA|3D controller|Display controller", line):
+                name = line.split(": ", 1)[-1]
+                gpus.append(re.sub(r"\s*\(rev \w+\)", "", name))
+    except (OSError, subprocess.SubprocessError):
+        pass
+    accel = next((kind for pkg, kind in (("ollama-cuda", "NVIDIA CUDA"), ("ollama-rocm", "AMD ROCm"),
+                                         ("ollama-vulkan", "Vulkan"))
+                  if subprocess.run(["pacman", "-Q", pkg], capture_output=True).returncode == 0), None)
+    os.makedirs(LIBRARY_DIR, exist_ok=True)
+    free = shutil.disk_usage(LIBRARY_DIR).free / 1e9
+    recommended = "gemma3:1b" if ram and ram < 8 else "llama3.1:8b" if ram >= 16 and accel else "gemma3:4b"
+    return {"cpu": cpu, "cores": os.cpu_count() or 1, "ramGB": ram, "gpus": gpus, "accel": accel,
+            "freeGB": round(free, 1), "recommended": recommended}
+
+
+def catalog():
+    try:
+        return json.load(open(os.path.join(APP_DIR, "library.json")))
+    except (OSError, ValueError):
+        return []
+
+
+def packs():
+    """Library packs with their collections, sizes and what's installed."""
+    items = catalog()
+    have = {f for f in os.listdir(LIBRARY_DIR)} if os.path.isdir(LIBRARY_DIR) else set()
+    try:
+        defs = json.load(open(os.path.join(APP_DIR, "packs.json")))
+    except (OSError, ValueError):
+        defs = []
+    out = []
+    for d in defs:
+        wanted = d["ids"]
+        if wanted == "all":
+            ids = [c["id"] for c in items]
+        else:
+            wanted = [wanted] if isinstance(wanted, str) else wanted
+            ids = [c["id"] for c in items if ("essential" in wanted and c.get("essential")) or c["id"] in wanted]
+        chosen = [c for c in items if c["id"] in ids]
+        missing = [c for c in chosen if c["file"] not in have]
+        out.append({**{k: v for k, v in d.items() if k != "ids"}, "ids": ids, "count": len(chosen),
+                    "size": sum(c["size"] for c in chosen), "missing": [c["id"] for c in missing],
+                    "missingSize": sum(c["size"] for c in missing)})
+    return out
+
+
+# Library downloads run in their own systemd unit, so they survive backend
+# restarts; progress is read from the growing files.
+DOWNLOAD_UNIT = "umbra-wiki-download"
+DOWNLOADS_FILE = os.path.join(DATA_DIR, "downloads.json")
+
+
+def start_download(ids):
+    known = {c["id"]: c for c in catalog()}
+    ids = [i for i in ids if i in known]
+    if not ids:
+        return False
+    queued = read_json(DOWNLOADS_FILE, {}).get("ids", []) if _download_units() else []
+    ids = [i for i in ids if i not in queued]
+    if not ids:
+        return True
+    # The download unit gets this backend's config location and port.
+    env = [f"--setenv={k}={os.environ[k]}" for k in ("XDG_CONFIG_HOME", "UMBRA_PORT") if os.environ.get(k)]
+    r = subprocess.run(["systemd-run", "--user", "--collect", f"--unit={DOWNLOAD_UNIT}-{int(time.time() * 1000)}", *env,
+                        os.path.join(APP_DIR, "fetch-archive.sh"), *ids], capture_output=True)
+    write_json(DOWNLOADS_FILE, {"ids": queued + ids})
+    return r.returncode == 0
+
+
+def downloads():
+    known = {c["id"]: c for c in catalog()}
+    ids = [i for i in read_json(DOWNLOADS_FILE, {}).get("ids", []) if i in known]
+    active = bool(_download_units())
+    total = done = 0
+    items = []
+    for i in ids:
+        c = known[i]
+        path = os.path.join(LIBRARY_DIR, c["file"])
+        got = c["size"] if os.path.exists(path) else os.path.getsize(path + ".part") if os.path.exists(path + ".part") else 0
+        total += c["size"]
+        done += min(got, c["size"])
+        items.append({"id": i, "name": c["name"], "size": c["size"], "done": min(got, c["size"]),
+                      "installed": os.path.exists(path)})
+    library = {"active": active, "items": items, "percent": round(done * 100 / total) if total else 0}
+    return {"library": library, "model": dict(pull_state)}
+
+
+def _download_units():
+    out = subprocess.run(["systemctl", "--user", "list-units", "--plain", "--no-legend", "--state=active,activating",
+                          f"{DOWNLOAD_UNIT}-*"], capture_output=True, text=True).stdout
+    return [line.split()[0] for line in out.splitlines() if line.strip()]
+
+
+# Model downloads go through Ollama's API in a background thread; a pending
+# pull is remembered and resumed if the backend restarts.
+PULL_FILE = os.path.join(DATA_DIR, "pull.json")
+pull_state = {}
+
+
+def start_pull(name):
+    if name not in {m["id"] for m in MODEL_CHOICES} and not re.fullmatch(r"[a-z0-9._:/-]{1,60}", name):
+        raise ValueError("bad model name")
+    if pull_state.get("active"):
+        return pull_state
+    write_json(PULL_FILE, {"model": name})
+    pull_state.clear()
+    pull_state.update({"model": name, "active": True, "completed": 0, "total": 0, "status": "starting", "error": ""})
+    threading.Thread(target=_pull, args=(name,), daemon=True).start()
+    return pull_state
+
+
+def _pull(name):
+    try:
+        req = urllib.request.Request(OLLAMA + "/api/pull", json.dumps({"model": name, "stream": True}).encode(),
+                                     {"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            for line in r:
+                e = json.loads(line or b"{}")
+                if e.get("error"):
+                    raise RuntimeError(e["error"])
+                pull_state["status"] = e.get("status", "")
+                if e.get("total"):
+                    pull_state["total"] = e["total"]
+                    pull_state["completed"] = e.get("completed", 0)
+        pull_state.update({"active": False, "status": "done", "completed": pull_state.get("total", 0)})
+        try:
+            os.remove(PULL_FILE)
+        except OSError:
+            pass
+        set_model(name)
+    except Exception as e:
+        pull_state.update({"active": False, "status": "failed", "error": str(e)[:200]})
+
+
+def resume_pull():
+    pending = read_json(PULL_FILE, {}).get("model")
+    if pending:
+        start_pull(pending)
+
+
 # ------------------------------------------------------- settings: model, reset
 
 def list_models():
+    """Installed chat models (embedding models can't answer questions)."""
     try:
         tags = json.loads(urllib.request.urlopen(OLLAMA + "/api/tags", timeout=3).read())
-        names = sorted(m["name"] for m in tags.get("models", []))
+        found = [{"id": m["name"], "size": round(m.get("size", 0) / 1e9, 1)} for m in tags.get("models", [])
+                 if "embed" not in m["name"] and "bert" not in (m.get("details", {}).get("family") or "")]
     except Exception:
-        names = []
-    return {"current": MODEL, "models": names}
+        found = []
+    return {"current": MODEL, "models": sorted(m["id"] for m in found), "installed": found,
+            "choices": MODEL_CHOICES, "pull": dict(pull_state)}
 
 
 def set_model(name):
@@ -1169,6 +1346,12 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(voice_status())
         if path == "/api/models":
             return self.send_json(list_models())
+        if path == "/api/system":
+            return self.send_json(system_info())
+        if path == "/api/packs":
+            return self.send_json(packs())
+        if path == "/api/downloads":
+            return self.send_json(downloads())
         if path == "/api/paths":
             short = lambda x: x.replace(HOME, "~", 1)
             return self.send_json({"library": short(LIBRARY_DIR), "config": short(CONFIG_DIR),
@@ -1302,7 +1485,14 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"ok": True})
         if self.path == "/api/library/download":
             ids = self.read_json().get("ids") or []
-            return self.send_json({"ok": download([str(i) for i in ids])})
+            return self.send_json({"ok": start_download([str(i) for i in ids])})
+        if self.path == "/api/reload-library":
+            return self.send_json({"archives": reload_library()})
+        if self.path == "/api/model/pull":
+            try:
+                return self.send_json(start_pull(str(self.read_json().get("model", ""))))
+            except ValueError as e:
+                return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/open":
             # Web sources open in the user's browser rather than inside the app.
             url = str(self.read_json().get("url", ""))
@@ -1355,6 +1545,14 @@ def answer(req, emit):
     online = bool(req.get("online"))
     if not question:
         emit({"type": "error", "message": "Empty question."})
+        return
+
+    if not status()["modelReady"]:
+        pulling = pull_state.get("active") and pull_state.get("total")
+        pct = f" ({round(pull_state['completed'] * 100 / pull_state['total'])}% downloaded)" if pulling else ""
+        emit({"type": "error", "message": f"My AI model {MODEL} isn't installed yet{pct}. "
+              + ("It's downloading now; ask again when it's done." if pulling else
+                 "Pick one in Settings → AI model, and I'll download it.")})
         return
 
     chatting = is_small_talk(question)
@@ -1492,5 +1690,6 @@ if __name__ == "__main__":
     n = start_kiwix()
     set_attention(False)
     threading.Thread(target=warm_model, daemon=True).start()
+    resume_pull()
     print(f"umbra: {n} archives, model {MODEL}, http://{HOST}:{PORT}", flush=True)
     ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()

@@ -51,8 +51,11 @@ for id in "$@"; do
   echo "✓ $name installed."
 done
 
-# kiwix-serve reads the library at start, so reload the backend if it runs.
-if systemctl --user is-active --quiet umbra-wiki; then
+# kiwix-serve reads the library at start: ask the backend to reload it (only
+# the library server restarts, answers in progress carry on).
+if curl -fs -m 20 -X POST "http://127.0.0.1:${UMBRA_PORT:-8766}/api/reload-library" >/dev/null 2>&1; then
+  echo "Umbra Wiki reloaded with the new library."
+elif systemctl --user is-active --quiet umbra-wiki; then
   systemctl --user restart umbra-wiki
   echo "Umbra Wiki reloaded with the new library."
 fi

@@ -199,41 +199,35 @@ setup_local() {
   internet. Nothing you ask leaves this machine.
 
   Steps:  1. install Ollama and a few system packages (needs your password)
-          2. download an AI model of your choice (1–5 GB)
-          3. download the Survival Essentials library (0.9 GB, optional)
-          4. install the Umbra Wiki app
-          5. voice input: hold F9 to talk (offline English model, optional)
+          2. install the Umbra Wiki app
+          3. voice input: hold F9 to talk (offline, optional)
+          4. open Umbra: its welcome tour helps you pick the AI model
+             and the offline library that suit this computer
 
 INTRO
   gum confirm "Continue?" || exit 130
 
+  # Use the graphics card for the AI when it has a supported one.
+  local gpu_pkg=""
+  if lspci 2>/dev/null | grep -iE "vga|3d|display" | grep -qi nvidia && nvidia-smi &>/dev/null; then
+    gpu_pkg=ollama-cuda
+    echo "NVIDIA graphics found: the AI will run on the graphics card (CUDA)."
+  elif lspci 2>/dev/null | grep -iE "vga|3d|display" | grep -qiE "amd|radeon|advanced micro"; then
+    gpu_pkg=ollama-rocm
+    echo "AMD graphics found: the AI will run on the graphics card (ROCm)."
+  else
+    echo "No supported graphics card: the AI will run on the processor."
+  fi
+
   echo "Installing packages…"
-  omarchy-pkg-add ollama python-gobject webkit2gtk-4.1 gst-plugins-good kiwix-tools jq curl ||
+  omarchy-pkg-add ollama $gpu_pkg python-gobject webkit2gtk-4.1 gst-plugins-good kiwix-tools jq curl ||
     { echo "Could not install the packages."; exit 1; }
   echo "Starting the Ollama service…"
   sudo systemctl enable --now ollama || { echo "Could not start the Ollama service."; exit 1; }
+  [[ -n $gpu_pkg ]] && sudo systemctl restart ollama
   for _ in $(seq 30); do curl -s --max-time 1 http://127.0.0.1:11434/api/version >/dev/null && break; sleep 1; done
 
-  local choice model
-  choice=$(gum choose --header "Pick the AI model (larger = smarter, but slower and needs more memory):" \
-    "gemma3:4b    ~3.3 GB  recommended balance, 8 GB RAM or more" \
-    "gemma3:1b    ~0.8 GB  fastest, basic answers, any computer" \
-    "llama3.1:8b  ~4.9 GB  most capable, 16 GB RAM, slow without a GPU") || exit 130
-  model=${choice%% *}
-  echo
-  echo "Downloading $model…"
-  ollama pull "$model" || { echo "Download failed. Run: ollama pull $model"; exit 1; }
-
-  local library="$HOME/UmbraWiki/library"
-  bash "$umbra_dir/install.sh" --model "$model" --library "$library" || exit 1
-
-  echo
-  if gum confirm "Download the Survival Essentials library now? (0.9 GB: water, food, knots, field medicine, post-disaster guides)"; then
-    # shellcheck disable=SC2046 # one argument per collection id
-    bash "$umbra_dir/fetch-archive.sh" $(jq -r '.[] | select(.essential) | .id' "$umbra_dir/library.json")
-  else
-    echo "Skipped. Add collections any time from the Library button in Umbra Wiki."
-  fi
+  bash "$umbra_dir/install.sh" --library "$HOME/UmbraWiki/library" || exit 1
 
   # Voice input: Omarchy's own voxtype installer asks first, downloads the
   # offline English speech model and binds F9 (hold to talk) everywhere.
@@ -246,10 +240,9 @@ INTRO
   fi
 
   echo
-  echo "Umbra Wiki is ready. It appears under LOCAL in Omarchy Umbra."
-  if gum confirm "Open Umbra Wiki now?"; then
-    setsid uwsm-app -- umbra-wiki >/dev/null 2>&1 &
-  fi
+  echo "Umbra Wiki is installed. Opening it now: the welcome tour takes it from here."
+  setsid uwsm-app -- umbra-wiki >/dev/null 2>&1 &
+  sleep 2
 }
 
 case "${1:-}" in

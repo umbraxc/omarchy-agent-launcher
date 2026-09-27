@@ -1,0 +1,23 @@
+[
+  {
+    "id": "essentials",
+    "name": "Survival Essentials",
+    "tagline": "Water, food, knots, field medicine and post-disaster guides. The core.",
+    "ids": "essential"
+  },
+  {
+    "id": "prepared",
+    "name": "Prepared",
+    "tagline": "Essentials plus emergency medicine, medicines, animal health, radio, low-tech builds, cooking, gardening, wilderness skills and off-grid power.",
+    "ids": ["essential", "nhs.uk_en_medicines", "wikem_en_all", "wikivet.net_en_all", "ham.stackexchange.com",
+            "appropedia_en_all", "cooking.stackexchange.com", "gardenology.org", "sustainability.stackexchange.com",
+            "outdoors.stackexchange.com", "energypedia_en_all"]
+  },
+  {
+    "id": "complete",
+    "name": "Complete",
+    "tagline": "All 19 collections, including the full medical encyclopedia and every iFixit repair guide. The full Umbra experience.",
+    "ids": "all",
+    "recommended": true
+  }
+]

@@ -73,10 +73,11 @@
   }
 
   // A grid of pickable cards; picking applies at once. Resolves on CONTINUE.
-  function cards(answer, items, current, onPick) {
+  function cards(answer, items, current, onPick, nextLabel) {
     return new Promise((resolve, reject) => {
       const grid = document.createElement("div");
       grid.className = "tour-cards";
+      const next = document.createElement("div");
       items.forEach((it) => {
         const c = document.createElement("button");
         c.className = "tour-card" + (it.id === current ? " on" : "");
@@ -88,12 +89,12 @@
           grid.querySelectorAll(".tour-card").forEach((x) => x.classList.remove("on"));
           c.classList.add("on");
           onPick(it.id);
+          if (nextLabel) next.querySelector("button").textContent = nextLabel(it.id);
         });
         grid.appendChild(c);
       });
-      const next = document.createElement("div");
       next.className = "tour-choices";
-      next.innerHTML = `<button class="solid">CONTINUE ▸</button>`;
+      next.innerHTML = `<button class="solid">${nextLabel ? nextLabel(current) : "CONTINUE ▸"}</button>`;
       next.querySelector("button").addEventListener("click", () => { grid.classList.add("done"); next.remove(); Sound.click(); resolve(); });
       answer.append(grid, next);
       skipHooks.push(() => reject(SKIP));
@@ -200,6 +201,70 @@
       "**fix things** in the workshop, or just trade stories by the fire. You can even **create your own scenarios** for anything you like. " +
       "Your Umbra is yours to shape.");
     await choose(a, [["GOT IT ▸", "ok", true]]);
+
+    // The AI model: what's already on this computer, or one of three sizes.
+    const [sys, models, packs] = await Promise.all([
+      fetch("/api/system").then((r) => r.json()).catch(() => ({})),
+      fetch("/api/models").then((r) => r.json()).catch(() => ({ installed: [], choices: [] })),
+      fetch("/api/packs").then((r) => r.json()).catch(() => []),
+    ]);
+    const gpu = (sys.gpus || [])[0] || "";
+    const gpuLine = sys.accel
+      ? `Your graphics card is set up for AI (${sys.accel}), so I'll answer quickly.`
+      : gpu
+        ? `Graphics: ${gpu.replace(/ Corporation| Integrated Graphics Controller/g, "")}. No AI acceleration for it, so I'll think on the processor: answers take a minute or so.`
+        : "I'll think on the processor: answers take a minute or so.";
+    await say("Now let's set up my **brain**: the local AI model. Everything runs on this computer, so my speed depends on your " +
+      "**processor (CPU)**, or on your **graphics card (GPU)** if it has a supported one. Bigger models know more and write better, but think slower.");
+    a = await say(`This computer: **${sys.cpu || "unknown processor"}**, ${sys.cores || "?"} threads, **${sys.ramGB || "?"} GB** of memory. ${gpuLine}`);
+    const installed = (models.installed || []).map((m) => m.id);
+    const modelCards = [
+      ...(models.installed || []).map((m) => ({ id: m.id, name: m.id, line: `Already on this computer · ${m.size} GB · ready now` })),
+      ...(models.choices || []).filter((c) => !installed.includes(c.id)).map((c) => ({
+        id: c.id, name: c.name + (c.id === sys.recommended ? "  ★" : ""),
+        line: `${c.size} GB download · ${c.line}${c.id === sys.recommended ? " Recommended for this computer." : ""}${sys.ramGB && c.ram > sys.ramGB ? " Probably too big for this computer." : ""}`,
+      })),
+    ];
+    let model = installed.includes(models.current) ? models.current : installed[0] || sys.recommended || "gemma3:4b";
+    await cards(a, modelCards, model, (id) => { model = id; Sound.click(); },
+      (id) => (installed.includes(id) ? "USE THIS MODEL ▸" : `DOWNLOAD ${(models.choices.find((c) => c.id === id) || {}).size || ""} GB ▸`));
+    if (installed.includes(model)) {
+      if (model !== models.current) await post("/api/model", { model });
+      await say(`**${model}** it is. I'm ready to think.`);
+    } else {
+      await post("/api/model/pull", { model });
+      await say(`Downloading **${model}** in the background. We can carry on meanwhile; you'll see the progress under **STATUS** at the top.`);
+    }
+
+    // The library: packs of offline collections.
+    const packCards = packs.map((p) => ({
+      id: p.id,
+      name: p.name + (p.recommended ? "  ★" : ""),
+      line: `${p.count} collections · ${fmtSize(p.size)}${!p.missing.length ? " · ✓ installed" : p.missing.length < p.count ? ` · ${fmtSize(p.missingSize)} still to get` : ""} · ${p.tagline}`,
+    }));
+    packCards.push({ id: "none", name: "Not now", line: "I still work without a library, from the AI's own knowledge. Add collections any time from the Library." });
+    const done = [...packs].reverse().find((p) => !p.missing.length);
+    const fits = (p) => !sys.freeGB || p.missingSize / 1e9 < sys.freeGB - 2;
+    let pack = done ? done.id : (packs.find((p) => p.recommended && fits(p)) || packs[0] || { id: "none" }).id;
+    await say("Next, my **library**: the offline knowledge I read from when I answer. With no library I answer from memory alone; " +
+      "with a big one I can quote real field manuals, medical guides and repair steps.");
+    a = await say("> *The more you prepare on a calm day, the more you'll have on a hard one.*\n\n" +
+      `Pick a pack (you have **${sys.freeGB || "?"} GB** free). Downloads run in the background and are checked for damage.`);
+    const packBy = (id) => packs.find((p) => p.id === id);
+    await cards(a, packCards, pack, (id) => { pack = id; Sound.click(); }, (id) => {
+      const p = packBy(id);
+      return !p ? "CONTINUE ▸" : p.missing.length ? `DOWNLOAD ${fmtSize(p.missingSize)} ▸` : "CONTINUE ▸";
+    });
+    const chosen = packBy(pack);
+    if (chosen && chosen.missing.length) {
+      await post("/api/library/download", { ids: chosen.missing });
+      await say(`Downloading **${chosen.name}** (${fmtSize(chosen.missingSize)}) in the background. Depending on your connection this can take a while; ` +
+        "I'm usable right away, and each collection joins my library as soon as it arrives. Progress shows under **STATUS** and in the **Library**.");
+    } else if (chosen) {
+      await say(`**${chosen.name}** is already on this computer. Well stocked.`);
+    } else {
+      await say("No problem. You can stock the library any time from the **Library** button.");
+    }
 
     // Theme.
     a = await say("Let's make this place yours. **Pick a theme.** It applies right away, and you can change it any time from the palette button, follow your Omarchy theme, or design your own.");

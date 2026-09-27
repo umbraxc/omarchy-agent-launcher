@@ -372,12 +372,44 @@ const fmtSize = (b) => (b >= 1e9 ? (b / 1e9).toFixed(1) + " GB" : Math.max(1, Ma
 async function renderLibrary() {
   const body = $("#library-body");
   body.innerHTML = `<p class="lib-note"><span class="spin" data-spin>✻</span> Reading library…</p>`;
-  let lib;
-  try { lib = await (await fetch("/api/library")).json(); } catch { body.innerHTML = `<p class="lib-note">Library unavailable.</p>`; return; }
+  let lib, packs = [], dl = { library: { items: [] } };
+  try {
+    [lib, packs, dl] = await Promise.all([
+      fetch("/api/library").then((r) => r.json()),
+      fetch("/api/packs").then((r) => r.json()).catch(() => []),
+      fetch("/api/downloads").then((r) => r.json()).catch(() => dl),
+    ]);
+  } catch { body.innerHTML = `<p class="lib-note">Library unavailable.</p>`; return; }
+  const downloading = new Set(dl.library.active ? dl.library.items.filter((x) => !x.installed).map((x) => x.id) : []);
 
   const total = lib.installed.reduce((n, x) => n + x.size, 0);
   let html = `<p class="lib-note">Collections are stored in <code>${escapeHtml(lib.dir)}</code> and work fully offline.
-    Downloads open in a terminal with progress; Umbra reloads when they finish.</p>`;
+    Downloads run in the background, are checked for damage, and join the library as soon as they finish.</p>`;
+
+  if (dl.library.active) {
+    html += `<div class="lib-section"><div class="lib-head"><span><span class="spin" data-spin>✻</span> DOWNLOADING</span><b>${dl.library.percent}%</b></div>
+      <div class="dl-bar"><i style="width:${dl.library.percent}%"></i></div>`;
+    dl.library.items.forEach((x) => {
+      const pct = x.size ? Math.round((x.done * 100) / x.size) : 0;
+      html += `<div class="dl-row"><span>${x.installed ? "✓" : pct ? "↓" : "·"} ${escapeHtml(x.name)}</span><span>${x.installed ? "DONE" : pct + "%"}</span></div>`;
+    });
+    html += `</div>`;
+  }
+
+  const open = packs.filter((p) => p.missing.length);
+  if (open.length) {
+    html += `<div class="lib-section"><div class="lib-head"><span>PACKS</span></div>
+      <p class="lib-note lib-quote">“The more you prepare on a calm day, the more you'll have on a hard one.”</p>`;
+    open.forEach((p) => {
+      const busy = p.missing.every((id) => downloading.has(id));
+      html += `<div class="lib-row pack"><span class="mark-new">◆</span>
+        <span class="lname">${escapeHtml(p.name)}${p.recommended ? ' <span class="lrec">RECOMMENDED</span>' : ""}
+          <span class="lsize">· ${p.count} collections · ${fmtSize(p.size)}</span></span>
+        <button class="ghost get" data-ids="${p.missing.join(" ")}" ${busy ? "disabled" : ""}>${busy ? "DOWNLOADING" : "GET " + fmtSize(p.missingSize)}</button>
+        <span class="ldesc">${escapeHtml(p.tagline)}</span></div>`;
+    });
+    html += `</div>`;
+  }
 
   html += `<div class="lib-section"><div class="lib-head"><span>INSTALLED · ${lib.installed.length}</span><b>${fmtSize(total)}</b></div>`;
   if (!lib.installed.length) html += `<p class="lib-note">No collections yet. Answers come from the AI alone until you add some.</p>`;
@@ -388,11 +420,6 @@ async function renderLibrary() {
   });
   html += `</div>`;
 
-  const missingEssentials = lib.available.filter((x) => x.essential);
-  if (missingEssentials.length) {
-    const size = missingEssentials.reduce((n, x) => n + x.size, 0);
-    html += `<button class="solid lib-all" data-ids="${missingEssentials.map((x) => x.id).join(" ")}">DOWNLOAD SURVIVAL ESSENTIALS · ${fmtSize(size)}</button>`;
-  }
   for (const cat of Object.keys(CATEGORY)) {
     const items = lib.available.filter((x) => x.category === cat);
     if (!items.length) continue;
@@ -400,7 +427,7 @@ async function renderLibrary() {
     items.forEach((x, i) => {
       html += `<div class="lib-row" style="animation-delay:${i * 20}ms"><span class="mark-new">+</span>
         <span class="lname">${escapeHtml(x.name)} <span class="lsize">· ${fmtSize(x.size)}</span></span>
-        <button class="ghost get" data-ids="${x.id}">DOWNLOAD</button>
+        <button class="ghost get" data-ids="${x.id}" ${downloading.has(x.id) ? "disabled" : ""}>${downloading.has(x.id) ? "DOWNLOADING" : "DOWNLOAD"}</button>
         <span class="ldesc">${escapeHtml(x.description)}</span></div>`;
     });
     html += `</div>`;
@@ -409,15 +436,19 @@ async function renderLibrary() {
   body.innerHTML = html;
   body.querySelectorAll("[data-ids]").forEach((b) => b.addEventListener("click", async () => {
     b.disabled = true;
-    b.textContent = "OPENING…";
+    b.textContent = "STARTING…";
     Sound.click();
     await fetch("/api/library/download", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids: b.dataset.ids.split(" ") }),
     });
-    b.textContent = "DOWNLOADING…";
+    renderLibrary();
   }));
+  // Keep the progress moving while the panel is open.
+  clearTimeout(libraryTimer);
+  if (dl.library.active) libraryTimer = setTimeout(() => { if (!$("#library").hidden) renderLibrary(); }, 2500);
 }
+let libraryTimer = 0;
 
 function toggleLibrary(show = $("#library").hidden) {
   if (show && locked) return;
@@ -473,8 +504,12 @@ async function refreshStatus() {
     $("#t-archives").textContent = String(s.archives).padStart(2, "0");
     $("#t-model").textContent = s.model.replace(":", " ").toUpperCase();
     if (controller) return;
+    const d = await fetch("/api/downloads").then((r) => r.json()).catch(() => null);
+    const pull = d && d.model && d.model.active && d.model.total ? Math.round((d.model.completed * 100) / d.model.total) : null;
     if (!s.ollama) { st.textContent = "CORE OFFLINE"; st.className = "v bad"; }
+    else if (!s.modelReady && pull !== null) { st.textContent = `AI ↓ ${pull}%`; st.className = "v busy"; }
     else if (!s.modelReady) { st.textContent = "NO MODEL"; st.className = "v bad"; }
+    else if (d && d.library.active) { st.textContent = `LIB ↓ ${d.library.percent}%`; st.className = "v busy"; }
     else { st.textContent = "READY"; st.className = "v"; }
   } catch (err) {
     console.warn("status check failed:", err && err.message);
@@ -482,7 +517,7 @@ async function refreshStatus() {
   }
 }
 refreshStatus();
-setInterval(refreshStatus, 10000);
+setInterval(refreshStatus, 5000);
 
 // ---------------------------------------------------------- little motion
 

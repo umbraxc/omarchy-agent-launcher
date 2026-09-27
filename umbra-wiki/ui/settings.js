@@ -12,6 +12,7 @@
   };
   window.prefs = { ...DEFAULTS };
   const panel = $("#settings");
+  let pullTimer = 0;
   const body = $("#settings-body");
 
   function applyPrefs() {
@@ -60,6 +61,7 @@
       <section class="set-section"><div class="lib-head">AI MODEL</div>
         <label class="set-row"><span class="set-text"><b>Local model</b><small>Bigger models are smarter but slower. Add more with <code>ollama pull &lt;name&gt;</code></small></span>
           <select class="set-model"></select></label>
+        <div class="set-pulls"></div>
       </section>
       <section class="set-section"><div class="lib-head">VOICE</div>
         <p class="lib-note set-voice"></p>
@@ -105,6 +107,24 @@
       }).catch(() => null);
       if (res && res.ok) { Sound.theme(); refreshStatus(); } else { Sound.error(); select.value = models.current; }
     });
+
+    // Models that can be downloaded, with progress while one is coming in.
+    const pulls = body.querySelector(".set-pulls");
+    const pull = models.pull || {};
+    const installedIds = (models.installed || []).map((m) => m.id);
+    pulls.innerHTML = (models.choices || []).filter((c) => !installedIds.includes(c.id)).map((c) => {
+      const active = pull.active && pull.model === c.id;
+      const pct = active && pull.total ? Math.round((pull.completed * 100) / pull.total) : 0;
+      return `<div class="set-row"><span class="set-text"><b>${escapeHtml(c.name)}</b><small>${c.size} GB · ${escapeHtml(c.line)}</small></span>
+        <button class="ghost set-pull" data-model="${escapeHtml(c.id)}" ${pull.active ? "disabled" : ""}>${active ? `↓ ${pct}%` : "DOWNLOAD"}</button></div>`;
+    }).join("") + (pull.status === "failed" ? `<p class="lib-note">Download failed: ${escapeHtml(pull.error || "")}</p>` : "");
+    pulls.querySelectorAll(".set-pull").forEach((b) => b.addEventListener("click", async () => {
+      await fetch("/api/model/pull", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: b.dataset.model }) });
+      Sound.click();
+      render();
+    }));
+    clearTimeout(pullTimer);
+    if (pull.active) pullTimer = setTimeout(() => { if (!panel.hidden) render(); }, 2500);
 
     body.querySelector(".set-voice").innerHTML = !voice.available
       ? "Voice input isn't installed. On Omarchy, install it with <code>omarchy-voxtype-install</code>, then hold <b>F9</b> to talk."
