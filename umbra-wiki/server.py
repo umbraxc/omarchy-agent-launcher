@@ -429,10 +429,11 @@ def relevant(source, terms):
 
 def find_sources(question, online):
     terms = keywords(question) or question.split()
+    sources = manual_sources(terms)
     try:
-        sources = local_sources(terms, ONLINE_LOCAL_SOURCES if online else LOCAL_SOURCES) if kiwix_proc else []
+        sources += local_sources(terms, ONLINE_LOCAL_SOURCES if online else LOCAL_SOURCES) if kiwix_proc else []
     except Exception:
-        sources = []
+        pass
     notice = ""
     if online:
         try:
@@ -1110,6 +1111,228 @@ def starters(personal=True):
     return out
 
 
+def apply_settings(update):
+    """Merge a settings change (from the app, the tour or a backup) into
+    settings.json, keeping only known keys with sensible values."""
+    with SETTINGS_LOCK:
+        settings = read_json(SETTINGS_FILE, {})
+        if isinstance(update.get("theme"), str) and re.fullmatch(r"[a-z0-9-]{1,40}", update["theme"]):
+            settings["theme"] = update["theme"]
+        for key in ("muted", "onboarded", "rain", "reduceMotion", "suggestions", "greeting", "barAlert", "hoverSounds"):
+            if isinstance(update.get(key), bool):
+                settings[key] = update[key]
+        if isinstance(update.get("hiddenControls"), list):
+            allowed = {"loadout-btn", "history-btn", "library-btn", "theme-btn", "sound", "lock"}
+            settings["hiddenControls"] = [c for c in update["hiddenControls"] if c in allowed]
+        if update.get("background") in ("rain", "rise", "rings", "stars", "forest", "snow", "aurora",
+                                         "embers", "radar", "none"):
+            settings["background"] = update["background"]
+        if update.get("offgrid") in ("off", "on", "auto"):
+            settings["offgrid"] = update["offgrid"]
+        if isinstance(update.get("textScale"), (int, float)):
+            settings["textScale"] = max(0.8, min(1.4, float(update["textScale"])))
+        if isinstance(update.get("volume"), (int, float)):
+            settings["volume"] = max(0.0, min(1.0, float(update["volume"])))
+        for key in ("scenario", "personality"):
+            if isinstance(update.get(key), str) and re.fullmatch(r"[a-z0-9-]{1,40}", update[key]):
+                settings[key] = update[key]
+        write_json(SETTINGS_FILE, settings)
+    return settings
+
+
+# ------------------------------------------------------------- field manual
+
+# A short built-in manual of critical basics (first aid, water, fire,
+# shelter, signalling, home emergencies). Always available offline, and
+# searched first for every question.
+def field_manual():
+    try:
+        return json.load(open(os.path.join(APP_DIR, "fieldmanual.json")))
+    except (OSError, ValueError):
+        return []
+
+
+def manual_sources(terms, limit=2):
+    topical = [t[:5] for t in terms if t not in GENERIC] or [t[:5] for t in terms]
+    scored = []
+    for page in field_manual():
+        title, text = page["title"].lower(), (page["summary"] + " " + page["body"]).lower()
+        score = sum(3 for t in topical if t in title) + sum(1 for t in topical if t in text)
+        if score >= 3:
+            scored.append((score, page))
+    scored.sort(key=lambda x: -x[0])
+    out = []
+    for _, page in scored[:limit]:
+        plain = re.sub(r"[*_#>]", "", page["body"])
+        passage, _ = best_passage(plain, terms, 900)
+        out.append({"kind": "manual", "title": page["title"], "archive": "Umbra Field Manual",
+                    "url": "manual:" + page["id"], "passage": passage, "summary": page["summary"]})
+    return out
+
+
+# ------------------------------------------------------ export, drives, backup
+
+def documents_dir():
+    try:
+        d = subprocess.run(["xdg-user-dir", "DOCUMENTS"], capture_output=True, text=True, timeout=3).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        d = ""
+    return os.path.join(d if d and d != HOME else os.path.join(HOME, "Documents"), "Umbra")
+
+
+def drives():
+    """The Documents folder plus removable drives mounted for this user (USB
+    sticks), as places to export and back up to."""
+    base = os.path.join("/run/media", os.environ.get("USER", ""))
+    try:
+        names = sorted(n for n in os.listdir(base) if os.path.isdir(os.path.join(base, n)))
+    except OSError:
+        names = []
+    out = [{"id": "documents", "name": "Documents folder", "path": documents_dir().replace(HOME, "~", 1)}]
+    for n in names:
+        path = os.path.join(base, n)
+        if os.access(path, os.W_OK):
+            out.append({"id": path, "name": f"USB drive: {n}", "path": path})
+    return out
+
+
+def target_dir(target):
+    if target and target != "documents":
+        if target not in [d["id"] for d in drives()]:
+            raise ValueError("unknown drive")
+        folder = os.path.join(target, "Umbra")
+    else:
+        folder = documents_dir()
+    os.makedirs(folder, exist_ok=True)
+    return folder
+
+
+def safe_name(text):
+    return re.sub(r"[^\w\- ]+", "", text).strip().replace(" ", "-")[:60] or "conversation"
+
+
+def conversation_markdown(conv):
+    when = time.strftime("%Y-%m-%d %H:%M", time.localtime((conv.get("created") or 0) / 1000))
+    lines = [f"# {conv.get('title', 'Conversation')}", "",
+             f"*{when} · {conv.get('scenario', '')} · {conv.get('personality', '')} · exported from Umbra Wiki*", ""]
+    for m in conv.get("messages", []):
+        persona = m.get("persona") or ""
+        lines += ["## You", "", m.get("shown") or m.get("question", ""), "",
+                  "## Umbra" + (f" ({persona})" if persona and persona.lower() != "umbra" else ""), "",
+                  m.get("answer", ""), ""]
+        if m.get("sources"):
+            lines += ["**Sources**", ""]
+            for src in m["sources"]:
+                where = src.get("url", "") if str(src.get("url", "")).startswith("http") else src.get("archive", "")
+                lines.append(f"- [{src.get('n')}] {src.get('title', '')} ({where})")
+            lines.append("")
+    return "\n".join(lines)
+
+
+def export(what, conv_id="", target=""):
+    folder = target_dir(target)
+    stamp = time.strftime("%Y-%m-%d")
+    if what == "conversation":
+        conv = read_json(history_path(conv_id), {})
+        if not conv:
+            raise ValueError("not found")
+        path = os.path.join(folder, f"{stamp} {safe_name(conv.get('title', ''))}.md")
+        with open(path, "w") as f:
+            f.write(conversation_markdown(conv))
+        return {"path": path.replace(HOME, "~", 1), "count": 1}
+    if what == "all":
+        sub = os.path.join(folder, f"Conversations {stamp}")
+        os.makedirs(sub, exist_ok=True)
+        n = 0
+        for item in history_list()["items"]:
+            conv = read_json(history_path(item["id"]), {})
+            if conv:
+                day = time.strftime("%Y-%m-%d", time.localtime((conv.get("created") or 0) / 1000))
+                with open(os.path.join(sub, f"{day} {safe_name(conv.get('title', ''))} {item['id'][-4:]}.md"), "w") as f:
+                    f.write(conversation_markdown(conv))
+                n += 1
+        return {"path": sub.replace(HOME, "~", 1), "count": n}
+    if what == "manual":
+        path = os.path.join(folder, "Umbra Field Manual.md")
+        pages = field_manual()
+        body = ["# Umbra Field Manual", "",
+                "*Critical basics, from Umbra Wiki. Not a substitute for training or professional help.*", ""]
+        for page in pages:
+            body += [f"## {page['title']}", "", page["body"], ""]
+        with open(path, "w") as f:
+            f.write("\n".join(body))
+        return {"path": path.replace(HOME, "~", 1), "count": len(pages)}
+    raise ValueError("unknown export")
+
+
+def backup(include_history, target=""):
+    folder = target_dir(target)
+    data = {
+        "umbraBackup": 1, "created": int(time.time() * 1000),
+        "settings": read_json(SETTINGS_FILE, {}), "profile": get_profile(),
+        "themes": custom_themes(), "personalities": custom_personalities(), "scenarios": custom_scenarios(),
+        "history": [read_json(history_path(i["id"]), {}) for i in history_list()["items"]] if include_history else [],
+    }
+    path = os.path.join(folder, f"umbra-backup-{time.strftime('%Y-%m-%d-%H%M')}.json")
+    write_json(path, data)
+    return {"path": path.replace(HOME, "~", 1), "conversations": len(data["history"])}
+
+
+def restore(data):
+    """Put a backup back. Everything goes through the same checks as edits
+    made in the app, so a damaged or foreign file can't write anything odd."""
+    if not isinstance(data, dict) or data.get("umbraBackup") != 1:
+        raise ValueError("not an Umbra backup")
+    if isinstance(data.get("settings"), dict):
+        apply_settings(data["settings"])
+    if isinstance(data.get("profile"), dict):
+        save_profile(data["profile"])
+    counts = {"themes": 0, "personalities": 0, "scenarios": 0, "conversations": 0}
+    for key, save in (("themes", save_custom_theme), ("personalities", save_personality),
+                      ("scenarios", save_scenario), ("history", lambda c: history_save(c, keep_time=True))):
+        for item in data.get(key) or []:
+            try:
+                save(item)
+                counts["conversations" if key == "history" else key] += 1
+            except (ValueError, TypeError, KeyError, AttributeError):
+                pass
+    return counts
+
+
+def on_battery():
+    """True when running on battery (for off-grid mode's automatic setting)."""
+    try:
+        mains = [p for p in glob.glob("/sys/class/power_supply/*")
+                 if open(os.path.join(p, "type")).read().strip() == "Mains"]
+        return bool(mains) and not any(open(os.path.join(p, "online")).read().strip() == "1" for p in mains)
+    except OSError:
+        return False
+
+
+def search_history(q):
+    """Conversations whose title, questions or answers contain every word."""
+    words = [w for w in q.lower().split() if w]
+    if not words:
+        return []
+    out = []
+    for item in history_list()["items"]:
+        conv = read_json(history_path(item["id"]), {})
+        texts = [conv.get("title", "")] + [x for m in conv.get("messages", [])
+                                            for x in (m.get("question", ""), m.get("answer", ""))]
+        low = [t.lower() for t in texts]
+        if not all(any(w in t for t in low) for w in words):
+            continue
+        snippet = ""
+        for t in texts[1:]:
+            i = t.lower().find(words[0])
+            if i >= 0:
+                start = max(0, i - 40)
+                snippet = ("…" if start else "") + re.sub(r"[*_#`]", "", t[start:i + 80]).replace("\n", " ").strip() + "…"
+                break
+        out.append({**item, "snippet": snippet})
+    return out
+
+
 # ---------------------------------------------------------------- attention
 
 # A new answer arrived while the window was in the background: this flag
@@ -1153,7 +1376,7 @@ def history_list():
     return {"dir": HISTORY_DIR.replace(HOME, "~", 1), "items": items}
 
 
-def history_save(conv):
+def history_save(conv, keep_time=False):
     path = history_path(conv.get("id"))
     old = read_json(path, {})
     messages = []
@@ -1175,6 +1398,8 @@ def history_save(conv):
             "sources": sources,
         })
     now = int(time.time() * 1000)
+    if keep_time and isinstance(conv.get("updated"), int):
+        now = conv["updated"]   # restoring a backup keeps the original order
     clean = {
         "id": conv["id"],
         "title": str(conv.get("title", "") or "Conversation")[:120],
@@ -1378,6 +1603,15 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(starters(personal=query.get("personal", ["1"])[0] != "0"))
         if path == "/api/history":
             return self.send_json(history_list())
+        if path == "/api/history-search":
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("q", [""])[0]
+            return self.send_json(search_history(q[:100]))
+        if path == "/api/manual":
+            return self.send_json(field_manual())
+        if path == "/api/drives":
+            return self.send_json(drives())
+        if path == "/api/power":
+            return self.send_json({"battery": on_battery()})
         if path.startswith("/api/history/"):
             try:
                 conv = read_json(history_path(path.rsplit("/", 1)[1]), None)
@@ -1414,26 +1648,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/api/settings":
             update = self.read_json()
-            with SETTINGS_LOCK:
-                settings = read_json(SETTINGS_FILE, {})
-                if isinstance(update.get("theme"), str) and re.fullmatch(r"[a-z0-9-]{1,40}", update["theme"]):
-                    settings["theme"] = update["theme"]
-                for key in ("muted", "onboarded", "rain", "reduceMotion", "suggestions", "greeting", "barAlert", "hoverSounds"):
-                    if isinstance(update.get(key), bool):
-                        settings[key] = update[key]
-                if isinstance(update.get("hiddenControls"), list):
-                    allowed = {"loadout-btn", "history-btn", "library-btn", "theme-btn", "sound", "lock"}
-                    settings["hiddenControls"] = [c for c in update["hiddenControls"] if c in allowed]
-                if update.get("background") in ("rain", "rise", "rings", "stars", "forest", "snow", "aurora",
-                                                 "embers", "radar", "none"):
-                    settings["background"] = update["background"]
-                if isinstance(update.get("volume"), (int, float)):
-                    settings["volume"] = max(0.0, min(1.0, float(update["volume"])))
-                for key in ("scenario", "personality"):
-                    if isinstance(update.get(key), str) and re.fullmatch(r"[a-z0-9-]{1,40}", update[key]):
-                        settings[key] = update[key]
-                write_json(SETTINGS_FILE, settings)
-            return self.send_json(settings)
+            return self.send_json(apply_settings(update))
         if self.path == "/api/voice":
             return self.send_json(voice_action(str(self.read_json().get("action", ""))))
         if self.path == "/api/model":
@@ -1445,6 +1660,22 @@ class Handler(BaseHTTPRequestHandler):
             if self.read_json().get("confirm") != "RESET":
                 return self.send_json({"error": "not confirmed"}, 400)
             return self.send_json(reset_umbra())
+        if self.path in ("/api/export", "/api/backup", "/api/restore"):
+            req = self.read_json()
+            try:
+                if self.path == "/api/export":
+                    out = export(str(req.get("what", "")), str(req.get("id", "")), str(req.get("target", "")))
+                elif self.path == "/api/backup":
+                    out = backup(bool(req.get("history")), str(req.get("target", "")))
+                else:
+                    return self.send_json(restore(req.get("backup")))
+            except (ValueError, OSError) as e:
+                return self.send_json({"error": str(e)}, 400)
+            if req.get("open"):
+                folder = os.path.expanduser(out["path"])
+                subprocess.Popen(["xdg-open", folder if os.path.isdir(folder) else os.path.dirname(folder)],
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+            return self.send_json(out)
         if self.path == "/api/uninstall":
             req = self.read_json()
             if req.get("confirm") != "UNINSTALL":
@@ -1573,6 +1804,8 @@ def answer(req, emit):
     question = str(req.get("question", "")).strip()
     history = req.get("history") or []
     online = bool(req.get("online"))
+    # Off-grid mode saves battery: the AI writes shorter answers.
+    offgrid = bool(req.get("offgrid"))
     if not question:
         emit({"type": "error", "message": "Empty question."})
         return
@@ -1601,7 +1834,11 @@ def answer(req, emit):
         for i, s in enumerate(sources, 1)
     ]})
 
-    messages = [{"role": "system", "content": build_system_prompt(online)}]
+    system = build_system_prompt(online)
+    if offgrid:
+        system += (" OFF-GRID MODE: the user is saving battery. Keep the answer short: only the essential "
+                   "steps, no long explanations.")
+    messages = [{"role": "system", "content": system}]
     for turn in history[-HISTORY_TURNS * 2:]:
         role = "assistant" if turn.get("role") == "assistant" else "user"
         messages.append({"role": role, "content": str(turn.get("content", ""))[:600]})
@@ -1612,11 +1849,11 @@ def answer(req, emit):
         messages.append({"role": "user", "content": f"SOURCES:\n{context}\n\nQUESTION: {question}"})
 
     emit({"type": "phase", "phase": "think"})
-    full, done_event = stream_chat(messages, emit)
+    full, done_event = stream_chat(messages, emit, 420 if offgrid else None)
     if not re.sub(r"\bNEXT\s*:.*", "", full, flags=re.S).strip():
         # An empty reply is never acceptable: retry once without sources.
         retry = [messages[0], {"role": "user", "content": question}]
-        full, done_event = stream_chat(retry, emit)
+        full, done_event = stream_chat(retry, emit, 420 if offgrid else None)
 
     match = None
     for match in re.finditer(r"\bNEXT\s*:\s*(.+)", full):
@@ -1634,10 +1871,12 @@ def answer(req, emit):
         emit(done_event)
 
 
-def stream_chat(messages, emit):
+def stream_chat(messages, emit, limit=None):
+    options = {"num_ctx": 4096, "temperature": 0.4}
+    if limit:
+        options["num_predict"] = limit
     body = json.dumps({
-        "model": MODEL, "messages": messages, "stream": True, "keep_alive": "30m",
-        "options": {"num_ctx": 4096, "temperature": 0.4},
+        "model": MODEL, "messages": messages, "stream": True, "keep_alive": "30m", "options": options,
     }).encode()
     request = urllib.request.Request(OLLAMA + "/api/chat", body, {"Content-Type": "application/json"})
     full, done_event, first = "", None, True

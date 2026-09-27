@@ -7,7 +7,7 @@
 
 (() => {
   const DEFAULTS = {
-    volume: 0.9, hoverSounds: true, rain: true, background: "rain", reduceMotion: false,
+    volume: 0.9, hoverSounds: true, rain: true, background: "rain", reduceMotion: false, offgrid: "off", textScale: 1,
     suggestions: true, greeting: true, barAlert: true,
   };
   window.prefs = { ...DEFAULTS, hiddenControls: [] };
@@ -46,21 +46,36 @@
 
   const BACKGROUNDS = window.UmbraBackgrounds ? window.UmbraBackgrounds.list : [["rain", "Digital rain"], ["none", "None"]];
   let runningBackground = "rain";
+  // Off-grid mode (battery saver): on, off, or automatic when unplugged.
+  let onBattery = false;
+  const offgridActive = () => prefs.offgrid === "on" || (prefs.offgrid === "auto" && onBattery);
+  async function checkPower() {
+    try { onBattery = !!(await (await fetch("/api/power")).json()).battery; } catch {}
+    applyPrefs();
+  }
+  setInterval(() => { if (prefs.offgrid === "auto") checkPower(); }, 30000);
+
   function applyPrefs() {
+    const calm = !!prefs.reduceMotion || offgridActive();
+    const wasCalm = document.body.classList.contains("reduce-motion");
+    window.offgrid = offgridActive();
+    document.body.classList.toggle("offgrid", window.offgrid);
+    document.body.classList.toggle("reduce-motion", calm);
+    document.documentElement.style.setProperty("--ts", String(prefs.textScale || 1));
+    if (calm) stopRain();
+    else if (wasCalm && $("#rain")) startRain();
     // Older settings only had the rain switch.
     if (prefs.rain === false && !prefs.background) prefs.background = "none";
     prefs.background = prefs.background || "rain";
     document.body.classList.toggle("no-rain", prefs.background === "none");
     if (prefs.background !== runningBackground) {
       runningBackground = prefs.background;
-      if ($("#rain") && !prefs.reduceMotion) startRain();
+      if ($("#rain") && !calm) startRain();
     }
-    document.body.classList.toggle("reduce-motion", !!prefs.reduceMotion);
-    if (!prefs.rain || prefs.reduceMotion) stopRain();
   }
   async function load() {
     try { Object.assign(prefs, DEFAULTS, await (await fetch("/api/settings")).json()); } catch {}
-    applyPrefs();
+    await checkPower();
     applyControls(false);
   }
   function save(update) {
@@ -103,6 +118,31 @@
         ${toggle("greeting", "Personal greeting", "Welcome you on the start screen, picking up from last time")}
         ${toggle("suggestions", "Suggested replies", "Offer a likely reply after each answer (Tab to use it)")}
         ${toggle("barAlert", "Bar alert", "Light up the bar icon when an answer arrives in the background")}
+        <label class="set-row"><span class="set-text"><b>Text size</b><small>Answers, your messages, the questions on the start screen and the prompt</small></span>
+          <select class="set-textsize"><option value="0.9">Small</option><option value="1">Normal</option>
+            <option value="1.12">Large</option><option value="1.25">Extra large</option></select></label>
+      </section>
+      <section class="set-section"><div class="lib-head">POWER</div>
+        <label class="set-row"><span class="set-text"><b>Off-grid mode</b><small>A battery saver for when power is scarce.
+          Animations and backgrounds stop, the boot animation is skipped, hover sounds and the working hum go quiet,
+          and Umbra skips its extra AI work (greeting, personal questions, suggested replies) and writes shorter answers.
+          Everything else works the same. <span class="set-power"></span></small></span>
+          <select class="set-offgrid"><option value="off">Off</option><option value="on">On</option>
+            <option value="auto">On battery</option></select></label>
+      </section>
+      <section class="set-section"><div class="lib-head">KEYBOARD</div>
+        <div class="set-row"><span class="set-text"><b>Keyboard shortcuts</b><small>Every shortcut on one screen. Press F1 any time.</small></span>
+          <button class="ghost set-keys">SHOW</button></div>
+      </section>
+      <section class="set-section"><div class="lib-head">BACKUP</div>
+        <div class="set-row"><span class="set-text"><b>Back up your Umbra</b><small>Your profile, settings, custom themes, personalities and scenarios in one file,
+          saved to Documents or a USB stick.</small></span>
+          <button class="ghost set-backup">BACK UP</button></div>
+        <label class="set-row"><span class="set-text"><b>Include conversations</b><small>Put your History in the backup too</small></span>
+          <input type="checkbox" class="set-backup-history" checked></label>
+        <div class="set-row"><span class="set-text"><b>Restore a backup</b><small>Choose an umbra-backup file. Items in it are added or replace what's here.</small></span>
+          <button class="ghost set-restore">RESTORE…</button></div>
+        <input type="file" class="set-restore-file" accept=".json,application/json" hidden>
       </section>
       <section class="set-section"><div class="lib-head">AI MODEL</div>
         <label class="set-row"><span class="set-text"><b>Local model</b><small>Bigger models are smarter but slower. Add more with <code>ollama pull &lt;name&gt;</code></small></span>
@@ -163,6 +203,48 @@
         applyControls(true);
         Sound.click();
       });
+    });
+    const ts = body.querySelector(".set-textsize");
+    ts.value = String(prefs.textScale || 1);
+    if (!ts.value) ts.value = "1";
+    ts.addEventListener("change", () => { save({ textScale: Number(ts.value) }); Sound.click(); });
+    const og = body.querySelector(".set-offgrid");
+    og.value = prefs.offgrid || "off";
+    const powerLine = () => {
+      body.querySelector(".set-power").textContent = prefs.offgrid === "auto"
+        ? `Right now: ${onBattery ? "on battery, so it's on" : "plugged in, so it's off"}.` : "";
+    };
+    powerLine();
+    og.addEventListener("change", async () => { save({ offgrid: og.value }); await checkPower(); powerLine(); Sound.theme(); });
+    body.querySelector(".set-keys").addEventListener("click", () => window.showShortcuts && window.showShortcuts());
+    body.querySelector(".set-backup").addEventListener("click", () =>
+      exportTo({ history: body.querySelector(".set-backup-history").checked }, "your backup", "/api/backup"));
+    const file = body.querySelector(".set-restore-file");
+    body.querySelector(".set-restore").addEventListener("click", () => file.click());
+    file.addEventListener("change", async () => {
+      const f = file.files[0];
+      file.value = "";
+      if (!f) return;
+      let data;
+      try { data = JSON.parse(await f.text()); } catch { data = null; }
+      if (!data || data.umbraBackup !== 1) {
+        confirmDialog({ kind: "error", tag: "RESTORE", title: "NOT AN UMBRA BACKUP", body: "That file isn't an Umbra backup.", cancel: "OK" });
+        return;
+      }
+      const when = new Date(data.created || 0).toLocaleString();
+      const ok = await confirmDialog({
+        kind: "to-local", tag: "RESTORE", title: "RESTORE THIS BACKUP?",
+        body: `Backup from ${when}: profile and settings, ${(data.themes || []).length} themes, ${(data.personalities || []).length} personalities, ` +
+          `${(data.scenarios || []).length} scenarios and ${(data.history || []).length} conversations.\n\n` +
+          "They replace your current profile and settings, and are added to your other items. Umbra reloads afterwards.",
+        ok: "RESTORE", cancel: "CANCEL",
+      });
+      if (!ok) return;
+      const res = await fetch("/api/restore", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ backup: data }),
+      }).catch(() => null);
+      if (!res || !res.ok) { Sound.error(); return; }
+      location.reload();
     });
     const bgSelect = body.querySelector(".set-background");
     bgSelect.value = prefs.background || "rain";
@@ -291,6 +373,7 @@
     if (!quiet) Sound.click();
   }
   window.closeSettings = () => open(false, true);
+  window.openSettings = () => open(true);
 
   $("#settings-btn").addEventListener("click", () => open());
   $("#settings-close").addEventListener("click", () => open(false));

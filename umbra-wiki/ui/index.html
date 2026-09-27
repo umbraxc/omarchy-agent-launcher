@@ -28,6 +28,7 @@
       <div class="name">UMBRA<span class="slash">//</span>WIKI</div>
       <div class="tag">OFFLINE SURVIVAL INTELLIGENCE</div>
       <button id="loadout-chip" class="loadout-chip" title="Change loadout">EVERYDAY PREP · UMBRA</button>
+      <span class="offgrid-tag" title="Off-grid mode: saving battery">⏻ OFF-GRID</span>
     </div>
   </div>
   <div class="telemetry">
@@ -86,6 +87,7 @@
     <button id="reader-close" class="ghost" title="Close (Esc)">CLOSE ✕</button>
   </div>
   <iframe id="reader-frame" title="Source article"></iframe>
+  <div id="reader-doc" class="reader-doc" hidden></div>
 </aside>
 
 <div id="themes" class="themes" hidden>
@@ -110,8 +112,9 @@
     <button id="history-close" class="ghost" title="Close (Esc)">CLOSE ✕</button>
   </div>
   <div class="hist-tools">
-    <button id="hist-new" class="solid">+ NEW CONVERSATION</button>
-    <input id="hist-filter" placeholder="Filter by question…" spellcheck="false">
+    <button id="hist-new" class="solid">+ NEW</button>
+    <input id="hist-filter" placeholder="Search everything that was said…" spellcheck="false">
+    <button id="hist-export" class="ghost" title="Save every conversation as files, to keep or put on a USB stick">󱊟 EXPORT ALL</button>
   </div>
   <div id="hist-list" class="library-body"></div>
   <div id="hist-foot" class="hist-foot"></div>

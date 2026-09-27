@@ -136,10 +136,10 @@ const Sound = (() => {
                  "lock", "unlock", "online", "local", "theme", "error", "beep", "boot"];
   const api = { get muted() { return muted; }, set muted(v) { muted = v; if (v) api.hum(false); } };
   names.forEach((n) => (api[n] = () => play(n)));
-  api.hover = () => { if (!window.prefs || window.prefs.hoverSounds !== false) play("hover"); };
+  api.hover = () => { if ((!window.prefs || window.prefs.hoverSounds !== false) && !window.offgrid) play("hover"); };
   // The quiet background hum while Umbra searches and thinks.
   api.hum = (on) => {
-    if (on && muted) return;
+    if (on && (muted || window.offgrid)) return;
     fetch("/api/sound", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "hum", on }) })
       .catch(() => {});
   };
@@ -396,6 +396,14 @@ async function renderLibrary() {
     html += `</div>`;
   }
 
+  const manual = await loadManual();
+  if (manual.length) {
+    html += `<div class="lib-section"><div class="lib-head"><span>󰈙 FIELD MANUAL · ${manual.length} PAGES · BUILT IN</span>
+      <button class="ghost lib-manual-export" title="Save the whole manual as a file, to print or keep on a USB stick">󰈇 EXPORT</button></div>
+      <div class="manual-grid">${manual.map((p) => `<button class="manual-page" data-page="${p.id}" title="${escapeHtml(p.summary)}">
+        <span class="mcat">${escapeHtml(p.category)}</span>${escapeHtml(p.title)}</button>`).join("")}</div></div>`;
+  }
+
   const open = packs.filter((p) => p.missing.length);
   if (open.length) {
     html += `<div class="lib-section"><div class="lib-head"><span>PACKS</span></div>
@@ -434,6 +442,11 @@ async function renderLibrary() {
   }
   if (!lib.available.length) html += `<p class="lib-note">✓ Every recommended collection is installed.</p>`;
   body.innerHTML = html;
+  body.querySelectorAll(".manual-page").forEach((b) => {
+    b.addEventListener("mouseenter", Sound.hover);
+    b.addEventListener("click", () => openManual(b.dataset.page));
+  });
+  body.querySelector(".lib-manual-export")?.addEventListener("click", () => exportTo({ what: "manual" }, "the field manual"));
   body.querySelectorAll("[data-ids]").forEach((b) => b.addEventListener("click", async () => {
     b.disabled = true;
     b.textContent = "STARTING…";
@@ -804,6 +817,7 @@ async function showStarters() {
     starterPool = { personal: [], scenario: quick.scenario || [] };
     starterTurn = 0;
     if (starterPool.scenario.length) renderStarters(false);
+    if (window.offgrid) return;   // off-grid: no extra AI work
     const full = await (await fetch("/api/starters")).json();
     if (token !== startersToken || !box.isConnected) return;
     if (full.personal && full.personal.length) {
@@ -924,8 +938,10 @@ showIntro(true);
 Promise.all([
   fetch("/api/settings").then((r) => r.json()).catch(() => ({})),
   fetch("/api/profile").then((r) => r.json()).catch(() => ({})),
-]).then(([s, p]) => {
-  if (s.reduceMotion) { document.body.classList.remove("booting"); Sound.launch(); return; }
+  fetch("/api/power").then((r) => r.json()).catch(() => ({})),
+]).then(([s, p, power]) => {
+  const offgrid = s.offgrid === "on" || (s.offgrid === "auto" && power.battery);
+  if (s.reduceMotion || offgrid) { document.body.classList.remove("booting"); Sound.launch(); return; }
   const welcome = !s.onboarded ? "" : p.name ? `WELCOME BACK, ${p.name}` : "WELCOME BACK, SURVIVOR";
   asciiWipe(() => {}, { covered: true, welcome });
 });
@@ -942,6 +958,7 @@ async function showGreeting() {
   const name = await fetch("/api/profile").then((r) => r.json()).then((p) => p.name || "").catch(() => "");
   who.textContent = name ? `WELCOME BACK, ${name}` : "WELCOME, SURVIVOR";
   box.classList.add("in");
+  if (window.offgrid) { line.remove(); return; }   // off-grid: no extra AI work
   if (!greeting) greeting = fetch("/api/greeting").then((r) => r.json()).catch(() => null);
   const g = await greeting;
   if (!line.isConnected) return;
@@ -1201,10 +1218,10 @@ function showPop(s, anchor) {
   if (locked) return;
   $("#pop-n").textContent = s.n;
   const kind = $("#pop-kind");
-  kind.textContent = s.kind === "local" ? "LOCAL ARCHIVE" : "WIKIPEDIA ↗";
+  kind.textContent = s.kind === "manual" ? "FIELD MANUAL" : s.kind === "local" ? "LOCAL ARCHIVE" : "WIKIPEDIA ↗";
   kind.className = "pop-kind " + s.kind;
   $("#pop-title").textContent = s.title;
-  $("#pop-archive").textContent = s.kind === "local" ? s.archive : "Opens in your browser";
+  $("#pop-archive").textContent = s.kind === "wiki" ? "Opens in your browser" : s.archive;
   $("#pop-summary").textContent = s.summary || "";
   pop.hidden = false;
   const r = anchor.getBoundingClientRect();
@@ -1316,7 +1333,8 @@ function setWaitingText(answerEl, text) {
 }
 
 function openSource(s) {
-  if (s.kind === "local") openReader(s);
+  if (s.kind === "manual") openManual(String(s.url).replace(/^manual:/, ""));
+  else if (s.kind === "local") openReader(s);
   else fetch("/api/open", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: s.url }) });
 }
 
@@ -1334,7 +1352,7 @@ function renderSources(card, sources) {
     row.innerHTML = `<span class="n">${s.n}</span><span class="t"></span><span class="kind"></span>`;
     row.querySelector(".t").textContent = s.title;
     const kind = row.querySelector(".kind");
-    kind.textContent = s.kind === "local" ? "LOCAL" : "WIKIPEDIA ↗";
+    kind.textContent = s.kind === "manual" ? "MANUAL" : s.kind === "local" ? "LOCAL" : "WIKIPEDIA ↗";
     kind.classList.add(s.kind);
     bindSource(row, s);
     list.appendChild(row);
@@ -1457,7 +1475,7 @@ async function ask(question, shownAs = "") {
     const res = await fetch("/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, history: chat, online }),
+      body: JSON.stringify({ question, history: chat, online, offgrid: !!window.offgrid }),
       signal: controller.signal,
     });
     const reader = res.body.getReader();
@@ -1528,7 +1546,81 @@ async function ask(question, shownAs = "") {
 
 // ------------------------------------------------------------------ reader
 
+// ------------------------------------------------------- export and save
+
+// Where to save: the Documents folder, or a USB stick when one is plugged
+// in (asked only then). Resolves with a target id, or null if cancelled.
+async function chooseTarget(what) {
+  const list = await fetch("/api/drives").then((r) => r.json()).catch(() => []);
+  if (list.length <= 1) return "documents";
+  return new Promise((resolve) => {
+    const shade = document.createElement("div");
+    shade.className = "modal picker";
+    shade.innerHTML = `<div class="dialog to-local"><div class="dialog-tag">SAVE TO</div><h2></h2>
+      <div class="picker-list"></div><div class="dialog-actions"><button class="ghost">CANCEL</button></div></div>`;
+    shade.querySelector("h2").textContent = `WHERE SHOULD ${what.toUpperCase()} GO?`;
+    const done = (v) => { shade.remove(); resolve(v); };
+    list.forEach((d) => {
+      const b = document.createElement("button");
+      b.className = "picker-item";
+      b.innerHTML = `<b>${d.id === "documents" ? "󰉋" : "󱊟"} ${escapeHtml(d.name)}</b><small>${escapeHtml(d.path)}</small>`;
+      b.addEventListener("click", () => { Sound.click(); done(d.id); });
+      shade.querySelector(".picker-list").appendChild(b);
+    });
+    shade.querySelector(".ghost").addEventListener("click", () => done(null));
+    shade.addEventListener("click", (e) => { if (e.target === shade) done(null); });
+    document.body.appendChild(shade);
+    Sound.click();
+  });
+}
+
+// Export (a conversation, all of them, or the field manual) or back up,
+// then say where it went, with a button to open the folder.
+async function exportTo(payload, label, endpoint = "/api/export") {
+  const target = await chooseTarget(label);
+  if (!target) return;
+  const send = (open) => fetch(endpoint, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, target, open }),
+  }).then((r) => r.json());
+  const out = await send(false).catch(() => ({ error: "could not write the file" }));
+  if (out.error) {
+    confirmDialog({ kind: "error", tag: "NOT SAVED", title: "COULDN'T SAVE", body: out.error, cancel: "OK" });
+    return;
+  }
+  Sound.done();
+  const again = await confirmDialog({
+    kind: "to-local", tag: "SAVED", title: `${label.toUpperCase()} SAVED`,
+    body: `Saved to:\n${out.path}\n\nPlain files that open anywhere, even without Umbra.`,
+    ok: "OPEN FOLDER", cancel: "DONE",
+  });
+  if (again) send(true);
+}
+
+// The built-in field manual opens in the same reader panel, rendered here.
+let manualPages = null;
+async function loadManual() {
+  if (!manualPages) manualPages = await fetch("/api/manual").then((r) => r.json()).catch(() => []);
+  return manualPages;
+}
+async function openManual(id) {
+  const pages = await loadManual();
+  const page = pages.find((p) => p.id === id);
+  if (!page) return;
+  $("#reader-title").textContent = `${page.title} · Umbra Field Manual`;
+  $("#reader-frame").hidden = true;
+  const doc = $("#reader-doc");
+  doc.hidden = false;
+  doc.innerHTML = `<div class="rd-cat">${escapeHtml(page.category.toUpperCase())}</div><h1>${escapeHtml(page.title)}</h1>
+    <div class="answer">${renderMarkdown(page.body)}</div>
+    <p class="rd-note">Umbra Field Manual: critical basics, always available offline. Not a substitute for training or professional help.</p>`;
+  doc.scrollTop = 0;
+  $("#reader").hidden = false;
+  Sound.click();
+}
+
 function openReader(s) {
+  $("#reader-doc").hidden = true;
+  $("#reader-frame").hidden = false;
   $("#reader-title").textContent = `${s.title} · ${s.archive}`;
   $("#reader-frame").src = s.url;
   $("#reader").hidden = false;
@@ -1664,7 +1756,7 @@ function setSuggestion(text, sendAs = "") {
 }
 async function suggestFor(rec) {
   const token = ++suggestToken;
-  if (window.prefs && window.prefs.suggestions === false) return setSuggestion("");
+  if ((window.prefs && window.prefs.suggestions === false) || window.offgrid) return setSuggestion("");
   if (rec.offer) return setSuggestion("Yes, please.", `Yes, please: ${rec.offer}`);
   setSuggestion("");
   try {
@@ -1728,6 +1820,53 @@ document.addEventListener("keydown", (e) => {
   else if (controller) controller.abort();
 });
 
+
+// ---------------------------------------------------------------- shortcuts
+
+const SHORTCUTS = [
+  ["Enter", "Send your question"], ["Shift + Enter", "New line"], ["Esc", "Stop an answer, or close a panel"],
+  ["Tab", "Use the suggested reply"], ["F9", "Hold to talk (voice input)"], ["Ctrl + Z", "Undo in the prompt"], ["Ctrl + Y", "Redo in the prompt"],
+  ["Ctrl + N", "New conversation"], ["Ctrl + H", "History"], ["Ctrl + F", "Search your conversations"],
+  ["Ctrl + E", "Export this conversation"], ["Ctrl + L", "Library and field manual"], ["Ctrl + P", "Your profile"],
+  ["Ctrl + O", "Loadout: scenario and personality"], ["Ctrl + T", "Themes"], ["Ctrl + M", "Mute or unmute sounds"],
+  ["Ctrl + ,", "Settings"], ["F1", "This list"],
+];
+function showShortcuts() {
+  if ($(".keys-overlay")) return;
+  const shade = document.createElement("div");
+  shade.className = "modal keys-overlay";
+  shade.innerHTML = `<div class="dialog to-local"><div class="dialog-tag">KEYBOARD</div><h2>SHORTCUTS</h2>
+    <div class="keys">${SHORTCUTS.map(([k, what]) => `<span class="kk">${k.split(" + ").map((x) => `<kbd>${escapeHtml(x)}</kbd>`).join(" + ")}</span><span>${escapeHtml(what)}</span>`).join("")}</div>
+    <div class="dialog-actions"><button class="solid">GOT IT</button></div></div>`;
+  const close = () => { shade.remove(); document.removeEventListener("keydown", onKey, true); input.focus(); };
+  const onKey = (e) => { if (e.key === "Escape" || e.key === "F1") { e.preventDefault(); e.stopImmediatePropagation(); close(); } };
+  shade.querySelector(".solid").addEventListener("click", close);
+  shade.addEventListener("click", (e) => { if (e.target === shade) close(); });
+  document.addEventListener("keydown", onKey, true);
+  document.body.appendChild(shade);
+  Sound.click();
+}
+window.showShortcuts = showShortcuts;
+
+document.addEventListener("keydown", (e) => {
+  if (locked || !$("#modal").hidden || document.body.classList.contains("touring")) return;
+  if (e.key === "F1") { e.preventDefault(); showShortcuts(); return; }
+  if (!e.ctrlKey || e.altKey || e.shiftKey) return;
+  const actions = {
+    n: () => window.newConversation && window.newConversation(),
+    h: () => window.toggleHistory && window.toggleHistory(),
+    f: () => window.focusHistorySearch && window.focusHistorySearch(),
+    e: () => window.exportCurrent && window.exportCurrent(),
+    l: () => toggleLibrary(),
+    p: () => window.openLoadout && window.openLoadout("profile"),
+    o: () => window.openLoadout && window.openLoadout("scenario"),
+    t: () => toggleThemes(),
+    m: () => setMuted(!Sound.muted),
+    ",": () => window.openSettings && window.openSettings(),
+  };
+  const act = actions[e.key.toLowerCase()];
+  if (act) { e.preventDefault(); act(); }
+});
 
 // umbra-wiki "question" passes it as ?q= to ask on open.
 const initial = new URLSearchParams(location.search).get("q");

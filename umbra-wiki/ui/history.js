@@ -62,12 +62,27 @@
     render();
   }
 
+  // The search box looks through everything that was said, not just titles.
+  let results = null, searchTimer = 0, searchToken = 0;
+  function search() {
+    clearTimeout(searchTimer);
+    const q = filter.value.trim();
+    if (q.length < 2) { results = null; render(); return; }
+    searchTimer = setTimeout(async () => {
+      const token = ++searchToken;
+      const found = await fetch("/api/history-search?q=" + encodeURIComponent(q)).then((r) => r.json()).catch(() => []);
+      if (token !== searchToken) return;
+      results = found;
+      render();
+    }, 220);
+  }
+
   function render() {
-    const q = filter.value.trim().toLowerCase();
-    const shown = items.filter((c) => !q || (c.title || "").toLowerCase().includes(q));
+    const hidden = new Set(pendingDeletes.keys());
+    const shown = (results || items).filter((c) => !hidden.has(c.id));
     list.innerHTML = !items.length
       ? `<p class="lib-note">No conversations yet. Everything you ask is saved here automatically.</p>`
-      : !shown.length ? `<p class="lib-note">Nothing matches that filter.</p>` : "";
+      : !shown.length ? `<p class="lib-note">Nothing was found for that search.</p>` : "";
     let day = "";
     shown.forEach((c, i) => {
       const label = dayLabel(c.updated);
@@ -81,9 +96,11 @@
       const row = document.createElement("div");
       row.className = "hist-row" + (convo && convo.id === c.id ? " current" : "");
       row.style.animationDelay = Math.min(i, 12) * 25 + "ms";
-      row.innerHTML = `<button class="hopen"><span class="htitle"></span><span class="hmeta"></span></button>
-        <button class="hdel ghost" title="Delete this conversation">✕</button>`;
+      row.innerHTML = `<button class="hopen"><span class="htitle"></span><span class="hmeta"></span>${c.snippet ? '<span class="hsnip"></span>' : ""}</button>
+        <span class="hactions"><button class="ghost hexp" title="Export this conversation">󰈇</button>
+        <button class="ghost hdel" title="Delete (you can undo for a few seconds)">✕</button></span>`;
       row.querySelector(".htitle").textContent = c.title;
+      if (c.snippet) row.querySelector(".hsnip").textContent = c.snippet;
       row.querySelector(".hmeta").textContent = [
         timeOf(c.updated),
         `${c.count} ${c.count === 1 ? "ANSWER" : "ANSWERS"}`,
@@ -92,6 +109,7 @@
       row.querySelector(".hopen").addEventListener("mouseenter", Sound.hover);
       row.querySelector(".hopen").addEventListener("click", () => openConvo(c.id));
       row.querySelector(".hdel").addEventListener("click", () => remove(c));
+      row.querySelector(".hexp").addEventListener("click", () => exportTo({ what: "conversation", id: c.id }, "this conversation"));
       list.appendChild(row);
     });
     $("#hist-foot").innerHTML = dir ? `Saved on this computer only, in <code></code>` : "";
@@ -144,19 +162,46 @@
     input.focus();
   }
 
-  async function remove(c) {
-    const ok = await confirmDialog({
-      kind: "to-local", tag: "DELETE", title: "DELETE THIS CONVERSATION?",
-      body: `"${c.title}" will be removed from this computer. This can't be undone.`, ok: "DELETE", cancel: "KEEP",
-    });
-    if (!ok) return;
-    try {
-      await fetch("/api/history/delete", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: c.id }),
+  // Quick delete: the conversation disappears at once, and an UNDO bar
+  // gives five seconds to take it back before it's really removed.
+  const pendingDeletes = new Map();
+  function remove(c) {
+    Sound.click();
+    const timer = setTimeout(async () => {
+      pendingDeletes.delete(c.id);
+      try {
+        await fetch("/api/history/delete", {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: c.id }),
+        });
+      } catch {}
+      if (convo && convo.id === c.id) convo = null;   // what's on screen stays; new answers start a new entry
+      items = items.filter((x) => x.id !== c.id);
+      if (results) results = results.filter((x) => x.id !== c.id);
+      showUndo();
+      render();
+    }, 5000);
+    pendingDeletes.set(c.id, { timer, title: c.title });
+    showUndo();
+    render();
+  }
+  function showUndo() {
+    let bar = panel.querySelector(".undo-bar");
+    if (!pendingDeletes.size) { bar?.remove(); return; }
+    if (!bar) {
+      bar = document.createElement("div");
+      bar.className = "undo-bar";
+      bar.innerHTML = `<span></span><button class="ghost">UNDO</button>`;
+      bar.querySelector("button").addEventListener("click", () => {
+        pendingDeletes.forEach((p) => clearTimeout(p.timer));
+        pendingDeletes.clear();
+        Sound.theme();
+        showUndo();
+        render();
       });
-    } catch {}
-    if (convo && convo.id === c.id) convo = null;   // what's on screen stays; new answers start a new entry
-    load();
+      panel.insertBefore(bar, $("#hist-foot"));
+    }
+    const n = pendingDeletes.size;
+    bar.querySelector("span").textContent = n === 1 ? `Deleted "${[...pendingDeletes.values()][0].title.slice(0, 40)}"` : `Deleted ${n} conversations`;
   }
 
   // ---------------------------------------------------- open / close
@@ -173,6 +218,7 @@
       if (window.closeLoadout) window.closeLoadout(true);
       if (window.closeSettings) window.closeSettings();
       filter.value = "";
+      results = null;
       load();
     }
     if (!quiet) Sound.click();
@@ -182,7 +228,12 @@
   $("#history-btn").addEventListener("click", () => toggle());
   $("#history-close").addEventListener("click", () => toggle(false));
   $("#hist-new").addEventListener("click", newConvo);
-  filter.addEventListener("input", render);
+  filter.addEventListener("input", search);
+  $("#hist-export").addEventListener("click", () => exportTo({ what: "all" }, "all conversations"));
+  window.newConversation = newConvo;
+  window.toggleHistory = toggle;
+  window.focusHistorySearch = () => { toggle(true); setTimeout(() => filter.focus(), 60); };
+  window.exportCurrent = () => (convo ? exportTo({ what: "conversation", id: convo.id }, "this conversation") : Sound.error());
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !panel.hidden && $("#modal").hidden) { e.stopImmediatePropagation(); toggle(false); }
   }, true);
