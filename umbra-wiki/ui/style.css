@@ -43,8 +43,15 @@ button { -webkit-text-stroke: inherit; }
   transition: background-color .45s ease, color .45s ease, border-color .45s ease, fill .45s ease, stroke .45s ease !important;
 }
 
-.blink { animation: blink 1.2s steps(1) infinite; }
+/* Slow, soft fades, like a status light: never a hard flash. */
+.pulse { animation: pulse 2.8s ease-in-out infinite; }
 @keyframes blink { 50% { opacity: .25; } }
+
+/* Spinner glyphs differ in width; a fixed slot keeps the text beside them still. */
+.spin, [data-spin] {
+  display: inline-block; width: 1.3em; height: 1em; line-height: 1;
+  text-align: center; vertical-align: -.1em; overflow: visible;
+}
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
 @keyframes fade { from { opacity: 0; } }
 
@@ -71,15 +78,18 @@ button { -webkit-text-stroke: inherit; }
 .mark .m-tape path { stroke: var(--logo, var(--signal)); stroke-width: 6; opacity: .85; }
 .mark .m-tape { animation: tape 1.8s linear infinite; }
 @keyframes tape { to { transform: translateX(12px); } }
-.mark .m-star { transform-origin: 64px 53.7px; animation: compass 9s ease-in-out infinite; }
-.mark .lit { animation: glint 3.6s ease-in-out infinite; }
+.mark .m-star { transform-origin: 64px 53.7px; animation: compass 16s ease-in-out infinite; }
+.mark .lit { animation: glint 4s ease-in-out infinite; }
 .mark .lit { fill: var(--logo, var(--signal)); }
 .mark .shade { fill: var(--shade-2); }
-/* The star has four-fold symmetry, so a quarter turn loops seamlessly. */
+/* Quarter turns with a rest after each, all the way round: 360° looks the
+   same as 0°, so the loop never visibly jumps back. */
 @keyframes compass {
-  0% { transform: rotate(0deg) scale(1); }
-  45% { transform: rotate(90deg) scale(1.06); }
-  55%, 100% { transform: rotate(90deg) scale(1); }
+  0% { transform: rotate(0deg); }
+  12.5%, 25% { transform: rotate(90deg); }
+  37.5%, 50% { transform: rotate(180deg); }
+  62.5%, 75% { transform: rotate(270deg); }
+  87.5%, 100% { transform: rotate(360deg); }
 }
 @keyframes glint { 50% { opacity: .75; } }
 
@@ -180,7 +190,9 @@ main::-webkit-scrollbar-track { background: transparent; }
   color: var(--bg); background: var(--signal); padding: 1px 8px; margin: 0 10px 0 6px;
   font-weight: 800; letter-spacing: .5em;
 }
-.subtitle .hz { color: var(--accent); letter-spacing: 0; }
+.subtitle .hz { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; }
+.hz .trefoil { fill: var(--accent); }
+.hz .ring { fill: none; stroke: var(--accent); stroke-width: 1.4; }
 
 .prompts {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -206,7 +218,7 @@ main::-webkit-scrollbar-track { background: transparent; }
 .msg .label::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 
 .msg.user .body {
-  color: var(--fg-bright); font-size: 15px;
+  color: var(--fg); font-size: 15px;
   padding: 12px 16px; background: var(--bg-2); border-left: 2px solid var(--muted);
   white-space: pre-wrap;
 }
@@ -230,14 +242,14 @@ main::-webkit-scrollbar-track { background: transparent; }
 .answer .waiting .orb { margin: 0; padding: 0; border: 0; background: none; font-size: 8px; line-height: 1; overflow: visible; }
 .waiting .spin { color: var(--signal); }
 
-.answer { color: var(--fg); font-size: 14.5px; line-height: 1.72; }
+.answer { color: color-mix(in srgb, var(--fg) 45%, var(--fg-bright)); font-size: 14.5px; line-height: 1.72; }
 .answer p { margin: 0 0 12px; }
 .answer h1, .answer h2, .answer h3 {
-  color: var(--fg-bright); font-size: 13px; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--signal); font-size: 13px; letter-spacing: .2em; text-transform: uppercase;
   margin: 18px 0 8px; font-weight: 700;
 }
-.answer strong { color: var(--fg-bright); font-weight: 700; }
-.answer em { color: var(--dim); }
+.answer strong { color: var(--signal); font-weight: 700; }
+.answer em { color: var(--accent); font-style: normal; }
 .answer ul, .answer ol { margin: 0 0 12px; padding-left: 24px; }
 .answer li { margin: 5px 0; }
 .answer li::marker { color: var(--signal); }

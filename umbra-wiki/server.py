@@ -79,7 +79,8 @@ SYSTEM_PROMPT = (
     "friend. Talk naturally and warmly, never robotically. Get straight to the point: no compliments "
     "on the question and no filler openers. "
     "For small talk, reply briefly and naturally, and mention what you can help with if it fits. "
-    "For practical questions, answer clearly with short steps when useful. "
+    "For practical questions, answer clearly with short steps when useful, and put the key action "
+    "or term of each step in **bold**. "
     "If the situation is vague or huge (for example 'I have nothing'), start with the most urgent "
     "priorities in order, then ask the user one short question back so you can tailor your help. "
     "SOURCES may include irrelevant material: use only what genuinely helps, cite [n] only for facts "
@@ -418,7 +419,8 @@ def library():
             "size": os.path.getsize(os.path.join(LIBRARY_DIR, f)),
         })
     available = [c for c in catalog if c["id"] not in known]
-    return {"dir": LIBRARY_DIR, "installed": installed, "available": available}
+    shown = "~" + LIBRARY_DIR[len(HOME):] if LIBRARY_DIR.startswith(HOME) else LIBRARY_DIR
+    return {"dir": shown, "installed": installed, "available": available}
 
 
 def download(ids):

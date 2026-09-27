@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Backend for the Omarchy Umbra Agent Tool bar widget.
+# Backend for the Omarchy Umbra bar widget.
 #
 #   agents.sh status        One JSON line per entry, in two sections:
 #                             local:  Umbra Wiki, or "Set up Umbra Wiki"
@@ -200,7 +200,7 @@ INTRO
   fi
 
   echo
-  echo "Umbra Wiki is ready. It appears under LOCAL in the Agent Tool."
+  echo "Umbra Wiki is ready. It appears under LOCAL in Omarchy Umbra."
   if gum confirm "Open Umbra Wiki now?"; then
     setsid uwsm-app -- umbra-wiki >/dev/null 2>&1 &
   fi

@@ -34,7 +34,7 @@ const Sound = (() => {
     if (!ctx) {
       ctx = new AudioContext();
       master = ctx.createGain();
-      master.gain.value = 0.05;
+      master.gain.value = 0.2;
       master.connect(ctx.destination);
     }
     if (ctx.state === "suspended") ctx.resume();
@@ -65,13 +65,34 @@ const Sound = (() => {
     s.connect(f).connect(g).connect(master);
     s.start();
   };
+  // Band-passed noise swept upward: a scanner pass.
+  const scan = () => {
+    const c = ready(); if (!c) return;
+    const dur = 0.5, len = Math.floor(c.sampleRate * dur);
+    const buf = c.createBuffer(1, len, c.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    const t = c.currentTime;
+    s.buffer = buf;
+    f.type = "bandpass"; f.Q.value = 9;
+    f.frequency.setValueAtTime(500, t);
+    f.frequency.exponentialRampToValueAtTime(3400, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.5, t + dur * 0.4);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f).connect(g).connect(master);
+    s.start(t);
+  };
   return {
     get muted() { return muted; },
     set muted(v) { muted = v; },
     prime: () => ready(),
-    key: () => tick(0.35),
-    type: () => tick(0.12, 3400),
-    hover: () => tone(1900, 0.035, { vol: 0.1 }),
+    key: () => tick(0.5),
+    type: () => tick(0.32, 3200),
+    hover: () => tone(1900, 0.04, { vol: 0.16 }),
+    scan,
+    ping: () => { tone(1320, 0.55, { vol: 0.22 }); tone(1320, 0.45, { vol: 0.07, at: 0.22 }); },
     click: () => tone(1200, 0.05, { type: "triangle", vol: 0.25 }),
     send: () => { tone(520, 0.08, { type: "triangle", vol: 0.45 }); tone(780, 0.11, { type: "triangle", vol: 0.4, at: 0.06 }); },
     done: () => { tone(660, 0.16, { vol: 0.3 }); tone(990, 0.26, { vol: 0.26, at: 0.09 }); },
@@ -85,6 +106,14 @@ const Sound = (() => {
 })();
 addEventListener("pointerdown", () => Sound.prime(), { capture: true });
 addEventListener("keydown", () => Sound.prime(), { capture: true });
+
+let ambient = 0;
+function setAmbient(kind) {
+  clearInterval(ambient);
+  ambient = 0;
+  if (kind === "scan") { Sound.scan(); ambient = setInterval(Sound.scan, 950); }
+  else if (kind === "ping") { Sound.ping(); ambient = setInterval(Sound.ping, 1900); }
+}
 
 function setMuted(value, save = true) {
   Sound.muted = value;
@@ -741,6 +770,7 @@ async function ask(question) {
         const e = JSON.parse(line);
         if (e.type === "phase") {
           setPhase(e.phase);
+          setAmbient(e.phase === "search" || e.phase === "read" ? "scan" : e.phase === "think" ? "ping" : "");
           if (!writing) {
             const n = e.count;
             setWaitingText(answerEl, e.phase === "read" && n ? `Extracting ${n} source${n === 1 ? "" : "s"}…` : `${PHASE_TEXT[e.phase]}…`);
@@ -771,6 +801,7 @@ async function ask(question) {
     if (!stopped) text += `\n\n**Error:** ${err.message}`;
   }
 
+  setAmbient("");
   let shown = visibleAnswer(text, false);
   if (!shown) {
     shown = stopped

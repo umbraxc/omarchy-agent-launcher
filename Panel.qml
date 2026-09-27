@@ -7,7 +7,7 @@ import Quickshell.Io
 import qs.Commons
 import qs.Ui
 
-// Omarchy Umbra Agent Tool: bar icon + popup. LOCAL is Umbra Wiki (or its
+// Omarchy Umbra: bar icon + popup. LOCAL is Umbra Wiki (or its
 // guided setup), ONLINE AGENTS lists installed coding agents with their
 // running sessions, and THEME switches Umbra Wiki's colours. Clicking an
 // entry opens it in a new window. All process logic lives in agents.sh.
