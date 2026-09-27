@@ -187,7 +187,12 @@ the cloned folder: Umbra runs from it. Voice input on plain Arch uses
 [voxtype](https://voxtype.io) from the AUR; the installer sets it up if you
 have `yay` or `paru`. Hold **F9** in the Umbra window to talk.
 
-To update later: `~/.local/share/omarchy-umbra/install-arch.sh --update`.
+To update later, pull the new version, then reinstall:
+
+```bash
+git -C ~/.local/share/omarchy-umbra pull
+~/.local/share/omarchy-umbra/install-arch.sh --update
+```
 
 ### What gets installed
 
@@ -276,7 +281,8 @@ Umbra Wiki speaks and understands English.
 ## Update, reset, uninstall
 
 - **Update**: on Omarchy, plugin updates arrive through Omarchy and Umbra
-  picks them up; on Arch, run `install-arch.sh --update`. Your settings,
+  picks them up; on Arch, `git pull` the folder and run
+  `install-arch.sh --update`. Your settings,
   history and library are never touched by updates.
 - **Reset**: Settings → Danger zone → Reset Umbra starts over as if freshly
   installed (the tour runs again); the AI model and library are kept.

@@ -10,7 +10,9 @@
 # the welcome tour then helps you pick the AI model and the offline library.
 # Keep the cloned folder: Umbra runs from it.
 #
-#   install-arch.sh --update   Pull the latest version and reinstall the app.
+#   install-arch.sh --update   Reinstall the app after updating the folder
+#                              yourself (git -C <folder> pull); the installer
+#                              never downloads code on its own.
 #
 # UMBRA_DRY_RUN=1 prints what would be installed without changing anything.
 
@@ -44,9 +46,8 @@ if [[ ! -f $app/install.sh ]]; then
 fi
 
 if [[ ${1:-} == --update ]]; then
-  run git -C "$here" pull --ff-only
   run bash "$app/install.sh"
-  echo "Umbra Wiki is up to date."
+  echo "Umbra Wiki reinstalled from $here."
   exit 0
 fi
 
