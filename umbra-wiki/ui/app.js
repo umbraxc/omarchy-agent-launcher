@@ -133,7 +133,7 @@ const Sound = (() => {
       .catch(() => {});
   };
   const names = ["launch", "key", "hover", "click", "send", "searchstart", "found", "done",
-                 "lock", "unlock", "online", "local", "theme", "error"];
+                 "lock", "unlock", "online", "local", "theme", "error", "beep", "boot"];
   const api = { get muted() { return muted; }, set muted(v) { muted = v; if (v) api.hum(false); } };
   names.forEach((n) => (api[n] = () => play(n)));
   api.hover = () => { if (!window.prefs || window.prefs.hoverSounds !== false) play("hover"); };
@@ -567,19 +567,35 @@ function orb(el, w, h) {
 // Digital rain: columns of random characters falling behind the intro,
 // fading as they go. ~16 frames a second on a small canvas.
 let rainRaf = 0;
+// The start screen's animated background, chosen in Settings: digital rain
+// (falling or rising), Saturn rings around the globe, a starfield, or none.
 function startRain() {
   const canvas = $("#rain");
+  const front = $("#rain-front");
+  if (front) front.getContext("2d").clearRect(0, 0, front.width, front.height);
   if (!canvas || document.body.classList.contains("no-rain") || document.body.classList.contains("reduce-motion")) return;
   stopRain();
+  const mode = (window.prefs && window.prefs.background) || "rain";
+  if (mode === "none") return;
   const ctx = canvas.getContext("2d");
+  const fctx = front ? front.getContext("2d") : null;
   const glyphs = "アイウエオカキクケコサシスセソ0123456789ABCDEFGHJKLMNPQRSTUVWXYZ#$%&*+=<>?/".split("");
   const size = 14;
-  let cols = [], w = 0, h = 0, last = 0;
+  let cols = [], stars = [], rings = [], shooting = null, w = 0, h = 0, last = 0, t = 0;
   const resize = () => {
     const r = canvas.getBoundingClientRect();
     w = canvas.width = Math.max(1, Math.floor(r.width));
     h = canvas.height = Math.max(1, Math.floor(r.height));
+    if (front) { front.width = w; front.height = h; }
     cols = Array.from({ length: Math.ceil(w / size) }, () => ({ y: Math.random() * -h, speed: 0.6 + Math.random() * 0.9 }));
+    if (mode === "rise") cols.forEach((c) => { c.y = h + Math.random() * h; });
+    stars = Array.from({ length: Math.round((w * h) / 1700) }, () => ({
+      x: Math.random() * w, y: Math.random() * h, glyph: "··.+*✦"[(Math.random() * 6) | 0],
+      phase: Math.random() * 6.3, speed: 0.4 + Math.random() * 1.4, bright: Math.random() < 0.12,
+    }));
+    // Three bands of glyphs orbiting the globe, inner ones faster.
+    rings = [[1.4, 0.9, 120], [1.7, 0.7, 170], [2.1, 0.5, 150], [2.45, 0.38, 100]].flatMap(([radius, speed, count]) =>
+      Array.from({ length: count }, () => ({ a: Math.random() * 6.3, radius: radius + (Math.random() - 0.5) * 0.08, speed })));
   };
   resize();
   new ResizeObserver(resize).observe(canvas);
@@ -587,30 +603,97 @@ function startRain() {
     rainRaf = requestAnimationFrame(frame);
     if (ts - last < 60 || !canvas.isConnected) return;
     last = ts;
+    t += 0.06;
     const css = getComputedStyle(document.documentElement);
-    ctx.fillStyle = css.getPropertyValue("--bg").trim() + "2e";   // translucent: older glyphs fade
-    ctx.fillRect(0, 0, w, h);
-    ctx.font = `${size}px ${css.getPropertyValue("--font")}`;
+    const bg = css.getPropertyValue("--bg").trim();
     const signal = css.getPropertyValue("--signal").trim();
     const shade = css.getPropertyValue("--shade-2").trim();
-    cols.forEach((c, i) => {
-      const ch = glyphs[(Math.random() * glyphs.length) | 0];
-      ctx.fillStyle = Math.random() < 0.08 ? signal : shade;
-      ctx.fillText(ch, i * size, c.y);
-      c.y += size * c.speed;
-      if (c.y > h + size * 4) { c.y = Math.random() * -h * 0.5; c.speed = 0.6 + Math.random() * 0.9; }
+    const shade1 = css.getPropertyValue("--shade-1").trim();
+    ctx.font = `${size}px ${css.getPropertyValue("--font")}`;
+
+    if (mode === "rain" || mode === "rise") {
+      ctx.fillStyle = bg + "2e";   // translucent: older glyphs fade
+      ctx.fillRect(0, 0, w, h);
+      const dir = mode === "rise" ? -1 : 1;
+      cols.forEach((c, i) => {
+        ctx.fillStyle = Math.random() < 0.08 ? signal : shade;
+        ctx.fillText(glyphs[(Math.random() * glyphs.length) | 0], i * size, c.y);
+        c.y += dir * size * c.speed;
+        const gone = dir > 0 ? c.y > h + size * 4 : c.y < -size * 4;
+        if (gone) {
+          c.y = dir > 0 ? Math.random() * -h * 0.5 : h + Math.random() * h * 0.5;
+          c.speed = 0.6 + Math.random() * 0.9;
+        }
+      });
+      return;
+    }
+
+    ctx.clearRect(0, 0, w, h);
+    // Stars: each twinkles at its own pace (a quieter field behind the rings).
+    const dimStars = mode === "rings" ? 0.45 : 1;
+    ctx.font = `12px ${css.getPropertyValue("--font")}`;
+    stars.forEach((s) => {
+      const glow = 0.5 + 0.5 * Math.sin(t * s.speed + s.phase);
+      ctx.globalAlpha = (0.25 + 0.75 * glow) * dimStars;
+      ctx.fillStyle = s.bright ? signal : shade1;
+      ctx.fillText(s.glyph, s.x, s.y);
     });
+    if (mode === "stars") {
+      // Now and then a shooting star crosses with a fading tail.
+      if (!shooting && Math.random() < 0.012) shooting = { x: Math.random() * w * 0.7, y: Math.random() * h * 0.4, life: 0 };
+      if (shooting) {
+        shooting.life += 1;
+        for (let i = 0; i < 9; i++) {
+          const k = shooting.life - i * 0.6;
+          if (k < 0) continue;
+          ctx.globalAlpha = Math.max(0, (1 - i / 9) * (1 - shooting.life / 22));
+          ctx.fillStyle = i === 0 ? signal : shade1;
+          ctx.fillText(i === 0 ? "✦" : "·", shooting.x + k * 16, shooting.y + k * 7);
+        }
+        if (shooting.life > 22) shooting = null;
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    if (mode === "rings" && fctx) {
+      // The rings sit around the globe, tilted; the half nearer to us is
+      // drawn in front of the globe, the far half behind it.
+      fctx.clearRect(0, 0, w, h);
+      const orbEl = $("#intro-orb");
+      if (!orbEl) return;
+      const cr = canvas.getBoundingClientRect(), or = orbEl.getBoundingClientRect();
+      const cx = or.left - cr.left + or.width / 2, cy = or.top - cr.top + or.height / 2;
+      const R = or.width / 2, tilt = -0.32, cos = Math.cos(tilt), sin = Math.sin(tilt);
+      fctx.font = ctx.font = `12px ${css.getPropertyValue("--font")}`;
+      rings.forEach((p) => {
+        p.a += p.speed * 0.02;
+        const x0 = Math.cos(p.a) * R * p.radius, y0 = Math.sin(p.a) * R * p.radius * 0.28;
+        const x = cx + x0 * cos - y0 * sin, y = cy + x0 * sin + y0 * cos;
+        const depth = Math.sin(p.a);           // > 0: in front of the globe
+        const near = depth > 0;
+        if (!near && Math.hypot(x - cx, y - cy) < R * 0.95) return;   // hidden behind the globe
+        const c = near ? fctx : ctx;
+        c.globalAlpha = 0.45 + 0.55 * (depth + 1) / 2;
+        c.fillStyle = near && Math.random() < 0.3 ? signal : near ? shade1 : shade1;
+        c.fillText(near ? (depth > 0.6 ? "●" : "•") : depth < -0.6 ? "·" : "∙", x - 3, y + 4);
+      });
+      ctx.globalAlpha = fctx.globalAlpha = 1;
+    }
   };
   rainRaf = requestAnimationFrame(frame);
 }
 function stopRain() { cancelAnimationFrame(rainRaf); rainRaf = 0; }
 
-// A full-window ASCII transition. The screen closes to dark from the edges
-// while the start screen's glyph rain falls; UMBRA // ONLINE boots and
-// welcomes the user by name; then the dark opens from the centre with a
-// soft edge and the rain slowly dies away, revealing what swap() put
-// underneath. With covered it starts already dark (at launch, behind the
-// "booting" cover, so the page never flashes first).
+// A full-window ASCII transition. A wave of glyphs sweeps diagonally over
+// the screen and leaves it dark with a few embers; UMBRA // ONLINE types
+// in and beeps, the status line fades in and the user is welcomed by name;
+// then the glyphs dissolve from the centre outwards, revealing what swap()
+// put underneath. With covered it starts already dark (at launch, behind
+// the "booting" cover, so the page never flashes first).
+//
+// Fast enough to stay smooth: the dark cover is one tiny image (a pixel
+// per character cell) scaled up in a single draw, and glyphs are drawn
+// only along the moving edge of the wave.
 function asciiWipe(swap, { covered = false, welcome = "" } = {}) {
   return new Promise((resolve) => {
     if (document.body.classList.contains("reduce-motion")) {
@@ -619,99 +702,106 @@ function asciiWipe(swap, { covered = false, welcome = "" } = {}) {
     const canvas = document.createElement("canvas");
     canvas.className = "wipe";
     document.body.appendChild(canvas);
-    const w = innerWidth, h = innerHeight;
+    const w = innerWidth, h = innerHeight, cw = 11, ch = 20;
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext("2d");
-    // The rain lives on its own layer so its trails fade like the start screen's.
-    const rain = document.createElement("canvas");
-    rain.width = w; rain.height = h;
-    const rctx = rain.getContext("2d");
-    const size = 14;
-    const glyphs = "アイウエオカキクケコサシスセソ0123456789ABCDEFGHJKLMNPQRSTUVWXYZ#$%&*+=<>?/".split("");
-    const drops = Array.from({ length: Math.ceil(w / size) }, () => ({ y: Math.random() * -h, speed: 0.6 + Math.random() * 0.9 }));
+    const cols = Math.ceil(w / cw), rows = Math.ceil(h / ch), n = cols * rows;
+    const mask = document.createElement("canvas");
+    mask.width = cols; mask.height = rows;
+    const mctx = mask.getContext("2d");
+    const img = mctx.createImageData(cols, rows);
+    const glyphLayer = document.createElement("canvas");
+    glyphLayer.width = w; glyphLayer.height = h;
+    const gctx = glyphLayer.getContext("2d");
+    const glyphs = "░▒▓█#%&@*+=:·アイウエオカキクケコ0123456789".split("");
+    // Each cell's moment in the wave: diagonal on the way in, from the
+    // centre outwards on the way out.
+    const inAt = new Float32Array(n), outAt = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const x = i % cols, y = (i / cols) | 0;
+      inAt[i] = (x / cols) * 0.55 + (y / rows) * 0.25 + Math.random() * 0.2;
+      outAt[i] = Math.hypot((x - cols / 2) / cols, (y - rows / 2) / rows) * 1.3 + Math.random() * 0.25;
+    }
+    const IN = covered ? 0 : 1000, HOLD = 3000, OUT = 2800, band = 0.2;
     const title = "UMBRA // ONLINE", sub = "LOADOUT DEPLOYED · LIBRARY LINKED · CORE READY";
-    const IN = covered ? 0 : 1100, HOLD = 2700, OUT = 2800;
-    const ease = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
-    const R = Math.hypot(w, h) / 2 * 1.15, soft = R * 0.45;
     const color = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+    const rgb = (c) => {
+      const m = c.match(/^#([0-9a-f]{6})$/i);
+      if (m) return [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16));
+      const r = c.match(/\d+/g);
+      return r ? r.slice(0, 3).map(Number) : [9, 9, 9];
+    };
     const start = performance.now();
-    let swapped = false, first = true, lastRain = 0;
+    let swapped = false, first = true, lastGlyphs = 0;
+    const beeps = [0, 1, 2].map((i) => 1000 + i * 260);   // after the title is typed
+    let beeped = 0;
 
     const frame = (now) => {
       const t = now - start;
-      // Colours every frame: at launch the theme arrives a moment later.
-      const [bg, signal, shade, bright, dim, accent, font] =
-        ["--bg", "--signal", "--shade-2", "--fg-bright", "--dim", "--accent", "--font"].map(color);
-      const outP = ease((t - IN - HOLD) / OUT);
-
-      // Rain: a new glyph per column every 60 ms, older ones fading out;
-      // fewer new glyphs as the reveal goes on, so it dies away naturally.
-      if (now - lastRain >= 60) {
-        lastRain = now;
-        rctx.globalCompositeOperation = "destination-out";
-        rctx.fillStyle = "rgba(0,0,0,0.18)";
-        rctx.fillRect(0, 0, w, h);
-        rctx.globalCompositeOperation = "source-over";
-        rctx.font = `${size}px ${font}`;
-        drops.forEach((d, i) => {
-          if (Math.random() > 1 - outP * 0.95) { d.y += size * d.speed; return; }
-          rctx.fillStyle = Math.random() < 0.08 ? signal : shade;
-          rctx.fillText(glyphs[(Math.random() * glyphs.length) | 0], i * size, d.y);
-          d.y += size * d.speed;
-          if (d.y > h + size * 4) { d.y = Math.random() * -h * 0.4; d.speed = 0.6 + Math.random() * 0.9; }
-        });
+      const [bg, signal, shade, dim, accent, font] = ["--bg", "--signal", "--shade-2", "--dim", "--accent", "--font"].map(color);
+      const [r, g, b] = rgb(bg);
+      const phaseIn = t < IN, phaseOut = t > IN + HOLD;
+      const p = phaseIn ? (t / IN) * 1.2 : phaseOut ? ((t - IN - HOLD) / OUT) * 1.45 : 2;
+      const refreshGlyphs = now - lastGlyphs > 45;   // glyphs flicker at ~22 fps; the cover moves every frame
+      if (refreshGlyphs) { lastGlyphs = now; gctx.clearRect(0, 0, w, h); gctx.font = `${ch - 6}px ${font}`; gctx.textBaseline = "top"; }
+      const px = img.data;
+      for (let i = 0; i < n; i++) {
+        const k = p - (phaseOut ? outAt[i] : inAt[i]);
+        let cover, edge = false;
+        if (phaseOut) { cover = k <= 0 ? 1 : k >= band ? 0 : 1 - k / band; edge = k > 0 && k < band; }
+        else if (phaseIn) { cover = k <= 0 ? 0 : k >= band ? 1 : k / band; edge = k > 0 && k < band; }
+        else cover = 1;
+        const o = i * 4;
+        px[o] = r; px[o + 1] = g; px[o + 2] = b; px[o + 3] = cover * 255;
+        if (refreshGlyphs && (edge || (cover === 1 && Math.random() < 0.012))) {
+          gctx.fillStyle = Math.random() < 0.15 ? signal : shade;
+          gctx.globalAlpha = edge ? 1 : 0.7;
+          gctx.fillText(glyphs[(Math.random() * glyphs.length) | 0], (i % cols) * cw, ((i / cols) | 0) * ch + 2);
+        }
       }
-
-      // The dark cover, with a soft round opening: shrinking on the way in,
-      // growing from the centre on the way out.
+      gctx.globalAlpha = 1;
+      mctx.putImageData(img, 0, 0);
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, w, h);
-      const hole = t < IN ? (1 - ease(t / IN)) * (R + soft) : outP * (R + soft);
-      if (hole > 0) {
-        ctx.globalCompositeOperation = "destination-out";
-        const g = ctx.createRadialGradient(w / 2, h / 2, Math.max(0, hole - soft), w / 2, h / 2, hole);
-        g.addColorStop(0, "rgba(0,0,0,1)");
-        g.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, w, h);
-        ctx.globalCompositeOperation = "source-over";
-      }
-      ctx.globalAlpha = t < IN ? ease(t / IN) : 1 - outP;
-      ctx.drawImage(rain, 0, 0);
-      ctx.globalAlpha = 1;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(mask, 0, 0, cols * cw, rows * ch);
+      ctx.drawImage(glyphLayer, 0, 0);
 
       if (t >= IN && !swapped) { swapped = true; swap(); }
       if (first) { first = false; document.body.classList.remove("booting"); }
 
-      // The boot text: title typed, the status line fading in, then the
-      // welcome typed; all of it drifts up and fades as the screen opens.
+      // Boot text: the title types in, ONLINE blinks with three beeps, the
+      // status line fades in, the welcome types; all drift up and fade out.
       const k = t - IN;
-      if (k > 0 && outP < 1) {
-        const fade = 1 - ease(Math.min(1, outP * 2.2));
-        const lift = outP * 18;
+      if (k > 0 && (!phaseOut || t < IN + HOLD + OUT * 0.55)) {
+        while (beeped < beeps.length && k >= beeps[beeped]) { Sound.beep(); beeped++; }
+        const outK = phaseOut ? (t - IN - HOLD) / (OUT * 0.55) : 0;
+        const fade = 1 - outK, lift = outK * 16;
+        const typed = (text, from, dur) => text.slice(0, Math.max(0, Math.ceil(text.length * Math.min(1, (k - from) / dur))));
+        const cursor = (shown, full) => (shown.length < full.length && (now / 140 | 0) % 2 ? "▌" : "");
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        const typed = (text, from, dur) => text.slice(0, Math.max(0, Math.ceil(text.length * Math.min(1, (k - from) / dur))));
-        const cursor = (text, full) => (text.length < full.length && (now / 140 | 0) % 2 ? "▌" : "");
         ctx.globalAlpha = fade;
         ctx.font = `800 28px ${font}`;
         ctx.fillStyle = signal;
         const a = typed(title, 150, 750);
-        ctx.fillText(a + cursor(a, title), w / 2, h / 2 - 34 - lift);
-        ctx.globalAlpha = fade * Math.min(1, Math.max(0, (k - 1000) / 450));
+        // ONLINE blinks in step with the beeps.
+        const blinking = beeps.some((at) => k >= at && k < at + 130);
+        const shown = k > beeps[0] && k < beeps[2] + 260 && !blinking ? "UMBRA //" + " ".repeat(7) : a;
+        ctx.fillText(shown + cursor(a, title), w / 2, h / 2 - 34 - lift);
+        ctx.globalAlpha = fade * Math.min(1, Math.max(0, (k - 1800) / 450));
         ctx.font = `11px ${font}`;
         ctx.fillStyle = dim;
         ctx.fillText(sub, w / 2, h / 2 - 2 - lift);
         if (welcome) {
           ctx.globalAlpha = fade;
           ctx.font = `700 15px ${font}`;
-          ctx.fillStyle = accent || bright;
-          const b = typed(welcome, 1450, 700);
-          if (b) ctx.fillText(b + cursor(b, welcome), w / 2, h / 2 + 30 - lift);
+          ctx.fillStyle = accent || signal;
+          const c = typed(welcome, 2150, 700);
+          if (c) ctx.fillText(c + cursor(c, welcome), w / 2, h / 2 + 30 - lift);
         }
         ctx.globalAlpha = 1;
         ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
       }
 
       if (t < IN + HOLD + OUT) requestAnimationFrame(frame);
@@ -719,7 +809,7 @@ function asciiWipe(swap, { covered = false, welcome = "" } = {}) {
     };
     requestAnimationFrame(frame);
     if (!covered) Sound.theme();
-    setTimeout(() => Sound.launch(), IN + HOLD - 100);
+    setTimeout(() => Sound.boot(), IN + HOLD - 250);   // Umbra's boot chime, as the screen opens
   });
 }
 
@@ -778,6 +868,32 @@ function pickStarters() {
   return [...mine.map((t) => [t, true]), ...pool.slice(0, 6 - n).map((t) => [t, false])];
 }
 
+// The key words of a question are highlighted: its two most telling words
+// (longest, skipping the small ones), so each question reads at a glance.
+const PLAIN = new Set(("a an the and or but of to in on at by for from with about into over under is are was were be " +
+  "do does did have has how what which who why when where can could should would will i me my we you your it its " +
+  "this that these those some any tell give show make get let lets let's please more most good best like " +
+  "there here just really very much many one two").split(" "));
+function starterHTML(text) {
+  const words = text.split(/(\s+)/);
+  const ranked = words.map((w, i) => [w.replace(/[^\p{L}\p{N}'-]/gu, ""), i])
+    .filter(([w]) => w.length > 2 && !PLAIN.has(w.toLowerCase()))
+    .sort((a, b) => b[0].length - a[0].length).slice(0, 2).map(([, i]) => i);
+  return words.map((w, i) => (ranked.includes(i) ? `<b>${escapeHtml(w)}</b>` : escapeHtml(w))).join("");
+}
+
+function makeChip(text, mine, i = 0) {
+  const c = document.createElement("button");
+  c.className = "chip" + (mine ? " mine" : "");
+  c.innerHTML = `<span class="ct">${starterHTML(text)}</span>`;
+  c.dataset.text = text;
+  if (mine) c.title = "Suggested for you";
+  c.style.animationDelay = i * 70 + "ms";
+  c.addEventListener("mouseenter", Sound.hover);
+  c.addEventListener("click", () => ask(text));
+  return c;
+}
+
 function renderStarters(animate) {
   const box = $("#intro .prompts");
   if (!box) return;
@@ -785,41 +901,65 @@ function renderStarters(animate) {
   starterShown = items.map(([t]) => t);
   const build = () => {
     box.innerHTML = "";
-    items.forEach(([text, mine], i) => {
-      const c = document.createElement("button");
-      c.className = "chip" + (mine ? " mine" : "");
-      c.innerHTML = '<span class="ct"></span>';
-      c.querySelector(".ct").textContent = text;
-      if (mine) c.title = "Suggested for you";
-      c.style.animationDelay = i * 70 + "ms";
-      c.addEventListener("mouseenter", Sound.hover);
-      c.addEventListener("click", () => ask(text));
-      box.appendChild(c);
-    });
+    items.forEach(([text, mine], i) => box.appendChild(makeChip(text, mine, i)));
+    scheduleSwaps();
   };
   if (!animate || !box.children.length) { build(); return; }
   [...box.children].forEach((c, i) => { c.style.animationDelay = i * 50 + "ms"; c.classList.add("leaving"); });
   setTimeout(build, 600);
 }
 
+// Each question swaps on its own clock (every 25-55 s) for another one of
+// the same kind that isn't on screen, so the set keeps changing at
+// different moments instead of all at once.
+let swapTimers = [];
+function scheduleSwaps() {
+  swapTimers.forEach(clearTimeout);
+  swapTimers = [];
+  const box = $("#intro .prompts");
+  if (!box) return;
+  [...box.children].forEach((chip) => {
+    const tick = () => {
+      if (!chip.isConnected) return;
+      if (startersIdle() && !chip.matches(":hover")) swapChip(chip);
+      swapTimers.push(setTimeout(tick, 25000 + Math.random() * 30000));
+    };
+    swapTimers.push(setTimeout(tick, 12000 + Math.random() * 30000));
+  });
+}
+function swapChip(chip) {
+  const mine = chip.classList.contains("mine");
+  const onScreen = [...chip.parentNode.children].map((c) => c.dataset.text);
+  const pool = (mine ? starterPool.personal : starterPool.scenario).filter((t) => !onScreen.includes(t));
+  if (!pool.length) return;
+  const text = pool[(Math.random() * pool.length) | 0];
+  chip.classList.add("leaving");
+  setTimeout(() => {
+    if (!chip.isConnected) return;
+    const fresh = makeChip(text, mine);
+    fresh.style.animationDelay = "0ms";
+    chip.replaceWith(fresh);
+    scheduleSwaps();
+  }, 450);
+}
+
 const startersIdle = () => {
   const box = $("#intro .prompts");
-  return box && box.children.length && !box.matches(":hover") && !input.value && !controller && document.hasFocus()
+  return box && box.children.length && !box.matches(":hover") && !input.value && !controller
     && !document.body.classList.contains("touring") && !document.body.classList.contains("reduce-motion");
 };
-setInterval(() => { if (startersIdle()) renderStarters(true); }, 100000);
 function starterWave() {
   if (startersIdle()) {
     $("#intro .prompts").querySelectorAll(".ct").forEach((t, i) => {
       t.classList.remove("wave");
       void t.offsetWidth;
-      t.style.animationDelay = i * 180 + "ms";
+      t.style.animationDelay = i * 160 + "ms";
       t.classList.add("wave");
     });
   }
-  setTimeout(starterWave, 14000 + Math.random() * 6000);
+  setTimeout(starterWave, 11000 + Math.random() * 7000);
 }
-setTimeout(starterWave, 9000);
+setTimeout(starterWave, 8000);
 showIntro(true);
 // Every launch boots through the ASCII transition; "Reduce motion" skips it.
 Promise.all([

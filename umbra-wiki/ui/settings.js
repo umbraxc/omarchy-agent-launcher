@@ -7,7 +7,7 @@
 
 (() => {
   const DEFAULTS = {
-    volume: 0.9, hoverSounds: true, rain: true, reduceMotion: false,
+    volume: 0.9, hoverSounds: true, rain: true, background: "rain", reduceMotion: false,
     suggestions: true, greeting: true, barAlert: true,
   };
   window.prefs = { ...DEFAULTS, hiddenControls: [] };
@@ -44,8 +44,17 @@
     }
   }
 
+  const BACKGROUNDS = [["rain", "Digital rain"], ["rise", "Rising rain"], ["rings", "Saturn rings"], ["stars", "Starfield"], ["none", "None"]];
+  let runningBackground = "rain";
   function applyPrefs() {
-    document.body.classList.toggle("no-rain", !prefs.rain);
+    // Older settings only had the rain switch.
+    if (prefs.rain === false && !prefs.background) prefs.background = "none";
+    prefs.background = prefs.background || "rain";
+    document.body.classList.toggle("no-rain", prefs.background === "none");
+    if (prefs.background !== runningBackground) {
+      runningBackground = prefs.background;
+      if ($("#rain") && !prefs.reduceMotion) startRain();
+    }
     document.body.classList.toggle("reduce-motion", !!prefs.reduceMotion);
     if (!prefs.rain || prefs.reduceMotion) stopRain();
   }
@@ -86,7 +95,8 @@
         <p class="lib-note">Settings always stays, so you can bring the others back.</p>
       </section>
       <section class="set-section"><div class="lib-head">MOTION</div>
-        ${toggle("rain", "Digital rain", "Falling characters behind the start screen")}
+        <label class="set-row"><span class="set-text"><b>Start screen background</b><small>The animation behind the globe and title</small></span>
+          <select class="set-background">${BACKGROUNDS.map(([id, label]) => `<option value="${id}">${label}</option>`).join("")}</select></label>
         ${toggle("reduceMotion", "Reduce motion", "Calm the animations; good for slow computers")}
       </section>
       <section class="set-section"><div class="lib-head">CONVERSATION</div>
@@ -125,7 +135,7 @@
       box.addEventListener("change", () => {
         if (key === "sound") setMuted(!box.checked);
         else save({ [key]: box.checked });
-        if (key === "rain" && box.checked && !prefs.reduceMotion) startRain();
+        if (key === "reduceMotion" && !box.checked) startRain();
         Sound.click();
       });
     });
@@ -140,6 +150,9 @@
         Sound.click();
       });
     });
+    const bgSelect = body.querySelector(".set-background");
+    bgSelect.value = prefs.background || "rain";
+    bgSelect.addEventListener("change", () => { save({ background: bgSelect.value }); Sound.theme(); });
     const vol = body.querySelector(".set-volume");
     vol.value = prefs.volume;
     vol.addEventListener("change", () => { save({ volume: Number(vol.value) }); Sound.click(); });
@@ -245,6 +258,7 @@
   setInterval(async () => {
     try {
       const s = await (await fetch("/api/settings")).json();
+      if (s.background && s.background !== prefs.background) { prefs.background = s.background; applyPrefs(); }
       if (JSON.stringify(s.hiddenControls || []) !== JSON.stringify(prefs.hiddenControls || [])) {
         prefs.hiddenControls = s.hiddenControls || [];
         applyControls(true);

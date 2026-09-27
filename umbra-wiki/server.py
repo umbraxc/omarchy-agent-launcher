@@ -1424,6 +1424,8 @@ class Handler(BaseHTTPRequestHandler):
                 if isinstance(update.get("hiddenControls"), list):
                     allowed = {"loadout-btn", "history-btn", "library-btn", "theme-btn", "sound", "lock"}
                     settings["hiddenControls"] = [c for c in update["hiddenControls"] if c in allowed]
+                if update.get("background") in ("rain", "rise", "rings", "stars", "none"):
+                    settings["background"] = update["background"]
                 if isinstance(update.get("volume"), (int, float)):
                     settings["volume"] = max(0.0, min(1.0, float(update["volume"])))
                 for key in ("scenario", "personality"):

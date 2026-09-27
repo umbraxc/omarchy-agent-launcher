@@ -186,7 +186,9 @@ main::-webkit-scrollbar-track { background: transparent; }
   position: relative; text-align: center; padding: 2vh 0 10px;
   animation: rise .6s ease-out both;
 }
-.intro > :not(.rain) { position: relative; z-index: 1; }
+.intro > :not(.rain):not(.rain-front) { position: relative; z-index: 1; }
+/* The near half of the Saturn rings passes in front of the globe. */
+.rain-front { position: absolute; left: 0; top: 0; width: 100%; height: 330px; z-index: 2; pointer-events: none; opacity: .9; }
 .intro.leaving { animation: leave .7s cubic-bezier(.55, 0, .75, .3) both; }
 @keyframes leave { to { opacity: 0; transform: translateY(-60px); } }
 
@@ -240,8 +242,15 @@ main::-webkit-scrollbar-track { background: transparent; }
 @keyframes chip-out { to { opacity: 0; transform: translateY(-6px); } }
 /* Now and then a slow wave runs through the questions, one after another. */
 .chip .ct { display: inline-block; }
-.chip .ct.wave { animation: chip-wave 1.1s ease-in-out both; }
-@keyframes chip-wave { 0%, 100% { transform: none; } 30% { transform: translateY(-3px); } 60% { transform: translateY(1px); } }
+.chip .ct.wave { animation: chip-wave 1.2s ease-in-out both; }
+@keyframes chip-wave {
+  0%, 100% { transform: none; color: inherit; }
+  30% { transform: translateY(-5px); color: var(--fg-bright); }
+  60% { transform: translateY(1px); }
+}
+/* The key words of each question. */
+.chip .ct b { color: var(--signal); font-weight: 700; }
+.chip.mine .ct b { color: var(--accent); }
 .chip.mine::before { content: "✦"; color: var(--accent); }
 .chip:hover { border-color: var(--signal); color: var(--fg-bright); background: var(--signal-soft); transform: translateX(3px); }
 
@@ -661,8 +670,8 @@ kbd { font: inherit; opacity: .7; margin-left: 4px; }
 .pf-danger .ghost { flex: none; }
 
 /* Preferences from Settings. */
-body.no-rain .rain { display: none; }
-body.reduce-motion .rain { display: none; }
+body.no-rain .rain, body.no-rain .rain-front { display: none; }
+body.reduce-motion .rain, body.reduce-motion .rain-front { display: none; }
 body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after {
   animation-duration: .001s !important; animation-iteration-count: 1 !important; transition-duration: .001s !important;
 }
