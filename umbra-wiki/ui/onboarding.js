@@ -350,7 +350,7 @@
     const voice = await fetch("/api/voice").then((r) => r.json()).catch(() => ({}));
     await say(voice.available
       ? "Last thing: **voice input is ready.** Hold **F9** (or click the microphone) and just talk; it's turned into text right here, offline."
-      : "Last thing: **voice input** isn't installed yet. On Omarchy, run `omarchy-voxtype-install` and then hold **F9** to talk to me.");
+      : `Last thing: **voice input** isn't installed yet. Install it with \`${voice.install || "omarchy-voxtype-install"}\` and then hold **F9** to talk to me.`);
 
     // The screen, piece by piece.
     a = await say("Now a quick look at the screen, piece by piece.");

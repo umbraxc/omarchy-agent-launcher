@@ -178,7 +178,7 @@
           <button class="ghost set-reset">RESET…</button></div>
         <div class="set-row"><span class="set-text"><b>Uninstall Umbra</b><small>Remove Umbra Wiki from this computer: the app, its menu entry
           and background service, your profile, settings and conversations. Ollama and other system packages stay.
-          The Omarchy Umbra bar widget stays and can set Umbra up again.</small></span>
+          On Omarchy, the Omarchy Umbra bar widget stays and can set Umbra up again.</small></span>
           <button class="ghost set-uninstall">UNINSTALL…</button></div>
         <div class="set-uninstall-box" hidden>
           <label class="set-row"><span class="set-text"><b>Also delete the offline library</b><small class="set-lib-size"></small></span>
@@ -322,7 +322,7 @@
     if (pull.active) pullTimer = setTimeout(() => { if (!panel.hidden) render(); }, 2500);
 
     body.querySelector(".set-voice").innerHTML = !voice.available
-      ? "Voice input isn't installed. On Omarchy, install it with <code>omarchy-voxtype-install</code>, then hold <b>F9</b> to talk."
+      ? `Voice input isn't installed. Install it with <code>${escapeHtml(voice.install || "omarchy-voxtype-install")}</code>, then hold <b>F9</b> to talk.`
       : voice.daemon
         ? "Voice input is ready: hold <b>F9</b> anywhere, or click the microphone next to TRANSMIT. Speech is turned into text offline by voxtype."
         : "Voice input is ready: click the microphone next to TRANSMIT, or hold <b>F9</b> in Umbra. Speech is turned into text offline by voxtype.";

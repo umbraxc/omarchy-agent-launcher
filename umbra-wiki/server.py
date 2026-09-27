@@ -528,6 +528,18 @@ def set_audio(out=None, source=None):
     return audio_devices()
 
 
+def player(path):
+    """The command that plays a sound: PipeWire's pw-play (to the chosen
+    output), or PulseAudio's paplay on systems that don't run PipeWire."""
+    runtime = os.environ.get("XDG_RUNTIME_DIR") or "/tmp"
+    if shutil.which("pw-play") and os.path.exists(os.path.join(runtime, "pipewire-0")):
+        return ["pw-play", *audio_target("audioOut"), "--volume", sound_volume(),
+                "-P", "{ application.name = \"Umbra Wiki\" media.role = \"Notification\" }", path]
+    if shutil.which("paplay"):
+        return ["paplay", f"--volume={int(float(sound_volume()) * 65536)}", path]
+    return None
+
+
 def audio_target(key):
     """pw-play / pw-record arguments for the chosen device, if any."""
     name = read_json(SETTINGS_FILE, {}).get(key, "")
@@ -549,24 +561,20 @@ def hum(on):
         _hum.terminate()
     _hum = None
     path = os.path.join(SOUNDS_DIR, "hum.ogg")
-    if on and os.path.isfile(path) and shutil.which("pw-play"):
-        _hum = subprocess.Popen(
-            ["pw-play", *audio_target("audioOut"), "--volume", sound_volume(), "-P", "{ application.name = \"Umbra Wiki\" media.role = \"Notification\" }", path],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if on and os.path.isfile(path) and player(path):
+        _hum = subprocess.Popen(player(path), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def play_sound(name):
     """Play a bundled sound through PipeWire (independent of the web view)."""
     path = os.path.join(SOUNDS_DIR, name + ".ogg")
-    if not re.fullmatch(r"[a-z]{1,16}", name) or not os.path.isfile(path) or not shutil.which("pw-play"):
+    if not re.fullmatch(r"[a-z]{1,16}", name) or not os.path.isfile(path) or not player(path):
         return False
     now = time.monotonic()
     if now - _last_sound.get(name, 0) < 0.04:  # collapse accidental double triggers
         return True
     _last_sound[name] = now
-    subprocess.Popen(
-        ["pw-play", *audio_target("audioOut"), "--volume", sound_volume(), "-P", "{ application.name = \"Umbra Wiki\" media.role = \"Notification\" }", path],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.Popen(player(path), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return True
 
 
@@ -1044,7 +1052,9 @@ def voxtype_daemon():
 
 def voice_status():
     if not shutil.which("voxtype"):
-        return {"available": False, "daemon": False, "state": "idle"}
+        install = ("omarchy-voxtype-install" if shutil.which("omarchy-voxtype-install")
+                   else "yay -S voxtype-bin && voxtype setup --download --model base.en")
+        return {"available": False, "daemon": False, "state": "idle", "install": install}
     daemon = voxtype_daemon()
     state = "idle"
     if daemon:

@@ -1911,7 +1911,8 @@ mic.addEventListener("click", () => {
   if (!voice.available) {
     confirmDialog({
       kind: "to-local", tag: "VOICE", title: "VOICE INPUT ISN'T INSTALLED",
-      body: "Voice input uses voxtype, an offline speech-to-text tool. On Omarchy, install it with:\n\nomarchy-voxtype-install\n\nThen hold F9 to talk, here or in any app.",
+      body: "Voice input uses voxtype, an offline speech-to-text tool. Install it with:\n\n" +
+        (voice.install || "omarchy-voxtype-install") + "\n\nThen hold F9 in Umbra (or click the microphone) to talk.",
       cancel: "OK",
     });
     return;
