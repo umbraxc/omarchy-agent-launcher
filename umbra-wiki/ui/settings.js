@@ -429,6 +429,7 @@
     try {
       const s = await (await fetch("/api/settings")).json();
       if (s.background && s.background !== prefs.background) { prefs.background = s.background; applyPrefs(); }
+      if ((s.offgrid || "off") !== (prefs.offgrid || "off")) { prefs.offgrid = s.offgrid || "off"; await checkPower(); }   // e.g. from the widget
       if (JSON.stringify(s.hiddenControls || []) !== JSON.stringify(prefs.hiddenControls || [])) {
         prefs.hiddenControls = s.hiddenControls || [];
         applyControls(true);

@@ -13,6 +13,10 @@
 #   agents.sh fact          This hour's survival field note, as JSON.
 #   agents.sh ask <text>    Open Umbra Wiki and ask it a question.
 #   agents.sh setup-local   Guided install of Umbra Wiki (run by the widget).
+#   agents.sh umbra-info    Umbra Wiki at a glance, as JSON: model, archives,
+#                           sound, off-grid, downloads, recent conversations.
+#   agents.sh set <key> <v> Change muted (true/false) or offgrid (off/on/auto).
+#   agents.sh open-conversation <id>  Open Umbra Wiki on a saved conversation.
 
 known_agents=(claude codex opencode gemini cursor-agent copilot crush grok pi omp hermes muse)
 script=$(readlink -f "${BASH_SOURCE[0]}")
@@ -252,8 +256,58 @@ INTRO
   sleep 2
 }
 
+# Umbra Wiki at a glance. Works whether or not the backend is running: the
+# history and settings are read from disk, live figures come from the
+# backend when it answers.
+umbra_info() {
+  local data_dir=${XDG_DATA_HOME:-$HOME/.local/share}/umbra-wiki
+  local settings='{}' config='{}' live='null' downloads='null' recent='[]' archives=0 library
+  [[ -f $umbra_config/settings.json ]] && settings=$(cat "$umbra_config/settings.json")
+  [[ -f $umbra_config/config.json ]] && config=$(cat "$umbra_config/config.json")
+  live=$(curl -s -m 0.6 http://127.0.0.1:8766/api/status 2>/dev/null)
+  if [[ -n $live ]]; then
+    downloads=$(curl -s -m 0.6 http://127.0.0.1:8766/api/downloads 2>/dev/null)
+  fi
+  [[ -n $live ]] || live=null
+  [[ -n $downloads ]] || downloads=null
+  library=$(jq -r '.libraryDir // empty' <<<"$config")
+  library=${library:-$HOME/UmbraWiki/library}
+  archives=$(find "${library/#\~/$HOME}" -maxdepth 1 -name '*.zim' 2>/dev/null | wc -l)
+  if compgen -G "$data_dir/history/c-*.json" >/dev/null; then
+    recent=$(jq -s -c 'sort_by(-(.updated // 0)) | .[:3] | map({id, title, updated, count: (.messages | length)})' \
+      "$data_dir"/history/c-*.json 2>/dev/null || echo '[]')
+  fi
+  jq -n -c --argjson s "$settings" --argjson c "$config" --argjson live "$live" --argjson dl "$downloads" \
+    --argjson recent "$recent" --argjson archives "$archives" '{
+      backend: ($live != null), model: ($live.model // $c.model // "gemma3:4b"),
+      archives: ($live.archives // $archives), muted: ($s.muted // false), offgrid: ($s.offgrid // "off"),
+      library: ($dl.library // null), pull: ($dl.model // null), recent: $recent}'
+}
+
+# Settings changed from the widget: through the backend when it runs (the
+# open window follows), straight into settings.json otherwise.
+set_setting() {
+  local key=${1:-} value=${2:-} json
+  case "$key:$value" in
+  muted:true | muted:false) json="{\"muted\": $value}" ;;
+  offgrid:off | offgrid:on | offgrid:auto) json="{\"offgrid\": \"$value\"}" ;;
+  *) echo "Unknown setting: $key $value" >&2; exit 1 ;;
+  esac
+  curl -s -m 1 -X POST -d "$json" http://127.0.0.1:8766/api/settings >/dev/null 2>&1 && return
+  mkdir -p "$umbra_config"
+  local file="$umbra_config/settings.json" current='{}'
+  [[ -f $file ]] && current=$(cat "$file")
+  jq --argjson u "$json" '. + $u' <<<"$current" >"$file.tmp" && mv "$file.tmp" "$file"
+}
+
 case "${1:-}" in
 status) status ;;
+umbra-info) umbra_info ;;
+set) set_setting "${2:-}" "${3:-}" ;;
+open-conversation)
+  [[ ${2:-} =~ ^c-[0-9]{8}-[0-9]{6}-[a-z0-9]{4}$ ]] || exit 1
+  exec setsid uwsm-app -- umbra-wiki --open "$2"
+  ;;
 launch) launch "${2:-}" ;;
 themes) themes ;;
 fact) fact ;;
@@ -263,7 +317,7 @@ ask) exec setsid uwsm-app -- umbra-wiki "${2:-}" ;;
 theme) set_theme "${2:-}" ;;
 setup-local) setup_local ;;
 *)
-  echo "Usage: agents.sh status | launch <id> | themes | theme <id> | loadout | open-loadout | fact | ask <text> | setup-local" >&2
+  echo "Usage: agents.sh status | launch <id> | themes | theme <id> | loadout | open-loadout | fact | ask <text> | setup-local | umbra-info | set <key> <value> | open-conversation <id>" >&2
   exit 1
   ;;
 esac

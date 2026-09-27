@@ -231,6 +231,9 @@
   filter.addEventListener("input", search);
   $("#hist-export").addEventListener("click", () => exportTo({ what: "all" }, "all conversations"));
   window.newConversation = newConvo;
+  // umbra-wiki --open <id> (the widget's RECENT list) opens a conversation.
+  const openParam = new URLSearchParams(location.search).get("open");
+  if (openParam) setTimeout(() => openConvo(openParam), 700);
   window.toggleHistory = toggle;
   window.focusHistorySearch = () => { toggle(true); setTimeout(() => filter.focus(), 60); };
   window.exportCurrent = () => (convo ? exportTo({ what: "conversation", id: convo.id }, "this conversation") : Sound.error());

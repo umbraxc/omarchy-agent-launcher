@@ -37,6 +37,15 @@ Panel {
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
 
   property var agents: []
+  // Umbra Wiki at a glance (agents.sh umbra-info): model, archives, sound,
+  // off-grid, downloads and the latest conversations.
+  property var info: ({})
+  // The header's little globe and its typed title, animated only while open.
+  property real orbPhase: 0
+  property string orbText: ""
+  property string headerTitle: ""
+  readonly property string headerTarget: "UMBRA // " + (umbraRunning || info.backend ? "ONLINE" : "STANDBY")
+  readonly property bool umbraRunning: agents.some(function(a) { return a.id === "umbra-wiki" && a.running > 0 })
   // Umbra Wiki has an answer waiting in a background window.
   property bool attention: false
   property string fieldNote: ""
@@ -58,6 +67,50 @@ Panel {
     if (!themeProc.running) themeProc.running = true
     if (!factProc.running) factProc.running = true
     if (!loadoutProc.running) loadoutProc.running = true
+    if (!infoProc.running) infoProc.running = true
+  }
+
+  // The same shaded, spinning ASCII globe as Umbra's start screen, small.
+  function orbFrame(t) {
+    var ramp = " .·:-=+*#%@", w = 16, h = 8, out = ""
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        var nx = (x - w / 2 + 0.5) / (w / 2), ny = (y - h / 2 + 0.5) / (h / 2)
+        var r2 = nx * nx + ny * ny
+        if (r2 > 1) { out += " "; continue }
+        var nz = Math.sqrt(1 - r2)
+        var lon = Math.atan2(nx, nz) + t, lat = Math.asin(ny)
+        var grid = Math.abs(Math.sin(lon * 3)) < 0.16 || Math.abs(Math.sin(lat * 4)) < 0.14
+        var light = 0.25 + 0.75 * Math.max(0, -0.45 * nx - 0.4 * ny + 0.8 * nz)
+        var v = Math.min(1, light * 0.6 + (grid ? 0.4 : 0))
+        out += ramp[Math.round(v * (ramp.length - 1))]
+      }
+      if (y < h - 1) out += "\n"
+    }
+    return out
+  }
+
+  function setUmbra(key, value) {
+    var next = Object.assign({}, info)
+    next[key] = value
+    info = next
+    Quickshell.execDetached([root.script, "set", key, String(value)])
+  }
+
+  function openConversation(id) {
+    Quickshell.execDetached([root.script, "open-conversation", id])
+    root.close()
+    refreshSoon.restart()
+  }
+
+  function ago(ms) {
+    var m = Math.max(0, Math.round((Date.now() - ms) / 60000))
+    if (m < 1) return "just now"
+    if (m < 60) return m + " min ago"
+    var hrs = Math.round(m / 60)
+    if (hrs < 24) return hrs + " h ago"
+    var days = Math.round(hrs / 24)
+    return days === 1 ? "yesterday" : days + " days ago"
   }
 
   function askAbout(note) {
@@ -86,7 +139,7 @@ Panel {
   }
 
   onOpenedChanged: {
-    if (opened) { cursorIndex = -1; refresh() }
+    if (opened) { cursorIndex = -1; refresh(); headerTitle = ""; typeTimer.restart() }
   }
 
   Process {
@@ -102,6 +155,36 @@ Panel {
         }
         root.agents = list
       }
+    }
+  }
+
+  Process {
+    id: infoProc
+    command: [root.script, "umbra-info"]
+    stdout: StdioCollector {
+      onStreamFinished: {
+        try { root.info = JSON.parse(String(text || "{}")) } catch (e) {}
+      }
+    }
+  }
+
+  // The globe turns and the title types in only while the panel is open.
+  Timer {
+    interval: 90
+    running: root.opened && root.umbraInstalled
+    repeat: true
+    triggeredOnStart: true
+    onTriggered: { root.orbPhase += 0.07; root.orbText = root.orbFrame(root.orbPhase) }
+  }
+  Timer {
+    id: typeTimer
+    interval: 28
+    repeat: true
+    onTriggered: {
+      if (root.headerTitle.length >= root.headerTarget.length || root.headerTarget.indexOf(root.headerTitle) !== 0) {
+        root.headerTitle = root.headerTarget
+        stop()
+      } else root.headerTitle = root.headerTarget.substring(0, root.headerTitle.length + 1)
     }
   }
 
@@ -200,7 +283,7 @@ Panel {
     open: root.opened
     focusTarget: keyCatcher
     contentWidth: panel.fittedContentWidth(Style.space(320))
-    contentHeight: panel.fittedContentHeight(column.implicitHeight, Style.space(560))
+    contentHeight: panel.fittedContentHeight(column.implicitHeight, Style.space(900))
 
     PanelKeyCatcher {
       id: keyCatcher
@@ -211,10 +294,118 @@ Panel {
       onTabRequested: function(direction) { root.switchPanel(direction) }
       onTextKey: function(t) { if (t === "r" || t === "R") root.refresh() }
 
+      // Scrolls when the panel is taller than the screen allows.
+      Flickable {
+        id: scroller
+        anchors.fill: parent
+        contentWidth: width
+        contentHeight: column.implicitHeight
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
+        interactive: contentHeight > height
+
       Column {
         id: column
-        width: parent.width
+        width: scroller.width
         spacing: Style.space(8)
+
+        // Header: Umbra's spinning globe, the typed status, the essentials
+        // at a glance and two quick switches.
+        Item {
+          id: header
+          visible: root.umbraInstalled
+          width: parent.width
+          implicitHeight: headerRow.implicitHeight + Style.space(16)
+
+          Rectangle {
+            anchors.fill: parent
+            color: Qt.rgba(root.online.r, root.online.g, root.online.b, 0.05)
+            border.width: 1
+            border.color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.12)
+          }
+          Item {
+            anchors.left: parent.left; anchors.top: parent.top
+            width: Style.space(9); height: Style.space(9)
+            Rectangle { width: parent.width; height: 2; color: root.online }
+            Rectangle { width: 2; height: parent.height; color: root.online }
+          }
+          Item {
+            anchors.right: parent.right; anchors.bottom: parent.bottom
+            width: Style.space(9); height: Style.space(9)
+            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 2; color: root.online }
+            Rectangle { anchors.right: parent.right; width: 2; height: parent.height; color: root.online }
+          }
+
+          RowLayout {
+            id: headerRow
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.leftMargin: Style.space(12)
+            anchors.rightMargin: Style.space(12)
+            spacing: Style.space(12)
+
+            Text {
+              Layout.alignment: Qt.AlignVCenter
+              text: root.orbText
+              color: root.online
+              opacity: 0.85
+              font.family: root.fontFamily
+              font.pixelSize: Math.max(6, Math.round(Style.font.caption * 0.62))
+              lineHeight: 0.9
+            }
+
+            ColumnLayout {
+              Layout.fillWidth: true
+              spacing: Style.space(4)
+
+              Text {
+                Layout.fillWidth: true
+                text: root.headerTitle + (typeTimer.running ? "▌" : "")
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.body
+                font.bold: true
+                font.letterSpacing: Style.space(1)
+                elide: Text.ElideRight
+              }
+              Text {
+                Layout.fillWidth: true
+                text: {
+                  var i = root.info, parts = []
+                  if (i.pull && i.pull.active && i.pull.total) parts.push("AI ↓ " + Math.round(i.pull.completed * 100 / i.pull.total) + "%")
+                  else if (i.model) parts.push(String(i.model).replace(":", " ").toUpperCase())
+                  if (i.archives !== undefined) parts.push(i.archives + " ARCHIVES")
+                  if (i.library && i.library.active) parts.push("LIB ↓ " + i.library.percent + "%")
+                  return "◆ " + parts.join(" · ")
+                }
+                color: root.dim
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption
+                elide: Text.ElideRight
+              }
+              Row {
+                spacing: Style.space(6)
+                QuickSwitch {
+                  label: root.info.muted ? "󰖁 MUTED" : "󰕾 SOUND"
+                  lit: !root.info.muted
+                  hint: root.info.muted ? "Turn Umbra's sounds on" : "Mute Umbra's sounds"
+                  onActivated: root.setUmbra("muted", !root.info.muted)
+                }
+                QuickSwitch {
+                  readonly property var modes: ["off", "auto", "on"]
+                  label: "⏻ OFF-GRID " + ({ off: "OFF", auto: "ON BATTERY", on: "ON" })[root.info.offgrid || "off"]
+                  lit: (root.info.offgrid || "off") !== "off"
+                  hint: "Battery saver: calmer animations, shorter answers. Click to switch."
+                  onActivated: {
+                    var i = modes.indexOf(root.info.offgrid || "off")
+                    root.setUmbra("offgrid", modes[(i + 1) % modes.length])
+                  }
+                }
+              }
+            }
+          }
+        }
 
         PanelSectionHeader {
           text: "LOCAL"
@@ -348,6 +539,64 @@ Panel {
           }
         }
 
+        // RECENT: the latest conversations; clicking one reopens it in Umbra.
+        PanelSeparator {
+          visible: root.umbraInstalled && (root.info.recent || []).length > 0
+          foreground: root.foreground
+        }
+        PanelSectionHeader {
+          visible: root.umbraInstalled && (root.info.recent || []).length > 0
+          text: "RECENT"
+          foreground: root.foreground
+          fontFamily: root.fontFamily
+        }
+        Repeater {
+          model: root.umbraInstalled ? (root.info.recent || []) : []
+
+          Item {
+            required property var modelData
+            width: column.width
+            implicitHeight: recentCol.implicitHeight + Style.space(8)
+
+            Rectangle {
+              anchors.fill: parent
+              color: recentMouse.containsMouse ? Qt.rgba(root.online.r, root.online.g, root.online.b, 0.08) : "transparent"
+            }
+            Rectangle {
+              width: 2; height: parent.height
+              color: recentMouse.containsMouse ? root.online : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.15)
+            }
+            Column {
+              id: recentCol
+              anchors.left: parent.left; anchors.right: parent.right
+              anchors.leftMargin: Style.space(10); anchors.rightMargin: Style.space(6)
+              anchors.verticalCenter: parent.verticalCenter
+              spacing: Style.space(1)
+              Text {
+                width: parent.width
+                text: modelData.title
+                color: recentMouse.containsMouse ? root.foreground : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.85)
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.bodySmall
+                elide: Text.ElideRight
+              }
+              Text {
+                text: root.ago(modelData.updated) + " · " + modelData.count + (modelData.count === 1 ? " answer" : " answers")
+                color: root.dim
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption
+              }
+            }
+            MouseArea {
+              id: recentMouse
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: root.openConversation(parent.modelData.id)
+            }
+          }
+        }
+
         PanelSeparator {
           visible: root.themes.length > 0
           foreground: root.foreground
@@ -372,8 +621,8 @@ Panel {
             Rectangle {
               required property var modelData
               readonly property bool current: modelData.id === root.currentTheme
-              width: Style.space(26)
-              height: Style.space(26)
+              width: Style.space(20)
+              height: Style.space(20)
               color: modelData.bg
               border.width: current ? 2 : 1
               border.color: current ? modelData.signal : Qt.darker(root.foreground, 2.2)
@@ -503,6 +752,43 @@ Panel {
           }
         }
       }
+      }
+    }
+  }
+
+  // A small framed switch in Umbra's style, lit in the theme colour when on.
+  component QuickSwitch: Rectangle {
+    id: sw
+    property string label: ""
+    property string hint: ""
+    property bool lit: false
+    signal activated()
+    implicitWidth: swText.implicitWidth + Style.space(14)
+    implicitHeight: swText.implicitHeight + Style.space(8)
+    color: swMouse.containsMouse ? Qt.rgba(root.online.r, root.online.g, root.online.b, 0.14) : "transparent"
+    border.width: 1
+    border.color: lit ? root.online : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.25)
+    Behavior on border.color { ColorAnimation { duration: 200 } }
+    Text {
+      id: swText
+      anchors.centerIn: parent
+      text: sw.label
+      color: sw.lit ? root.online : root.dim
+      font.family: root.fontFamily
+      font.pixelSize: Style.font.caption
+      font.letterSpacing: Style.space(0.5)
+    }
+    MouseArea {
+      id: swMouse
+      anchors.fill: parent
+      hoverEnabled: true
+      cursorShape: Qt.PointingHandCursor
+      onClicked: sw.activated()
+    }
+    PanelToolTip {
+      visible: swMouse.containsMouse && sw.hint !== ""
+      text: sw.hint
+      fontFamily: root.fontFamily
     }
   }
 
