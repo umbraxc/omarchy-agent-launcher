@@ -10,10 +10,39 @@
     volume: 0.9, hoverSounds: true, rain: true, reduceMotion: false,
     suggestions: true, greeting: true, barAlert: true,
   };
-  window.prefs = { ...DEFAULTS };
+  window.prefs = { ...DEFAULTS, hiddenControls: [] };
+  // Header buttons that can be hidden (Settings itself always stays).
+  const CONTROLS = [["loadout-btn", "Profile & loadout"], ["history-btn", "History"], ["library-btn", "Library"],
+                    ["theme-btn", "Themes"], ["sound", "Sound"], ["lock", "Lock"]];
   const panel = $("#settings");
   let pullTimer = 0;
   const body = $("#settings-body");
+
+  // Hidden buttons glitch out and the rest close up to the right; shown ones
+  // glitch back in. Without animation (at startup) they just switch.
+  function applyControls(animate) {
+    const hidden = new Set(prefs.hiddenControls || []);
+    for (const [id] of CONTROLS) {
+      const el = $("#" + id);
+      if (!el) continue;
+      const hide = hidden.has(id);
+      const shown = !el.classList.contains("gone") && !el.classList.contains("glitch-out");
+      if (hide !== shown) continue;
+      el.classList.remove("glitch-in", "glitch-out");
+      if (!animate || prefs.reduceMotion) { el.classList.toggle("gone", hide); continue; }
+      void el.offsetWidth;
+      if (hide) {
+        el.classList.add("glitch-out");
+        el.addEventListener("animationend", () => {
+          if (el.classList.contains("glitch-out")) { el.classList.remove("glitch-out"); el.classList.add("gone"); }
+        }, { once: true });
+      } else {
+        el.classList.remove("gone");
+        el.classList.add("glitch-in");
+        el.addEventListener("animationend", () => el.classList.remove("glitch-in"), { once: true });
+      }
+    }
+  }
 
   function applyPrefs() {
     document.body.classList.toggle("no-rain", !prefs.rain);
@@ -23,6 +52,7 @@
   async function load() {
     try { Object.assign(prefs, DEFAULTS, await (await fetch("/api/settings")).json()); } catch {}
     applyPrefs();
+    applyControls(false);
   }
   function save(update) {
     Object.assign(prefs, update);
@@ -48,6 +78,12 @@
         <label class="set-row"><span class="set-text"><b>Volume</b><small>How loud Umbra's sounds are</small></span>
           <input type="range" class="set-volume" min="0" max="1" step="0.05"></label>
         ${toggle("hoverSounds", "Hover sounds", "Soft blips when the mouse moves over buttons")}
+      </section>
+      <section class="set-section"><div class="lib-head">HEADER BUTTONS</div>
+        ${CONTROLS.map(([id, label]) => `
+          <label class="set-row"><span class="set-text"><b>${label}</b><small>Show this button in the top right</small></span>
+            <input type="checkbox" class="set-control" data-control="${id}"></label>`).join("")}
+        <p class="lib-note">Settings always stays, so you can bring the others back.</p>
       </section>
       <section class="set-section"><div class="lib-head">MOTION</div>
         ${toggle("rain", "Digital rain", "Falling characters behind the start screen")}
@@ -90,6 +126,17 @@
         if (key === "sound") setMuted(!box.checked);
         else save({ [key]: box.checked });
         if (key === "rain" && box.checked && !prefs.reduceMotion) startRain();
+        Sound.click();
+      });
+    });
+    body.querySelectorAll(".set-control").forEach((box) => {
+      const id = box.dataset.control;
+      box.checked = !(prefs.hiddenControls || []).includes(id);
+      box.addEventListener("change", () => {
+        const hidden = new Set(prefs.hiddenControls || []);
+        if (box.checked) hidden.delete(id); else hidden.add(id);
+        save({ hiddenControls: [...hidden] });
+        applyControls(true);
         Sound.click();
       });
     });
@@ -194,4 +241,14 @@
     .observe(document.body, { attributes: true, attributeFilter: ["class"] });
 
   load();
+  // Follow changes made elsewhere (another window, or a reset).
+  setInterval(async () => {
+    try {
+      const s = await (await fetch("/api/settings")).json();
+      if (JSON.stringify(s.hiddenControls || []) !== JSON.stringify(prefs.hiddenControls || [])) {
+        prefs.hiddenControls = s.hiddenControls || [];
+        applyControls(true);
+      }
+    } catch {}
+  }, 3000);
 })();

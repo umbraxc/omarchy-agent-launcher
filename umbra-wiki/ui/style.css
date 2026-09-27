@@ -131,6 +131,21 @@ button.cell {
   font: 17px var(--font); transition: color .15s, border-color .15s, background-color .15s;
 }
 .ctl:hover { color: var(--signal); border-color: var(--signal); background: var(--signal-soft); }
+/* Header buttons hidden from Settings glitch out, then their space closes;
+   showing one plays the same in reverse. */
+.ctl.gone { display: none; }
+.ctl.glitch-out { animation: ctl-glitch .5s linear both; pointer-events: none; }
+.ctl.glitch-in { animation: ctl-glitch .5s linear reverse both; }
+@keyframes ctl-glitch {
+  0% { transform: none; clip-path: inset(0 0 0 0); opacity: 1; width: 34px; margin-left: 0; }
+  8% { transform: translate(-3px, 1px); clip-path: inset(10% 0 55% 0); color: var(--signal); border-color: var(--signal); }
+  16% { transform: translate(3px, -1px); clip-path: inset(60% 0 5% 0); color: var(--net); border-color: var(--net); }
+  24% { transform: translate(-1px, 0) skewX(10deg); clip-path: inset(30% 0 35% 0); color: var(--accent); }
+  32% { transform: translate(4px, 0); clip-path: inset(0 0 78% 0); opacity: .8; }
+  40% { transform: translate(-2px, 1px); clip-path: inset(70% 0 0 0); color: var(--signal); }
+  52% { transform: none; clip-path: inset(46% 0 46% 0); opacity: .6; width: 34px; margin-left: 0; }
+  100% { clip-path: inset(50% 0 50% 0); opacity: 0; width: 0; margin-left: -6px; border-width: 0; }
+}
 .ctl.on { color: var(--signal); border-color: var(--signal); }
 .ctl.off { color: var(--faint); }
 /* The history glyph is drawn off-centre in the font; nudge it back. */
@@ -647,6 +662,8 @@ body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after 
 }
 
 /* ------------------------------------------------------------ welcome tour */
+
+.wipe { position: fixed; inset: 0; z-index: 200; pointer-events: none; }
 
 body.touring #ask { opacity: .45; pointer-events: none; }
 body.touring .intro { display: none; }

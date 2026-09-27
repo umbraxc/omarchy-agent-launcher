@@ -605,6 +605,94 @@ function startRain() {
 }
 function stopRain() { cancelAnimationFrame(rainRaf); rainRaf = 0; }
 
+// A full-window ASCII transition: a wave of glyphs sweeps in and leaves the
+// screen dark, "UMBRA // ONLINE" boots in the middle while swap() changes
+// what's underneath, then the glyphs dissolve from the centre outwards.
+function asciiWipe(swap, lines = ["UMBRA // ONLINE", "LOADOUT DEPLOYED · LIBRARY LINKED · CORE READY"]) {
+  return new Promise((resolve) => {
+    if (document.body.classList.contains("reduce-motion")) { swap(); resolve(); return; }
+    const canvas = document.createElement("canvas");
+    canvas.className = "wipe";
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext("2d");
+    const w = innerWidth, h = innerHeight, cw = 11, ch = 20;
+    canvas.width = w; canvas.height = h;
+    const cols = Math.ceil(w / cw), rows = Math.ceil(h / ch);
+    const css = getComputedStyle(document.documentElement);
+    const color = (v) => css.getPropertyValue(v).trim();
+    const bg = color("--bg"), signal = color("--signal"), shade = color("--shade-2"), bright = color("--fg-bright"), dim = color("--dim");
+    const font = color("--font");
+    const glyphs = "░▒▓█#%&@*+=:·アイウエオカキクケコ0123456789".split("");
+    // Each cell has its own moment in the wave: diagonal on the way in,
+    // from the centre outwards on the way out.
+    const inAt = [], outAt = [];
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      inAt.push((x / cols) * 0.55 + (y / rows) * 0.25 + Math.random() * 0.2);
+      outAt.push(Math.hypot((x - cols / 2) / cols, (y - rows / 2) / rows) * 1.3 + Math.random() * 0.25);
+    }
+    const IN = 700, HOLD = 1100, OUT = 850;
+    const start = performance.now();
+    let swapped = false, last = 0;
+    const band = 0.18;   // how wide the glyph wave is
+    const frame = (now) => {
+      const t = now - start;
+      if (now - last < 33) { requestAnimationFrame(frame); return; }   // ~30 fps is plenty
+      last = now;
+      ctx.clearRect(0, 0, w, h);
+      ctx.font = `${ch - 6}px ${font}`;
+      ctx.textBaseline = "top";
+      const phaseIn = t < IN, phaseOut = t > IN + HOLD;
+      const p = phaseIn ? t / IN * 1.2 : phaseOut ? (t - IN - HOLD) / OUT * 1.3 : 2;
+      for (let i = 0; i < inAt.length; i++) {
+        const x = (i % cols) * cw, y = Math.floor(i / cols) * ch;
+        // How far the wave has passed this cell: <0 not yet, 0..band glyphs, >band dark.
+        const k = phaseOut ? p - outAt[i] : p - inAt[i];
+        if (phaseOut) {
+          if (k > band) continue;                          // revealed
+          ctx.fillStyle = bg;
+          if (k < 0) { ctx.fillRect(x, y, cw, ch); continue; }   // still dark
+          ctx.globalAlpha = 1 - k / band;
+          ctx.fillRect(x, y, cw, ch);
+          ctx.globalAlpha = 1;
+        } else {
+          if (k < 0) continue;                             // wave hasn't arrived
+          ctx.fillStyle = bg;
+          ctx.globalAlpha = Math.min(1, k / band);
+          ctx.fillRect(x, y, cw, ch);
+          ctx.globalAlpha = 1;
+          if (k > band && Math.random() > 0.015) continue; // dark, a few embers left
+        }
+        ctx.fillStyle = Math.random() < 0.15 ? signal : shade;
+        ctx.fillText(glyphs[(Math.random() * glyphs.length) | 0], x, y + 2);
+      }
+      if (t >= IN && !swapped) { swapped = true; swap(); }
+      // The boot text, typed in during the hold and fading on the way out.
+      if (t >= IN && t < IN + HOLD + OUT * 0.5) {
+        const typed = Math.min(1, (t - IN) / (HOLD * 0.6));
+        ctx.globalAlpha = phaseOut ? Math.max(0, 1 - (t - IN - HOLD) / (OUT * 0.5)) : 1;
+        ctx.textAlign = "center";
+        ctx.font = `800 26px ${font}`;
+        ctx.fillStyle = signal;
+        const a = lines[0].slice(0, Math.ceil(lines[0].length * typed));
+        ctx.fillText(a + (typed < 1 && (t / 120 | 0) % 2 ? "▌" : ""), w / 2, h / 2 - 26);
+        if (lines[1] && typed >= 1) {
+          ctx.font = `11px ${font}`;
+          ctx.fillStyle = dim;
+          ctx.fillText(lines[1], w / 2, h / 2 + 14);
+        }
+        ctx.textAlign = "left";
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = bright;
+      }
+      if (t < IN + HOLD + OUT) requestAnimationFrame(frame);
+      else { canvas.remove(); resolve(); }
+    };
+    requestAnimationFrame(frame);
+    Sound.theme();
+    setTimeout(() => Sound.launch(), IN + HOLD - 150);
+  });
+}
+
 // Puts the start screen back (for a new conversation) and starts its motion.
 function showIntro(first = false) {
   if (!first) {
@@ -1457,3 +1545,4 @@ document.addEventListener("keydown", (e) => {
 // umbra-wiki "question" passes it as ?q= to ask on open.
 const initial = new URLSearchParams(location.search).get("q");
 if (initial) ask(initial);
+

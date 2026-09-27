@@ -318,9 +318,10 @@
     skip.remove();
     document.querySelector(".spot-shade")?.remove();
     document.body.classList.remove("touring");
-    postSettings({ onboarded: true });
+    await postSettings({ onboarded: true });
     if (window.prefs) window.prefs.onboarded = true;
-    showIntro();
+    // From the tour to the home screen through an ASCII transition.
+    await asciiWipe(() => { showIntro(); window.scrollTo(0, 0); });
     input.focus();
   }
   window.startTour = startTour;

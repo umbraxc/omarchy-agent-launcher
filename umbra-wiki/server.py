@@ -1407,6 +1407,9 @@ class Handler(BaseHTTPRequestHandler):
             for key in ("muted", "onboarded", "rain", "reduceMotion", "suggestions", "greeting", "barAlert", "hoverSounds"):
                 if isinstance(update.get(key), bool):
                     settings[key] = update[key]
+            if isinstance(update.get("hiddenControls"), list):
+                allowed = {"loadout-btn", "history-btn", "library-btn", "theme-btn", "sound", "lock"}
+                settings["hiddenControls"] = [c for c in update["hiddenControls"] if c in allowed]
             if isinstance(update.get("volume"), (int, float)):
                 settings["volume"] = max(0.0, min(1.0, float(update["volume"])))
             for key in ("scenario", "personality"):
