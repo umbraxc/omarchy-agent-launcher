@@ -390,6 +390,8 @@ textarea {
   -webkit-text-stroke: var(--weight) currentColor;
 }
 textarea::placeholder { color: var(--faint); -webkit-text-stroke: 0; }
+/* A suggested reply, in the same contrast colour as the field notes. */
+textarea.suggest::placeholder { color: var(--net); font-style: italic; opacity: .85; }
 
 button#send, .ghost, .solid {
   font: 700 11.5px var(--font); letter-spacing: .2em; cursor: pointer;

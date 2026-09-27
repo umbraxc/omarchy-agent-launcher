@@ -841,6 +841,10 @@ class Handler(BaseHTTPRequestHandler):
                     settings[key] = update[key]
             write_json(SETTINGS_FILE, settings)
             return self.send_json(settings)
+        if self.path == "/api/suggest":
+            req = self.read_json()
+            return self.send_json({"text": suggest_reply(str(req.get("question", ""))[:1000],
+                                                         str(req.get("answer", ""))[:6000])})
         if self.path == "/api/history":
             try:
                 return self.send_json(history_save(self.read_json()))
@@ -1002,24 +1006,41 @@ def stream_chat(messages, emit):
     return full, done_event
 
 
+def quick_generate(prompt, num_predict):
+    """A short one-line completion from the local model ('' on failure)."""
+    body = json.dumps({"model": MODEL, "prompt": prompt, "stream": False, "keep_alive": "30m",
+                       "options": {"num_ctx": 2048, "temperature": 0.4, "num_predict": num_predict}}).encode()
+    try:
+        r = json.loads(urllib.request.urlopen(urllib.request.Request(
+            OLLAMA + "/api/generate", body, {"Content-Type": "application/json"}), timeout=120).read())
+        lines = r.get("response", "").strip().splitlines()
+        return lines[0].strip(" *_\"'") if lines else ""
+    except Exception:
+        return ""
+
+
 def follow_up(question, answer_text):
     """One likely next question, when the answer didn't end with a NEXT line."""
-    prompt = (
+    text = quick_generate(
         "A user asked a survival assistant a question and got an answer.\n"
         f"QUESTION: {question}\nANSWER: {answer_text[:700]}\n\n"
         "Write one short, friendly sentence in the assistant's voice offering the most useful next "
         "step, for example 'If you'd like, I can show you how to keep the fire going overnight.' "
-        "Under 20 words. Reply with only that sentence."
-    )
-    body = json.dumps({"model": MODEL, "prompt": prompt, "stream": False, "keep_alive": "30m",
-                       "options": {"num_ctx": 2048, "temperature": 0.4, "num_predict": 40}}).encode()
-    try:
-        r = json.loads(urllib.request.urlopen(urllib.request.Request(
-            OLLAMA + "/api/generate", body, {"Content-Type": "application/json"}), timeout=120).read())
-        text = r.get("response", "").strip().splitlines()[0].strip(" *_\"'")
-        return re.sub(r"(?i)^(next|follow[- ]?up)( question)?\W*:\s*", "", text)
-    except Exception:
-        return ""
+        "Under 20 words. Reply with only that sentence.", 40)
+    return re.sub(r"(?i)^(next|follow[- ]?up)( question)?\W*:\s*", "", text)
+
+
+def suggest_reply(question, answer_text):
+    """What the user would most likely say next, shown as a hint in the prompt box."""
+    text = quick_generate(
+        "A user is talking to a survival assistant.\n"
+        f"USER: {question[:300]}\nASSISTANT: {answer_text[-800:]}\n\n"
+        "Write the user's most likely short reply to the assistant's last message, in the user's own "
+        "words: an answer if the assistant asked something, otherwise a natural follow-up question. "
+        "Examples: 'Yes, I have a plastic bottle and some cloth.' or 'How long should I boil it?' "
+        "Under 12 words. Reply with only that reply.", 30)
+    text = re.sub(r"(?i)^(user|reply|me)\s*:\s*", "", text).strip(" \"'")
+    return text[:120]
 
 
 def warm_model():

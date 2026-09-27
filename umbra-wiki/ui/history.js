@@ -2,7 +2,7 @@
 // (~/.local/share/umbra-wiki/history) and can be reopened and continued from
 // the History panel. Loaded after app.js and uses its helpers ($, Sound,
 // feed, chat, controller, locked, addUser, addBot, finishAnswer, showIntro,
-// stopRain, toggleThemes, confirmDialog).
+// stopRain, toggleThemes, confirmDialog, suggestFor, setSuggestion).
 "use strict";
 
 (() => {
@@ -124,6 +124,8 @@
       finishAnswer(addBot(), m);
       chat.push({ role: "user", content: m.question }, { role: "assistant", content: m.answer });
     }
+    const last = convo.messages[convo.messages.length - 1];
+    if (last) suggestFor(last);
     toggle(false, true);
     Sound.theme();
     requestAnimationFrame(() => { feed.scrollTop = feed.scrollHeight; });
@@ -134,6 +136,8 @@
     if (busy()) return;
     convo = null;
     chat.length = 0;
+    suggestToken++;
+    setSuggestion("");
     showIntro();
     toggle(false, true);
     Sound.theme();

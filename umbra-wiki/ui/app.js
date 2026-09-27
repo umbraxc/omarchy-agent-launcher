@@ -1043,6 +1043,8 @@ async function ask(question, shownAs = "") {
     intro.addEventListener("animationend", () => intro.remove(), { once: true });
     setTimeout(() => intro.remove(), 900);
   }
+  suggestToken++;
+  setSuggestion("");
   addUser(shownAs || question);
   const msg = addBot();
   const card = msg.querySelector(".card");
@@ -1130,6 +1132,7 @@ async function ask(question, shownAs = "") {
   finishAnswer(msg, rec);
   chat.push({ role: "user", content: question }, { role: "assistant", content: shown });
   if (window.recordTurn) window.recordTurn(rec);
+  if (!stopped) suggestFor(rec);
   stopped ? Sound.error() : Sound.done();
   stopWorking();
   wake();
@@ -1151,22 +1154,88 @@ $("#reader-close").addEventListener("click", closeReader);
 
 // ------------------------------------------------------------------ inputs
 
+// The prompt box keeps its own undo history (Ctrl+Z, and Ctrl+Shift+Z or
+// Ctrl+Y to redo). It survives sending: Ctrl+Z brings a sent question back.
+const Undo = (() => {
+  let stack = [{ v: "", at: 0 }], i = 0, last = 0;
+  const snap = (typing = false) => {
+    const cur = { v: input.value, at: input.selectionStart };
+    if (stack[i].v === cur.v) return;
+    stack = stack.slice(0, i + 1);
+    // Quick typing merges into one step; a pause or a space starts a new one.
+    const merge = typing && i > 0 && stack[i].v && Date.now() - last < 900 && !/\s$/.test(stack[i].v);
+    if (merge) stack[i] = cur;
+    else { stack.push(cur); i++; }
+    if (stack.length > 300) { stack.shift(); i--; }
+    last = Date.now();
+  };
+  const go = (step) => {
+    if (i + step < 0 || i + step >= stack.length) return;
+    i += step;
+    input.value = stack[i].v;
+    const at = Math.min(stack[i].at ?? input.value.length, input.value.length);
+    input.setSelectionRange(at, at);
+    autosize();
+    last = 0;
+  };
+  return { snap, undo: () => go(-1), redo: () => go(1) };
+})();
+
+// After an answer, the prompt's hint turns into a likely reply; Tab types it.
+// Accepting Umbra's offer this way asks for exactly what it offered.
+const DEFAULT_HINT = input.placeholder;
+let suggestion = null, suggestToken = 0;
+function setSuggestion(text, sendAs = "") {
+  suggestion = text ? { text, sendAs } : null;
+  input.placeholder = text ? `${text}    ⇥ TAB` : DEFAULT_HINT;
+  input.classList.toggle("suggest", !!text);
+}
+async function suggestFor(rec) {
+  const token = ++suggestToken;
+  if (rec.offer) return setSuggestion("Yes, please.", `Yes, please: ${rec.offer}`);
+  setSuggestion("");
+  try {
+    const r = await (await fetch("/api/suggest", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: rec.question, answer: rec.answer }),
+    })).json();
+    if (token === suggestToken && !controller && r.text) setSuggestion(r.text);
+  } catch {}
+}
+
 form.addEventListener("submit", (e) => {
   e.preventDefault();
   if (controller) { controller.abort(); return; }
   const q = input.value;
   input.value = "";
   autosize();
-  ask(q);
+  Undo.snap();
+  if (suggestion && suggestion.sendAs && q.trim() === suggestion.text) ask(suggestion.sendAs, q.trim());
+  else ask(q);
 });
 
 input.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); return; }
+  const k = e.key.toLowerCase();
+  if (e.ctrlKey && !e.altKey && (k === "z" || k === "y")) {
+    e.preventDefault();
+    if (k === "y" || e.shiftKey) Undo.redo(); else Undo.undo();
+    return;
+  }
+  if (e.key === "Tab" && !e.shiftKey && suggestion && !input.value) {
+    e.preventDefault();
+    input.value = suggestion.text;
+    input.setSelectionRange(input.value.length, input.value.length);
+    autosize();
+    Undo.snap();
+    Sound.key();
+    return;
+  }
   if (e.key.length === 1 || e.key === "Backspace") Sound.key();
 });
 
 function autosize() { input.style.height = "auto"; input.style.height = input.scrollHeight + "px"; }
-input.addEventListener("input", autosize);
+input.addEventListener("input", () => { autosize(); Undo.snap(true); });
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape" || !$("#modal").hidden) return;
