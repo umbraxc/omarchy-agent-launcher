@@ -1445,6 +1445,16 @@ class Handler(BaseHTTPRequestHandler):
             if self.read_json().get("confirm") != "RESET":
                 return self.send_json({"error": "not confirmed"}, 400)
             return self.send_json(reset_umbra())
+        if self.path == "/api/uninstall":
+            req = self.read_json()
+            if req.get("confirm") != "UNINSTALL":
+                return self.send_json({"error": "not confirmed"}, 400)
+            # Its own unit: the script stops this backend on the way.
+            flags = [f for f, on in (("--library", req.get("library")), ("--model", req.get("model"))) if on]
+            subprocess.Popen(["systemd-run", "--user", "--collect", "--unit=umbra-wiki-uninstall",
+                              os.path.join(APP_DIR, "uninstall.sh"), *flags],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return self.send_json({"ok": True})
         if self.path == "/api/open-folder":
             which = str(self.read_json().get("which", ""))
             folder = {"library": LIBRARY_DIR, "config": CONFIG_DIR, "history": HISTORY_DIR}.get(which)

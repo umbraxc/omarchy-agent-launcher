@@ -123,8 +123,22 @@
           <button class="ghost set-tour">REPLAY</button></div>
       </section>
       <section class="set-section danger"><div class="lib-head">DANGER ZONE</div>
-        <div class="set-row"><span class="set-text"><b>Reset Umbra</b><small>Delete your profile, settings, custom themes, personalities, scenarios and all conversations</small></span>
+        <div class="set-row"><span class="set-text"><b>Reset Umbra</b><small>Start over as if Umbra was just installed: your profile, settings,
+          custom themes, personalities and scenarios, and every conversation are deleted, then the welcome tour runs again.
+          The AI model and the library are kept.</small></span>
           <button class="ghost set-reset">RESET…</button></div>
+        <div class="set-row"><span class="set-text"><b>Uninstall Umbra</b><small>Remove Umbra Wiki from this computer: the app, its menu entry
+          and background service, your profile, settings and conversations. Ollama and other system packages stay.
+          The Omarchy Umbra bar widget stays and can set Umbra up again.</small></span>
+          <button class="ghost set-uninstall">UNINSTALL…</button></div>
+        <div class="set-uninstall-box" hidden>
+          <label class="set-row"><span class="set-text"><b>Also delete the offline library</b><small class="set-lib-size"></small></span>
+            <input type="checkbox" class="set-un-library"></label>
+          <label class="set-row"><span class="set-text"><b>Also delete the AI model</b><small class="set-model-size"></small></span>
+            <input type="checkbox" class="set-un-model"></label>
+          <div class="set-row"><span class="set-text"><small>Nothing is removed until you confirm.</small></span>
+            <button class="ghost set-un-go">UNINSTALL UMBRA</button></div>
+        </div>
       </section>
       <p class="set-about">Umbra Wiki · part of Omarchy Umbra · sounds by Kenney (CC0)</p>`;
 
@@ -202,6 +216,22 @@
       window.startTour && window.startTour();
     });
     body.querySelector(".set-reset").addEventListener("click", resetUmbra);
+    body.querySelector(".set-uninstall").addEventListener("click", async () => {
+      const box = body.querySelector(".set-uninstall-box");
+      box.hidden = !box.hidden;
+      Sound.click();
+      if (box.hidden) return;
+      const lib = await fetch("/api/library").then((r) => r.json()).catch(() => ({ installed: [] }));
+      const size = lib.installed.reduce((n, x) => n + x.size, 0);
+      body.querySelector(".set-lib-size").textContent =
+        `${lib.installed.length} collections, ${fmtSize(size)}, in ${lib.dir || "the library folder"}. Other files there stay.`;
+      const m = (models.installed || []).find((x) => x.id === models.current);
+      body.querySelector(".set-model-size").textContent = m ? `${m.id}, ${m.size} GB. Other Ollama models stay.` : "No model installed.";
+    });
+    body.querySelector(".set-un-go").addEventListener("click", () => uninstallUmbra({
+      library: body.querySelector(".set-un-library").checked,
+      model: body.querySelector(".set-un-model").checked,
+    }));
   }
 
   // Reset asks twice: it deletes everything personal.
@@ -225,6 +255,23 @@
     location.reload();
   }
   window.resetUmbra = resetUmbra;
+
+  async function uninstallUmbra({ library, model }) {
+    const extra = [library && "the offline library", model && "the AI model"].filter(Boolean);
+    const sure = await confirmDialog({
+      kind: "error", tag: "UNINSTALL", title: "UNINSTALL UMBRA WIKI?",
+      body: "Umbra Wiki, its settings, profile and every conversation will be removed from this computer" +
+        (extra.length ? `, together with ${extra.join(" and ")}.` : ". The library and the AI model stay.") +
+        "\n\nThis window will close. You can set Umbra up again from the Omarchy Umbra widget.",
+      ok: "UNINSTALL", cancel: "KEEP UMBRA",
+    });
+    if (!sure) return;
+    await fetch("/api/uninstall", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirm: "UNINSTALL", library, model }),
+    }).catch(() => null);
+    document.body.innerHTML = `<div class="goodbye"><pre class="ascii">UMBRA // OFFLINE</pre><p>Umbra Wiki has been uninstalled. Stay safe out there.</p></div>`;
+  }
 
   // ------------------------------------------------------ open / close
 

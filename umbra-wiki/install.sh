@@ -19,7 +19,7 @@ while (($#)); do
   esac
 done
 
-chmod +x "$app/umbra-wiki" "$app/server.py" "$app/fetch-archive.sh"
+chmod +x "$app/umbra-wiki" "$app/server.py" "$app/fetch-archive.sh" "$app/uninstall.sh"
 mkdir -p "$HOME/.local/bin" "$HOME/.local/share/applications" \
   "$HOME/.local/share/icons/hicolor/scalable/apps" "$HOME/.config/systemd/user" "$config_dir"
 

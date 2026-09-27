@@ -662,6 +662,10 @@ kbd { font: inherit; opacity: .7; margin-left: 4px; }
 .set-section.danger .lib-head { color: var(--red); border-bottom-color: color-mix(in srgb, var(--red) 40%, transparent); }
 .set-section.danger .ghost, .pf-danger .ghost { color: var(--red); border-color: var(--red); }
 .set-section.danger .ghost:hover, .pf-danger .ghost:hover { background: var(--red); color: var(--bg); }
+.set-uninstall-box { margin: 4px 0 0 14px; padding-left: 10px; border-left: 2px solid color-mix(in srgb, var(--red) 50%, transparent); }
+.set-un-go { font-weight: 800; }
+.goodbye { height: 100vh; display: grid; place-content: center; text-align: center; gap: 14px; color: var(--dim); }
+.goodbye .ascii { font-size: 22px; }
 .set-about { color: var(--faint); font-size: 10px; letter-spacing: .12em; text-align: center; margin: 8px 0 0; }
 .pf-danger {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 26px; padding-top: 14px;

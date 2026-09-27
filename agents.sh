@@ -219,8 +219,15 @@ INTRO
     echo "No supported graphics card: the AI will run on the processor."
   fi
 
+  # Umbra draws everything in JetBrains Mono Nerd Font. Omarchy ships a
+  # variant of it that conflicts with the full package, so only add the
+  # font when none is installed.
+  local font_pkg=""
+  fc-list 2>/dev/null | grep -qi "JetBrainsMono Nerd" || font_pkg=ttf-jetbrains-mono-nerd
+
   echo "Installing packages…"
-  omarchy-pkg-add ollama $gpu_pkg python-gobject webkit2gtk-4.1 gst-plugins-good kiwix-tools jq curl ||
+  omarchy-pkg-add ollama $gpu_pkg python-gobject webkit2gtk-4.1 gst-plugins-good kiwix-tools jq curl \
+    pciutils pipewire-audio xdg-utils libnotify gtk-update-icon-cache $font_pkg ||
     { echo "Could not install the packages."; exit 1; }
   echo "Starting the Ollama service…"
   sudo systemctl enable --now ollama || { echo "Could not start the Ollama service."; exit 1; }
