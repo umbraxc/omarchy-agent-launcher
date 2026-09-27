@@ -220,6 +220,8 @@ main::-webkit-scrollbar-track { background: transparent; }
   transition: border-color .15s, color .15s, background-color .15s, transform .15s;
 }
 .chip::before { content: "›"; color: var(--signal); margin-right: 10px; }
+.prompts .chip { animation: rise .35s ease-out both; }
+.chip.mine::before { content: "✦"; color: var(--accent); }
 .chip:hover { border-color: var(--signal); color: var(--fg-bright); background: var(--signal-soft); transform: translateX(3px); }
 
 /* ---------------------------------------------------------------- messages */

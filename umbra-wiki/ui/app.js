@@ -10,6 +10,7 @@ const send = $("#send");
 const phaseBox = $("#phase");
 const elapsedEl = $("#elapsed");
 const introTemplate = $("#intro").cloneNode(true);   // for "new conversation"
+let startersToken = 0;
 
 const PHASES = ["search", "read", "think", "write"];
 const PHASE_TEXT = { search: "Scanning archives", read: "Extracting sources", think: "Thinking", write: "Writing" };
@@ -583,6 +584,38 @@ function showIntro(first = false) {
     c.addEventListener("mouseenter", Sound.hover);
     c.addEventListener("click", () => ask(c.textContent));
   });
+  showStarters();
+}
+
+// The start screen's suggested questions: the scenario's own starters at
+// once, then a few written for you (from your profile and conversations),
+// marked ✦, when the local AI has them ready.
+async function showStarters() {
+  const box = $("#intro .prompts");
+  if (!box) return;
+  const token = ++startersToken;
+  const fill = (personal, scenario) => {
+    const items = [...personal.map((t) => [t, true]), ...scenario.filter((t) => !personal.includes(t)).map((t) => [t, false])];
+    box.innerHTML = "";
+    items.slice(0, 6).forEach(([text, mine], i) => {
+      const c = document.createElement("button");
+      c.className = "chip" + (mine ? " mine" : "");
+      c.textContent = text;
+      if (mine) c.title = "Suggested for you";
+      c.style.animationDelay = i * 45 + "ms";
+      c.addEventListener("mouseenter", Sound.hover);
+      c.addEventListener("click", () => ask(text));
+      box.appendChild(c);
+    });
+  };
+  try {
+    const quick = await (await fetch("/api/starters?personal=0")).json();
+    if (token !== startersToken || !box.isConnected) return;
+    if (quick.scenario.length) fill([], quick.scenario);
+    const full = await (await fetch("/api/starters")).json();
+    if (token !== startersToken || !box.isConnected) return;
+    if (full.personal.length) fill(full.personal, full.scenario);
+  } catch {}
 }
 showIntro(true);
 Sound.launch();

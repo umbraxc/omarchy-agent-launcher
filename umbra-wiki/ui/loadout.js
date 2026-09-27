@@ -155,6 +155,7 @@
     if (state.tab === "scenario") state.scenario = item.id; else state.personality = item.id;
     await postSettings(state.tab === "scenario" ? { scenario: item.id } : { personality: item.id });
     applyLoadout();
+    if (state.tab === "scenario" && typeof showStarters === "function") showStarters();
     Sound.theme();
     render();
     const stage = detail.querySelector(".lo-stage");

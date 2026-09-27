@@ -29,6 +29,7 @@ HOME = os.path.expanduser("~")
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 UI_DIR = os.path.join(APP_DIR, "ui")
 CONFIG_DIR = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.join(HOME, ".config")), "umbra-wiki")
+DATA_DIR = os.path.join(os.environ.get("XDG_DATA_HOME", os.path.join(HOME, ".local", "share")), "umbra-wiki")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")      # model, libraryDir (set by setup)
 SETTINGS_FILE = os.path.join(CONFIG_DIR, "settings.json")  # theme, muted (changed from the UI)
 CUSTOM_THEMES_FILE = os.path.join(CONFIG_DIR, "themes.json")  # themes made in the editor
@@ -780,6 +781,10 @@ def reset_umbra():
         except OSError:
             pass
     shutil.rmtree(HISTORY_DIR, ignore_errors=True)
+    try:
+        os.remove(STARTERS_CACHE)
+    except OSError:
+        pass
     set_attention(False)
     return {"ok": True}
 
@@ -858,6 +863,64 @@ def voice_action(action):
     return voice_status()
 
 
+# ----------------------------------------------------------------- starters
+
+# The start screen's suggested questions: the scenario's own starters, plus
+# a few written for this user from their profile and recent conversations.
+# Personal ones are cached until the profile, scenario or history changes.
+STARTERS_CACHE = os.path.join(DATA_DIR, "starters.json")
+
+
+def current_scenario():
+    settings = read_json(SETTINGS_FILE, {})
+    try:
+        loadout = json.load(open(LOADOUT_FILE))
+    except (OSError, ValueError):
+        return {}
+    every = loadout["scenarios"] + custom_scenarios()
+    sc = next((x for x in every if x["id"] == settings.get("scenario")), loadout["scenarios"][0])
+    if sc.get("custom"):
+        base = next((x for x in loadout["scenarios"] if x["id"] == sc.get("base")), loadout["scenarios"][0])
+        sc = {**sc, "starters": base.get("starters", []), "prompt": sc.get("situation", "")}
+    return sc
+
+
+def starters(personal=True):
+    sc = current_scenario()
+    out = {"scenario": sc.get("starters", [])[:6], "personal": []}
+    if not personal:
+        return out
+    profile = get_profile()
+    recent = history_list()["items"][:6]
+    about = profile.get("about", "")
+    if not about and not recent:
+        return out
+    key = json.dumps([sc.get("id"), about, [(r["id"], r.get("updated")) for r in recent]])
+    cache = read_json(STARTERS_CACHE, {})
+    if cache.get("key") == key:
+        out["personal"] = cache.get("personal", [])
+        return out
+    asked = "\n".join(f"- {r.get('title', '')}" for r in recent) or "- (none yet)"
+    lines = quick_generate(
+        f"Suggest 4 questions this user would likely want to ask their assistant next.\n"
+        f"About the user: {about or 'unknown'}\n"
+        f"Their recent questions:\n{asked}\n"
+        f"Current scenario: {sc.get('name', '')}: {sc.get('prompt', '')[:300]}\n\n"
+        "Make them personal: follow up on their recent topics or fit their life, and suit the scenario. "
+        "Each under 9 words, written the way the user would type it, and not a copy of a recent question. "
+        "One per line, no numbers, no quotes, nothing else.", 80, lines=True)
+    personal = []
+    for l in lines:
+        l = re.sub(r"^\s*(\d+[.)]|[-*•])\s*", "", l).strip(" \"'“”")
+        if 3 <= len(l) <= 70 and len(l.split()) <= 11 and l.lower() not in {x.lower() for x in personal}:
+            personal.append(l)
+    personal = personal[:4]
+    if personal:
+        write_json(STARTERS_CACHE, {"key": key, "personal": personal})
+    out["personal"] = personal
+    return out
+
+
 # ---------------------------------------------------------------- attention
 
 # A new answer arrived while the window was in the background: this flag
@@ -878,7 +941,6 @@ def set_attention(on):
 # ------------------------------------------------------------------ history
 
 # Every conversation is kept as one JSON file on this computer.
-DATA_DIR = os.path.join(os.environ.get("XDG_DATA_HOME", os.path.join(HOME, ".local", "share")), "umbra-wiki")
 HISTORY_DIR = os.path.join(DATA_DIR, "history")
 HISTORY_ID = re.compile(r"c-[0-9]{8}-[0-9]{6}-[a-z0-9]{4}")
 
@@ -1115,6 +1177,9 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(get_profile())
         if path == "/api/greeting":
             return self.send_json(greeting())
+        if path == "/api/starters":
+            query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            return self.send_json(starters(personal=query.get("personal", ["1"])[0] != "0"))
         if path == "/api/history":
             return self.send_json(history_list())
         if path.startswith("/api/history/"):
@@ -1368,8 +1433,9 @@ def stream_chat(messages, emit):
     return full, done_event
 
 
-def quick_generate(prompt, num_predict, system=None):
-    """A short one-line completion from the local model ('' on failure)."""
+def quick_generate(prompt, num_predict, system=None, lines=False):
+    """A short one-line completion from the local model ('' on failure);
+    with lines=True, all non-empty lines as a list."""
     req = {"model": MODEL, "prompt": prompt, "stream": False, "keep_alive": "30m",
            "options": {"num_ctx": 4096, "temperature": 0.4, "num_predict": num_predict}}
     if system:
@@ -1378,10 +1444,12 @@ def quick_generate(prompt, num_predict, system=None):
     try:
         r = json.loads(urllib.request.urlopen(urllib.request.Request(
             OLLAMA + "/api/generate", body, {"Content-Type": "application/json"}), timeout=120).read())
-        lines = r.get("response", "").strip().splitlines()
-        return lines[0].strip(" *_\"'") if lines else ""
+        out = [l.strip() for l in r.get("response", "").strip().splitlines() if l.strip()]
+        if lines:
+            return out
+        return out[0].strip(" *_\"'") if out else ""
     except Exception:
-        return ""
+        return [] if lines else ""
 
 
 def follow_up(question, answer_text):
