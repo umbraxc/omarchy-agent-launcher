@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.1.0
+
+- **Umbra Wiki in the AUR**: `yay -S umbra-wiki` installs it system-wide on
+  any Arch Linux, with dependencies, updates through the system and a
+  pinned, checksummed release (`aur/PKGBUILD`).
+- The welcome tour notices when Ollama isn't running yet and shows how to
+  start it.
+- Uninstall in Settings knows when Umbra was installed as a package: it
+  removes your data and shows the pacman command for the app itself.
+
 ## 3.0.0
 
 Umbra Wiki grows from a search window into a complete offline assistant.

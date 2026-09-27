@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Umbra Wiki
+GenericName=Offline Survival Assistant
+Comment=Ask questions answered from your offline survival library
+Exec=umbra-wiki
+Icon=org.umbra.wiki
+Terminal=false
+Categories=Education;Utility;
+Keywords=survival;offline;wiki;ai;umbra;
+StartupWMClass=org.umbra.wiki

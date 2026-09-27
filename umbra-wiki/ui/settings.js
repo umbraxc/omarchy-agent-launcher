@@ -16,6 +16,7 @@
                     ["theme-btn", "Themes"], ["sound", "Sound"], ["lock", "Lock"]];
   const panel = $("#settings");
   let pullTimer = 0;
+  let packagedInstall = false;   // installed with pacman (the AUR): removal goes through pacman
   const body = $("#settings-body");
 
   // Hidden buttons glitch out and the rest close up to the right; shown ones
@@ -96,6 +97,7 @@
       fetch("/api/voice").then((r) => r.json()).catch(() => ({ available: false })),
       fetch("/api/paths").then((r) => r.json()).catch(() => ({})),
     ]);
+    packagedInstall = !!paths.packaged;
     body.innerHTML = `
       <section class="set-section"><div class="lib-head">SOUND</div>
         ${toggle("sound", "Sound effects", "Startup, clicks, search and answer sounds")}
@@ -384,7 +386,9 @@
       kind: "error", tag: "UNINSTALL", title: "UNINSTALL UMBRA WIKI?",
       body: "Umbra Wiki, its settings, profile and every conversation will be removed from this computer" +
         (extra.length ? `, together with ${extra.join(" and ")}.` : ". The library and the AI model stay.") +
-        "\n\nThis window will close. You can set Umbra up again from the Omarchy Umbra widget.",
+        (packagedInstall
+          ? "\n\nThis window will close. The app itself was installed as a package: remove it afterwards with\n\nsudo pacman -R umbra-wiki"
+          : "\n\nThis window will close. You can set Umbra up again from the Omarchy Umbra widget."),
       ok: "UNINSTALL", cancel: "KEEP UMBRA",
     });
     if (!sure) return;

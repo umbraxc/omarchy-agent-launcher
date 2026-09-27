@@ -1,0 +1,10 @@
+[Unit]
+Description=Umbra Wiki backend (offline library search + local AI)
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /usr/share/umbra-wiki/server.py
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

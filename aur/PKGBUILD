@@ -1,0 +1,37 @@
+# Maintainer: umbraxc <334050264+umbraxc@users.noreply.github.com>
+pkgname=umbra-wiki
+pkgver=3.1.0
+pkgrel=1
+pkgdesc="Offline survival assistant: a local AI that answers from an offline library, with sources"
+arch=('any')
+url="https://github.com/umbraxc/omarchy-umbra"
+license=('MIT')
+depends=('python' 'python-gobject' 'webkit2gtk-4.1' 'ollama' 'kiwix-tools' 'jq' 'curl' 'pciutils'
+         'xdg-utils' 'xdg-user-dirs' 'libnotify' 'hicolor-icon-theme' 'ttf-jetbrains-mono-nerd')
+optdepends=('pipewire-audio: sounds and voice recording'
+            'libpulse: sounds on systems that use PulseAudio'
+            'voxtype-bin: offline voice input (AUR)'
+            'ollama-cuda: run the AI on an NVIDIA graphics card'
+            'ollama-rocm: run the AI on an AMD graphics card')
+install=umbra-wiki.install
+source=("$pkgname-$pkgver.tar.gz::https://github.com/umbraxc/omarchy-umbra/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+  cd "omarchy-umbra-$pkgver/umbra-wiki"
+  local app="$pkgdir/usr/share/umbra-wiki"
+
+  install -d "$app"
+  cp -r ui sounds "$app/"
+  install -m644 server.py facts.json fieldmanual.json library.json packs.json "$app/"
+  install -m755 fetch-archive.sh uninstall.sh "$app/"
+
+  install -Dm755 umbra-wiki "$pkgdir/usr/bin/umbra-wiki"
+  install -Dm644 packaging/umbra-wiki.service "$pkgdir/usr/lib/systemd/user/umbra-wiki.service"
+  install -Dm644 packaging/org.umbra.wiki.desktop "$pkgdir/usr/share/applications/org.umbra.wiki.desktop"
+  install -Dm644 ui/logo.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/org.umbra.wiki.svg"
+
+  cd ..
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 README.md CREDITS.md CHANGELOG.md -t "$pkgdir/usr/share/doc/$pkgname/"
+}

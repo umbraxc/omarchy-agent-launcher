@@ -29,6 +29,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 HOME = os.path.expanduser("~")
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 UI_DIR = os.path.join(APP_DIR, "ui")
+# Installed as a system package (the AUR's umbra-wiki) rather than run from
+# the Omarchy plugin folder or a clone: removal then goes through pacman.
+PACKAGED = APP_DIR.startswith("/usr/")
 CONFIG_DIR = os.path.join((os.environ.get("XDG_CONFIG_HOME") or os.path.join(HOME, ".config")), "umbra-wiki")
 DATA_DIR = os.path.join((os.environ.get("XDG_DATA_HOME") or os.path.join(HOME, ".local", "share")), "umbra-wiki")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")      # model, libraryDir (set by setup)
@@ -72,7 +75,7 @@ MODEL = os.environ.get("UMBRA_MODEL") or CONFIG.get("model") or "gemma3:4b"
 
 WIKI_API = "https://en.wikipedia.org/w/api.php"
 # Wikimedia asks API clients to name themselves with a contact URL.
-VERSION = "3.0.0"
+VERSION = "3.1.0"
 WEB_HEADERS = {"User-Agent": f"UmbraWiki/{VERSION} (https://github.com/umbraxc/omarchy-umbra; offline survival assistant)"}
 
 # Gemma reads context at ~25 tokens/s on this CPU, so the prompt budget is
@@ -1700,7 +1703,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/paths":
             short = lambda x: x.replace(HOME, "~", 1)
             return self.send_json({"library": short(LIBRARY_DIR), "config": short(CONFIG_DIR),
-                                   "history": short(HISTORY_DIR)})
+                                   "history": short(HISTORY_DIR), "packaged": PACKAGED})
         if path == "/api/profile":
             return self.send_json(get_profile())
         if path == "/api/greeting":
@@ -2082,6 +2085,7 @@ def warm_model():
 if __name__ == "__main__":
     signal.signal(signal.SIGTERM, stop_kiwix)
     signal.signal(signal.SIGINT, stop_kiwix)
+    os.makedirs(LIBRARY_DIR, exist_ok=True)
     n = start_kiwix()
     set_attention(False)
     threading.Thread(target=warm_model, daemon=True).start()

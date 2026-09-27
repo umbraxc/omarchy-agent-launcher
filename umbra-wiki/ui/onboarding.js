@@ -234,6 +234,16 @@
     await choose(a, [["GOT IT ▸", "ok", true]]);
 
     // The AI model: what's already on this computer, or one of three sizes.
+    // A fresh install may not have started Ollama yet (packages can't start
+    // services themselves): explain how, and check again.
+    let core = await fetch("/api/status").then((r) => r.json()).catch(() => ({}));
+    while (!core.ollama && !AUTO) {
+      a = await say("First, my AI engine **Ollama** isn't running yet. Start it once with this command in a terminal, " +
+        "and it will start by itself from then on:\n\n`sudo systemctl enable --now ollama`");
+      if (await choose(a, [["I'VE STARTED IT, CHECK AGAIN ▸", "again", true], ["SKIP FOR NOW", "skip"]]) === "skip") break;
+      core = await fetch("/api/status").then((r) => r.json()).catch(() => ({}));
+      if (core.ollama) await say("There it is. Ollama is running.");
+    }
     const [sys, models, packs] = await Promise.all([
       fetch("/api/system").then((r) => r.json()).catch(() => ({})),
       fetch("/api/models").then((r) => r.json()).catch(() => ({ installed: [], choices: [] })),

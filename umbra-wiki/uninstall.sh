@@ -32,14 +32,19 @@ done
 pkill -f "(bin|umbra-wiki)/umbra-wiki( |$)" 2>/dev/null   # launched via ~/.local/bin or directly
 systemctl --user stop 'umbra-wiki-download-*' 2>/dev/null
 systemctl --user disable --now umbra-wiki 2>/dev/null
-rm -f "$HOME/.config/systemd/user/umbra-wiki.service"
+# A package install (the AUR's umbra-wiki, under /usr) keeps its program
+# files: pacman removes those. Otherwise remove what install.sh set up.
+packaged=false
+[[ $app == /usr/* ]] && packaged=true
+if ! $packaged; then
+  rm -f "$HOME/.config/systemd/user/umbra-wiki.service"
+  rm -f "$HOME/.local/bin/umbra-wiki" \
+    "$HOME/.local/share/applications/org.umbra.wiki.desktop" \
+    "$HOME/.local/share/icons/hicolor/scalable/apps/org.umbra.wiki.svg"
+  gtk-update-icon-cache -q -t "$HOME/.local/share/icons/hicolor" 2>/dev/null
+fi
 systemctl --user daemon-reload
-
-rm -f "$HOME/.local/bin/umbra-wiki" \
-  "$HOME/.local/share/applications/org.umbra.wiki.desktop" \
-  "$HOME/.local/share/icons/hicolor/scalable/apps/org.umbra.wiki.svg" \
-  "${XDG_RUNTIME_DIR:-/tmp}/umbra-wiki-attention"
-gtk-update-icon-cache -q -t "$HOME/.local/share/icons/hicolor" 2>/dev/null
+rm -f "${XDG_RUNTIME_DIR:-/tmp}/umbra-wiki-attention"
 
 if $remove_library && [[ -d $library ]]; then
   while read -r file; do
@@ -54,6 +59,12 @@ fi
 
 rm -rf "$config_dir" "$data_dir"
 
-command -v notify-send &>/dev/null &&
-  notify-send -a "Umbra Wiki" "Umbra Wiki was uninstalled" "Set it up again any time from the Omarchy Umbra widget."
-echo "Umbra Wiki uninstalled."
+if $packaged; then
+  command -v notify-send &>/dev/null &&
+    notify-send -a "Umbra Wiki" "Your Umbra data was removed" "To remove the app itself: sudo pacman -R umbra-wiki"
+  echo "Your Umbra data was removed. To remove the app itself: sudo pacman -R umbra-wiki"
+else
+  command -v notify-send &>/dev/null &&
+    notify-send -a "Umbra Wiki" "Umbra Wiki was uninstalled" "Set it up again any time from the Omarchy Umbra widget."
+  echo "Umbra Wiki uninstalled."
+fi

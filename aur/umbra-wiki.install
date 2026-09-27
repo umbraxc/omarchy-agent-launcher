@@ -1,0 +1,23 @@
+post_install() {
+  cat <<'MSG'
+==> Umbra Wiki is installed.
+==> 1. Start the local AI engine once (it then starts by itself):
+==>      sudo systemctl enable --now ollama
+==> 2. Open "Umbra Wiki" from your app launcher, or run: umbra-wiki
+==>    The welcome tour picks the AI model and the offline library with you.
+==> Voice input (optional): yay -S voxtype-bin && voxtype setup --download --model base.en
+MSG
+}
+
+post_upgrade() {
+  echo "==> Umbra Wiki updated. If it is open, restart it:  systemctl --user restart umbra-wiki"
+}
+
+post_remove() {
+  cat <<'MSG'
+==> Umbra Wiki was removed. Your own data stays in your home folder:
+==>   ~/.config/umbra-wiki  ~/.local/share/umbra-wiki  ~/UmbraWiki/library
+==> Delete those folders to remove it completely (or use Settings -> Uninstall
+==> in Umbra before removing the package next time).
+MSG
+}

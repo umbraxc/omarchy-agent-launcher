@@ -41,7 +41,11 @@ def backend_up():
 def ensure_backend():
     if backend_up():
         return True
-    subprocess.run(["systemctl", "--user", "start", "umbra-wiki.service"], check=False)
+    started = subprocess.run(["systemctl", "--user", "start", "umbra-wiki.service"], check=False).returncode == 0
+    if not started:
+        # Just installed (for example from the AUR): let systemd see the unit.
+        subprocess.run(["systemctl", "--user", "daemon-reload"], check=False)
+        subprocess.run(["systemctl", "--user", "start", "umbra-wiki.service"], check=False)
     for _ in range(60):
         if backend_up():
             return True
