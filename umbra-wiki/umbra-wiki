@@ -66,6 +66,8 @@ class UmbraWiki(Gtk.Application):
         settings.set_enable_developer_extras(False)
         settings.set_javascript_can_open_windows_automatically(False)
         settings.set_hardware_acceleration_policy(WebKit2.HardwareAccelerationPolicy.NEVER)
+        # Page errors go to stdout, so a launcher log shows what went wrong.
+        settings.set_enable_write_console_messages_to_stdout(True)
         view.connect("context-menu", lambda *_: True)  # no browser right-click menu
 
         if ensure_backend():
