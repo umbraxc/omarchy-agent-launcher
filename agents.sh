@@ -99,15 +99,24 @@ status() {
 }
 
 themes() {
-  local current
+  local current auto
   current=$(jq -r '.theme // "umbra"' "$umbra_config/settings.json" 2>/dev/null)
-  jq -c --arg current "${current:-umbra}" \
-    '{current: $current, themes: [.[] | {id, name, signal, fg, bg: .bg1}]}' "$umbra_dir/ui/themes.json"
+  # The automatic theme is computed by the Umbra Wiki backend from the
+  # current Omarchy theme; it is offered only while the backend runs.
+  auto=$(curl -s --max-time 1 http://127.0.0.1:8766/api/omarchy-theme 2>/dev/null)
+  jq -c <<<"$auto" '.' &>/dev/null && [[ $(jq -r '.id // empty' <<<"$auto") == auto ]] || auto='null'
+  local custom='[]'
+  [[ -f $umbra_config/themes.json ]] && jq -e 'type == "array"' "$umbra_config/themes.json" &>/dev/null &&
+    custom=$(jq -c . "$umbra_config/themes.json")
+  jq -c --arg current "${current:-umbra}" --argjson auto "$auto" --argjson custom "$custom" \
+    '{current: $current,
+      themes: ((if $auto then [$auto] else [] end) + . + $custom) | map({id, name, signal, fg, bg: .bg1})}' \
+    "$umbra_dir/ui/themes.json"
 }
 
 set_theme() {
   local id=${1:?theme needs an id}
-  jq -e --arg id "$id" 'any(.[]; .id == $id)' "$umbra_dir/ui/themes.json" >/dev/null || exit 1
+  themes | jq -e --arg id "$id" 'any(.themes[]; .id == $id)' >/dev/null || exit 1
   mkdir -p "$umbra_config"
   local file="$umbra_config/settings.json" current='{}'
   [[ -f $file ]] && current=$(cat "$file")

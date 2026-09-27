@@ -31,6 +31,7 @@ UI_DIR = os.path.join(APP_DIR, "ui")
 CONFIG_DIR = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.join(HOME, ".config")), "umbra-wiki")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")      # model, libraryDir (set by setup)
 SETTINGS_FILE = os.path.join(CONFIG_DIR, "settings.json")  # theme, muted (changed from the UI)
+CUSTOM_THEMES_FILE = os.path.join(CONFIG_DIR, "themes.json")  # themes made in the editor
 
 
 def read_json(path, default):
@@ -437,6 +438,144 @@ def download(ids):
     return True
 
 
+SOUNDS_DIR = os.path.join(APP_DIR, "sounds")
+_last_sound = {}
+
+
+def play_sound(name):
+    """Play a bundled sound through PipeWire (independent of the web view)."""
+    path = os.path.join(SOUNDS_DIR, name + ".ogg")
+    if not re.fullmatch(r"[a-z]{1,16}", name) or not os.path.isfile(path) or not shutil.which("pw-play"):
+        return False
+    now = time.monotonic()
+    if now - _last_sound.get(name, 0) < 0.04:  # collapse accidental double triggers
+        return True
+    _last_sound[name] = now
+    subprocess.Popen(
+        ["pw-play", "--volume", "0.9", "-P", "{ application.name = \"Umbra Wiki\" media.role = \"Notification\" }", path],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return True
+
+
+OMARCHY_STATE = os.path.join(HOME, ".local", "state", "omarchy", "current")
+
+
+def _rgb(hexcolor):
+    h = hexcolor.lstrip("#")
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def _hex(rgb):
+    return "#%02x%02x%02x" % tuple(max(0, min(255, round(c))) for c in rgb)
+
+
+def _mix(a, b, t):
+    ra, rb = _rgb(a), _rgb(b)
+    return _hex([x + (y - x) * t for x, y in zip(ra, rb)])
+
+
+def _hue(hexcolor):
+    import colorsys
+    r, g, b = (c / 255 for c in _rgb(hexcolor))
+    h, l, sat = colorsys.rgb_to_hls(r, g, b)
+    return h * 360, sat
+
+
+def omarchy_theme():
+    """An Umbra theme built from the current Omarchy theme's colors.toml."""
+    import tomllib
+    try:
+        with open(os.path.join(OMARCHY_STATE, "theme", "colors.toml"), "rb") as f:
+            c = tomllib.load(f)
+        name = open(os.path.join(OMARCHY_STATE, "theme.name")).read().strip()
+    except (OSError, ValueError):
+        return None
+    get = lambda key, fallback: c.get(key) if isinstance(c.get(key), str) and c.get(key).startswith("#") else fallback
+    bg = get("darker_background", get("background", "#090909"))
+    bg1 = get("dark_background", get("background", "#0d0d0d"))
+    bg2 = get("background", bg1)
+    bg3 = get("lighter_background", _mix(bg2, "#ffffff", 0.08))
+    fg = get("foreground", "#cbcbcb")
+    signal = get("accent", get("blue", "#e8d27c"))
+    light = c.get("mode") == "light"
+    edge = "#ffffff" if light else "#000000"
+    # A second accent and an online colour that stand apart from the signal.
+    sig_hue, _ = _hue(signal)
+    def distinct(keys, fallback):
+        for key in keys:
+            value = get(key, None)
+            if value:
+                hue, sat = _hue(value)
+                gap = abs(hue - sig_hue)
+                if min(gap, 360 - gap) > 40 and sat > 0.25:
+                    return value
+        return fallback
+    return {
+        "id": "auto", "name": "Omarchy", "auto": True,
+        "tagline": "Follows your Omarchy theme · " + name.replace("-", " ").title(),
+        "bg": bg, "bg1": bg1, "bg2": bg2, "bg3": bg3,
+        "line": get("selection", _mix(bg3, fg, 0.12)), "muted": get("muted", _mix(bg3, fg, 0.2)),
+        "fg": fg, "fgBright": _mix(get("bright_foreground", fg), "#000000" if light else "#ffffff", 0.35),
+        "dim": get("light_foreground", _mix(fg, bg, 0.3)), "faint": get("dark_foreground", _mix(fg, bg, 0.55)),
+        "signal": signal, "shade1": _mix(signal, edge, 0.25), "shade2": _mix(signal, edge, 0.45),
+        "shade3": _mix(signal, edge, 0.65),
+        "accent": distinct(["yellow", "green", "magenta", "blue", "bright_yellow"], _mix(signal, fg, 0.5)),
+        "red": get("red", "#e06a6a"),
+        "net": distinct(["cyan", "bright_cyan", "blue", "bright_blue", "green"], "#5fb8c9"),
+        "light": light,
+    }
+
+
+THEME_COLORS = ("bg", "bg1", "bg2", "bg3", "line", "muted", "fg", "fgBright", "dim", "faint",
+                "signal", "shade1", "shade2", "shade3", "accent", "red", "net")
+BASE_COLORS = ("background", "text", "main", "secondary", "online", "alert")
+HEX = re.compile(r"#[0-9a-fA-F]{6}")
+
+
+def custom_themes():
+    try:
+        with open(CUSTOM_THEMES_FILE) as f:
+            themes = json.load(f)
+        return themes if isinstance(themes, list) else []
+    except (OSError, ValueError):
+        return []
+
+
+def save_custom_theme(theme):
+    """Validate and store a theme from the editor; returns the stored list."""
+    if not isinstance(theme, dict) or not re.fullmatch(r"custom-[a-z0-9-]{1,24}", str(theme.get("id", ""))):
+        raise ValueError("bad theme id")
+    clean = {"id": theme["id"], "name": str(theme.get("name", "Custom"))[:24] or "Custom",
+             "tagline": "Your theme", "custom": True, "light": bool(theme.get("light"))}
+    for key in THEME_COLORS:
+        if not HEX.fullmatch(str(theme.get(key, ""))):
+            raise ValueError(f"bad colour {key}")
+        clean[key] = theme[key].lower()
+    base = theme.get("base") or {}
+    clean["base"] = {k: base[k].lower() for k in BASE_COLORS if HEX.fullmatch(str(base.get(k, "")))}
+    themes = [t for t in custom_themes() if t.get("id") != clean["id"]] + [clean]
+    write_json_list(CUSTOM_THEMES_FILE, themes)
+    return themes
+
+
+def delete_custom_theme(theme_id):
+    themes = [t for t in custom_themes() if t.get("id") != theme_id]
+    write_json_list(CUSTOM_THEMES_FILE, themes)
+    settings = read_json(SETTINGS_FILE, {})
+    if settings.get("theme") == theme_id:
+        settings["theme"] = "umbra"
+        write_json(SETTINGS_FILE, settings)
+    return themes
+
+
+def write_json_list(path, value):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(value, f, indent=2)
+    os.replace(tmp, path)
+
+
 def internet_ok():
     try:
         fetch(f"{WIKI_API}?action=query&meta=siteinfo&format=json", timeout=5, headers=WEB_HEADERS)
@@ -477,6 +616,10 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(netinfo())
         if path == "/api/settings":
             return self.send_json(read_json(SETTINGS_FILE, {}))
+        if path == "/api/themes":
+            return self.send_json(custom_themes())
+        if path == "/api/omarchy-theme":
+            return self.send_json(omarchy_theme() or {})
         if path == "/api/library":
             return self.send_json(library())
         if path == "/":
@@ -500,12 +643,23 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/settings":
             update = self.read_json()
             settings = read_json(SETTINGS_FILE, {})
-            if isinstance(update.get("theme"), str) and re.fullmatch(r"[a-z0-9-]{1,32}", update["theme"]):
+            if isinstance(update.get("theme"), str) and re.fullmatch(r"[a-z0-9-]{1,40}", update["theme"]):
                 settings["theme"] = update["theme"]
             if isinstance(update.get("muted"), bool):
                 settings["muted"] = update["muted"]
             write_json(SETTINGS_FILE, settings)
             return self.send_json(settings)
+        if self.path == "/api/themes":
+            try:
+                return self.send_json(save_custom_theme(self.read_json().get("theme")))
+            except ValueError as e:
+                return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/themes/delete":
+            return self.send_json(delete_custom_theme(str(self.read_json().get("id", ""))))
+        if self.path == "/api/sound":
+            if not read_json(SETTINGS_FILE, {}).get("muted"):
+                play_sound(str(self.read_json().get("name", "")))
+            return self.send_json({"ok": True})
         if self.path == "/api/library/download":
             ids = self.read_json().get("ids") or []
             return self.send_json({"ok": download([str(i) for i in ids])})

@@ -11,6 +11,39 @@ const elapsedEl = $("#elapsed");
 
 const PHASES = ["search", "read", "think", "write"];
 const PHASE_TEXT = { search: "Scanning archives", read: "Extracting sources", think: "Thinking", write: "Writing" };
+const QUIPS = {
+  search: [
+    "Salvaging the archives…", "Digging through the rubble for answers…", "Sweeping the bunker shelves…",
+    "Dusting off the survival manuals…", "Scavenging the library ruins…", "Tuning the scanner…",
+  ],
+  read: [
+    "Decoding scavenged pages…", "Cross-checking field notes…", "Separating signal from static…",
+    "Reading by lantern light…", "Piecing the pages back together…",
+  ],
+  think: [
+    "Consulting the wasteland oracle…", "Boiling this down to what matters…", "Checking the Geiger counter…",
+    "Negotiating with a raccoon for intel…", "Rationing the facts…", "Sharpening the answer on a whetstone…",
+    "Drawing a map in the dirt…", "Weighing the supplies…", "Listening to the static…",
+    "Counting the cans in the pantry…", "Charging the hand-crank radio…",
+  ],
+};
+let quipTimer = 0;
+function startQuips(answerEl, phase) {
+  clearInterval(quipTimer);
+  const list = QUIPS[phase];
+  if (!list) return;
+  let i = Math.floor(Math.random() * list.length);
+  const show = () => {
+    const w = answerEl.querySelector(".wtext");
+    if (!w) { clearInterval(quipTimer); return; }
+    w.classList.remove("swap");
+    void w.offsetWidth;  // restart the fade
+    w.textContent = list[i++ % list.length];
+    w.classList.add("swap");
+  };
+  show();
+  quipTimer = setInterval(show, 3200);
+}
 const chat = [];             // [{role, content}] sent back for follow-ups
 let controller = null;       // AbortController of the running answer
 let timer = null;
@@ -25,94 +58,28 @@ async function postSettings(update) {
 
 // ------------------------------------------------------------------ sound
 
-// Tiny synthesised UI sounds at very low volume. The audio context can only
-// start from a click or key press, so the first sound after launch primes it.
+// Short bundled sounds (Kenney, CC0), played by the backend through PipeWire
+// so they work regardless of the web view's audio support.
 const Sound = (() => {
-  let ctx = null, master = null, muted = false;
-  const ready = () => {
-    if (muted) return null;
-    if (!ctx) {
-      ctx = new AudioContext();
-      master = ctx.createGain();
-      master.gain.value = 0.2;
-      master.connect(ctx.destination);
-    }
-    if (ctx.state === "suspended") ctx.resume();
-    return ctx.state === "running" ? ctx : null;
+  let muted = false;
+  const play = (name) => {
+    if (muted) return;
+    fetch("/api/sound", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) })
+      .catch(() => {});
   };
-  const tone = (freq, dur, { type = "sine", vol = 1, at = 0, to = null } = {}) => {
-    const c = ready(); if (!c) return;
-    const t = c.currentTime + at;
-    const o = c.createOscillator(), g = c.createGain();
-    o.type = type;
-    o.frequency.setValueAtTime(freq, t);
-    if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(vol, t + 0.006);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g).connect(master);
-    o.start(t);
-    o.stop(t + dur + 0.02);
-  };
-  const tick = (vol, hz = 2600) => {
-    const c = ready(); if (!c) return;
-    const len = Math.floor(c.sampleRate * 0.012);
-    const buf = c.createBuffer(1, len, c.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len) ** 3;
-    const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
-    s.buffer = buf; f.type = "highpass"; f.frequency.value = hz; g.gain.value = vol;
-    s.connect(f).connect(g).connect(master);
-    s.start();
-  };
-  // Band-passed noise swept upward: a scanner pass.
-  const scan = () => {
-    const c = ready(); if (!c) return;
-    const dur = 0.5, len = Math.floor(c.sampleRate * dur);
-    const buf = c.createBuffer(1, len, c.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-    const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
-    const t = c.currentTime;
-    s.buffer = buf;
-    f.type = "bandpass"; f.Q.value = 9;
-    f.frequency.setValueAtTime(500, t);
-    f.frequency.exponentialRampToValueAtTime(3400, t + dur);
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.5, t + dur * 0.4);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    s.connect(f).connect(g).connect(master);
-    s.start(t);
-  };
-  return {
-    get muted() { return muted; },
-    set muted(v) { muted = v; },
-    prime: () => ready(),
-    key: () => tick(0.5),
-    type: () => tick(0.32, 3200),
-    hover: () => tone(1900, 0.04, { vol: 0.16 }),
-    scan,
-    ping: () => { tone(1320, 0.55, { vol: 0.22 }); tone(1320, 0.45, { vol: 0.07, at: 0.22 }); },
-    click: () => tone(1200, 0.05, { type: "triangle", vol: 0.25 }),
-    send: () => { tone(520, 0.08, { type: "triangle", vol: 0.45 }); tone(780, 0.11, { type: "triangle", vol: 0.4, at: 0.06 }); },
-    done: () => { tone(660, 0.16, { vol: 0.3 }); tone(990, 0.26, { vol: 0.26, at: 0.09 }); },
-    lock: () => { tone(240, 0.1, { type: "square", vol: 0.12 }); tone(160, 0.16, { type: "square", vol: 0.1, at: 0.07 }); },
-    unlock: () => { tone(160, 0.08, { type: "square", vol: 0.1 }); tone(260, 0.14, { type: "square", vol: 0.12, at: 0.06 }); },
-    online: () => tone(380, 0.32, { vol: 0.3, to: 900 }),
-    local: () => tone(900, 0.32, { vol: 0.3, to: 380 }),
-    theme: () => [523, 659, 784].forEach((f, i) => tone(f, 0.14, { vol: 0.22, at: i * 0.06 })),
-    error: () => tone(150, 0.28, { type: "sawtooth", vol: 0.14 }),
-  };
+  const names = ["launch", "key", "type", "hover", "click", "send", "scan", "ping", "done",
+                 "lock", "unlock", "online", "local", "theme", "error"];
+  const api = { get muted() { return muted; }, set muted(v) { muted = v; } };
+  names.forEach((n) => (api[n] = () => play(n)));
+  return api;
 })();
-addEventListener("pointerdown", () => Sound.prime(), { capture: true });
-addEventListener("keydown", () => Sound.prime(), { capture: true });
 
 let ambient = 0;
 function setAmbient(kind) {
   clearInterval(ambient);
   ambient = 0;
-  if (kind === "scan") { Sound.scan(); ambient = setInterval(Sound.scan, 950); }
-  else if (kind === "ping") { Sound.ping(); ambient = setInterval(Sound.ping, 1900); }
+  if (kind === "scan") { Sound.scan(); ambient = setInterval(Sound.scan, 1700); }
+  else if (kind === "ping") { Sound.ping(); ambient = setInterval(Sound.ping, 2300); }
 }
 
 function setMuted(value, save = true) {
@@ -139,9 +106,9 @@ const THEME_VARS = {
   accent: "--accent", red: "--red", net: "--net",
 };
 
-function applyTheme(id, { animate = true } = {}) {
+function applyTheme(id, { animate = true, force = false } = {}) {
   const t = themes.find((x) => x.id === id) || themes[0];
-  if (!t || t.id === currentTheme) return;
+  if (!t || (t.id === currentTheme && !force)) return;
   currentTheme = t.id;
   if (animate) {
     document.body.classList.add("theming");
@@ -149,7 +116,7 @@ function applyTheme(id, { animate = true } = {}) {
   }
   const root = document.documentElement.style;
   for (const [key, cssVar] of Object.entries(THEME_VARS)) root.setProperty(cssVar, t[key]);
-  document.documentElement.style.colorScheme = t.id === "daybreak" ? "light" : "dark";
+  document.documentElement.style.colorScheme = t.light || t.id === "daybreak" ? "light" : "dark";
   document.querySelectorAll(".tcard").forEach((c) => c.classList.toggle("current", c.dataset.id === t.id));
 }
 
@@ -164,6 +131,12 @@ function renderThemeGrid() {
     card.innerHTML = `<div class="tname"></div><div class="tline"></div>
       <div class="tsample">UMBRA<span>//</span>WIKI</div><div class="swatches"></div>`;
     card.querySelector(".tname").textContent = t.name.toUpperCase();
+    if (t.auto) {
+      const badge = document.createElement("span");
+      badge.className = "tauto";
+      badge.textContent = "AUTO";
+      card.appendChild(badge);
+    }
     card.querySelector(".tname").style.color = t.fgBright;
     card.querySelector(".tline").textContent = t.tagline;
     card.querySelector(".tline").style.color = t.dim;
@@ -175,6 +148,23 @@ function renderThemeGrid() {
       i2.style.background = c;
       sw.appendChild(i2);
     }
+    if (t.custom) {
+      const tools = document.createElement("div");
+      tools.className = "ttools";
+      tools.innerHTML = `<button class="tedit" title="Edit">✎ EDIT</button><button class="tdel" title="Delete">✕</button>`;
+      tools.querySelector(".tedit").addEventListener("click", (e) => { e.stopPropagation(); openEditor(t); });
+      tools.querySelector(".tdel").addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const ok = await confirmDialog({ kind: "to-local", tag: "DELETE", title: `DELETE "${t.name.toUpperCase()}"?`,
+          body: "This theme will be removed. You can always create it again.", ok: "DELETE", cancel: "KEEP" });
+        if (!ok) return;
+        await fetch("/api/themes/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: t.id }) });
+        themes = themes.filter((x) => x.id !== t.id);
+        if (currentTheme === t.id) { applyTheme("umbra"); postSettings({ theme: "umbra" }); }
+        renderThemeGrid();
+      });
+      card.appendChild(tools);
+    }
     card.addEventListener("mouseenter", Sound.hover);
     card.addEventListener("click", () => {
       applyTheme(t.id);
@@ -183,6 +173,115 @@ function renderThemeGrid() {
     });
     grid.appendChild(card);
   });
+  const create = document.createElement("button");
+  create.className = "tcard tcreate";
+  create.style.animationDelay = `${themes.length * 35}ms`;
+  create.innerHTML = `<div class="tplus">+</div><div class="tname">CREATE THEME</div><div class="tline">Pick six colours, see them live</div>`;
+  create.addEventListener("mouseenter", Sound.hover);
+  create.addEventListener("click", () => openEditor(null));
+  grid.appendChild(create);
+}
+
+// ------------------------------------------------------------ theme editor
+
+// Six named colours make a theme; everything else is derived from them.
+const BASE_FIELDS = [
+  ["background", "Background", "The base behind everything"],
+  ["text", "Text", "The main reading colour"],
+  ["main", "Main colour", "Highlights, logo, citations, buttons"],
+  ["secondary", "Secondary colour", "Small accents and hazard signs"],
+  ["online", "Online colour", "Top bar and transmit button when online"],
+  ["alert", "Alert colour", "Errors, stop, lost connection"],
+];
+
+const hexToRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const rgbToHex = (c) => "#" + c.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("");
+const mixHex = (a, b, t) => { const x = hexToRgb(a), y = hexToRgb(b); return rgbToHex(x.map((v, i) => v + (y[i] - v) * t)); };
+const luminance = (h) => { const [r, g, b] = hexToRgb(h); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; };
+
+function derivePalette(id, name, b) {
+  const light = luminance(b.background) > 0.55;
+  const edge = light ? "#ffffff" : "#000000";
+  const far = light ? "#000000" : "#ffffff";
+  return {
+    id, name, tagline: "Your theme", custom: true, light, base: { ...b },
+    bg: b.background,
+    bg1: mixHex(b.background, b.text, 0.03), bg2: mixHex(b.background, b.text, 0.06),
+    bg3: mixHex(b.background, b.text, 0.11), line: mixHex(b.background, b.text, 0.16),
+    muted: mixHex(b.background, b.text, 0.22),
+    fg: b.text, fgBright: mixHex(b.text, far, 0.45),
+    dim: mixHex(b.text, b.background, 0.3), faint: mixHex(b.text, b.background, 0.55),
+    signal: b.main, shade1: mixHex(b.main, edge, 0.25), shade2: mixHex(b.main, edge, 0.45), shade3: mixHex(b.main, edge, 0.65),
+    accent: b.secondary, red: b.alert, net: b.online,
+  };
+}
+
+function baseFrom(t) {
+  return t.base && t.base.background ? { ...t.base } : {
+    background: t.bg, text: t.fg, main: t.signal, secondary: t.accent, online: t.net, alert: t.red,
+  };
+}
+
+function openEditor(existing) {
+  const before = currentTheme;
+  const source = existing || themes.find((x) => x.id === currentTheme) || themes[0];
+  const base = baseFrom(source);
+  const grid = $("#theme-grid");
+  grid.innerHTML = "";
+  const form = document.createElement("div");
+  form.className = "editor";
+  form.innerHTML = `
+    <div class="ed-title">${existing ? "EDIT THEME" : "CREATE THEME"}</div>
+    <label class="ed-name"><span>NAME</span><input id="ed-name" maxlength="24" placeholder="My theme"></label>
+    <div class="ed-fields"></div>
+    <div class="ed-actions"><button class="ghost" id="ed-cancel">CANCEL</button><button class="solid" id="ed-save">SAVE THEME</button></div>`;
+  form.querySelector("#ed-name").value = existing ? existing.name : "";
+  const fields = form.querySelector(".ed-fields");
+  const preview = () => {
+    const pal = derivePalette("__preview", "Preview", base);
+    const i = themes.findIndex((x) => x.id === "__preview");
+    if (i >= 0) themes[i] = pal; else themes.push(pal);
+    applyTheme("__preview", { animate: false, force: true });
+  };
+  for (const [key, label, hint] of BASE_FIELDS) {
+    const row = document.createElement("label");
+    row.className = "ed-row";
+    row.innerHTML = `<input type="color"><span class="ed-label"><b></b><small></small></span><input class="ed-hex" maxlength="7">`;
+    row.querySelector("b").textContent = label;
+    row.querySelector("small").textContent = hint;
+    const picker = row.querySelector('input[type="color"]');
+    const hex = row.querySelector(".ed-hex");
+    picker.value = hex.value = base[key];
+    picker.addEventListener("input", () => { base[key] = hex.value = picker.value; preview(); });
+    hex.addEventListener("input", () => {
+      if (/^#[0-9a-fA-F]{6}$/.test(hex.value)) { base[key] = picker.value = hex.value.toLowerCase(); preview(); }
+    });
+    fields.appendChild(row);
+  }
+  const close = (restore) => {
+    themes = themes.filter((x) => x.id !== "__preview");
+    if (restore) applyTheme(before, { force: true });
+    renderThemeGrid();
+  };
+  form.querySelector("#ed-cancel").addEventListener("click", () => { Sound.click(); close(true); });
+  form.querySelector("#ed-save").addEventListener("click", async () => {
+    const name = form.querySelector("#ed-name").value.trim() || "My theme";
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "theme";
+    const id = existing ? existing.id : `custom-${slug}`;
+    const pal = derivePalette(id, name, base);
+    const res = await fetch("/api/themes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ theme: pal }) });
+    if (!res.ok) { Sound.error(); return; }
+    themes = themes.filter((x) => x.id !== id && x.id !== "__preview");
+    themes.push(pal);
+    currentTheme = "";
+    applyTheme(id);
+    postSettings({ theme: id });
+    Sound.theme();
+    renderThemeGrid();
+  });
+  grid.appendChild(form);
+  preview();
+  Sound.click();
 }
 
 function toggleThemes(show = $("#themes").hidden, quiet = false) {
@@ -268,6 +367,15 @@ $("#library-close").addEventListener("click", () => toggleLibrary(false));
 async function syncSettings(first = false) {
   try {
     const s = await (await fetch("/api/settings")).json();
+    if (s.theme === "auto") {
+      // Follow changes to the Omarchy theme while "auto" is selected.
+      const fresh = await (await fetch("/api/omarchy-theme")).json();
+      const i = themes.findIndex((x) => x.id === "auto");
+      if (fresh && fresh.id && i >= 0 && JSON.stringify(fresh) !== JSON.stringify(themes[i])) {
+        themes[i] = fresh;
+        applyTheme("auto", { animate: !first, force: true });
+      }
+    }
     if (s.theme) applyTheme(s.theme, { animate: !first });
     if (typeof s.muted === "boolean" && s.muted !== Sound.muted) setMuted(s.muted, false);
   } catch {}
@@ -275,6 +383,11 @@ async function syncSettings(first = false) {
 
 (async () => {
   try { themes = await (await fetch("themes.json")).json(); } catch { themes = []; }
+  try {
+    const auto = await (await fetch("/api/omarchy-theme")).json();
+    if (auto && auto.id) themes.unshift(auto);
+  } catch {}
+  try { themes.push(...(await (await fetch("/api/themes")).json())); } catch {}
   await syncSettings(true);
   if (!currentTheme && themes.length) applyTheme(themes[0].id, { animate: false });
   setInterval(syncSettings, 3000);
@@ -344,6 +457,48 @@ function orb(el, w, h) {
   return () => { alive = false; cancelAnimationFrame(raf); };
 }
 orb($("#intro-orb"), 19, 13);
+
+// Digital rain: columns of random characters falling behind the intro,
+// fading as they go. ~16 frames a second on a small canvas.
+let rainRaf = 0;
+function startRain() {
+  const canvas = $("#rain");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const glyphs = "アイウエオカキクケコサシスセソ0123456789ABCDEFGHJKLMNPQRSTUVWXYZ#$%&*+=<>?/".split("");
+  const size = 14;
+  let cols = [], w = 0, h = 0, last = 0;
+  const resize = () => {
+    const r = canvas.getBoundingClientRect();
+    w = canvas.width = Math.max(1, Math.floor(r.width));
+    h = canvas.height = Math.max(1, Math.floor(r.height));
+    cols = Array.from({ length: Math.ceil(w / size) }, () => ({ y: Math.random() * -h, speed: 0.6 + Math.random() * 0.9 }));
+  };
+  resize();
+  new ResizeObserver(resize).observe(canvas);
+  const frame = (ts) => {
+    rainRaf = requestAnimationFrame(frame);
+    if (ts - last < 60 || !canvas.isConnected) return;
+    last = ts;
+    const css = getComputedStyle(document.documentElement);
+    ctx.fillStyle = css.getPropertyValue("--bg").trim() + "2e";   // translucent: older glyphs fade
+    ctx.fillRect(0, 0, w, h);
+    ctx.font = `${size}px ${css.getPropertyValue("--font")}`;
+    const signal = css.getPropertyValue("--signal").trim();
+    const shade = css.getPropertyValue("--shade-2").trim();
+    cols.forEach((c, i) => {
+      const ch = glyphs[(Math.random() * glyphs.length) | 0];
+      ctx.fillStyle = Math.random() < 0.08 ? signal : shade;
+      ctx.fillText(ch, i * size, c.y);
+      c.y += size * c.speed;
+      if (c.y > h + size * 4) { c.y = Math.random() * -h * 0.5; c.speed = 0.6 + Math.random() * 0.9; }
+    });
+  };
+  rainRaf = requestAnimationFrame(frame);
+}
+function stopRain() { cancelAnimationFrame(rainRaf); rainRaf = 0; }
+startRain();
+Sound.launch();
 
 // ------------------------------------------------------------------ dialog
 
@@ -551,7 +706,7 @@ function typewriter(render) {
         shown = Math.min(target.length, shown + step);
         lastPaint = ts;
         render(target.slice(0, shown));
-        if (Math.floor(shown / 6) !== Math.floor(before / 6)) Sound.type();
+        if (Math.floor(shown / 9) !== Math.floor(before / 9)) Sound.type();
         wake();
       }
     }
@@ -719,7 +874,13 @@ function stopWorking() {
 
 async function ask(question) {
   if (controller || locked || !question.trim()) return;
-  $("#intro")?.remove();
+  const intro = $("#intro");
+  if (intro && !intro.classList.contains("leaving")) {
+    intro.classList.add("leaving");
+    stopRain();
+    intro.addEventListener("animationend", () => intro.remove(), { once: true });
+    setTimeout(() => intro.remove(), 900);
+  }
   addUser(question);
   const msg = addBot();
   const label = msg.querySelector(".label");
@@ -771,10 +932,7 @@ async function ask(question) {
         if (e.type === "phase") {
           setPhase(e.phase);
           setAmbient(e.phase === "search" || e.phase === "read" ? "scan" : e.phase === "think" ? "ping" : "");
-          if (!writing) {
-            const n = e.count;
-            setWaitingText(answerEl, e.phase === "read" && n ? `Extracting ${n} source${n === 1 ? "" : "s"}…` : `${PHASE_TEXT[e.phase]}…`);
-          }
+          if (!writing) startQuips(answerEl, e.phase);
         } else if (e.type === "notice") {
           const n = document.createElement("div");
           n.className = "notice";
@@ -784,6 +942,7 @@ async function ask(question) {
           sources = e.sources;
           sources.forEach((s) => (sourceByN[s.n] = s));
         } else if (e.type === "token") {
+          if (!writing) { clearInterval(quipTimer); setAmbient(""); }
           writing = true;
           text += e.text;
           typer.set(visibleAnswer(text, true));
@@ -802,6 +961,7 @@ async function ask(question) {
   }
 
   setAmbient("");
+  clearInterval(quipTimer);
   let shown = visibleAnswer(text, false);
   if (!shown) {
     shown = stopped

@@ -166,8 +166,18 @@ main::-webkit-scrollbar-thumb { background: var(--muted); }
 main::-webkit-scrollbar-track { background: transparent; }
 
 .intro {
-  text-align: center; padding: 2vh 0 10px;
+  position: relative; text-align: center; padding: 2vh 0 10px;
   animation: rise .6s ease-out both;
+}
+.intro > :not(.rain) { position: relative; z-index: 1; }
+.intro.leaving { animation: leave .7s cubic-bezier(.55, 0, .75, .3) both; }
+@keyframes leave { to { opacity: 0; transform: translateY(-60px); } }
+
+/* Digital rain behind the globe and title, fading out toward the chips. */
+.rain {
+  position: absolute; left: 0; right: 0; top: 0; height: 330px; width: 100%;
+  z-index: 0; pointer-events: none; opacity: .5;
+  -webkit-mask-image: linear-gradient(#000 55%, transparent);
 }
 
 .orb {
@@ -241,6 +251,8 @@ main::-webkit-scrollbar-track { background: transparent; }
 .waiting { display: flex; align-items: center; gap: 18px; color: var(--dim); font-size: 12.5px; letter-spacing: .1em; }
 .answer .waiting .orb { margin: 0; padding: 0; border: 0; background: none; font-size: 8px; line-height: 1; overflow: visible; }
 .waiting .spin { color: var(--signal); }
+.wtext.swap { animation: quip .45s ease-out both; }
+@keyframes quip { from { opacity: 0; transform: translateY(4px); } }
 
 .answer { color: color-mix(in srgb, var(--fg) 45%, var(--fg-bright)); font-size: 14.5px; line-height: 1.72; }
 .answer p { margin: 0 0 12px; }
@@ -413,6 +425,11 @@ kbd { font: inherit; opacity: .7; margin-left: 4px; }
 }
 .tcard:hover { transform: translateY(-2px); border-color: var(--fg); }
 .tcard.current { border-color: var(--signal); }
+.tcard .tauto {
+  position: absolute; top: 8px; right: 8px; font-size: 9px; letter-spacing: .2em; padding: 0 5px;
+  border: 1px solid currentColor; opacity: .8;
+}
+.tcard.current .tauto { display: none; }
 .tcard.current::after {
   content: "ACTIVE"; position: absolute; top: 8px; right: 8px;
   font-size: 9px; letter-spacing: .2em; padding: 0 5px; background: var(--signal); color: var(--bg);
@@ -422,6 +439,42 @@ kbd { font: inherit; opacity: .7; margin-left: 4px; }
 .tcard .tsample { font-size: 11px; letter-spacing: .2em; margin-bottom: 10px; }
 .tcard .swatches { display: flex; gap: 4px; }
 .tcard .swatches i { flex: 1; height: 10px; }
+
+/* ------------------------------------------------------------ theme editor */
+
+.ttools { position: absolute; right: 8px; bottom: 8px; display: flex; gap: 4px; }
+.ttools button {
+  font: 9.5px var(--font); letter-spacing: .15em; padding: 2px 6px; cursor: pointer;
+  background: transparent; border: 1px solid currentColor; color: inherit; opacity: .7;
+}
+.ttools button:hover { opacity: 1; }
+.tcreate {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  background: transparent; color: var(--dim); border: 1px dashed var(--muted); min-height: 128px;
+}
+.tcreate:hover { color: var(--signal); border-color: var(--signal); }
+.tcreate .tplus { font-size: 28px; line-height: 1; margin-bottom: 6px; color: var(--signal); }
+.tcreate .tname { color: var(--fg-bright); }
+
+.editor { grid-column: 1 / -1; animation: rise .3s ease-out both; }
+.ed-title { font-weight: 800; letter-spacing: .32em; font-size: 12px; color: var(--signal); margin-bottom: 14px; }
+.ed-name { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.ed-name span { font-size: 10px; letter-spacing: .3em; color: var(--faint); }
+.ed-name input, .ed-hex {
+  font: 13px var(--font); color: var(--fg-bright); background: var(--bg-2);
+  border: 1px solid var(--line); padding: 7px 10px; outline: 0;
+}
+.ed-name input { flex: 1; }
+.ed-name input:focus, .ed-hex:focus { border-color: var(--signal); }
+.ed-row {
+  display: grid; grid-template-columns: 40px 1fr 92px; gap: 12px; align-items: center;
+  padding: 9px 0; border-bottom: 1px dashed var(--line); cursor: pointer;
+}
+.ed-row input[type="color"] { width: 40px; height: 32px; padding: 0; border: 1px solid var(--line); background: none; cursor: pointer; }
+.ed-label b { display: block; color: var(--fg-bright); font-size: 12.5px; font-weight: 700; }
+.ed-label small { color: var(--dim); font-size: 10.5px; }
+.ed-hex { width: 92px; text-transform: lowercase; }
+.ed-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
 
 /* ----------------------------------------------------------------- library */
 

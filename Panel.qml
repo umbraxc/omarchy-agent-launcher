@@ -294,6 +294,35 @@ Panel {
     foreground: root.foreground
     implicitHeight: row.implicitHeight + Style.spacing.rowPaddingX
 
+    // Umbra Wiki's card look: a thin frame with corner brackets in the
+    // theme colour, brighter on the highlighted row.
+    readonly property real bracket: Style.space(9)
+    readonly property real bracketOpacity: hasCursor ? 1 : 0.45
+    Rectangle {
+      anchors.fill: parent
+      color: "transparent"
+      border.width: 1
+      border.color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.12)
+    }
+    Item {
+      anchors.left: parent.left
+      anchors.top: parent.top
+      width: agentRow.bracket; height: agentRow.bracket
+      opacity: agentRow.bracketOpacity
+      Behavior on opacity { NumberAnimation { duration: 150 } }
+      Rectangle { width: parent.width; height: 2; color: root.online }
+      Rectangle { width: 2; height: parent.height; color: root.online }
+    }
+    Item {
+      anchors.right: parent.right
+      anchors.bottom: parent.bottom
+      width: agentRow.bracket; height: agentRow.bracket
+      opacity: agentRow.bracketOpacity
+      Behavior on opacity { NumberAnimation { duration: 150 } }
+      Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 2; color: root.online }
+      Rectangle { anchors.right: parent.right; width: 2; height: parent.height; color: root.online }
+    }
+
     function statusText() {
       if (!agent) return ""
       if (isSetup) return agent.detail
