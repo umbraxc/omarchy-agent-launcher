@@ -567,8 +567,8 @@ function orb(el, w, h) {
 // Digital rain: columns of random characters falling behind the intro,
 // fading as they go. ~16 frames a second on a small canvas.
 let rainRaf = 0;
-// The start screen's animated background, chosen in Settings: digital rain
-// (falling or rising), Saturn rings around the globe, a starfield, or none.
+// The start screen's animated background, chosen in Settings (the
+// backgrounds themselves live in backgrounds.js). About 16 frames a second.
 function startRain() {
   const canvas = $("#rain");
   const front = $("#rain-front");
@@ -576,109 +576,39 @@ function startRain() {
   if (!canvas || document.body.classList.contains("no-rain") || document.body.classList.contains("reduce-motion")) return;
   stopRain();
   const mode = (window.prefs && window.prefs.background) || "rain";
-  if (mode === "none") return;
-  const ctx = canvas.getContext("2d");
-  const fctx = front ? front.getContext("2d") : null;
-  const glyphs = "アイウエオカキクケコサシスセソ0123456789ABCDEFGHJKLMNPQRSTUVWXYZ#$%&*+=<>?/".split("");
-  const size = 14;
-  let cols = [], stars = [], rings = [], shooting = null, w = 0, h = 0, last = 0, t = 0;
+  const make = window.UmbraBackgrounds && (window.UmbraBackgrounds.make[mode] || window.UmbraBackgrounds.make.rain);
+  if (mode === "none" || !make) return;
+  const env = {
+    ctx: canvas.getContext("2d"), fctx: front ? front.getContext("2d") : canvas.getContext("2d"), w: 0, h: 0, c: {},
+    // The globe's centre and radius, in canvas coordinates.
+    orb() {
+      const el = $("#intro-orb");
+      if (!el) return null;
+      const cr = canvas.getBoundingClientRect(), r = el.getBoundingClientRect();
+      return { x: r.left - cr.left + r.width / 2, y: r.top - cr.top + r.height / 2, r: r.width / 2 };
+    },
+  };
+  const bg = make(env);
   const resize = () => {
     const r = canvas.getBoundingClientRect();
-    w = canvas.width = Math.max(1, Math.floor(r.width));
-    h = canvas.height = Math.max(1, Math.floor(r.height));
-    if (front) { front.width = w; front.height = h; }
-    cols = Array.from({ length: Math.ceil(w / size) }, () => ({ y: Math.random() * -h, speed: 0.6 + Math.random() * 0.9 }));
-    if (mode === "rise") cols.forEach((c) => { c.y = h + Math.random() * h; });
-    stars = Array.from({ length: Math.round((w * h) / 1700) }, () => ({
-      x: Math.random() * w, y: Math.random() * h, glyph: "··.+*✦"[(Math.random() * 6) | 0],
-      phase: Math.random() * 6.3, speed: 0.4 + Math.random() * 1.4, bright: Math.random() < 0.12,
-    }));
-    // Three bands of glyphs orbiting the globe, inner ones faster.
-    rings = [[1.4, 0.9, 120], [1.7, 0.7, 170], [2.1, 0.5, 150], [2.45, 0.38, 100]].flatMap(([radius, speed, count]) =>
-      Array.from({ length: count }, () => ({ a: Math.random() * 6.3, radius: radius + (Math.random() - 0.5) * 0.08, speed })));
+    env.w = canvas.width = Math.max(1, Math.floor(r.width));
+    env.h = canvas.height = Math.max(1, Math.floor(r.height));
+    if (front) { front.width = env.w; front.height = env.h; }
+    bg.resize();
   };
   resize();
   new ResizeObserver(resize).observe(canvas);
+  let last = 0, t = 0;
+  const VARS = { bg: "--bg", signal: "--signal", shade1: "--shade-1", shade2: "--shade-2", shade3: "--shade-3",
+                 fgBright: "--fg-bright", dim: "--dim", net: "--net", accent: "--accent", font: "--font" };
   const frame = (ts) => {
     rainRaf = requestAnimationFrame(frame);
     if (ts - last < 60 || !canvas.isConnected) return;
     last = ts;
     t += 0.06;
     const css = getComputedStyle(document.documentElement);
-    const bg = css.getPropertyValue("--bg").trim();
-    const signal = css.getPropertyValue("--signal").trim();
-    const shade = css.getPropertyValue("--shade-2").trim();
-    const shade1 = css.getPropertyValue("--shade-1").trim();
-    ctx.font = `${size}px ${css.getPropertyValue("--font")}`;
-
-    if (mode === "rain" || mode === "rise") {
-      ctx.fillStyle = bg + "2e";   // translucent: older glyphs fade
-      ctx.fillRect(0, 0, w, h);
-      const dir = mode === "rise" ? -1 : 1;
-      cols.forEach((c, i) => {
-        ctx.fillStyle = Math.random() < 0.08 ? signal : shade;
-        ctx.fillText(glyphs[(Math.random() * glyphs.length) | 0], i * size, c.y);
-        c.y += dir * size * c.speed;
-        const gone = dir > 0 ? c.y > h + size * 4 : c.y < -size * 4;
-        if (gone) {
-          c.y = dir > 0 ? Math.random() * -h * 0.5 : h + Math.random() * h * 0.5;
-          c.speed = 0.6 + Math.random() * 0.9;
-        }
-      });
-      return;
-    }
-
-    ctx.clearRect(0, 0, w, h);
-    // Stars: each twinkles at its own pace (a quieter field behind the rings).
-    const dimStars = mode === "rings" ? 0.45 : 1;
-    ctx.font = `12px ${css.getPropertyValue("--font")}`;
-    stars.forEach((s) => {
-      const glow = 0.5 + 0.5 * Math.sin(t * s.speed + s.phase);
-      ctx.globalAlpha = (0.25 + 0.75 * glow) * dimStars;
-      ctx.fillStyle = s.bright ? signal : shade1;
-      ctx.fillText(s.glyph, s.x, s.y);
-    });
-    if (mode === "stars") {
-      // Now and then a shooting star crosses with a fading tail.
-      if (!shooting && Math.random() < 0.012) shooting = { x: Math.random() * w * 0.7, y: Math.random() * h * 0.4, life: 0 };
-      if (shooting) {
-        shooting.life += 1;
-        for (let i = 0; i < 9; i++) {
-          const k = shooting.life - i * 0.6;
-          if (k < 0) continue;
-          ctx.globalAlpha = Math.max(0, (1 - i / 9) * (1 - shooting.life / 22));
-          ctx.fillStyle = i === 0 ? signal : shade1;
-          ctx.fillText(i === 0 ? "✦" : "·", shooting.x + k * 16, shooting.y + k * 7);
-        }
-        if (shooting.life > 22) shooting = null;
-      }
-    }
-    ctx.globalAlpha = 1;
-
-    if (mode === "rings" && fctx) {
-      // The rings sit around the globe, tilted; the half nearer to us is
-      // drawn in front of the globe, the far half behind it.
-      fctx.clearRect(0, 0, w, h);
-      const orbEl = $("#intro-orb");
-      if (!orbEl) return;
-      const cr = canvas.getBoundingClientRect(), or = orbEl.getBoundingClientRect();
-      const cx = or.left - cr.left + or.width / 2, cy = or.top - cr.top + or.height / 2;
-      const R = or.width / 2, tilt = -0.32, cos = Math.cos(tilt), sin = Math.sin(tilt);
-      fctx.font = ctx.font = `12px ${css.getPropertyValue("--font")}`;
-      rings.forEach((p) => {
-        p.a += p.speed * 0.02;
-        const x0 = Math.cos(p.a) * R * p.radius, y0 = Math.sin(p.a) * R * p.radius * 0.28;
-        const x = cx + x0 * cos - y0 * sin, y = cy + x0 * sin + y0 * cos;
-        const depth = Math.sin(p.a);           // > 0: in front of the globe
-        const near = depth > 0;
-        if (!near && Math.hypot(x - cx, y - cy) < R * 0.95) return;   // hidden behind the globe
-        const c = near ? fctx : ctx;
-        c.globalAlpha = 0.45 + 0.55 * (depth + 1) / 2;
-        c.fillStyle = near && Math.random() < 0.3 ? signal : near ? shade1 : shade1;
-        c.fillText(near ? (depth > 0.6 ? "●" : "•") : depth < -0.6 ? "·" : "∙", x - 3, y + 4);
-      });
-      ctx.globalAlpha = fctx.globalAlpha = 1;
-    }
+    for (const [k, v] of Object.entries(VARS)) env.c[k] = css.getPropertyValue(v).trim();   // follows theme changes
+    bg.frame(t);
   };
   rainRaf = requestAnimationFrame(frame);
 }
@@ -722,7 +652,8 @@ function asciiWipe(swap, { covered = false, welcome = "" } = {}) {
       inAt[i] = (x / cols) * 0.55 + (y / rows) * 0.25 + Math.random() * 0.2;
       outAt[i] = Math.hypot((x - cols / 2) / cols, (y - rows / 2) / rows) * 1.3 + Math.random() * 0.25;
     }
-    const IN = covered ? 0 : 1000, HOLD = 3000, OUT = 2800, band = 0.2;
+    const IN = covered ? 0 : 1000, HOLD = 4300, OUT = 2800, band = 0.2;
+    const GLITCH = [3650, 4200];   // after a moment to read the welcome, the text glitches out
     const title = "UMBRA // ONLINE", sub = "LOADOUT DEPLOYED · LIBRARY LINKED · CORE READY";
     const color = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
     const rgb = (c) => {
@@ -733,7 +664,8 @@ function asciiWipe(swap, { covered = false, welcome = "" } = {}) {
     };
     const start = performance.now();
     let swapped = false, first = true, lastGlyphs = 0;
-    const beeps = [0, 1, 2].map((i) => 1000 + i * 260);   // after the title is typed
+    const beeps = [1000, 1260, 1520];                    // ONLINE blinks with these
+    const glitchBeeps = [GLITCH[0], GLITCH[0] + 240];    // and these announce the glitch
     let beeped = 0;
 
     const frame = (now) => {
@@ -773,31 +705,58 @@ function asciiWipe(swap, { covered = false, welcome = "" } = {}) {
       // status line fades in, the welcome types; all drift up and fade out.
       const k = t - IN;
       if (k > 0 && (!phaseOut || t < IN + HOLD + OUT * 0.55)) {
-        while (beeped < beeps.length && k >= beeps[beeped]) { Sound.beep(); beeped++; }
+        const allBeeps = beeps.concat(glitchBeeps);
+        while (beeped < allBeeps.length && k >= allBeeps[beeped]) { Sound.beep(); beeped++; }
         const outK = phaseOut ? (t - IN - HOLD) / (OUT * 0.55) : 0;
         const fade = 1 - outK, lift = outK * 16;
         const typed = (text, from, dur) => text.slice(0, Math.max(0, Math.ceil(text.length * Math.min(1, (k - from) / dur))));
         const cursor = (shown, full) => (shown.length < full.length && (now / 140 | 0) % 2 ? "▌" : "");
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.globalAlpha = fade;
-        ctx.font = `800 28px ${font}`;
-        ctx.fillStyle = signal;
         const a = typed(title, 150, 750);
         // ONLINE blinks in step with the beeps.
         const blinking = beeps.some((at) => k >= at && k < at + 130);
         const shown = k > beeps[0] && k < beeps[2] + 260 && !blinking ? "UMBRA //" + " ".repeat(7) : a;
-        ctx.fillText(shown + cursor(a, title), w / 2, h / 2 - 34 - lift);
-        ctx.globalAlpha = fade * Math.min(1, Math.max(0, (k - 1800) / 450));
-        ctx.font = `11px ${font}`;
-        ctx.fillStyle = dim;
-        ctx.fillText(sub, w / 2, h / 2 - 2 - lift);
-        if (welcome) {
-          ctx.globalAlpha = fade;
-          ctx.font = `700 15px ${font}`;
-          ctx.fillStyle = accent || signal;
-          const c = typed(welcome, 2150, 700);
-          if (c) ctx.fillText(c + cursor(c, welcome), w / 2, h / 2 + 30 - lift);
+        const c = welcome ? typed(welcome, 2150, 700) : "";
+        const draw = (dx, tint, alpha) => {
+          ctx.globalAlpha = fade * alpha;
+          ctx.font = `800 28px ${font}`;
+          ctx.fillStyle = tint || signal;
+          ctx.fillText(shown + cursor(a, title), w / 2 + dx, h / 2 - 34 - lift);
+          ctx.globalAlpha = fade * alpha * Math.min(1, Math.max(0, (k - 1800) / 450));
+          ctx.font = `11px ${font}`;
+          ctx.fillStyle = tint || dim;
+          ctx.fillText(sub, w / 2 + dx, h / 2 - 2 - lift);
+          if (c) {
+            ctx.globalAlpha = fade * alpha;
+            ctx.font = `700 15px ${font}`;
+            ctx.fillStyle = tint || accent || signal;
+            ctx.fillText(c + cursor(c, welcome), w / 2 + dx, h / 2 + 30 - lift);
+          }
+        };
+        const glitching = k >= GLITCH[0] && k < GLITCH[1] && Math.random() < 0.7;
+        if (!glitching) draw(0, null, 1);
+        else {
+          // Colour-split copies either side, then the text in sliced strips
+          // that jump sideways, with a few stray glyph blocks.
+          const net = color("--net");
+          draw(-4 - Math.random() * 4, net, 0.55);
+          draw(4 + Math.random() * 4, accent, 0.55);
+          const top = h / 2 - 60 - lift, bottom = h / 2 + 50 - lift, slices = 6;
+          for (let i = 0; i < slices; i++) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(0, top + ((bottom - top) * i) / slices, w, (bottom - top) / slices);
+            ctx.clip();
+            draw(Math.random() < 0.5 ? 0 : (Math.random() - 0.5) * 26, null, 1);
+            ctx.restore();
+          }
+          ctx.globalAlpha = fade * 0.8;
+          ctx.font = `14px ${font}`;
+          for (let i = 0; i < 6; i++) {
+            ctx.fillStyle = Math.random() < 0.5 ? signal : net;
+            ctx.fillText(glyphs[(Math.random() * glyphs.length) | 0], w / 2 + (Math.random() - 0.5) * 360, top + Math.random() * (bottom - top));
+          }
         }
         ctx.globalAlpha = 1;
         ctx.textAlign = "left";

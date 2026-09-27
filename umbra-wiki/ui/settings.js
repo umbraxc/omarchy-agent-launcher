@@ -44,7 +44,7 @@
     }
   }
 
-  const BACKGROUNDS = [["rain", "Digital rain"], ["rise", "Rising rain"], ["rings", "Saturn rings"], ["stars", "Starfield"], ["none", "None"]];
+  const BACKGROUNDS = window.UmbraBackgrounds ? window.UmbraBackgrounds.list : [["rain", "Digital rain"], ["none", "None"]];
   let runningBackground = "rain";
   function applyPrefs() {
     // Older settings only had the rain switch.
