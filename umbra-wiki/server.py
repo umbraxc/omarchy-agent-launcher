@@ -45,9 +45,16 @@ def read_json(path, default):
         return default
 
 
+# Settings are read, changed and written back by several requests at once
+# (the tour saves theme, scenario and personality in quick succession), so
+# those updates take turns; each write goes through its own temporary file
+# and an atomic rename, so a crash never leaves a half-written file.
+SETTINGS_LOCK = threading.Lock()
+
+
 def write_json(path, value):
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    tmp = path + ".tmp"
+    tmp = f"{path}.{os.getpid()}.{threading.get_ident()}.tmp"
     with open(tmp, "w") as f:
         json.dump(value, f, indent=2)
     os.replace(tmp, path)
@@ -631,7 +638,7 @@ def delete_custom_theme(theme_id):
 
 def write_json_list(path, value):
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    tmp = path + ".tmp"
+    tmp = f"{path}.{os.getpid()}.{threading.get_ident()}.tmp"
     with open(tmp, "w") as f:
         json.dump(value, f, indent=2)
     os.replace(tmp, path)
@@ -674,10 +681,11 @@ def save_personality(item):
 def delete_personality(item_id):
     items = [x for x in custom_personalities() if x.get("id") != item_id]
     write_json_list(PERSONALITIES_FILE, items)
-    settings = read_json(SETTINGS_FILE, {})
-    if settings.get("personality") == item_id:
-        settings["personality"] = "umbra"
-        write_json(SETTINGS_FILE, settings)
+    with SETTINGS_LOCK:
+        settings = read_json(SETTINGS_FILE, {})
+        if settings.get("personality") == item_id:
+            settings["personality"] = "umbra"
+            write_json(SETTINGS_FILE, settings)
     return items
 
 
@@ -1216,10 +1224,11 @@ def save_scenario(item):
 def delete_scenario(item_id):
     items = [x for x in custom_scenarios() if x.get("id") != item_id]
     write_json_list(SCENARIOS_FILE, items)
-    settings = read_json(SETTINGS_FILE, {})
-    if settings.get("scenario") == item_id:
-        settings["scenario"] = "everyday"
-        write_json(SETTINGS_FILE, settings)
+    with SETTINGS_LOCK:
+        settings = read_json(SETTINGS_FILE, {})
+        if settings.get("scenario") == item_id:
+            settings["scenario"] = "everyday"
+            write_json(SETTINGS_FILE, settings)
     return items
 
 
@@ -1401,21 +1410,22 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/api/settings":
             update = self.read_json()
-            settings = read_json(SETTINGS_FILE, {})
-            if isinstance(update.get("theme"), str) and re.fullmatch(r"[a-z0-9-]{1,40}", update["theme"]):
-                settings["theme"] = update["theme"]
-            for key in ("muted", "onboarded", "rain", "reduceMotion", "suggestions", "greeting", "barAlert", "hoverSounds"):
-                if isinstance(update.get(key), bool):
-                    settings[key] = update[key]
-            if isinstance(update.get("hiddenControls"), list):
-                allowed = {"loadout-btn", "history-btn", "library-btn", "theme-btn", "sound", "lock"}
-                settings["hiddenControls"] = [c for c in update["hiddenControls"] if c in allowed]
-            if isinstance(update.get("volume"), (int, float)):
-                settings["volume"] = max(0.0, min(1.0, float(update["volume"])))
-            for key in ("scenario", "personality"):
-                if isinstance(update.get(key), str) and re.fullmatch(r"[a-z0-9-]{1,40}", update[key]):
-                    settings[key] = update[key]
-            write_json(SETTINGS_FILE, settings)
+            with SETTINGS_LOCK:
+                settings = read_json(SETTINGS_FILE, {})
+                if isinstance(update.get("theme"), str) and re.fullmatch(r"[a-z0-9-]{1,40}", update["theme"]):
+                    settings["theme"] = update["theme"]
+                for key in ("muted", "onboarded", "rain", "reduceMotion", "suggestions", "greeting", "barAlert", "hoverSounds"):
+                    if isinstance(update.get(key), bool):
+                        settings[key] = update[key]
+                if isinstance(update.get("hiddenControls"), list):
+                    allowed = {"loadout-btn", "history-btn", "library-btn", "theme-btn", "sound", "lock"}
+                    settings["hiddenControls"] = [c for c in update["hiddenControls"] if c in allowed]
+                if isinstance(update.get("volume"), (int, float)):
+                    settings["volume"] = max(0.0, min(1.0, float(update["volume"])))
+                for key in ("scenario", "personality"):
+                    if isinstance(update.get(key), str) and re.fullmatch(r"[a-z0-9-]{1,40}", update[key]):
+                        settings[key] = update[key]
+                write_json(SETTINGS_FILE, settings)
             return self.send_json(settings)
         if self.path == "/api/voice":
             return self.send_json(voice_action(str(self.read_json().get("action", ""))))

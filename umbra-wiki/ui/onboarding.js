@@ -328,6 +328,6 @@
 
   // First launch (or after a reset): no "onboarded" in the settings yet.
   fetch("/api/settings").then((r) => r.json()).then((s) => {
-    if (!s.onboarded && !new URLSearchParams(location.search).get("q")) setTimeout(startTour, 900);
+    if (!s.onboarded && !new URLSearchParams(location.search).get("q")) setTimeout(startTour, 2300);   // after the boot animation
   }).catch(() => {});
 })();

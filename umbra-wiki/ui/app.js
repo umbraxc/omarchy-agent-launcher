@@ -608,9 +608,13 @@ function stopRain() { cancelAnimationFrame(rainRaf); rainRaf = 0; }
 // A full-window ASCII transition: a wave of glyphs sweeps in and leaves the
 // screen dark, "UMBRA // ONLINE" boots in the middle while swap() changes
 // what's underneath, then the glyphs dissolve from the centre outwards.
-function asciiWipe(swap, lines = ["UMBRA // ONLINE", "LOADOUT DEPLOYED · LIBRARY LINKED · CORE READY"]) {
+// With covered, it starts already dark (used at launch, behind the
+// "booting" cover so the page never flashes first).
+function asciiWipe(swap, lines = ["UMBRA // ONLINE", "LOADOUT DEPLOYED · LIBRARY LINKED · CORE READY"], { covered = false } = {}) {
   return new Promise((resolve) => {
-    if (document.body.classList.contains("reduce-motion")) { swap(); resolve(); return; }
+    if (document.body.classList.contains("reduce-motion")) {
+      swap(); document.body.classList.remove("booting"); resolve(); return;
+    }
     const canvas = document.createElement("canvas");
     canvas.className = "wipe";
     document.body.appendChild(canvas);
@@ -618,10 +622,9 @@ function asciiWipe(swap, lines = ["UMBRA // ONLINE", "LOADOUT DEPLOYED · LIBRAR
     const w = innerWidth, h = innerHeight, cw = 11, ch = 20;
     canvas.width = w; canvas.height = h;
     const cols = Math.ceil(w / cw), rows = Math.ceil(h / ch);
-    const css = getComputedStyle(document.documentElement);
-    const color = (v) => css.getPropertyValue(v).trim();
-    const bg = color("--bg"), signal = color("--signal"), shade = color("--shade-2"), bright = color("--fg-bright"), dim = color("--dim");
-    const font = color("--font");
+    // Colours are read every frame: at launch the theme arrives a moment later.
+    const color = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+    let bg, signal, shade, bright, dim, font;
     const glyphs = "░▒▓█#%&@*+=:·アイウエオカキクケコ0123456789".split("");
     // Each cell has its own moment in the wave: diagonal on the way in,
     // from the centre outwards on the way out.
@@ -631,13 +634,14 @@ function asciiWipe(swap, lines = ["UMBRA // ONLINE", "LOADOUT DEPLOYED · LIBRAR
       outAt.push(Math.hypot((x - cols / 2) / cols, (y - rows / 2) / rows) * 1.3 + Math.random() * 0.25);
     }
     const IN = 700, HOLD = 1100, OUT = 850;
-    const start = performance.now();
-    let swapped = false, last = 0;
+    const start = performance.now() - (covered ? IN : 0);
+    let swapped = false, last = 0, first = true;
     const band = 0.18;   // how wide the glyph wave is
     const frame = (now) => {
       const t = now - start;
       if (now - last < 33) { requestAnimationFrame(frame); return; }   // ~30 fps is plenty
       last = now;
+      [bg, signal, shade, bright, dim, font] = ["--bg", "--signal", "--shade-2", "--fg-bright", "--dim", "--font"].map(color);
       ctx.clearRect(0, 0, w, h);
       ctx.font = `${ch - 6}px ${font}`;
       ctx.textBaseline = "top";
@@ -666,6 +670,7 @@ function asciiWipe(swap, lines = ["UMBRA // ONLINE", "LOADOUT DEPLOYED · LIBRAR
         ctx.fillText(glyphs[(Math.random() * glyphs.length) | 0], x, y + 2);
       }
       if (t >= IN && !swapped) { swapped = true; swap(); }
+      if (first) { first = false; document.body.classList.remove("booting"); }
       // The boot text, typed in during the hold and fading on the way out.
       if (t >= IN && t < IN + HOLD + OUT * 0.5) {
         const typed = Math.min(1, (t - IN) / (HOLD * 0.6));
@@ -688,8 +693,8 @@ function asciiWipe(swap, lines = ["UMBRA // ONLINE", "LOADOUT DEPLOYED · LIBRAR
       else { canvas.remove(); resolve(); }
     };
     requestAnimationFrame(frame);
-    Sound.theme();
-    setTimeout(() => Sound.launch(), IN + HOLD - 150);
+    if (!covered) Sound.theme();
+    setTimeout(() => Sound.launch(), (covered ? 0 : IN) + HOLD - 150);
   });
 }
 
@@ -741,7 +746,11 @@ async function showStarters() {
   } catch {}
 }
 showIntro(true);
-Sound.launch();
+// Every launch boots through the ASCII transition; "Reduce motion" skips it.
+fetch("/api/settings").then((r) => r.json()).catch(() => ({})).then((s) => {
+  if (s.reduceMotion) { document.body.classList.remove("booting"); Sound.launch(); return; }
+  asciiWipe(() => {}, undefined, { covered: true });
+});
 
 // A welcome on the start screen: your name, and a line in the current
 // personality's voice that picks up from the last conversation.

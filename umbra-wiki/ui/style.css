@@ -664,6 +664,12 @@ body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after 
 /* ------------------------------------------------------------ welcome tour */
 
 .wipe { position: fixed; inset: 0; z-index: 200; pointer-events: none; }
+/* Until the launch animation takes over, the page stays covered. */
+body.booting::after {
+  content: ""; position: fixed; inset: 0; z-index: 199; background: var(--bg);
+  animation: bootcover .3s 4s forwards;   /* fail-safe: never stay covered */
+}
+@keyframes bootcover { to { opacity: 0; visibility: hidden; } }
 
 body.touring #ask { opacity: .45; pointer-events: none; }
 body.touring .intro { display: none; }
