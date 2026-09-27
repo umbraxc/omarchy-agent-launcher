@@ -92,8 +92,8 @@ SYSTEM_PROMPT = (
     "For medical, poisoning, electrical or other dangerous topics, end the answer with one short "
     "sentence of safety advice. Do not add generic AI or legal disclaimers. Never invent sources. "
     "Always finish with one final line in exactly this form: "
-    "NEXT: <one short, natural question the user is likely to want answered next, "
-    "written as the user would ask it>"
+    "NEXT: <one short, friendly sentence in your own voice offering the most useful next step, "
+    "for example 'If you'd like, I can walk you through keeping the fire burning overnight.'>"
 )
 
 STOPWORDS = set("""
@@ -442,6 +442,22 @@ SOUNDS_DIR = os.path.join(APP_DIR, "sounds")
 _last_sound = {}
 
 
+_hum = None
+
+
+def hum(on):
+    """Start or stop the quiet background hum while Umbra works."""
+    global _hum
+    if _hum and _hum.poll() is None:
+        _hum.terminate()
+    _hum = None
+    path = os.path.join(SOUNDS_DIR, "hum.ogg")
+    if on and os.path.isfile(path) and shutil.which("pw-play"):
+        _hum = subprocess.Popen(
+            ["pw-play", "--volume", "0.9", "-P", "{ application.name = \"Umbra Wiki\" media.role = \"Notification\" }", path],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
 def play_sound(name):
     """Play a bundled sound through PipeWire (independent of the web view)."""
     path = os.path.join(SOUNDS_DIR, name + ".ogg")
@@ -616,6 +632,11 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(netinfo())
         if path == "/api/settings":
             return self.send_json(read_json(SETTINGS_FILE, {}))
+        if path == "/api/facts":
+            try:
+                return self.send_json(json.load(open(os.path.join(APP_DIR, "facts.json"))))
+            except (OSError, ValueError):
+                return self.send_json([])
         if path == "/api/themes":
             return self.send_json(custom_themes())
         if path == "/api/omarchy-theme":
@@ -657,8 +678,13 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/themes/delete":
             return self.send_json(delete_custom_theme(str(self.read_json().get("id", ""))))
         if self.path == "/api/sound":
-            if not read_json(SETTINGS_FILE, {}).get("muted"):
-                play_sound(str(self.read_json().get("name", "")))
+            req = self.read_json()
+            name = str(req.get("name", ""))
+            muted = read_json(SETTINGS_FILE, {}).get("muted")
+            if name == "hum":
+                hum(bool(req.get("on")) and not muted)
+            elif not muted:
+                play_sound(name)
             return self.send_json({"ok": True})
         if self.path == "/api/library/download":
             ids = self.read_json().get("ids") or []
@@ -796,8 +822,9 @@ def follow_up(question, answer_text):
     prompt = (
         "A user asked a survival assistant a question and got an answer.\n"
         f"QUESTION: {question}\nANSWER: {answer_text[:700]}\n\n"
-        "Write the single most useful follow-up question the user would ask next, "
-        "in their own words, under 15 words. Reply with only the question."
+        "Write one short, friendly sentence in the assistant's voice offering the most useful next "
+        "step, for example 'If you'd like, I can show you how to keep the fire going overnight.' "
+        "Under 20 words. Reply with only that sentence."
     )
     body = json.dumps({"model": MODEL, "prompt": prompt, "stream": False, "keep_alive": "30m",
                        "options": {"num_ctx": 2048, "temperature": 0.4, "num_predict": 40}}).encode()

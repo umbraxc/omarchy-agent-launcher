@@ -15,19 +15,35 @@ const QUIPS = {
   search: [
     "Salvaging the archives…", "Digging through the rubble for answers…", "Sweeping the bunker shelves…",
     "Dusting off the survival manuals…", "Scavenging the library ruins…", "Tuning the scanner…",
+    "Checking under every loose floorboard…", "Kicking open the supply crates…", "Following the trail markers…",
+    "Searching the abandoned ranger station…", "Rummaging through the go-bags…", "Sifting through the ash…",
+    "Crawling through the ventilation shafts…", "Cracking open the time capsule…", "Scouting the perimeter…",
+    "Flipping through the field manuals…", "Combing the salvage yard…", "Opening the emergency locker…",
+    "Wading through the flooded stacks…", "Tapping the walls for hidden rooms…",
   ],
   read: [
     "Decoding scavenged pages…", "Cross-checking field notes…", "Separating signal from static…",
-    "Reading by lantern light…", "Piecing the pages back together…",
+    "Reading by lantern light…", "Piecing the pages back together…", "Squinting at faded handwriting…",
+    "Unfolding a water-stained map…", "Translating the margin notes…", "Matching torn pages…",
+    "Holding the pages up to the light…",
   ],
   think: [
     "Consulting the wasteland oracle…", "Boiling this down to what matters…", "Checking the Geiger counter…",
     "Negotiating with a raccoon for intel…", "Rationing the facts…", "Sharpening the answer on a whetstone…",
     "Drawing a map in the dirt…", "Weighing the supplies…", "Listening to the static…",
-    "Counting the cans in the pantry…", "Charging the hand-crank radio…",
+    "Counting the cans in the pantry…", "Charging the hand-crank radio…", "Stoking the campfire of knowledge…",
+    "Asking the old-timer at the trading post…", "Plotting a route around the crater…", "Testing the water…",
+    "Checking which way the wind blows…", "Tying the loose ends into a bowline…", "Reading the clouds…",
+    "Filtering out the nonsense…", "Doing the maths on a scrap of cardboard…", "Winding the pocket watch…",
+    "Double-checking the knots…", "Warming up the old generator…", "Consulting the survival almanac…",
+    "Sorting the useful from the rusty…", "Keeping the signal fire lit…", "Calibrating the compass…",
+    "Mixing the wisdom with a little common sense…", "Packing the answer for the road…", "Almost through the storm…",
   ],
 };
-let quipTimer = 0;
+let quipTimer = 0, noteTimer = 0, stopArt = null;
+let facts = [];
+fetch("/api/facts").then((r) => r.json()).then((f) => { facts = f; }).catch(() => {});
+
 function startQuips(answerEl, phase) {
   clearInterval(quipTimer);
   const list = QUIPS[phase];
@@ -44,259 +60,62 @@ function startQuips(answerEl, phase) {
   show();
   quipTimer = setInterval(show, 3200);
 }
-const chat = [];             // [{role, content}] sent back for follow-ups
-let controller = null;       // AbortController of the running answer
-let timer = null;
-let online = false;          // every launch starts LOCAL
-let locked = false;
 
-async function postSettings(update) {
-  try {
-    await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(update) });
-  } catch {}
-}
-
-// ------------------------------------------------------------------ sound
-
-// Short bundled sounds (Kenney, CC0), played by the backend through PipeWire
-// so they work regardless of the web view's audio support.
-const Sound = (() => {
-  let muted = false;
-  const play = (name) => {
-    if (muted) return;
-    fetch("/api/sound", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) })
-      .catch(() => {});
+// A field note under the waiting line, changing every few seconds.
+function startNotes(answerEl) {
+  clearInterval(noteTimer);
+  if (!facts.length) return;
+  let i = Math.floor(Math.random() * facts.length);
+  const show = () => {
+    const n = answerEl.querySelector(".wnote .ntext");
+    if (!n) { clearInterval(noteTimer); return; }
+    n.parentElement.classList.remove("swap");
+    void n.offsetWidth;
+    n.textContent = facts[i++ % facts.length];
+    n.parentElement.classList.add("swap");
   };
-  const names = ["launch", "key", "type", "hover", "click", "send", "scan", "ping", "done",
-                 "lock", "unlock", "online", "local", "theme", "error"];
-  const api = { get muted() { return muted; }, set muted(v) { muted = v; } };
-  names.forEach((n) => (api[n] = () => play(n)));
-  return api;
-})();
-
-let ambient = 0;
-function setAmbient(kind) {
-  clearInterval(ambient);
-  ambient = 0;
-  if (kind === "scan") { Sound.scan(); ambient = setInterval(Sound.scan, 1700); }
-  else if (kind === "ping") { Sound.ping(); ambient = setInterval(Sound.ping, 2300); }
+  show();
+  noteTimer = setInterval(show, 7000);
 }
 
-function setMuted(value, save = true) {
-  Sound.muted = value;
-  $("#sound-icon").textContent = value ? "󰖁" : "󰕾";
-  $("#sound").classList.toggle("off", value);
-  $("#sound").title = value ? "Sound off (click to unmute)" : "Sound on (click to mute)";
-  if (save) postSettings({ muted: value });
-}
-$("#sound").addEventListener("click", () => {
-  const next = !Sound.muted;
-  setMuted(next);
-  if (!next) Sound.click();
-});
-
-// ----------------------------------------------------------------- themes
-
-let themes = [];
-let currentTheme = "";
-const THEME_VARS = {
-  bg: "--bg", bg1: "--bg-1", bg2: "--bg-2", bg3: "--bg-3", line: "--line", muted: "--muted",
-  fg: "--fg", fgBright: "--fg-bright", dim: "--dim", faint: "--faint",
-  signal: "--signal", shade1: "--shade-1", shade2: "--shade-2", shade3: "--shade-3",
-  accent: "--accent", red: "--red", net: "--net",
-};
-
-function applyTheme(id, { animate = true, force = false } = {}) {
-  const t = themes.find((x) => x.id === id) || themes[0];
-  if (!t || (t.id === currentTheme && !force)) return;
-  currentTheme = t.id;
-  if (animate) {
-    document.body.classList.add("theming");
-    setTimeout(() => document.body.classList.remove("theming"), 500);
-  }
-  const root = document.documentElement.style;
-  for (const [key, cssVar] of Object.entries(THEME_VARS)) root.setProperty(cssVar, t[key]);
-  document.documentElement.style.colorScheme = t.light || t.id === "daybreak" ? "light" : "dark";
-  document.querySelectorAll(".tcard").forEach((c) => c.classList.toggle("current", c.dataset.id === t.id));
-}
-
-function renderThemeGrid() {
-  const grid = $("#theme-grid");
-  grid.innerHTML = "";
-  themes.forEach((t, i) => {
-    const card = document.createElement("button");
-    card.className = "tcard" + (t.id === currentTheme ? " current" : "");
-    card.dataset.id = t.id;
-    card.style.cssText = `background:${t.bg1};color:${t.fg};animation-delay:${i * 35}ms`;
-    card.innerHTML = `<div class="tname"></div><div class="tline"></div>
-      <div class="tsample">UMBRA<span>//</span>WIKI</div><div class="swatches"></div>`;
-    card.querySelector(".tname").textContent = t.name.toUpperCase();
-    if (t.auto) {
-      const badge = document.createElement("span");
-      badge.className = "tauto";
-      badge.textContent = "AUTO";
-      card.appendChild(badge);
-    }
-    card.querySelector(".tname").style.color = t.fgBright;
-    card.querySelector(".tline").textContent = t.tagline;
-    card.querySelector(".tline").style.color = t.dim;
-    card.querySelector(".tsample").style.color = t.fgBright;
-    card.querySelector(".tsample span").style.color = t.signal;
-    const sw = card.querySelector(".swatches");
-    for (const c of [t.bg3, t.fg, t.signal, t.accent, t.net]) {
-      const i2 = document.createElement("i");
-      i2.style.background = c;
-      sw.appendChild(i2);
-    }
-    if (t.custom) {
-      const tools = document.createElement("div");
-      tools.className = "ttools";
-      tools.innerHTML = `<button class="tedit" title="Edit">✎ EDIT</button><button class="tdel" title="Delete">✕</button>`;
-      tools.querySelector(".tedit").addEventListener("click", (e) => { e.stopPropagation(); openEditor(t); });
-      tools.querySelector(".tdel").addEventListener("click", async (e) => {
-        e.stopPropagation();
-        const ok = await confirmDialog({ kind: "to-local", tag: "DELETE", title: `DELETE "${t.name.toUpperCase()}"?`,
-          body: "This theme will be removed. You can always create it again.", ok: "DELETE", cancel: "KEEP" });
-        if (!ok) return;
-        await fetch("/api/themes/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: t.id }) });
-        themes = themes.filter((x) => x.id !== t.id);
-        if (currentTheme === t.id) { applyTheme("umbra"); postSettings({ theme: "umbra" }); }
-        renderThemeGrid();
-      });
-      card.appendChild(tools);
-    }
-    card.addEventListener("mouseenter", Sound.hover);
-    card.addEventListener("click", () => {
-      applyTheme(t.id);
-      postSettings({ theme: t.id });
-      Sound.theme();
-    });
-    grid.appendChild(card);
-  });
-  const create = document.createElement("button");
-  create.className = "tcard tcreate";
-  create.style.animationDelay = `${themes.length * 35}ms`;
-  create.innerHTML = `<div class="tplus">+</div><div class="tname">CREATE THEME</div><div class="tline">Pick six colours, see them live</div>`;
-  create.addEventListener("mouseenter", Sound.hover);
-  create.addEventListener("click", () => openEditor(null));
-  grid.appendChild(create);
-}
-
-// ------------------------------------------------------------ theme editor
-
-// Six named colours make a theme; everything else is derived from them.
-const BASE_FIELDS = [
-  ["background", "Background", "The base behind everything"],
-  ["text", "Text", "The main reading colour"],
-  ["main", "Main colour", "Highlights, logo, citations, buttons"],
-  ["secondary", "Secondary colour", "Small accents and hazard signs"],
-  ["online", "Online colour", "Top bar and transmit button when online"],
-  ["alert", "Alert colour", "Errors, stop, lost connection"],
-];
-
-const hexToRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
-const rgbToHex = (c) => "#" + c.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("");
-const mixHex = (a, b, t) => { const x = hexToRgb(a), y = hexToRgb(b); return rgbToHex(x.map((v, i) => v + (y[i] - v) * t)); };
-const luminance = (h) => { const [r, g, b] = hexToRgb(h); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; };
-
-function derivePalette(id, name, b) {
-  const light = luminance(b.background) > 0.55;
-  const edge = light ? "#ffffff" : "#000000";
-  const far = light ? "#000000" : "#ffffff";
-  return {
-    id, name, tagline: "Your theme", custom: true, light, base: { ...b },
-    bg: b.background,
-    bg1: mixHex(b.background, b.text, 0.03), bg2: mixHex(b.background, b.text, 0.06),
-    bg3: mixHex(b.background, b.text, 0.11), line: mixHex(b.background, b.text, 0.16),
-    muted: mixHex(b.background, b.text, 0.22),
-    fg: b.text, fgBright: mixHex(b.text, far, 0.45),
-    dim: mixHex(b.text, b.background, 0.3), faint: mixHex(b.text, b.background, 0.55),
-    signal: b.main, shade1: mixHex(b.main, edge, 0.25), shade2: mixHex(b.main, edge, 0.45), shade3: mixHex(b.main, edge, 0.65),
-    accent: b.secondary, red: b.alert, net: b.online,
+// A survivor walking in place over moving ground, while Umbra searches.
+function walker(el) {
+  const bodies = [
+    ["   O   ", "  /|\\# ", "  / >  "],
+    ["   O   ", "  /|\\# ", "   |>  "],
+    ["   O   ", "  /|\\# ", "  < \\  "],
+    ["   O   ", "  /|\\# ", "   |\\  "],
+  ];
+  const ground = "._.-'-._.·´¯`·._.-'-._.·´¯`·._";
+  let f = 0, alive = true;
+  const tick = () => {
+    if (!alive || !el.isConnected) return;
+    const g = ground.slice(f % 10, (f % 10) + 9);
+    el.textContent = bodies[f % bodies.length].join("\n") + "\n" + g;
+    f++;
+    setTimeout(tick, 170);
   };
+  tick();
+  return () => { alive = false; };
 }
 
-function baseFrom(t) {
-  return t.base && t.base.background ? { ...t.base } : {
-    background: t.bg, text: t.fg, main: t.signal, secondary: t.accent, online: t.net, alert: t.red,
-  };
+function setWaitingArt(answerEl, phase) {
+  const art = answerEl.querySelector(".wart");
+  if (!art) return;
+  const kind = phase === "think" ? "orb" : "walker";
+  if (art.dataset.kind === kind) return;
+  if (stopArt) stopArt();
+  art.dataset.kind = kind;
+  art.className = "wart " + kind;
+  art.textContent = "";
+  stopArt = kind === "orb" ? orb(art, 14, 10) : walker(art);
 }
 
-function openEditor(existing) {
-  const before = currentTheme;
-  const source = existing || themes.find((x) => x.id === currentTheme) || themes[0];
-  const base = baseFrom(source);
-  const grid = $("#theme-grid");
-  grid.innerHTML = "";
-  const form = document.createElement("div");
-  form.className = "editor";
-  form.innerHTML = `
-    <div class="ed-title">${existing ? "EDIT THEME" : "CREATE THEME"}</div>
-    <label class="ed-name"><span>NAME</span><input id="ed-name" maxlength="24" placeholder="My theme"></label>
-    <div class="ed-fields"></div>
-    <div class="ed-actions"><button class="ghost" id="ed-cancel">CANCEL</button><button class="solid" id="ed-save">SAVE THEME</button></div>`;
-  form.querySelector("#ed-name").value = existing ? existing.name : "";
-  const fields = form.querySelector(".ed-fields");
-  const preview = () => {
-    const pal = derivePalette("__preview", "Preview", base);
-    const i = themes.findIndex((x) => x.id === "__preview");
-    if (i >= 0) themes[i] = pal; else themes.push(pal);
-    applyTheme("__preview", { animate: false, force: true });
-  };
-  for (const [key, label, hint] of BASE_FIELDS) {
-    const row = document.createElement("label");
-    row.className = "ed-row";
-    row.innerHTML = `<input type="color"><span class="ed-label"><b></b><small></small></span><input class="ed-hex" maxlength="7">`;
-    row.querySelector("b").textContent = label;
-    row.querySelector("small").textContent = hint;
-    const picker = row.querySelector('input[type="color"]');
-    const hex = row.querySelector(".ed-hex");
-    picker.value = hex.value = base[key];
-    picker.addEventListener("input", () => { base[key] = hex.value = picker.value; preview(); });
-    hex.addEventListener("input", () => {
-      if (/^#[0-9a-fA-F]{6}$/.test(hex.value)) { base[key] = picker.value = hex.value.toLowerCase(); preview(); }
-    });
-    fields.appendChild(row);
-  }
-  const close = (restore) => {
-    themes = themes.filter((x) => x.id !== "__preview");
-    if (restore) applyTheme(before, { force: true });
-    renderThemeGrid();
-  };
-  form.querySelector("#ed-cancel").addEventListener("click", () => { Sound.click(); close(true); });
-  form.querySelector("#ed-save").addEventListener("click", async () => {
-    const name = form.querySelector("#ed-name").value.trim() || "My theme";
-    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "theme";
-    const id = existing ? existing.id : `custom-${slug}`;
-    const pal = derivePalette(id, name, base);
-    const res = await fetch("/api/themes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ theme: pal }) });
-    if (!res.ok) { Sound.error(); return; }
-    themes = themes.filter((x) => x.id !== id && x.id !== "__preview");
-    themes.push(pal);
-    currentTheme = "";
-    applyTheme(id);
-    postSettings({ theme: id });
-    Sound.theme();
-    renderThemeGrid();
-  });
-  grid.appendChild(form);
-  preview();
-  Sound.click();
+function stopWaiting() {
+  clearInterval(quipTimer);
+  clearInterval(noteTimer);
+  if (stopArt) { stopArt(); stopArt = null; }
 }
-
-function toggleThemes(show = $("#themes").hidden, quiet = false) {
-  if (show && locked) return;
-  $("#themes").hidden = !show;
-  $("#theme-btn").classList.toggle("on", show);
-  if (show) {
-    $("#library").hidden = true;
-    $("#library-btn").classList.remove("on");
-    renderThemeGrid();
-  }
-  if (!quiet) Sound.click();
-}
-$("#theme-btn").addEventListener("click", () => toggleThemes());
-$("#themes-close").addEventListener("click", () => toggleThemes(false));
 
 // ---------------------------------------------------------------- library
 
@@ -702,11 +521,9 @@ function typewriter(render) {
       const step = Math.floor(carry);
       if (step > 0 && ts - lastPaint >= 33) {
         carry -= step;
-        const before = shown;
         shown = Math.min(target.length, shown + step);
         lastPaint = ts;
         render(target.slice(0, shown));
-        if (Math.floor(shown / 9) !== Math.floor(before / 9)) Sound.type();
         wake();
       }
     }
@@ -788,11 +605,16 @@ function addBot() {
   return el;
 }
 
-// The waiting state: a spinning globe and the current step.
+// The waiting state: a little scene, the current step in a themed line,
+// and a rotating field note underneath.
 function showWaiting(answerEl) {
-  answerEl.innerHTML = `<div class="waiting"><pre class="orb"></pre>
-    <span><span class="spin" data-spin>✻</span> <span class="wtext">${PHASE_TEXT.search}…</span></span></div>`;
-  orb(answerEl.querySelector(".orb"), 14, 10);
+  answerEl.innerHTML = `<div class="waiting"><pre class="wart"></pre>
+    <div class="wcol">
+      <span><span class="spin" data-spin>✻</span> <span class="wtext">${PHASE_TEXT.search}…</span></span>
+      <span class="wnote"><span class="narrow">↳ FIELD NOTE</span> <span class="ntext"></span></span>
+    </div></div>`;
+  setWaitingArt(answerEl, "search");
+  startNotes(answerEl);
 }
 function setWaitingText(answerEl, text) {
   const w = answerEl.querySelector(".wtext");
@@ -832,15 +654,19 @@ function renderSources(card, sources) {
   card.append(line, list);
 }
 
-function renderNext(card, question) {
-  const box = document.createElement("div");
-  box.className = "next";
-  box.innerHTML = `<span class="say">Want to go further?</span><button></button>`;
-  const btn = box.querySelector("button");
-  btn.textContent = question;
-  btn.addEventListener("mouseenter", Sound.hover);
-  btn.addEventListener("click", () => { if (!controller) { btn.disabled = true; ask(question); } });
-  card.appendChild(box);
+// Umbra's closing offer, in its own words; clicking it accepts.
+function renderNext(answerEl, offer) {
+  const p = document.createElement("p");
+  p.className = "offer";
+  p.innerHTML = `<span class="otext"></span><span class="ohint">yes, please ⏎</span>`;
+  p.querySelector(".otext").textContent = offer;
+  p.addEventListener("mouseenter", Sound.hover);
+  p.addEventListener("click", () => {
+    if (controller || p.classList.contains("taken")) return;
+    p.classList.add("taken");
+    ask(`Yes, please: ${offer}`, "Yes, please.");
+  });
+  answerEl.appendChild(p);
 }
 
 // -------------------------------------------------------------- phases UI
@@ -872,7 +698,7 @@ function stopWorking() {
 
 // ------------------------------------------------------------------- ask
 
-async function ask(question) {
+async function ask(question, shownAs = "") {
   if (controller || locked || !question.trim()) return;
   const intro = $("#intro");
   if (intro && !intro.classList.contains("leaving")) {
@@ -881,7 +707,7 @@ async function ask(question) {
     intro.addEventListener("animationend", () => intro.remove(), { once: true });
     setTimeout(() => intro.remove(), 900);
   }
-  addUser(question);
+  addUser(shownAs || question);
   const msg = addBot();
   const label = msg.querySelector(".label");
   const card = msg.querySelector(".card");
@@ -889,7 +715,8 @@ async function ask(question) {
   showWaiting(answerEl);
   follow = true;
   wake();
-  Sound.send();
+  Sound.searchstart();
+  Sound.hum(true);
 
   controller = new AbortController();
   send.classList.add("stop");
@@ -931,8 +758,7 @@ async function ask(question) {
         const e = JSON.parse(line);
         if (e.type === "phase") {
           setPhase(e.phase);
-          setAmbient(e.phase === "search" || e.phase === "read" ? "scan" : e.phase === "think" ? "ping" : "");
-          if (!writing) startQuips(answerEl, e.phase);
+          if (!writing) { startQuips(answerEl, e.phase); setWaitingArt(answerEl, e.phase); }
         } else if (e.type === "notice") {
           const n = document.createElement("div");
           n.className = "notice";
@@ -942,7 +768,7 @@ async function ask(question) {
           sources = e.sources;
           sources.forEach((s) => (sourceByN[s.n] = s));
         } else if (e.type === "token") {
-          if (!writing) { clearInterval(quipTimer); setAmbient(""); }
+          if (!writing) { stopWaiting(); Sound.hum(false); Sound.found(); }
           writing = true;
           text += e.text;
           typer.set(visibleAnswer(text, true));
@@ -960,8 +786,8 @@ async function ask(question) {
     if (!stopped) text += `\n\n**Error:** ${err.message}`;
   }
 
-  setAmbient("");
-  clearInterval(quipTimer);
+  Sound.hum(false);
+  stopWaiting();
   let shown = visibleAnswer(text, false);
   if (!shown) {
     shown = stopped
@@ -972,7 +798,7 @@ async function ask(question) {
   paint(shown, false);
   label.querySelector(".spin")?.remove();
   renderSources(card, sources);
-  if (next && !stopped) renderNext(card, next);
+  if (next && !stopped) renderNext(answerEl, next);
   if (meta) {
     const m = document.createElement("div");
     m.className = "meta";
