@@ -9,6 +9,7 @@
 #   agents.sh launch <id>   Open a coding agent, Umbra Wiki, or the setup.
 #   agents.sh themes        Umbra Wiki themes and the current one, as JSON.
 #   agents.sh theme <id>    Switch the Umbra Wiki theme.
+#   agents.sh loadout       The current Umbra Wiki loadout, as JSON.
 #   agents.sh fact          This hour's survival field note, as JSON.
 #   agents.sh ask <text>    Open Umbra Wiki and ask it a question.
 #   agents.sh setup-local   Guided install of Umbra Wiki (run by the widget).
@@ -114,6 +115,18 @@ themes() {
     '{current: $current,
       themes: ((if $auto then [$auto] else [] end) + . + $custom) | map({id, name, signal, fg, bg: .bg1})}' \
     "$umbra_dir/ui/themes.json"
+}
+
+loadout() {
+  local settings='{}' custom='[]'
+  [[ -f $umbra_config/settings.json ]] && settings=$(cat "$umbra_config/settings.json")
+  [[ -f $umbra_config/personalities.json ]] && custom=$(cat "$umbra_config/personalities.json")
+  jq -c --argjson s "$settings" --argjson custom "$custom" '
+    (.scenarios[] | select(.id == ($s.scenario // "everyday"))) as $sc
+    | ((.personalities + $custom)[] | select(.id == ($s.personality // "umbra"))) as $pe
+    | {scenario: $sc.name, personality: $pe.name,
+       face: ($pe.art // .personalities[($pe.face // 0)].art)[0]}' \
+    "$umbra_dir/ui/loadout.json" 2>/dev/null || echo '{}'
 }
 
 # A new field note every hour, cycling through the whole list in a
@@ -232,11 +245,13 @@ status) status ;;
 launch) launch "${2:-}" ;;
 themes) themes ;;
 fact) fact ;;
+loadout) loadout ;;
+open-loadout) exec setsid uwsm-app -- umbra-wiki --loadout ;;
 ask) exec setsid uwsm-app -- umbra-wiki "${2:-}" ;;
 theme) set_theme "${2:-}" ;;
 setup-local) setup_local ;;
 *)
-  echo "Usage: agents.sh status | launch <id> | themes | theme <id> | fact | ask <text> | setup-local" >&2
+  echo "Usage: agents.sh status | launch <id> | themes | theme <id> | loadout | open-loadout | fact | ask <text> | setup-local" >&2
   exit 1
   ;;
 esac

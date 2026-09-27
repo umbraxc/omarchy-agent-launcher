@@ -71,7 +71,10 @@ class UmbraWiki(Gtk.Application):
         view.connect("context-menu", lambda *_: True)  # no browser right-click menu
 
         if ensure_backend():
-            query = "?" + urllib.parse.urlencode({"q": self.question}) if self.question else ""
+            if self.question == "--loadout":
+                query = "?view=loadout"
+            else:
+                query = "?" + urllib.parse.urlencode({"q": self.question}) if self.question else ""
             view.load_uri(URL + query)
         else:
             view.load_html(

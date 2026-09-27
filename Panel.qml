@@ -38,6 +38,7 @@ Panel {
 
   property var agents: []
   property string fieldNote: ""
+  property var loadout: ({})
   readonly property bool umbraInstalled: agents.some(function(a) { return a.id === "umbra-wiki" })
   readonly property var localAgents: agents.filter(function(a) { return a.section === "local" })
   readonly property var onlineAgents: agents.filter(function(a) { return a.section !== "local" })
@@ -54,6 +55,7 @@ Panel {
     if (!statusProc.running) statusProc.running = true
     if (!themeProc.running) themeProc.running = true
     if (!factProc.running) factProc.running = true
+    if (!loadoutProc.running) loadoutProc.running = true
   }
 
   function askAbout(note) {
@@ -97,6 +99,16 @@ Panel {
           try { list.push(JSON.parse(lines[i])) } catch (e) {}
         }
         root.agents = list
+      }
+    }
+  }
+
+  Process {
+    id: loadoutProc
+    command: [root.script, "loadout"]
+    stdout: StdioCollector {
+      onStreamFinished: {
+        try { root.loadout = JSON.parse(String(text || "{}")) } catch (e) {}
       }
     }
   }
@@ -197,6 +209,120 @@ Panel {
             width: column.width
             agent: modelData
             rowIndex: index
+          }
+        }
+
+        // LOADOUT: who Umbra Wiki is right now, in which scenario.
+        PanelSeparator {
+          visible: root.umbraInstalled && !!root.loadout.personality
+          foreground: root.foreground
+        }
+
+        PanelSectionHeader {
+          visible: root.umbraInstalled && !!root.loadout.personality
+          text: "LOADOUT"
+          foreground: root.foreground
+          fontFamily: root.fontFamily
+        }
+
+        Item {
+          id: loadoutBox
+          visible: root.umbraInstalled && !!root.loadout.personality
+          width: parent.width
+          implicitHeight: loadoutRow.implicitHeight + Style.space(14)
+
+          Rectangle {
+            anchors.fill: parent
+            color: loadoutMouse.containsMouse ? Qt.rgba(root.online.r, root.online.g, root.online.b, 0.08) : "transparent"
+            border.width: 1
+            border.color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.12)
+          }
+          Item {
+            anchors.left: parent.left; anchors.top: parent.top
+            width: Style.space(9); height: Style.space(9)
+            opacity: loadoutMouse.containsMouse ? 1 : 0.45
+            Rectangle { width: parent.width; height: 2; color: root.online }
+            Rectangle { width: 2; height: parent.height; color: root.online }
+          }
+          Item {
+            anchors.right: parent.right; anchors.bottom: parent.bottom
+            width: Style.space(9); height: Style.space(9)
+            opacity: loadoutMouse.containsMouse ? 1 : 0.45
+            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 2; color: root.online }
+            Rectangle { anchors.right: parent.right; width: 2; height: parent.height; color: root.online }
+          }
+
+          RowLayout {
+            id: loadoutRow
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.leftMargin: Style.space(12)
+            anchors.rightMargin: Style.space(12)
+            spacing: Style.space(14)
+
+            Text {
+              Layout.alignment: Qt.AlignVCenter
+              text: (root.loadout.face || []).join("\n")
+              color: root.online
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              lineHeight: 0.95
+            }
+
+            ColumnLayout {
+              Layout.fillWidth: true
+              spacing: Style.space(3)
+
+              Text {
+                text: "PERSONALITY"
+                color: root.dim
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption
+                font.letterSpacing: Style.space(1)
+              }
+              Text {
+                Layout.fillWidth: true
+                text: root.loadout.personality || ""
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.body
+                elide: Text.ElideRight
+              }
+              Text {
+                text: "SCENARIO"
+                color: root.dim
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption
+                font.letterSpacing: Style.space(1)
+              }
+              Text {
+                Layout.fillWidth: true
+                text: root.loadout.scenario || ""
+                color: root.online
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.body
+                elide: Text.ElideRight
+              }
+            }
+          }
+
+          MouseArea {
+            id: loadoutMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+              Quickshell.execDetached([root.script, "open-loadout"])
+              root.close()
+              refreshSoon.restart()
+            }
+          }
+
+          PanelToolTip {
+            visible: loadoutMouse.containsMouse
+            text: "Change loadout in Umbra Wiki"
+            fontFamily: root.fontFamily
           }
         }
 

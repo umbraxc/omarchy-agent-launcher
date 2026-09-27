@@ -47,7 +47,9 @@ fetch("/api/facts").then((r) => r.json()).then((f) => { facts = f; }).catch(() =
 
 function startQuips(answerEl, phase) {
   clearInterval(quipTimer);
-  const list = QUIPS[phase];
+  // The personality's own lines join in while searching and thinking.
+  const own = phase === "read" ? [] : (window.loadoutQuips || []);
+  const list = QUIPS[phase] && QUIPS[phase].concat(own, own);
   if (!list) return;
   let i = Math.floor(Math.random() * list.length);
   const show = () => {

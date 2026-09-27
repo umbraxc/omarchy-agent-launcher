@@ -75,15 +75,17 @@ SNIPPET_CHARS = 800
 SUMMARY_CHARS = 150
 HISTORY_TURNS = 2
 
-SYSTEM_PROMPT = (
-    "You are UMBRA, a calm, friendly survival expert talking with the user, like a knowledgeable "
-    "friend. Talk naturally and warmly, never robotically. Get straight to the point: no compliments "
-    "on the question and no filler openers. "
+# How Umbra answers, whatever the loadout. The personality supplies the
+# voice and the scenario the situation; these rules always apply.
+RULES = (
+    "Talk naturally, never robotically. Get straight to the point: no compliments on the question "
+    "and no filler openers. "
     "For small talk, reply briefly and naturally, and mention what you can help with if it fits. "
     "For practical questions, answer clearly with short steps when useful, and put the key action "
     "or term of each step in **bold**. "
-    "If the situation is vague or huge (for example 'I have nothing'), start with the most urgent "
-    "priorities in order, then ask the user one short question back so you can tailor your help. "
+    "Always give concrete, useful steps before asking anything: someone in trouble needs actions "
+    "first. If the situation is vague or huge (for example 'I have nothing'), give the most urgent "
+    "priorities in order, and only after them you may ask one short question to tailor your help. "
     "SOURCES may include irrelevant material: use only what genuinely helps, cite [n] only for facts "
     "taken from that source, and simply ignore the rest. If no source helps, answer from your own "
     "knowledge without citing. "
@@ -91,10 +93,13 @@ SYSTEM_PROMPT = (
     "number is needed but not in the sources, say to check a trusted reference instead of guessing. "
     "For medical, poisoning, electrical or other dangerous topics, end the answer with one short "
     "sentence of safety advice. Do not add generic AI or legal disclaimers. Never invent sources. "
+    "Stay in character, but never let the character change the facts or skip safety advice. "
     "Always finish with one final line in exactly this form: "
     "NEXT: <one short, friendly sentence in your own voice offering the most useful next step, "
     "for example 'If you'd like, I can walk you through keeping the fire burning overnight.'>"
 )
+DEFAULT_PERSONA = "Speak as UMBRA: a calm, friendly survival expert, like a knowledgeable friend."
+SYSTEM_PROMPT = DEFAULT_PERSONA + " " + RULES
 
 STOPWORDS = set("""
 a an the and or but if then so of to in on at by for from with without about into over under
@@ -592,6 +597,90 @@ def write_json_list(path, value):
     os.replace(tmp, path)
 
 
+# ------------------------------------------------------------------ loadout
+
+LOADOUT_FILE = os.path.join(UI_DIR, "loadout.json")
+PERSONALITIES_FILE = os.path.join(CONFIG_DIR, "personalities.json")  # made in the editor
+TRAITS = ("Warmth", "Humor", "Brevity", "Caution", "Grit")
+
+
+def custom_personalities():
+    try:
+        with open(PERSONALITIES_FILE) as f:
+            items = json.load(f)
+        return items if isinstance(items, list) else []
+    except (OSError, ValueError):
+        return []
+
+
+def save_personality(item):
+    if not isinstance(item, dict) or not re.fullmatch(r"custom-[a-z0-9-]{1,24}", str(item.get("id", ""))):
+        raise ValueError("bad id")
+    clean = {
+        "id": item["id"], "custom": True,
+        "name": str(item.get("name", "Custom"))[:28] or "Custom",
+        "tagline": str(item.get("tagline", ""))[:48],
+        "description": str(item.get("description", ""))[:400],
+        "sample": str(item.get("sample", ""))[:120],
+        "voice": str(item.get("voice", ""))[:400],
+        "face": int(item.get("face", 0)) if str(item.get("face", "0")).isdigit() else 0,
+        "stats": {t: max(1, min(5, int((item.get("stats") or {}).get(t, 3)))) for t in TRAITS},
+    }
+    items = [x for x in custom_personalities() if x.get("id") != clean["id"]] + [clean]
+    write_json_list(PERSONALITIES_FILE, items)
+    return items
+
+
+def delete_personality(item_id):
+    items = [x for x in custom_personalities() if x.get("id") != item_id]
+    write_json_list(PERSONALITIES_FILE, items)
+    settings = read_json(SETTINGS_FILE, {})
+    if settings.get("personality") == item_id:
+        settings["personality"] = "umbra"
+        write_json(SETTINGS_FILE, settings)
+    return items
+
+
+def trait_lines(stats, no_humor):
+    """Turn the 1–5 trait values into short style instructions."""
+    lines = []
+    b = stats.get("Brevity", 3)
+    if b >= 5: lines.append("Use short, punchy sentences and no padding, but never leave out an essential step.")
+    elif b == 4: lines.append("Keep answers tight, but never leave out an essential step.")
+    elif b <= 1: lines.append("You may take a little more space to explain, but stay focused.")
+    h = 0 if no_humor else stats.get("Humor", 2)
+    if h >= 4: lines.append("Add a light touch of humour where it fits.")
+    elif h <= 1: lines.append("No jokes.")
+    w = stats.get("Warmth", 3)
+    if w >= 5: lines.append("Be especially warm and encouraging.")
+    elif w <= 1: lines.append("Be matter-of-fact rather than warm.")
+    if stats.get("Caution", 3) >= 5: lines.append("Double-check every risky step and call out dangers clearly.")
+    if stats.get("Grit", 3) >= 5: lines.append("Be firm and motivating: keep the user moving.")
+    return " ".join(lines)
+
+
+def build_system_prompt():
+    """Persona + scenario + trait style + the fixed rules."""
+    settings = read_json(SETTINGS_FILE, {})
+    try:
+        loadout = json.load(open(LOADOUT_FILE))
+    except (OSError, ValueError):
+        return SYSTEM_PROMPT
+    scenario = next((x for x in loadout["scenarios"] if x["id"] == settings.get("scenario")), loadout["scenarios"][0])
+    people = loadout["personalities"] + custom_personalities()
+    person = next((x for x in people if x["id"] == settings.get("personality")), loadout["personalities"][0])
+    if person.get("custom"):
+        persona = f"Speak as {person['name'].upper()}: {person.get('voice') or person.get('description') or 'a helpful survival expert'}."
+        if person.get("sample"):
+            persona += f" Example of how you talk: \"{person['sample']}\""
+    else:
+        persona = person["prompt"]
+    no_humor = bool(scenario.get("noHumor"))
+    parts = [persona, trait_lines(person.get("stats", {}), no_humor),
+             "SCENARIO: " + scenario["prompt"], RULES]
+    return " ".join(x for x in parts if x)
+
+
 def internet_ok():
     try:
         fetch(f"{WIKI_API}?action=query&meta=siteinfo&format=json", timeout=5, headers=WEB_HEADERS)
@@ -637,6 +726,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(json.load(open(os.path.join(APP_DIR, "facts.json"))))
             except (OSError, ValueError):
                 return self.send_json([])
+        if path == "/api/personalities":
+            return self.send_json(custom_personalities())
         if path == "/api/themes":
             return self.send_json(custom_themes())
         if path == "/api/omarchy-theme":
@@ -668,8 +759,18 @@ class Handler(BaseHTTPRequestHandler):
                 settings["theme"] = update["theme"]
             if isinstance(update.get("muted"), bool):
                 settings["muted"] = update["muted"]
+            for key in ("scenario", "personality"):
+                if isinstance(update.get(key), str) and re.fullmatch(r"[a-z0-9-]{1,40}", update[key]):
+                    settings[key] = update[key]
             write_json(SETTINGS_FILE, settings)
             return self.send_json(settings)
+        if self.path == "/api/personalities":
+            try:
+                return self.send_json(save_personality(self.read_json().get("personality")))
+            except (ValueError, TypeError) as e:
+                return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/personalities/delete":
+            return self.send_json(delete_personality(str(self.read_json().get("id", ""))))
         if self.path == "/api/themes":
             try:
                 return self.send_json(save_custom_theme(self.read_json().get("theme")))
@@ -757,7 +858,7 @@ def answer(req, emit):
         for i, s in enumerate(sources, 1)
     ]})
 
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages = [{"role": "system", "content": build_system_prompt()}]
     for turn in history[-HISTORY_TURNS * 2:]:
         role = "assistant" if turn.get("role") == "assistant" else "user"
         messages.append({"role": role, "content": str(turn.get("content", ""))[:600]})

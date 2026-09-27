@@ -527,6 +527,123 @@ kbd { font: inherit; opacity: .7; margin-left: 4px; }
 .lib-note code { color: var(--signal); }
 .lib-all { width: 100%; margin: 4px 0 16px; }
 
+/* ----------------------------------------------------------------- loadout */
+
+.loadout-chip {
+  display: block; margin-top: 3px; padding: 0; border: 0; background: none; cursor: pointer;
+  font: 10px var(--font); letter-spacing: .24em; color: var(--accent); white-space: nowrap;
+  -webkit-text-stroke: 0; transition: color .15s;
+}
+.loadout-chip::before { content: "◆ "; }
+.loadout-chip:hover { color: var(--signal); }
+
+.loadout {
+  position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column;
+  background: var(--bg); animation: fade .2s ease-out both;
+}
+.lo-head {
+  display: flex; align-items: center; gap: 18px; padding: 12px 20px;
+  background: var(--bg-1); border-bottom: 1px solid var(--line);
+}
+.lo-title { color: var(--fg-bright); font-weight: 800; letter-spacing: .34em; font-size: 13px; }
+.lo-title .spin { color: var(--signal); }
+.lo-tabs { display: flex; gap: 6px; flex: 1; justify-content: center; }
+.lo-tabs button {
+  font: 700 11px var(--font); letter-spacing: .24em; padding: 7px 16px; cursor: pointer;
+  background: transparent; color: var(--dim); border: 1px solid var(--line);
+  transition: color .15s, border-color .15s, background-color .15s;
+}
+.lo-tabs button:hover { color: var(--fg-bright); border-color: var(--muted); }
+.lo-tabs button.on { color: var(--bg); background: var(--signal); border-color: var(--signal); }
+
+.lo-body {
+  flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) min(400px, 44%);
+}
+.lo-grid {
+  overflow-y: auto; padding: 18px 20px; align-content: start;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;
+}
+.lo-card {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 14px 10px 12px; cursor: pointer; text-align: center;
+  background: var(--bg-1); border: 1px solid var(--line); color: var(--fg);
+  font: 12px var(--font); animation: rise .3s ease-out both;
+  transition: transform .15s, border-color .15s;
+}
+.lo-card:hover { transform: translateY(-2px); border-color: var(--muted); }
+.lo-card.selected { border-color: var(--signal); }
+.lo-card.selected::before, .lo-card.selected::after {
+  content: ""; position: absolute; width: 10px; height: 10px; border: 2px solid var(--signal);
+}
+.lo-card.selected::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+.lo-card.selected::after { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+.lo-card.active .lo-name::after { content: " ✓"; color: var(--signal); }
+.lo-mini {
+  margin: 0 0 6px; font: 11px/1.1 var(--font); color: var(--signal); -webkit-text-stroke: 0;
+}
+.lo-name { color: var(--fg-bright); font-weight: 700; letter-spacing: .08em; }
+.lo-tag { color: var(--dim); font-size: 10.5px; line-height: 1.35; }
+.lo-create { border-style: dashed; justify-content: center; min-height: 150px; background: transparent; }
+.lo-create:hover { border-color: var(--signal); }
+.lo-plus { font-size: 30px; line-height: 1; color: var(--signal); margin-bottom: 4px; }
+
+.lo-detail {
+  overflow-y: auto; padding: 18px 22px 22px; border-left: 1px solid var(--line); background: var(--bg-1);
+}
+.lo-stage {
+  display: grid; place-items: center; padding: 18px 0; margin-bottom: 12px;
+  border: 1px solid var(--line); background: var(--bg);
+}
+.lo-stage.deployed { animation: deployed .6s ease-out; }
+@keyframes deployed { 30% { border-color: var(--signal); background: var(--signal-soft); } }
+.lo-portrait {
+  margin: 0; font: 700 22px/1.08 var(--font); color: var(--signal); -webkit-text-stroke: 0;
+  text-shadow: 1px 1px 0 var(--shade-2), 2px 2px 0 var(--shade-3);
+}
+.lo-dname { color: var(--fg-bright); font-weight: 800; letter-spacing: .28em; font-size: 15px; }
+.lo-dtag { color: var(--accent); font-size: 11.5px; margin: 2px 0 14px; }
+.lo-stats { display: grid; gap: 6px; margin-bottom: 14px; }
+.lo-stat { display: grid; grid-template-columns: 92px 1fr; align-items: center; gap: 10px; }
+.lo-sk { font-size: 9.5px; letter-spacing: .24em; color: var(--faint); }
+.lo-bar { display: flex; gap: 3px; }
+.lo-bar i { flex: 1; height: 8px; background: var(--bg-3); }
+.lo-bar i.fill { background: var(--signal); animation: fillin .35s ease-out both; }
+@keyframes fillin { from { background: var(--bg-3); transform: scaleY(.3); } }
+.lo-desc { color: var(--fg); font-size: 12.5px; line-height: 1.6; margin: 0 0 12px; }
+.lo-sample {
+  margin: 0 0 16px; padding: 8px 12px; border-left: 2px solid var(--signal);
+  color: var(--fg-bright); font-size: 13px; font-style: italic; background: var(--bg-2);
+}
+.lo-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.lo-deploy:disabled { opacity: .6; cursor: default; }
+
+.lo-ed-title { font-weight: 800; letter-spacing: .3em; font-size: 12px; color: var(--signal); margin-bottom: 12px; }
+.lo-face {
+  display: flex; align-items: center; justify-content: center; gap: 18px; padding: 12px 0; margin-bottom: 12px;
+  border: 1px solid var(--line); background: var(--bg);
+}
+.lo-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.lo-field span { font-size: 9.5px; letter-spacing: .26em; color: var(--faint); }
+.lo-field input, .lo-field textarea {
+  font: 12.5px var(--font); color: var(--fg-bright); background: var(--bg-2); resize: vertical;
+  border: 1px solid var(--line); padding: 7px 10px; outline: 0;
+}
+.lo-field input:focus, .lo-field textarea:focus { border-color: var(--signal); }
+.lo-sliders { display: grid; gap: 8px; margin: 6px 0 16px; }
+.lo-slider { display: grid; grid-template-columns: 92px 1fr 18px; gap: 2px 10px; align-items: center; }
+.lo-slider input { accent-color: var(--signal); }
+.lo-slider b { color: var(--signal); font-size: 12px; text-align: right; }
+.lo-slider small { grid-column: 2 / -1; color: var(--dim); font-size: 10px; }
+
+@media (max-width: 760px) {
+  .lo-body { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+  .lo-grid { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); max-height: 42vh; }
+  .lo-detail { border-left: 0; border-top: 1px solid var(--line); }
+  .lo-head { gap: 8px; padding: 10px 12px; }
+  .lo-title { display: none; }
+  .lo-tabs button { padding: 6px 10px; letter-spacing: .16em; }
+}
+
 /* -------------------------------------------------------------------- lock */
 
 body.locked .top { z-index: 75; }
