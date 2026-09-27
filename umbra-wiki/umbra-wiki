@@ -27,7 +27,7 @@ gi.require_version("WebKit2", "4.1")
 from gi.repository import Gdk, Gio, GLib, Gtk, WebKit2  # noqa: E402
 
 APP_ID = "org.umbra.wiki"
-URL = "http://127.0.0.1:8766/"
+URL = f"http://127.0.0.1:{os.environ.get('UMBRA_PORT', '8766')}/"
 
 
 def backend_up():
@@ -54,13 +54,21 @@ class UmbraWiki(Gtk.Application):
         # NON_UNIQUE: every launch opens its own window and process.
         super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.NON_UNIQUE)
         self.question = question
+        self.closing = False
 
     def do_activate(self):
         win = Gtk.ApplicationWindow(application=self, title="Umbra Wiki")
         win.set_default_size(1180, 820)
         win.set_icon_name(APP_ID)
 
-        view = WebKit2.WebView()
+        # The page says "close" when the user has confirmed leaving and the
+        # outro has played (see umbraExit in app.js).
+        manager = WebKit2.UserContentManager()
+        manager.register_script_message_handler("umbra")
+        manager.connect("script-message-received::umbra", lambda _m, result: self.on_message(win, result))
+        view = WebKit2.WebView.new_with_user_content_manager(manager)
+        self.view = view
+        win.connect("delete-event", self.on_close_request)
         view.set_background_color(Gdk.RGBA(9 / 255, 9 / 255, 9 / 255, 1))
         settings = view.get_settings()
         settings.set_enable_developer_extras(False)
@@ -75,6 +83,8 @@ class UmbraWiki(Gtk.Application):
                 query = "?view=loadout"
             elif self.question == "--profile":
                 query = "?view=profile"
+            elif self.question == "--autotour":
+                query = "?autotour=1"   # plays the welcome tour by itself (testing)
             else:
                 query = "?" + urllib.parse.urlencode({"q": self.question}) if self.question else ""
             view.load_uri(URL + query)
@@ -86,6 +96,35 @@ class UmbraWiki(Gtk.Application):
 
         win.add(view)
         win.show_all()
+
+    def on_close_request(self, win, _event):
+        """Closing the window asks the page first; it confirms, plays the
+        outro and then sends "close". If the page can't answer (it failed
+        to load), the window simply closes."""
+        if self.closing:
+            return False
+
+        def asked(view, result):
+            try:
+                answer = view.evaluate_javascript_finish(result).to_string()
+            except GLib.Error:
+                answer = "no"
+            if answer != "ok":
+                self.closing = True
+                win.close()
+
+        self.view.evaluate_javascript(
+            "typeof window.umbraExit === 'function' ? window.umbraExit() : 'no'", -1, None, None, None, asked)
+        return True
+
+    def on_message(self, win, result):
+        try:
+            text = result.get_js_value().to_string()
+        except (AttributeError, GLib.Error):
+            text = ""
+        if text == "close":
+            self.closing = True
+            win.close()
 
 
 if __name__ == "__main__":

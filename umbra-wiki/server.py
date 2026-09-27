@@ -1118,7 +1118,8 @@ def apply_settings(update):
         settings = read_json(SETTINGS_FILE, {})
         if isinstance(update.get("theme"), str) and re.fullmatch(r"[a-z0-9-]{1,40}", update["theme"]):
             settings["theme"] = update["theme"]
-        for key in ("muted", "onboarded", "rain", "reduceMotion", "suggestions", "greeting", "barAlert", "hoverSounds"):
+        for key in ("muted", "onboarded", "rain", "reduceMotion", "suggestions", "greeting", "barAlert", "hoverSounds",
+                    "confirmExit"):
             if isinstance(update.get(key), bool):
                 settings[key] = update[key]
         if isinstance(update.get("hiddenControls"), list):
@@ -1183,7 +1184,7 @@ def documents_dir():
 def drives():
     """The Documents folder plus removable drives mounted for this user (USB
     sticks), as places to export and back up to."""
-    base = os.path.join("/run/media", os.environ.get("USER", ""))
+    base = os.environ.get("UMBRA_MEDIA_DIR") or os.path.join("/run/media", os.environ.get("USER", ""))   # override: testing
     try:
         names = sorted(n for n in os.listdir(base) if os.path.isdir(os.path.join(base, n)))
     except OSError:
@@ -1302,7 +1303,8 @@ def restore(data):
 def on_battery():
     """True when running on battery (for off-grid mode's automatic setting)."""
     try:
-        mains = [p for p in glob.glob("/sys/class/power_supply/*")
+        supplies = os.environ.get("UMBRA_POWER_DIR") or "/sys/class/power_supply"   # override: testing
+        mains = [p for p in glob.glob(os.path.join(supplies, "*"))
                  if open(os.path.join(p, "type")).read().strip() == "Mains"]
         return bool(mains) and not any(open(os.path.join(p, "online")).read().strip() == "1" for p in mains)
     except OSError:
@@ -1836,8 +1838,9 @@ def answer(req, emit):
 
     system = build_system_prompt(online)
     if offgrid:
-        system += (" OFF-GRID MODE: the user is saving battery. Keep the answer short: only the essential "
-                   "steps, no long explanations.")
+        system += (" OFF-GRID MODE: the user is saving battery. Keep the answer short: the essential steps "
+                   "in their proper order, without long explanations. Never skip the first step or any "
+                   "safety-critical step to save words (for bleeding, firm direct pressure always comes first).")
     messages = [{"role": "system", "content": system}]
     for turn in history[-HISTORY_TURNS * 2:]:
         role = "assistant" if turn.get("role") == "assistant" else "user"

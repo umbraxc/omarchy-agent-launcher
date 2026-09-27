@@ -6,6 +6,10 @@
 
 (() => {
   let skipped = false;
+  // ?autotour plays the tour by itself with the default choices (for
+  // testing; it never downloads a model or a library).
+  const AUTO = new URLSearchParams(location.search).has("autotour");
+  const autoClick = (el) => { if (AUTO) setTimeout(() => el && el.isConnected && el.click(), 650); };
   const SKIP = new Error("skip");
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const post = (url, data) => fetch(url, {
@@ -48,6 +52,7 @@
       answer.appendChild(row);
       skipHooks.push(() => reject(SKIP));
       wake();
+      autoClick(row.querySelector("button"));
     });
   }
 
@@ -69,6 +74,7 @@
       skipHooks.push(() => reject(SKIP));
       wake();
       setTimeout(() => inp.focus(), 50);
+      if (AUTO) { inp.value = multiline ? "" : "Tester"; autoClick(box.querySelector(".solid")); }
     });
   }
 
@@ -99,6 +105,7 @@
       answer.append(grid, next);
       skipHooks.push(() => reject(SKIP));
       wake();
+      autoClick(next.querySelector("button"));
     });
   }
 
@@ -109,12 +116,12 @@
     ["#link", "LINK", "LOCAL means fully offline (the default). Switch to ONLINE when you have internet and I add Wikipedia for fuller, more current answers. I always ask first."],
     [".cell.status", "STATUS", "Shows when I'm ready, working, or can't reach my AI."],
     ["#loadout-btn", "PROFILE & LOADOUT", "Your profile (name, picture, character), plus scenarios and personalities. You can create your own of both."],
-    ["#history-btn", "HISTORY", "Every conversation is saved on this computer. Reopen and continue any of them."],
-    ["#library-btn", "LIBRARY", "The offline collections I read from. Download more here: medicine, repairs, gardening, radio and more."],
+    ["#history-btn", "HISTORY", "Every conversation is saved on this computer. Reopen and continue any of them, search through everything that was said, and export them to a file or a USB stick."],
+    ["#library-btn", "LIBRARY", "The offline collections I read from, and my built-in Field Manual: the critical basics, always available. Download more collections here."],
     ["#theme-btn", "THEMES", "Pick a colour theme, follow your Omarchy theme, or design your own."],
     ["#sound", "SOUND", "Mute or unmute my sounds."],
     ["#lock", "LOCK", "Locks the window so nothing can be clicked or typed by accident."],
-    ["#settings-btn", "SETTINGS", "Volume, motion, the AI model, voice, storage, replaying this tour, and resetting Umbra."],
+    ["#settings-btn", "SETTINGS", "Text size, the start screen background, off-grid mode, sounds, the AI model, voice, backups, keyboard shortcuts (F1), replaying this tour, and more."],
     ["#q", "ASK", "Type here. Enter sends, Shift+Enter adds a line, Tab uses my suggested reply, Ctrl+Z undoes."],
     ["#mic", "VOICE", "Hold F9 (or click) and just talk. Speech is turned into text offline."],
     ["#send", "TRANSMIT", "Sends your question. While I'm answering it becomes STOP (or press Esc)."],
@@ -159,6 +166,10 @@
       addEventListener("resize", show);
       skipHooks.push(() => finish(false));
       show();
+      if (AUTO) {
+        const step = () => { if (shade.isConnected) { shade.querySelector(".spot-next").click(); setTimeout(step, 400); } };
+        setTimeout(step, 400);
+      }
     });
   }
 
@@ -226,6 +237,7 @@
       })),
     ];
     let model = installed.includes(models.current) ? models.current : installed[0] || sys.recommended || "gemma3:4b";
+    if (AUTO && installed.length) model = installed.includes(models.current) ? models.current : installed[0];
     await cards(a, modelCards, model, (id) => { model = id; Sound.click(); },
       (id) => (installed.includes(id) ? "USE THIS MODEL ▸" : `DOWNLOAD ${(models.choices.find((c) => c.id === id) || {}).size || ""} GB ▸`));
     if (installed.includes(model)) {
@@ -246,6 +258,7 @@
     const done = [...packs].reverse().find((p) => !p.missing.length);
     const fits = (p) => !sys.freeGB || p.missingSize / 1e9 < sys.freeGB - 2;
     let pack = done ? done.id : (packs.find((p) => p.recommended && fits(p)) || packs[0] || { id: "none" }).id;
+    if (AUTO) pack = "none";
     await say("Next, my **library**: the offline knowledge I read from when I answer. With no library I answer from memory alone; " +
       "with a big one I can quote real field manuals, medical guides and repair steps.");
     a = await say("> *The more you prepare on a calm day, the more you'll have on a hard one.*\n\n" +
@@ -287,6 +300,38 @@
       (id) => { postSettings({ personality: id }); Sound.theme(); });
     if (window.reloadLoadout) window.reloadLoadout();
 
+    // Comfort: text size, the start screen, and power.
+    a = await say("Let's make it comfortable. First, **how big should my text be?** It changes right away.");
+    const sizes = [["0.9", "Small"], ["1", "Normal"], ["1.12", "Large"], ["1.25", "Extra large"]];
+    await cards(a, sizes.map(([id, name]) => ({ id, name, line: id === "1" ? "The default" : "" })), String(settings.textScale || 1), (id) => {
+      document.documentElement.style.setProperty("--ts", id);
+      postSettings({ textScale: Number(id) });
+      if (window.prefs) window.prefs.textScale = Number(id);
+      Sound.click();
+    });
+    const bgs = (window.UmbraBackgrounds && window.UmbraBackgrounds.list) || [];
+    if (bgs.length) {
+      a = await say("And **what should move behind my start screen?** Pick a mood; you'll see it in a moment.");
+      await cards(a, bgs.map(([id, name]) => ({ id, name })), settings.background || "rain", (id) => {
+        postSettings({ background: id });
+        if (window.prefs) window.prefs.background = id;
+        Sound.click();
+      });
+    }
+    let offgridChoice = settings.offgrid || "auto";
+    a = await say("One more, and it matters off the grid: **off-grid mode**, my battery saver. It stops the animations, keeps me quiet, " +
+      "skips my extra AI work and makes my answers shorter, so the battery lasts. \"On battery\" switches it on by itself when you unplug.");
+    await cards(a, [
+      { id: "auto", name: "On battery  ★", line: "Recommended for laptops: saves power only when unplugged" },
+      { id: "off", name: "Off", line: "Full experience, always" },
+      { id: "on", name: "Always on", line: "Lightest on power, all the time" },
+    ], settings.offgrid || "auto", (id) => { offgridChoice = id; Sound.click(); });
+    await postSettings({ offgrid: offgridChoice });   // the preselected choice counts too
+    const voice = await fetch("/api/voice").then((r) => r.json()).catch(() => ({}));
+    await say(voice.available
+      ? "Last thing: **voice input is ready.** Hold **F9** (or click the microphone) and just talk; it's turned into text right here, offline."
+      : "Last thing: **voice input** isn't installed yet. On Omarchy, run `omarchy-voxtype-install` and then hold **F9** to talk to me.");
+
     // The screen, piece by piece.
     a = await say("Now a quick look at the screen, piece by piece.");
     await choose(a, [["START THE SCREEN TOUR ▸", "go", true]]);
@@ -296,6 +341,9 @@
       "- My answers cite their sources as numbered tags. **Hover** one for a summary, **click** to open the page.\n" +
       "- I usually end with an offer. Click it, or press **Tab** then **Enter**, to accept.\n" +
       "- While I think, a little scene and **field notes** keep you company. Answers take a minute or so, because everything runs on this computer.\n" +
+      "- My **Field Manual** (in the Library) has the critical basics, from bleeding to water, and I use it in my answers too.\n" +
+      "- **Export** conversations or the manual to a file or a USB stick, and **back up** your whole Umbra from Settings.\n" +
+      "- Press **F1** any time for the keyboard shortcuts.\n" +
       "- On Omarchy, the **Umbra icon in the top bar** opens me, shows your loadout and a new field note every hour, and lights up when an answer is waiting.");
     a = await say(`That's the tour${who !== "friend" ? `, **${who}**` : ""}. You can replay it any time from **Settings**. Ready when you are.`);
     await choose(a, [["START USING UMBRA ▸", "go", true]]);
@@ -319,6 +367,7 @@
     document.querySelector(".spot-shade")?.remove();
     document.body.classList.remove("touring");
     await postSettings({ onboarded: true });
+    if (window.reloadPrefs) await window.reloadPrefs();
     if (window.prefs) window.prefs.onboarded = true;
     // From the tour to the home screen through an ASCII transition.
     const me = (window.UmbraProfile && window.UmbraProfile.data.name) || "";

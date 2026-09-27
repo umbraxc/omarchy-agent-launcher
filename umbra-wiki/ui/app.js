@@ -133,7 +133,7 @@ const Sound = (() => {
       .catch(() => {});
   };
   const names = ["launch", "key", "hover", "click", "send", "searchstart", "found", "done",
-                 "lock", "unlock", "online", "local", "theme", "error", "beep", "boot"];
+                 "lock", "unlock", "online", "local", "theme", "error", "beep", "boot", "glitch", "shutdown"];
   const api = { get muted() { return muted; }, set muted(v) { muted = v; if (v) api.hum(false); } };
   names.forEach((n) => (api[n] = () => play(n)));
   api.hover = () => { if ((!window.prefs || window.prefs.hoverSounds !== false) && !window.offgrid) play("hover"); };
@@ -678,7 +678,7 @@ function asciiWipe(swap, { covered = false, welcome = "" } = {}) {
     const start = performance.now();
     let swapped = false, first = true, lastGlyphs = 0;
     const beeps = [1000, 1260, 1520];                    // ONLINE blinks with these
-    const glitchBeeps = [GLITCH[0], GLITCH[0] + 240];    // and these announce the glitch
+    let glitchSounded = false;                           // the glitch has its own sound
     let beeped = 0;
 
     const frame = (now) => {
@@ -718,8 +718,8 @@ function asciiWipe(swap, { covered = false, welcome = "" } = {}) {
       // status line fades in, the welcome types; all drift up and fade out.
       const k = t - IN;
       if (k > 0 && (!phaseOut || t < IN + HOLD + OUT * 0.55)) {
-        const allBeeps = beeps.concat(glitchBeeps);
-        while (beeped < allBeeps.length && k >= allBeeps[beeped]) { Sound.beep(); beeped++; }
+        while (beeped < beeps.length && k >= beeps[beeped]) { Sound.beep(); beeped++; }
+        if (!glitchSounded && k >= GLITCH[0]) { glitchSounded = true; Sound.glitch(); }
         const outK = phaseOut ? (t - IN - HOLD) / (OUT * 0.55) : 0;
         const fade = 1 - outK, lift = outK * 16;
         const typed = (text, from, dur) => text.slice(0, Math.max(0, Math.ceil(text.length * Math.min(1, (k - from) / dur))));
@@ -1545,6 +1545,160 @@ async function ask(question, shownAs = "") {
 }
 
 // ------------------------------------------------------------------ reader
+
+// ------------------------------------------------------------------ leaving
+
+// The outro, a variation of the boot: the glyph wave closes in from the
+// edges, UMBRA // OFFLINE types in and blinks, the farewell appears, then
+// everything collapses into a bright line and a dot, like an old screen
+// switching off.
+function asciiOutro(farewell) {
+  return new Promise((resolve) => {
+    const canvas = document.createElement("canvas");
+    canvas.className = "wipe";
+    document.body.appendChild(canvas);
+    const w = innerWidth, h = innerHeight, cw = 11, ch = 20;
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    const cols = Math.ceil(w / cw), rows = Math.ceil(h / ch), n = cols * rows;
+    const mask = document.createElement("canvas");
+    mask.width = cols; mask.height = rows;
+    const mctx = mask.getContext("2d");
+    const img = mctx.createImageData(cols, rows);
+    const layer = document.createElement("canvas");
+    layer.width = w; layer.height = h;
+    const lctx = layer.getContext("2d");
+    const glyphs = "░▒▓█#%&@*+=:·アイウエオカキクケコ0123456789".split("");
+    // Far cells close first, so the dark closes in on the centre.
+    const at = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const x = i % cols, y = (i / cols) | 0;
+      at[i] = 1.2 - Math.hypot((x - cols / 2) / cols, (y - rows / 2) / rows) * 1.3 + Math.random() * 0.2;
+    }
+    const CLOSE = 1100, HOLD = 2000, COLLAPSE = 650, FADE = 300, band = 0.2;
+    const title = "UMBRA // OFFLINE", sub = "HISTORY SAVED · SETTINGS KEPT · STAY SAFE";
+    const color = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+    const rgb = (c) => {
+      const m = c.match(/^#([0-9a-f]{6})$/i);
+      return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [9, 9, 9];
+    };
+    const start = performance.now();
+    let lastGlyphs = 0, beeped = 0;
+    const beeps = [950, 1200];
+    setTimeout(() => Sound.shutdown(), CLOSE + HOLD + COLLAPSE - 1900);   // the reversed chime ends as the screen goes out
+
+    const frame = (now) => {
+      const t = now - start;
+      const [bg, signal, shade, dim, accent, font] = ["--bg", "--signal", "--shade-2", "--dim", "--accent", "--font"].map(color);
+      ctx.clearRect(0, 0, w, h);
+      if (t < CLOSE + HOLD) {
+        // The closing wave, then darkness with a few embers.
+        const p = t < CLOSE ? (t / CLOSE) * 1.45 : 2;
+        const [r, g, b] = rgb(bg);
+        const px = img.data;
+        const refresh = now - lastGlyphs > 45;
+        if (refresh) { lastGlyphs = now; lctx.clearRect(0, 0, w, h); lctx.font = `${ch - 6}px ${font}`; lctx.textBaseline = "top"; }
+        for (let i = 0; i < n; i++) {
+          const k = p - at[i];
+          const cover = k <= 0 ? 0 : k >= band ? 1 : k / band;
+          const o = i * 4;
+          px[o] = r; px[o + 1] = g; px[o + 2] = b; px[o + 3] = cover * 255;
+          if (refresh && ((k > 0 && k < band) || (cover === 1 && Math.random() < 0.01))) {
+            lctx.fillStyle = Math.random() < 0.15 ? signal : shade;
+            lctx.fillText(glyphs[(Math.random() * glyphs.length) | 0], (i % cols) * cw, ((i / cols) | 0) * ch + 2);
+          }
+        }
+        mctx.putImageData(img, 0, 0);
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(mask, 0, 0, cols * cw, rows * ch);
+        ctx.drawImage(layer, 0, 0);
+      } else {
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      // The text, typed in; in the collapse it is squashed with everything.
+      const k = t - CLOSE;
+      const collapse = t > CLOSE + HOLD ? Math.min(1, (t - CLOSE - HOLD) / COLLAPSE) : 0;
+      if (k > 0 && collapse < 1) {
+        while (beeped < beeps.length && k >= beeps[beeped]) { Sound.beep(); beeped++; }
+        const typed = (text, from, dur) => text.slice(0, Math.max(0, Math.ceil(text.length * Math.min(1, (k - from) / dur))));
+        const blink = beeps.some((b) => k >= b && k < b + 120);
+        const a = typed(title, 100, 700);
+        const shown = k > beeps[0] - 100 && k < beeps[1] + 240 && !blink ? "UMBRA //" + " ".repeat(8) : a;
+        ctx.save();
+        ctx.translate(w / 2, h / 2);
+        ctx.scale(1 + collapse * 0.4, Math.max(0.02, 1 - collapse * 1.1));
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = `800 28px ${font}`;
+        ctx.fillStyle = signal;
+        ctx.fillText(shown, 0, -34);
+        ctx.globalAlpha = Math.min(1, Math.max(0, (k - 1250) / 400));
+        ctx.font = `11px ${font}`;
+        ctx.fillStyle = dim;
+        ctx.fillText(sub, 0, -2);
+        ctx.globalAlpha = 1;
+        const f = typed(farewell, 1500, 500);
+        if (f) {
+          ctx.font = `700 15px ${font}`;
+          ctx.fillStyle = accent || signal;
+          ctx.fillText(f, 0, 30);
+        }
+        ctx.restore();
+      }
+      // The switch-off: a bright line that narrows to a dot and fades.
+      if (collapse > 0) {
+        const end = t - CLOSE - HOLD - COLLAPSE;
+        const lineW = collapse < 0.7 ? w * 0.8 : w * 0.8 * Math.max(0.004, 1 - (collapse - 0.7) / 0.3);
+        const lineH = 2 + 6 * (1 - collapse);   // a thin line that brightens as the text flattens into it
+        ctx.globalAlpha = end > 0 ? Math.max(0, 1 - end / FADE) : Math.min(1, 0.25 + collapse);
+        ctx.fillStyle = signal;
+        ctx.shadowColor = signal;
+        ctx.shadowBlur = 18;
+        ctx.fillRect(w / 2 - lineW / 2, h / 2 - lineH / 2, lineW, lineH);
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+      }
+      if (t < CLOSE + HOLD + COLLAPSE + FADE) requestAnimationFrame(frame);
+      else resolve();   // the canvas stays: the window is closing
+    };
+    requestAnimationFrame(frame);
+  });
+}
+
+// Closing the window lands here (the launcher asks before closing). Umbra
+// asks once, since everything is already saved, then plays the outro and
+// tells the window to close. A second close request goes straight out.
+let exitAsked = false, exiting = false;
+function closeWindow() {
+  try { window.webkit.messageHandlers.umbra.postMessage("close"); } catch { window.close(); }
+}
+async function leaveUmbra() {
+  if (exiting) return;
+  exiting = true;
+  if (controller) controller.abort();
+  Sound.hum(false);
+  $("#modal").hidden = true;
+  const calm = document.body.classList.contains("reduce-motion");
+  if (!calm) {
+    const name = (window.UmbraProfile && window.UmbraProfile.data.name) || "";
+    await asciiOutro(name ? `SEE YOU SOON, ${name}` : "SEE YOU SOON, SURVIVOR");
+  }
+  closeWindow();
+}
+window.umbraExit = () => {
+  if (exiting) return "ok";
+  if (exitAsked || (window.prefs && window.prefs.confirmExit === false)) { leaveUmbra(); return "ok"; }
+  exitAsked = true;
+  confirmDialog({
+    kind: "to-local", tag: "LEAVE", title: "LEAVE UMBRA?",
+    body: "Everything is saved on this computer: your conversations stay in History, and your settings and profile " +
+      "stay as they are." + (controller ? "\n\nThe answer in progress will stop." : ""),
+    ok: "LEAVE", cancel: "STAY",
+  }).then((ok) => { exitAsked = false; if (ok) leaveUmbra(); });
+  return "ok";
+};
 
 // ------------------------------------------------------- export and save
 

@@ -118,6 +118,7 @@
         ${toggle("greeting", "Personal greeting", "Welcome you on the start screen, picking up from last time")}
         ${toggle("suggestions", "Suggested replies", "Offer a likely reply after each answer (Tab to use it)")}
         ${toggle("barAlert", "Bar alert", "Light up the bar icon when an answer arrives in the background")}
+        ${toggle("confirmExit", "Ask before closing", "A short confirmation (and the goodbye animation) when you close Umbra")}
         <label class="set-row"><span class="set-text"><b>Text size</b><small>Answers, your messages, the questions on the start screen and the prompt</small></span>
           <select class="set-textsize"><option value="0.9">Small</option><option value="1">Normal</option>
             <option value="1.12">Large</option><option value="1.25">Extra large</option></select></label>
@@ -374,6 +375,7 @@
   }
   window.closeSettings = () => open(false, true);
   window.openSettings = () => open(true);
+  window.reloadPrefs = load;
 
   $("#settings-btn").addEventListener("click", () => open());
   $("#settings-close").addEventListener("click", () => open(false));
