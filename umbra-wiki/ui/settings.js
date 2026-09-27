@@ -189,7 +189,8 @@
             <button class="ghost set-un-go">UNINSTALL UMBRA</button></div>
         </div>
       </section>
-      <p class="set-about">Umbra Wiki · part of Omarchy Umbra · sounds by Kenney (CC0)</p>`;
+      <p class="set-about">Umbra Wiki <span class="set-version"></span> · part of Omarchy Umbra · sounds by Kenney (CC0) · MIT license</p>`;
+    fetch("/api/status").then((r) => r.json()).then((s) => { const v = body.querySelector(".set-version"); if (v && s.version) v.textContent = s.version; }).catch(() => {});
 
     body.querySelectorAll(".set-toggle").forEach((box) => {
       const key = box.dataset.key;

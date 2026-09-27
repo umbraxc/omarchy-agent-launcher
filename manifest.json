@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "io.github.umbraxc.agent-launcher",
   "name": "Omarchy Umbra",
-  "version": "2.2.0",
+  "version": "3.0.0",
   "author": "umbraxc",
   "license": "MIT",
-  "description": "Agent tool for the Omarchy bar: Umbra Wiki, an offline survival AI, plus your coding agents, each one click away",
+  "description": "Umbra Wiki, an offline survival AI that answers from a library on your computer, plus your coding agents, one click away in the Omarchy bar",
   "kinds": [
     "bar-widget"
   ],
@@ -14,7 +14,7 @@
   },
   "barWidget": {
     "displayName": "Omarchy Umbra",
-    "description": "LOCAL: Umbra Wiki, the offline survival assistant (or its guided setup). ONLINE AGENTS: coding agents with live session counts. THEME: Umbra Wiki colours.",
+    "description": "Umbra at a glance: status, quick sound and off-grid switches, your loadout and latest conversations, themes, your coding agents with live sessions, and an hourly field note.",
     "category": "AI",
     "allowMultiple": false,
     "defaultSection": "right",
