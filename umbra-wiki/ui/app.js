@@ -9,6 +9,7 @@ const input = $("#q");
 const send = $("#send");
 const phaseBox = $("#phase");
 const elapsedEl = $("#elapsed");
+const introTemplate = $("#intro").cloneNode(true);   // for "new conversation"
 
 const PHASES = ["search", "read", "think", "write"];
 const PHASE_TEXT = { search: "Scanning archives", read: "Extracting sources", think: "Thinking", write: "Writing" };
@@ -81,37 +82,24 @@ function startNotes(answerEl) {
   noteTimer = setInterval(show, 7000);
 }
 
-// A survivor walking in place over moving ground, while Umbra searches.
-function walker(el) {
-  const bodies = [
-    ["   O   ", "  /|\\# ", "  / >  "],
-    ["   O   ", "  /|\\# ", "   |>  "],
-    ["   O   ", "  /|\\# ", "  < \\  "],
-    ["   O   ", "  /|\\# ", "   |\\  "],
-  ];
-  const ground = "._.-'-._.·´¯`·._.-'-._.·´¯`·._";
-  let f = 0, alive = true;
-  const tick = () => {
-    if (!alive || !el.isConnected) return;
-    const g = ground.slice(f % 10, (f % 10) + 9);
-    el.textContent = bodies[f % bodies.length].join("\n") + "\n" + g;
-    f++;
-    setTimeout(tick, 170);
-  };
-  tick();
-  return () => { alive = false; };
-}
-
+// While Umbra searches, a little scene that fits the chosen scenario
+// (scenes.js); a different one each question. The globe takes over while
+// it thinks.
+let lastScene = "";
 function setWaitingArt(answerEl, phase) {
   const art = answerEl.querySelector(".wart");
   if (!art) return;
-  const kind = phase === "think" ? "orb" : "walker";
+  const kind = phase === "think" ? "orb" : "scene";
   if (art.dataset.kind === kind) return;
   if (stopArt) stopArt();
   art.dataset.kind = kind;
   art.className = "wart " + kind;
   art.textContent = "";
-  stopArt = kind === "orb" ? orb(art, 14, 10) : walker(art);
+  if (kind === "orb") { stopArt = orb(art, 14, 10); return; }
+  if (!answerEl.dataset.scene) {
+    answerEl.dataset.scene = lastScene = window.UmbraScenes.pick(window.loadoutScenario, lastScene);
+  }
+  stopArt = window.UmbraScenes.run(answerEl.dataset.scene, art);
 }
 
 function stopWaiting() {
@@ -365,6 +353,7 @@ function toggleThemes(show = $("#themes").hidden, quiet = false) {
   if (show) {
     $("#library").hidden = true;
     $("#library-btn").classList.remove("on");
+    if (window.closeHistory) window.closeHistory();
     renderThemeGrid();
   }
   if (!quiet) Sound.click();
@@ -431,7 +420,7 @@ function toggleLibrary(show = $("#library").hidden) {
   if (show && locked) return;
   $("#library").hidden = !show;
   $("#library-btn").classList.toggle("on", show);
-  if (show) { toggleThemes(false, true); renderLibrary(); }
+  if (show) { toggleThemes(false, true); if (window.closeHistory) window.closeHistory(); renderLibrary(); }
   Sound.click();
 }
 $("#library-btn").addEventListener("click", () => toggleLibrary());
@@ -531,7 +520,6 @@ function orb(el, w, h) {
   raf = requestAnimationFrame(frame);
   return () => { alive = false; cancelAnimationFrame(raf); };
 }
-orb($("#intro-orb"), 19, 13);
 
 // Digital rain: columns of random characters falling behind the intro,
 // fading as they go. ~16 frames a second on a small canvas.
@@ -572,7 +560,22 @@ function startRain() {
   rainRaf = requestAnimationFrame(frame);
 }
 function stopRain() { cancelAnimationFrame(rainRaf); rainRaf = 0; }
-startRain();
+
+// Puts the start screen back (for a new conversation) and starts its motion.
+function showIntro(first = false) {
+  if (!first) {
+    stopRain();
+    feed.innerHTML = "";
+    feed.appendChild(introTemplate.cloneNode(true));
+  }
+  orb($("#intro-orb"), 19, 13);
+  startRain();
+  document.querySelectorAll("#intro .chip").forEach((c) => {
+    c.addEventListener("mouseenter", Sound.hover);
+    c.addEventListener("click", () => ask(c.textContent));
+  });
+}
+showIntro(true);
 Sound.launch();
 
 // ------------------------------------------------------------------ dialog
@@ -842,12 +845,61 @@ function bindSource(el, s) {
   el.addEventListener("click", () => { hidePop(); Sound.click(); openSource(s); });
 }
 
+// ---------------------------------------------------------------- tooltips
+
+// Themed hover labels instead of the browser's plain ones: every title
+// attribute (also ones set later) becomes data-tip, shown in a framed box.
+const tip = document.createElement("div");
+tip.className = "tip";
+tip.hidden = true;
+document.body.appendChild(tip);
+let tipTimer = 0, tipFor = null;
+
+function tipify(el) {
+  if (el.tagName === "IFRAME" || !el.hasAttribute("title")) return;
+  el.dataset.tip = el.getAttribute("title");
+  if (!el.hasAttribute("aria-label")) el.setAttribute("aria-label", el.dataset.tip);
+  el.removeAttribute("title");
+  if (el === tipFor && !tip.hidden) tip.textContent = el.dataset.tip;
+}
+document.querySelectorAll("[title]").forEach(tipify);
+new MutationObserver((changes) => changes.forEach((c) => {
+  if (c.type === "attributes") tipify(c.target);
+  else c.addedNodes.forEach((n) => {
+    if (n.nodeType !== 1) return;
+    tipify(n);
+    n.querySelectorAll("[title]").forEach(tipify);
+  });
+})).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["title"] });
+
+function hideTip() { clearTimeout(tipTimer); tip.hidden = true; tipFor = null; }
+document.addEventListener("mouseover", (e) => {
+  const el = e.target.closest("[data-tip]");
+  if (el === tipFor) return;
+  hideTip();
+  if (!el || locked) return;
+  tipFor = el;
+  tipTimer = setTimeout(() => {
+    if (!el.isConnected || !el.dataset.tip) return;
+    tip.textContent = el.dataset.tip;
+    tip.hidden = false;
+    const r = el.getBoundingClientRect();
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    const below = r.bottom + 8 + h < innerHeight - 4;
+    tip.style.left = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), innerWidth - w - 8) + "px";
+    tip.style.top = (below ? r.bottom + 8 : r.top - h - 8) + "px";
+    tip.classList.toggle("above", !below);
+  }, 380);
+});
+document.addEventListener("mouseout", (e) => { if (tipFor && !tipFor.contains(e.relatedTarget)) hideTip(); });
+["mousedown", "keydown", "wheel"].forEach((ev) => document.addEventListener(ev, hideTip, true));
+
 // ------------------------------------------------------------------- feed
 
-function addUser(text) {
+function addUser(text, wasOnline = online) {
   const el = document.createElement("div");
   el.className = "msg user";
-  el.innerHTML = `<div class="label">YOU${online ? " · ONLINE" : ""}</div><div class="body"></div>`;
+  el.innerHTML = `<div class="label">YOU${wasOnline ? " · ONLINE" : ""}</div><div class="body"></div>`;
   el.querySelector(".body").textContent = text;
   feed.appendChild(el);
 }
@@ -925,6 +977,34 @@ function renderNext(answerEl, offer) {
   answerEl.appendChild(p);
 }
 
+// Draws answer text with hoverable citations.
+function paintAnswer(answerEl, shown, sourceByN, live = false) {
+  answerEl.innerHTML = renderMarkdown(shown) + (live ? '<span class="cursor"></span>' : "");
+  answerEl.querySelectorAll(".cite").forEach((c) => {
+    const s = sourceByN[c.dataset.n];
+    if (s) bindSource(c, s);
+  });
+}
+
+// A finished answer: text, sources, Umbra's offer and the meta line. Used
+// for new answers and for conversations reopened from History.
+function finishAnswer(msg, rec) {
+  const answerEl = msg.querySelector(".answer");
+  const card = msg.querySelector(".card");
+  const byN = {};
+  rec.sources.forEach((s) => (byN[s.n] = s));
+  paintAnswer(answerEl, rec.answer, byN);
+  msg.querySelector(".label .spin")?.remove();
+  renderSources(card, rec.sources);
+  if (rec.offer) renderNext(answerEl, rec.offer);
+  if (rec.meta) {
+    const m = document.createElement("div");
+    m.className = "meta";
+    m.textContent = rec.meta;
+    card.appendChild(m);
+  }
+}
+
 // -------------------------------------------------------------- phases UI
 
 function setPhase(name) {
@@ -965,7 +1045,6 @@ async function ask(question, shownAs = "") {
   }
   addUser(shownAs || question);
   const msg = addBot();
-  const label = msg.querySelector(".label");
   const card = msg.querySelector(".card");
   const answerEl = msg.querySelector(".answer");
   showWaiting(answerEl);
@@ -984,14 +1063,7 @@ async function ask(question, shownAs = "") {
 
   let text = "", sources = [], next = "", meta = null, stopped = false, writing = false;
   const sourceByN = {};
-  const paint = (shown, live) => {
-    answerEl.innerHTML = renderMarkdown(shown) + (live ? '<span class="cursor"></span>' : "");
-    answerEl.querySelectorAll(".cite").forEach((c) => {
-      const s = sourceByN[c.dataset.n];
-      if (s) bindSource(c, s);
-    });
-  };
-  const typer = typewriter((shown) => paint(shown, true));
+  const typer = typewriter((shown) => paintAnswer(answerEl, shown, sourceByN, true));
 
   try {
     const res = await fetch("/api/ask", {
@@ -1051,17 +1123,13 @@ async function ask(question, shownAs = "") {
       : "Sorry, I lost my train of thought there. Could you ask that again, maybe in a few more words?";
   } else if (stopped) shown += "\n\n*[transmission stopped]*";
   if (!stopped) { typer.set(shown); await typer.drained(); }
-  paint(shown, false);
-  label.querySelector(".spin")?.remove();
-  renderSources(card, sources);
-  if (next && !stopped) renderNext(answerEl, next);
-  if (meta) {
-    const m = document.createElement("div");
-    m.className = "meta";
-    m.textContent = `${meta.tokens} TOKENS · ${meta.seconds}s · ${sources.length} SOURCES · ${online ? "ONLINE" : "OFFLINE"}`;
-    card.appendChild(m);
-  }
+  const rec = {
+    question, shown: shownAs, answer: shown, offer: stopped ? "" : next, sources, online,
+    meta: meta ? `${meta.tokens} TOKENS · ${meta.seconds}s · ${sources.length} SOURCES · ${online ? "ONLINE" : "OFFLINE"}` : "",
+  };
+  finishAnswer(msg, rec);
   chat.push({ role: "user", content: question }, { role: "assistant", content: shown });
+  if (window.recordTurn) window.recordTurn(rec);
   stopped ? Sound.error() : Sound.done();
   stopWorking();
   wake();
@@ -1108,10 +1176,6 @@ document.addEventListener("keydown", (e) => {
   else if (controller) controller.abort();
 });
 
-document.querySelectorAll(".chip").forEach((c) => {
-  c.addEventListener("mouseenter", Sound.hover);
-  c.addEventListener("click", () => ask(c.textContent));
-});
 
 // umbra-wiki "question" passes it as ?q= to ask on open.
 const initial = new URLSearchParams(location.search).get("q");

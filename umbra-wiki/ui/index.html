@@ -43,6 +43,7 @@
     <div class="cell status"><span class="k">STATUS</span><span class="v" id="t-status">BOOTING</span></div>
     <div class="controls">
       <button id="loadout-btn" class="ctl" title="Loadout"><span class="g">󰀄</span></button>
+      <button id="history-btn" class="ctl" title="History"><span class="g">󰋚</span></button>
       <button id="library-btn" class="ctl" title="Library"><span class="g">󱉟</span></button>
       <button id="theme-btn" class="ctl" title="Themes"><span class="g">󰏘</span></button>
       <button id="sound" class="ctl" title="Sound on (click to mute)"><span class="g" id="sound-icon">󰕾</span></button>
@@ -100,6 +101,19 @@
   <div id="library-body" class="library-body"></div>
 </div>
 
+<div id="history" class="themes" hidden>
+  <div class="themes-head">
+    <span class="themes-title"><span class="spin" data-spin>✻</span> HISTORY</span>
+    <button id="history-close" class="ghost" title="Close (Esc)">CLOSE ✕</button>
+  </div>
+  <div class="hist-tools">
+    <button id="hist-new" class="solid">+ NEW CONVERSATION</button>
+    <input id="hist-filter" placeholder="Filter by question…" spellcheck="false">
+  </div>
+  <div id="hist-list" class="library-body"></div>
+  <div id="hist-foot" class="hist-foot"></div>
+</div>
+
 <div id="loadout" class="loadout" hidden>
   <div class="lo-head">
     <span class="lo-title"><span class="spin" data-spin>✻</span> LOADOUT</span>
@@ -153,7 +167,9 @@
   <div class="hint">ENTER send · SHIFT+ENTER new line · ESC stop · answers cite their sources: verify critical steps there</div>
 </footer>
 
+<script src="scenes.js"></script>
 <script src="app.js"></script>
 <script src="loadout.js"></script>
+<script src="history.js"></script>
 </body>
 </html>

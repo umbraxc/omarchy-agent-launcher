@@ -54,6 +54,7 @@
     const chip = $("#loadout-chip");
     if (chip && sc && pe) chip.textContent = `${sc.name} · ${pe.name}`.toUpperCase();
     window.loadoutQuips = (pe && pe.quips) || [];
+    window.loadoutScenario = state.scenario;
   }
 
   // ----------------------------------------------------------- motion
@@ -244,6 +245,7 @@
     if (document.body.classList.contains("locked")) return;
     if (tab) state.tab = tab;
     state.selected = current();
+    if (window.closeHistory) window.closeHistory();
     $("#themes").hidden = true;
     $("#library").hidden = true;
     $("#theme-btn").classList.remove("on");
@@ -253,12 +255,12 @@
     render();
     Sound.click();
   }
-  function close() {
+  function close(quiet = false) {
     if (overlay.hidden) return;
     if (state.stopAnim) state.stopAnim();
     overlay.hidden = true;
     $("#loadout-btn").classList.remove("on");
-    Sound.click();
+    if (quiet !== true) Sound.click();
   }
 
   $("#loadout-btn").addEventListener("click", () => (overlay.hidden ? open() : close()));
@@ -292,6 +294,7 @@
   }, 4000);
 
   window.openLoadout = open;
+  window.closeLoadout = close;
   load().then(() => {
     if (new URLSearchParams(location.search).get("view") === "loadout") open();
   });

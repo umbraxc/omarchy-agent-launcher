@@ -641,6 +641,75 @@ def delete_personality(item_id):
     return items
 
 
+# ------------------------------------------------------------------ history
+
+# Every conversation is kept as one JSON file on this computer.
+DATA_DIR = os.path.join(os.environ.get("XDG_DATA_HOME", os.path.join(HOME, ".local", "share")), "umbra-wiki")
+HISTORY_DIR = os.path.join(DATA_DIR, "history")
+HISTORY_ID = re.compile(r"c-[0-9]{8}-[0-9]{6}-[a-z0-9]{4}")
+
+
+def history_path(conv_id):
+    if not HISTORY_ID.fullmatch(str(conv_id)):
+        raise ValueError("bad id")
+    return os.path.join(HISTORY_DIR, conv_id + ".json")
+
+
+def history_list():
+    items = []
+    for path in glob.glob(os.path.join(HISTORY_DIR, "c-*.json")):
+        conv = read_json(path, None)
+        if not conv or not HISTORY_ID.fullmatch(str(conv.get("id", ""))):
+            continue
+        item = {k: conv.get(k) for k in ("id", "title", "created", "updated", "scenario", "personality")}
+        item["count"] = len(conv.get("messages") or [])
+        items.append(item)
+    items.sort(key=lambda x: x.get("updated") or 0, reverse=True)
+    return {"dir": HISTORY_DIR.replace(HOME, "~", 1), "items": items}
+
+
+def history_save(conv):
+    path = history_path(conv.get("id"))
+    old = read_json(path, {})
+    messages = []
+    for m in (conv.get("messages") or [])[:500]:
+        if not isinstance(m, dict):
+            continue
+        sources = [
+            {k: str(src.get(k, ""))[:600] for k in ("n", "kind", "title", "archive", "url", "summary")}
+            for src in (m.get("sources") or [])[:12] if isinstance(src, dict)
+        ]
+        messages.append({
+            "question": str(m.get("question", ""))[:4000],
+            "shown": str(m.get("shown", ""))[:4000],
+            "answer": str(m.get("answer", ""))[:20000],
+            "offer": str(m.get("offer", ""))[:400],
+            "meta": str(m.get("meta", ""))[:200],
+            "online": bool(m.get("online")),
+            "sources": sources,
+        })
+    now = int(time.time() * 1000)
+    clean = {
+        "id": conv["id"],
+        "title": str(conv.get("title", "") or "Conversation")[:120],
+        "created": old.get("created") or now,
+        "updated": now,
+        "scenario": str(conv.get("scenario", ""))[:40],
+        "personality": str(conv.get("personality", ""))[:40],
+        "messages": messages,
+    }
+    write_json(path, clean)
+    return {"ok": True, "updated": now}
+
+
+def history_delete(conv_id):
+    try:
+        os.remove(history_path(conv_id))
+    except (OSError, ValueError):
+        pass
+    return history_list()
+
+
 def trait_lines(stats, no_humor):
     """Turn the 1–5 trait values into short style instructions."""
     lines = []
@@ -726,6 +795,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(json.load(open(os.path.join(APP_DIR, "facts.json"))))
             except (OSError, ValueError):
                 return self.send_json([])
+        if path == "/api/history":
+            return self.send_json(history_list())
+        if path.startswith("/api/history/"):
+            try:
+                conv = read_json(history_path(path.rsplit("/", 1)[1]), None)
+            except ValueError:
+                conv = None
+            return self.send_json(conv or {"error": "not found"}, 200 if conv else 404)
         if path == "/api/personalities":
             return self.send_json(custom_personalities())
         if path == "/api/themes":
@@ -764,6 +841,13 @@ class Handler(BaseHTTPRequestHandler):
                     settings[key] = update[key]
             write_json(SETTINGS_FILE, settings)
             return self.send_json(settings)
+        if self.path == "/api/history":
+            try:
+                return self.send_json(history_save(self.read_json()))
+            except (ValueError, TypeError, AttributeError) as e:
+                return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/history/delete":
+            return self.send_json(history_delete(str(self.read_json().get("id", ""))))
         if self.path == "/api/personalities":
             try:
                 return self.send_json(save_personality(self.read_json().get("personality")))
