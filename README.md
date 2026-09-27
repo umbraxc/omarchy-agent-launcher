@@ -177,40 +177,59 @@ answer is waiting in the background.
 
 ### On Arch Linux (without Omarchy)
 
-Umbra Wiki comes as a ready-made Arch package with every release. Download
-it and install it with pacman, which also installs everything it needs:
+Umbra Wiki has its own signed pacman repository, **[umbra]**, so it installs
+and updates like any other Arch software. Step-by-step guide with copy
+buttons: **https://umbraxc.github.io/umbra-repo/**
 
 ```bash
-curl -L -o umbra-wiki.pkg.tar.zst \
-  https://github.com/umbraxc/omarchy-umbra/releases/latest/download/umbra-wiki-latest-any.pkg.tar.zst
-sudo pacman -U umbra-wiki.pkg.tar.zst
-sudo systemctl enable --now ollama     # once: starts the local AI engine
-umbra-wiki                             # or open "Umbra Wiki" from your app launcher
+# 1. Trust the Umbra signing key (once)
+curl -sL https://umbraxc.github.io/umbra-repo/umbra.gpg | sudo pacman-key --add -
+sudo pacman-key --lsign-key E50B101F98529A32564FDD3B37A6D2DA9E6A0F0B
+
+# 2. Add the [umbra] repository to /etc/pacman.conf (once)
+printf '\n[umbra]\nServer = https://umbraxc.github.io/umbra-repo/$arch\n' | sudo tee -a /etc/pacman.conf
+
+# 3. Install Umbra Wiki and everything it needs
+sudo pacman -Sy umbra-wiki
+
+# 4. Start the local AI engine (once), then open Umbra
+sudo systemctl enable --now ollama
+umbra-wiki
 ```
 
-The welcome tour then picks the AI model and the library with you. To
-update, run the same two commands again when a new release is out. Each
-release lists the package's SHA-256 checksum in `SHA256SUMS`.
+Updates arrive with `sudo pacman -Syu`. Every package and the repository
+index are signed; the key's fingerprint is
+`E50B 101F 9852 9A32 564F DD3B 37A6 D2DA 9E6A 0F0B`.
 
 For voice input, install [voxtype](https://voxtype.io) from the AUR
 (`yay -S voxtype-bin && voxtype setup --download --model base.en`), then
 hold **F9** in the Umbra window to talk.
 
+Umbra Wiki will also be published to the **AUR** as `umbra-wiki` as soon as
+AUR account registration reopens; the recipe is ready in
+[`aur/PKGBUILD`](aur/PKGBUILD).
+
+<details>
+<summary>Just the package file, without adding the repository</summary>
+
+```bash
+curl -L -o umbra-wiki.pkg.tar.zst \
+  https://github.com/umbraxc/omarchy-umbra/releases/latest/download/umbra-wiki-latest-any.pkg.tar.zst
+sudo pacman -U umbra-wiki.pkg.tar.zst
+```
+
+Checksums are in each release's `SHA256SUMS`. Updates: repeat this when a
+new release is out.
+</details>
+
 <details>
 <summary>Build the package yourself</summary>
-
-The recipe is in [`aur/PKGBUILD`](aur/PKGBUILD). It downloads the tagged
-release, checks its checksum and builds the same package:
 
 ```bash
 git clone https://github.com/umbraxc/omarchy-umbra.git
 cd omarchy-umbra/aur && makepkg -si
 ```
 </details>
-
-An AUR package (`umbra-wiki`) is on its way: the recipe is ready and will be
-published as soon as AUR account registration reopens. Then `yay -S
-umbra-wiki` will work and updates will come with `yay -Syu`.
 
 <details>
 <summary>From the repository, without a package</summary>
@@ -316,9 +335,9 @@ Umbra Wiki speaks and understands English.
 ## Update, reset, uninstall
 
 - **Update**: on Omarchy, plugin updates arrive through Omarchy and Umbra
-  picks them up; for the Arch package, download and install the newest
-  release the same way; for a repository install, `git pull` the folder and
-  run `install-arch.sh --update`. Your settings,
+  picks them up; from the [umbra] repository, with `sudo pacman -Syu`; for a
+  single package file, install the newest release the same way; for a
+  repository clone, `git pull` the folder and run `install-arch.sh --update`. Your settings,
   history and library are never touched by updates.
 - **Reset**: Settings → Danger zone → Reset Umbra starts over as if freshly
   installed (the tour runs again); the AI model and library are kept.

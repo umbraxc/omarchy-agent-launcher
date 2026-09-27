@@ -2,10 +2,12 @@
 
 ## 3.1.0
 
-- **An Arch package**: every release now carries `umbra-wiki`, installed
-  system-wide with `pacman -U` on any Arch Linux, dependencies included;
-  built from a pinned, checksummed release by `aur/PKGBUILD`, ready for the
-  AUR as soon as registration reopens.
+- **An Arch package and repository**: `umbra-wiki` installs system-wide on
+  any Arch Linux from the signed **[umbra]** pacman repository
+  (https://umbraxc.github.io/umbra-repo/), with updates through
+  `pacman -Syu`; each release also carries the package file. Built from a
+  pinned, checksummed release by `aur/PKGBUILD`, ready for the AUR as soon
+  as registration reopens.
 - The welcome tour notices when Ollama isn't running yet and shows how to
   start it.
 - Uninstall in Settings knows when Umbra was installed as a package: it
