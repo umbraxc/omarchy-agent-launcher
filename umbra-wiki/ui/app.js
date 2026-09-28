@@ -1716,6 +1716,25 @@ function stopWorking() {
 
 // ------------------------------------------------------------------- ask
 
+// What only this window knows (kept in its local storage): training
+// scores, the patient being cared for, running first-aid timers. Sent with
+// each question so Umbra can take it into account.
+function localContext() {
+  const get = (k) => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } };
+  const out = {};
+  const train = get("umbra-train-score");
+  if (train) out.training = Object.fromEntries(Object.entries(train).filter(([, v]) => v && v.points));
+  const p = get("umbra-medic-patient");
+  if (p && ((p.log && p.log.length) || Object.keys(p.marks || {}).length || p.mech)) {
+    const marks = Object.entries(p.marks || {}).map(([k, v]) => `${v} ${k.split(":")[1]} (${k.split(":")[0]})`).join(", ");
+    const last = (p.log || []).slice(-4).map((e) => `${new Date(e.t).toTimeString().slice(0, 5)} ${[e.p && "pulse " + e.p, e.r && "breaths " + e.r, e.a && "AVPU " + e.a, e.n].filter(Boolean).join(", ")}`).join("; ");
+    out.patient = [p.age && `age ${p.age}`, p.sex, p.mech && `what happened: ${p.mech}`, marks && `injuries: ${marks}`, last && `log: ${last}`].filter(Boolean).join("; ");
+  }
+  const timers = get("umbra-fk-timers");
+  if (Array.isArray(timers) && timers.length) out.timers = timers.map((t) => `${t.name} since ${new Date(t.at).toTimeString().slice(0, 5)}`);
+  return out;
+}
+
 async function ask(question, shownAs = "") {
   if (controller || locked || !question.trim() || document.body.classList.contains("touring")) return;
   stopRain();   // the start screen stays above the conversation, resting while Umbra works
@@ -1747,7 +1766,7 @@ async function ask(question, shownAs = "") {
     const res = await fetch("/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, history: chat, online, offgrid: !!window.offgrid, folder: window.currentFolder || "" }),
+      body: JSON.stringify({ question, history: chat, online, offgrid: !!window.offgrid, folder: window.currentFolder || "", context: localContext() }),
       signal: controller.signal,
     });
     const reader = res.body.getReader();

@@ -2674,6 +2674,59 @@ def persona_prompt():
     return person["prompt"]
 
 
+def user_context(question="", client=None):
+    """What Umbra knows of the user beyond the profile, so answers fit their
+    real situation: their rank and progress, their household supplies, their
+    places, safety levels, training, the manuals they have, and (only when
+    the question is about it) what's in their Vault. Short, and read fresh."""
+    lines = []
+    try:
+        a = achievements(False)
+        earned = [x["name"] for x in a["achievements"] if x.get("earned")]
+        st = a.get("stats", {})
+        lines.append(f"Their Umbra record: rank {a.get('rank')}, {len(earned)} achievements"
+                     + (f", {st.get('questions')} questions asked" if st.get("questions") else "")
+                     + (f", most asked about {st.get('favourite')}" if st.get("favourite") else "") + ".")
+    except Exception:
+        pass
+    sup = get_supplies()
+    items = sup.get("items") or []
+    if items:
+        water = sum((i.get("qty") or 0) * (i.get("litres") or 0) for i in items)
+        kcal = sum((i.get("qty") or 0) * (i.get("kcal") or 0) for i in items)
+        hh = sup.get("household") or {}
+        words = {"dogsSmall": "small dogs", "dogsLarge": "large dogs", "toddlers": "toddlers", "infants": "infants"}
+        people = ", ".join(f"{v} {words.get(k, k)}" for k, v in hh.items() if v)
+        lines.append(f"Their stored supplies: about {round(water)} L of water and {round(kcal):,} kcal of food"
+                     + (f" for a household of {people}" if people else "") + "; items: " + ", ".join(str(i.get("name"))[:30] for i in items[:12]) + ".")
+    wps = get_waypoints()
+    if wps:
+        home = next((w for w in wps if w.get("icon") == "home"), None)
+        lines.append(f"They saved {len(wps)} map waypoints" + (f", home near {home['lat']:.2f}, {home['lon']:.2f}" if home else "")
+                     + ": " + ", ".join(f"{w['name']} ({w.get('icon')})" for w in wps[:10]) + ".")
+    levels = get_safety()["levels"]
+    if levels:
+        names = {1: "safe", 2: "caution", 3: "avoid", 4: "danger"}
+        lines.append("Countries they marked: " + ", ".join(f"{k} {names[v]}" for k, v in list(levels.items())[:20]) + ".")
+    have = [m["title"] for m in manuals_catalog() if os.path.exists(os.path.join(MANUALS_DIR, m["id"] + ".pdf"))]
+    if have:
+        lines.append("Field manuals they downloaded (Field Kit → Training → Manuals): " + "; ".join(have) + ".")
+    if re.search(r"\b(gun|firearm|rifle|pistol|shotgun|ammo|ammunition|calib|defen[cs]e|weapon|vault|gold|silver|valuable|cash|backup|drive)", question, re.I):
+        v = get_vault()
+        if v:
+            lines.append("In their Vault: " + ", ".join(f"{i.get('count') or 1}× {i['name']}" + (f" ({i['calibre']})" if i.get("calibre") else "") for i in v[:20]) + ".")
+    c = client if isinstance(client, dict) else {}
+    if isinstance(c.get("training"), dict) and c["training"]:
+        lines.append("Their training scores: " + ", ".join(f"{k} {v.get('points', 0)} pts (best streak {v.get('best', 0)})" for k, v in list(c["training"].items())[:10] if isinstance(v, dict)) + ".")
+    if isinstance(c.get("patient"), str) and c["patient"].strip():
+        lines.append("A patient they are caring for right now (from the Field Kit's patient chart): " + c["patient"][:500].rstrip(".") + ".")
+    if isinstance(c.get("timers"), list) and c["timers"]:
+        lines.append("First-aid timers running now: " + ", ".join(str(t)[:60] for t in c["timers"][:5]) + ".")
+    if not lines:
+        return ""
+    return ("WHAT YOU KNOW ABOUT THE USER from their use of Umbra (use it when it helps; don't recite it): " + " ".join(lines))
+
+
 def build_system_prompt(online=False):
     """Persona + scenario + trait style + the user's profile + the fixed rules."""
     settings = read_json(SETTINGS_FILE, {})
@@ -3224,6 +3277,9 @@ def answer(req, emit):
     ]})
 
     system = build_system_prompt(online)
+    ctx = user_context(question, req.get("context"))
+    if ctx:
+        system += " " + ctx
     if req.get("folder"):
         system += " " + folder_prompt(req.get("folder"))
     if ABOUT_UMBRA.search(question):
