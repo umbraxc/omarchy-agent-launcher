@@ -66,6 +66,11 @@ button { -webkit-text-stroke: inherit; }
 }
 
 .brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+/* The emblem and the name lead back to the start screen. */
+.brand .home { all: unset; display: flex; cursor: pointer; }
+.brand .home:focus-visible { outline: 1px solid var(--signal); outline-offset: 4px; }
+.brand .home:hover .mark .m-edge { stroke: var(--fg-bright); }
+.brand .name { cursor: pointer; }
 .name { color: var(--fg-bright); font-weight: 800; letter-spacing: .32em; font-size: 15px; white-space: nowrap; }
 .name .slash { color: var(--logo, var(--signal)); margin: 0 .25em; letter-spacing: 0; }
 .tag { color: var(--faint); font-size: 10.5px; letter-spacing: .38em; white-space: nowrap; }
@@ -189,8 +194,8 @@ main::-webkit-scrollbar-track { background: transparent; }
 .intro > :not(.rain):not(.rain-front) { position: relative; z-index: 1; }
 /* The near half of the Saturn rings passes in front of the globe. */
 .rain-front { position: absolute; left: 0; top: 0; width: 100%; height: 330px; z-index: 2; pointer-events: none; opacity: .9; }
-.intro.leaving { animation: leave .7s cubic-bezier(.55, 0, .75, .3) both; }
-@keyframes leave { to { opacity: 0; transform: translateY(-60px); } }
+/* Above a conversation, the start screen keeps some room before the first question. */
+#feed > .intro:not(:last-child) { margin-bottom: 38px; }
 
 /* Digital rain behind the globe and title, fading out toward the chips. */
 .rain {
@@ -600,6 +605,8 @@ kbd { font: inherit; opacity: .7; margin-left: 4px; }
   padding-bottom: 6px; border-bottom: 1px solid var(--line);
 }
 .lib-head b { color: var(--signal); font-weight: 400; }
+/* A panel refreshing itself (downloads, a picked card) doesn't replay entrances. */
+.refreshing .lib-row, .refreshing .hist-row, .refreshing .lo-card { animation: none; }
 .lib-row {
   display: grid; grid-template-columns: 18px 1fr auto; gap: 4px 10px; align-items: center;
   padding: 8px 6px; border-bottom: 1px dashed var(--line); animation: rise .3s ease-out both;
@@ -668,6 +675,44 @@ kbd { font: inherit; opacity: .7; margin-left: 4px; }
 /* ---------------------------------------------------------------- settings */
 
 .set-section { margin: 4px 0 20px; }
+
+/* Performance: a live graph, a bar per processor thread, a few stats and
+   the AI's processor limit as a segmented bar. */
+.cpu-graph { display: block; width: 100%; height: 92px; background: var(--bg); border: 1px solid var(--line); }
+.cpu-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 7px 0 10px; font-size: 10px; letter-spacing: .2em; color: var(--dim); }
+.cpu-legend i { display: inline-block; width: 9px; height: 9px; margin-right: 7px; vertical-align: -1px; }
+.cpu-legend .lg-total i { background: var(--dim); opacity: .6; }
+.cpu-legend .lg-umbra i { background: var(--signal); }
+.cpu-legend b { color: var(--fg-bright); margin-left: 4px; letter-spacing: .05em; }
+.cpu-legend .cpu-span { margin-left: auto; color: var(--faint); }
+.cpu-cores { display: flex; gap: 3px; height: 26px; margin-bottom: 12px; }
+.cpu-cores i { flex: 1; position: relative; background: var(--bg); border: 1px solid var(--line); }
+.cpu-cores i b { position: absolute; left: 0; right: 0; bottom: 0; background: var(--signal); opacity: .75; transition: height .6s ease-out; }
+.cpu-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; margin-bottom: 6px; }
+.cpu-stats span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cpu-stats small { font-size: 9.5px; letter-spacing: .25em; color: var(--faint); }
+.cpu-stats b { font-size: 11.5px; font-weight: 600; color: var(--fg-bright); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cpu-stats b.hot { color: var(--red); }
+.seg {
+  --seg: 1; position: relative; display: grid; grid-template-columns: repeat(4, 1fr); margin: 2px 0 4px;
+  border: 1px solid var(--line); background: var(--bg); cursor: pointer; touch-action: none; user-select: none;
+}
+.seg:focus-visible { outline: 1px solid var(--signal); outline-offset: 2px; }
+/* The fill slides to the chosen step. */
+.seg-fill {
+  position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--seg) * 100%);
+  background: var(--signal-soft); border-right: 2px solid var(--signal);
+  transition: width .25s cubic-bezier(.3, .7, .3, 1); pointer-events: none;
+}
+.seg-step {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 9px 4px 8px;
+  font: inherit; color: var(--dim); background: none; border: 0; border-left: 1px dashed var(--line); cursor: pointer;
+}
+.seg-step:first-of-type { border-left: 0; }
+.seg-step b { font-size: 12.5px; font-weight: 700; }
+.seg-step small { font-size: 9px; letter-spacing: .22em; }
+.seg-step.on { color: var(--fg); }
+.seg-step.current { color: var(--signal); }
 .set-row {
   display: flex; align-items: center; justify-content: space-between; gap: 14px;
   padding: 9px 4px; border-bottom: 1px dashed var(--line); cursor: default;
@@ -728,7 +773,7 @@ body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after 
 
 /* ------------------------------------------------------------ welcome tour */
 
-.wipe { position: fixed; inset: 0; z-index: 200; pointer-events: none; }
+.wipe { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 200; pointer-events: none; }
 /* Until the launch animation takes over, the page stays covered. */
 body.booting::after {
   content: ""; position: fixed; inset: 0; z-index: 199; background: var(--bg);

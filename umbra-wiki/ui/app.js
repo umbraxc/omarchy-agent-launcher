@@ -370,9 +370,23 @@ $("#themes-close").addEventListener("click", () => toggleThemes(false));
 const CATEGORY = { survival: "SURVIVAL", medical: "MEDICAL", practical: "PRACTICAL SKILLS" };
 const fmtSize = (b) => (b >= 1e9 ? (b / 1e9).toFixed(1) + " GB" : Math.max(1, Math.round(b / 1e6)) + " MB");
 
-async function renderLibrary() {
+// Rebuilds a scrolling panel in place: the reader stays where they scrolled
+// to (downloads refresh the panel every few seconds), and rows don't replay
+// their entry animation.
+function keepScroll(el, rebuild) {
+  const top = el.scrollTop, again = el.childElementCount > 0;
+  rebuild();
+  el.classList.toggle("refreshing", again);
+  el.scrollTop = top;
+}
+
+// fresh: the panel was just opened (start at the top, show "Reading…").
+async function renderLibrary(fresh = false) {
   const body = $("#library-body");
-  body.innerHTML = `<p class="lib-note"><span class="spin" data-spin>✻</span> Reading library…</p>`;
+  if (fresh) {
+    body.innerHTML = `<p class="lib-note"><span class="spin" data-spin>✻</span> Reading library…</p>`;
+    body.scrollTop = 0;
+  }
   let lib, packs = [], dl = { library: { items: [] } };
   try {
     [lib, packs, dl] = await Promise.all([
@@ -442,7 +456,7 @@ async function renderLibrary() {
     html += `</div>`;
   }
   if (!lib.available.length) html += `<p class="lib-note">✓ Every recommended collection is installed.</p>`;
-  body.innerHTML = html;
+  keepScroll(body, () => { body.innerHTML = html; });
   body.querySelectorAll(".manual-page").forEach((b) => {
     b.addEventListener("mouseenter", Sound.hover);
     b.addEventListener("click", () => openManual(b.dataset.page));
@@ -472,12 +486,26 @@ function toggleLibrary(show = $("#library").hidden) {
     toggleThemes(false, true);
     if (window.closeHistory) window.closeHistory();
     if (window.closeSettings) window.closeSettings();
-    renderLibrary();
+    renderLibrary(true);
   }
   Sound.click();
 }
 $("#library-btn").addEventListener("click", () => toggleLibrary());
 $("#library-close").addEventListener("click", () => toggleLibrary(false));
+
+// The emblem and the name in the top left: close any panel and start a new
+// conversation on the start screen.
+function goHome() {
+  if (locked || document.body.classList.contains("touring") || !window.newConversation) return;
+  if (window.closeSettings) window.closeSettings();
+  if (window.closeLoadout) window.closeLoadout(true);
+  toggleThemes(false, true);
+  $("#library").hidden = true;
+  $("#library-btn").classList.remove("on");
+  window.newConversation();
+}
+$("#home").addEventListener("click", goHome);
+$(".brand .name").addEventListener("click", goHome);
 
 // Settings can change from the bar widget too, so keep them in sync.
 async function syncSettings(first = false) {
@@ -583,7 +611,9 @@ function orb(el, w, h) {
 let rainRaf = 0;
 // The start screen's animated background, chosen in Settings (the
 // backgrounds themselves live in backgrounds.js). About 16 frames a second.
+let rainResize = null;
 function startRain() {
+  if (!introVisible || controller) return;
   const canvas = $("#rain");
   const front = $("#rain-front");
   if (front) front.getContext("2d").clearRect(0, 0, front.width, front.height);
@@ -611,7 +641,9 @@ function startRain() {
     bg.resize();
   };
   resize();
-  new ResizeObserver(resize).observe(canvas);
+  if (rainResize) rainResize.disconnect();
+  rainResize = new ResizeObserver(resize);
+  rainResize.observe(canvas);
   let last = 0, t = 0;
   const VARS = { bg: "--bg", signal: "--signal", shade1: "--shade-1", shade2: "--shade-2", shade3: "--shade-3",
                  fgBright: "--fg-bright", dim: "--dim", net: "--net", accent: "--accent", font: "--font" };
@@ -661,6 +693,36 @@ const TRANSITIONS = {
 window.UmbraTransitions = Object.entries(TRANSITIONS).map(([id, t]) => [id, t.name]);
 const transition = () => TRANSITIONS[(window.prefs && window.prefs.transition) || "wave"] || TRANSITIONS.wave;
 
+// The character grid under the boot and goodbye transitions. It follows the
+// window: resized or made fullscreen mid-animation, the grid is rebuilt at
+// the new size (nothing stretches, crops or leaves an edge uncovered), and it
+// draws at the screen's pixel density so the text stays sharp.
+// times(cols, rows) gives each cell its moment(s) in the wave.
+function glyphGrid(canvas, times) {
+  const g = { cw: 11, ch: 20, w: 0, h: 0, dpr: 0 };
+  g.fit = () => {
+    const dpr = window.devicePixelRatio || 1;
+    if (g.w === innerWidth && g.h === innerHeight && g.dpr === dpr) return false;
+    g.w = innerWidth; g.h = innerHeight; g.dpr = dpr;
+    canvas.width = Math.round(g.w * dpr); canvas.height = Math.round(g.h * dpr);
+    g.ctx = canvas.getContext("2d");
+    g.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.cols = Math.ceil(g.w / g.cw); g.rows = Math.ceil(g.h / g.ch); g.n = g.cols * g.rows;
+    g.mask = document.createElement("canvas");
+    g.mask.width = g.cols; g.mask.height = g.rows;
+    g.mctx = g.mask.getContext("2d");
+    g.img = g.mctx.createImageData(g.cols, g.rows);
+    g.layer = document.createElement("canvas");
+    g.layer.width = canvas.width; g.layer.height = canvas.height;
+    g.lctx = g.layer.getContext("2d");
+    g.lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.at = times(g.cols, g.rows);
+    return true;
+  };
+  g.fit();
+  return g;
+}
+
 // A full-window ASCII transition. A wave of glyphs sweeps diagonally over
 // the screen and leaves it dark with a few embers; UMBRA // ONLINE types
 // in and beeps, the status line fades in and the user is welcomed by name;
@@ -679,27 +741,19 @@ function asciiWipe(swap, { covered = false, welcome = "" } = {}) {
     const canvas = document.createElement("canvas");
     canvas.className = "wipe";
     document.body.appendChild(canvas);
-    const w = innerWidth, h = innerHeight, cw = 11, ch = 20;
-    canvas.width = w; canvas.height = h;
-    const ctx = canvas.getContext("2d");
-    const cols = Math.ceil(w / cw), rows = Math.ceil(h / ch), n = cols * rows;
-    const mask = document.createElement("canvas");
-    mask.width = cols; mask.height = rows;
-    const mctx = mask.getContext("2d");
-    const img = mctx.createImageData(cols, rows);
-    const glyphLayer = document.createElement("canvas");
-    glyphLayer.width = w; glyphLayer.height = h;
-    const gctx = glyphLayer.getContext("2d");
     const glyphs = "░▒▓█#%&@*+=:·アイウエオカキクケコ0123456789".split("");
     // Each cell's moment in the wave: diagonal on the way in, from the
     // centre outwards on the way out.
-    const inAt = new Float32Array(n), outAt = new Float32Array(n);
     const style = transition();
-    for (let i = 0; i < n; i++) {
-      const x = (i % cols) / cols, y = ((i / cols) | 0) / rows;
-      inAt[i] = style.in(x, y, rows);
-      outAt[i] = style.out(x, y, rows);
-    }
+    const grid = glyphGrid(canvas, (cols, rows) => {
+      const inAt = new Float32Array(cols * rows), outAt = new Float32Array(cols * rows);
+      for (let i = 0; i < cols * rows; i++) {
+        const x = (i % cols) / cols, y = ((i / cols) | 0) / rows;
+        inAt[i] = style.in(x, y, rows);
+        outAt[i] = style.out(x, y, rows);
+      }
+      return { inAt, outAt };
+    });
     const IN = covered ? 0 : 1000, HOLD = 4300, OUT = 2800, band = 0.2;
     const GLITCH = [3650, 4200];   // after a moment to read the welcome, the text glitches out
     const title = "UMBRA // ONLINE", sub = "LOADOUT DEPLOYED · LIBRARY LINKED · CORE READY";
@@ -718,6 +772,9 @@ function asciiWipe(swap, { covered = false, welcome = "" } = {}) {
 
     const frame = (now) => {
       const t = now - start;
+      if (grid.fit()) lastGlyphs = 0;   // the window changed size: redraw everything at once
+      const { w, h, cw, ch, cols, rows, n, ctx, mask, mctx, img, layer: glyphLayer, lctx: gctx } = grid;
+      const { inAt, outAt } = grid.at;
       const [bg, signal, shade, dim, accent, font] = ["--bg", "--signal", "--shade-2", "--dim", "--accent", "--font"].map(color);
       const [r, g, b] = rgb(bg);
       const phaseIn = t < IN, phaseOut = t > IN + HOLD;
@@ -744,7 +801,7 @@ function asciiWipe(swap, { covered = false, welcome = "" } = {}) {
       ctx.clearRect(0, 0, w, h);
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(mask, 0, 0, cols * cw, rows * ch);
-      ctx.drawImage(glyphLayer, 0, 0);
+      ctx.drawImage(glyphLayer, 0, 0, w, h);
 
       if (t >= IN && !swapped) { swapped = true; swap(); }
       if (first) { first = false; document.body.classList.remove("booting"); }
@@ -820,16 +877,27 @@ function asciiWipe(swap, { covered = false, welcome = "" } = {}) {
   });
 }
 
-// Puts the start screen back (for a new conversation) and starts its motion.
-function showIntro(first = false) {
+// The start screen stays at the top of every conversation, so scrolling up
+// brings the logo and the questions back, like one long page. Its animated
+// background only runs while it's on screen and Umbra isn't answering.
+let introVisible = false;
+const introWatch = new IntersectionObserver(([e]) => {
+  introVisible = e.isIntersecting;
+  if (introVisible) startRain(); else stopRain();
+});
+
+// Puts the start screen back (for a new conversation, or at the top of an
+// opened one: without the greeting) and starts its motion.
+function showIntro(first = false, { greet = true } = {}) {
   if (!first) {
     stopRain();
     feed.innerHTML = "";
     feed.appendChild(introTemplate.cloneNode(true));
-    showGreeting();
+    if (greet) showGreeting(); else $("#intro .greet")?.remove();
   }
+  introWatch.disconnect();
+  introWatch.observe($("#intro"));
   orb($("#intro-orb"), 19, 13);
-  startRain();
   document.querySelectorAll("#intro .chip").forEach((c) => {
     c.addEventListener("mouseenter", Sound.hover);
     c.addEventListener("click", () => ask(c.textContent));
@@ -1271,10 +1339,18 @@ function followLoop() {
     followRaf = requestAnimationFrame(followLoop);
   }
 }
+// Any move up (wheel, touchpad, scrollbar, keys) stops following, even the
+// small steps a touchpad makes near the bottom; only moving back down to
+// the end resumes it.
+let lastTop = 0, lastHeight = 0;
 feed.addEventListener("wheel", (e) => { if (e.deltaY < 0) follow = false; }, { passive: true });
 feed.addEventListener("keydown", (e) => { if (["ArrowUp", "PageUp", "Home"].includes(e.key)) follow = false; });
 feed.addEventListener("scroll", () => {
-  if (feed.scrollHeight - feed.clientHeight - feed.scrollTop < 40) follow = true;
+  const top = feed.scrollTop, height = feed.scrollHeight;
+  if (top < lastTop - 1 && height >= lastHeight) follow = false;
+  else if (top > lastTop && height - feed.clientHeight - top < 40) follow = true;
+  lastTop = top;
+  lastHeight = height;
 }, { passive: true });
 
 // ----------------------------------------------------------- source popups
@@ -1496,6 +1572,7 @@ function stopWorking() {
   clearInterval(timer);
   phaseBox.hidden = true;
   controller = null;
+  startRain();   // if the start screen is in view
   send.classList.remove("stop");
   send.innerHTML = "TRANSMIT <kbd>⏎</kbd>";
   refreshStatus();
@@ -1506,13 +1583,7 @@ function stopWorking() {
 
 async function ask(question, shownAs = "") {
   if (controller || locked || !question.trim() || document.body.classList.contains("touring")) return;
-  const intro = $("#intro");
-  if (intro && !intro.classList.contains("leaving")) {
-    intro.classList.add("leaving");
-    stopRain();
-    intro.addEventListener("animationend", () => intro.remove(), { once: true });
-    setTimeout(() => intro.remove(), 900);
-  }
+  stopRain();   // the start screen stays above the conversation, resting while Umbra works
   suggestToken++;
   setSuggestion("");
   addUser(shownAs || question);
@@ -1623,26 +1694,18 @@ function asciiOutro(farewell, { keep = true } = {}) {
     const canvas = document.createElement("canvas");
     canvas.className = "wipe";
     document.body.appendChild(canvas);
-    const w = innerWidth, h = innerHeight, cw = 11, ch = 20;
-    canvas.width = w; canvas.height = h;
-    const ctx = canvas.getContext("2d");
-    const cols = Math.ceil(w / cw), rows = Math.ceil(h / ch), n = cols * rows;
-    const mask = document.createElement("canvas");
-    mask.width = cols; mask.height = rows;
-    const mctx = mask.getContext("2d");
-    const img = mctx.createImageData(cols, rows);
-    const layer = document.createElement("canvas");
-    layer.width = w; layer.height = h;
-    const lctx = layer.getContext("2d");
     const glyphs = "░▒▓█#%&@*+=:·アイウエオカキクケコ0123456789".split("");
-    // Far cells close first, so the dark closes in on the centre.
-    const at = new Float32Array(n);
-    // The chosen style, played in reverse: it closes where the boot opens.
+    // Far cells close first, so the dark closes in on the centre: the
+    // chosen style, played in reverse (it closes where the boot opens).
     const style = transition();
-    for (let i = 0; i < n; i++) {
-      const x = (i % cols) / cols, y = ((i / cols) | 0) / rows;
-      at[i] = 1.2 - style.out(x, y, rows);
-    }
+    const grid = glyphGrid(canvas, (cols, rows) => {
+      const at = new Float32Array(cols * rows);
+      for (let i = 0; i < cols * rows; i++) {
+        const x = (i % cols) / cols, y = ((i / cols) | 0) / rows;
+        at[i] = 1.2 - style.out(x, y, rows);
+      }
+      return at;
+    });
     // The farewell stays fully on screen for about two seconds before the switch-off.
     const CLOSE = 1100, HOLD = 3600, COLLAPSE = 650, FADE = 300, band = 0.2;
     const title = "UMBRA // OFFLINE", sub = "HISTORY SAVED · SETTINGS KEPT · STAY SAFE";
@@ -1658,6 +1721,8 @@ function asciiOutro(farewell, { keep = true } = {}) {
 
     const frame = (now) => {
       const t = now - start;
+      if (grid.fit()) lastGlyphs = 0;
+      const { w, h, cw, ch, cols, rows, n, ctx, mask, mctx, img, layer, lctx, at } = grid;
       const [bg, signal, shade, dim, accent, font] = ["--bg", "--signal", "--shade-2", "--dim", "--accent", "--font"].map(color);
       ctx.clearRect(0, 0, w, h);
       if (t < CLOSE + HOLD) {
@@ -1680,7 +1745,7 @@ function asciiOutro(farewell, { keep = true } = {}) {
         mctx.putImageData(img, 0, 0);
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(mask, 0, 0, cols * cw, rows * ch);
-        ctx.drawImage(layer, 0, 0);
+        ctx.drawImage(layer, 0, 0, w, h);
       } else {
         ctx.fillStyle = bg;
         ctx.fillRect(0, 0, w, h);

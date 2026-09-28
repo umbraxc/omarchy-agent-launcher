@@ -95,6 +95,12 @@
       return;
     }
     if (!state.selected || !find(state.selected)) state.selected = current();
+    // Picking a card rebuilds the grid: stay where the list was scrolled to
+    // (a new tab starts at the top), without replaying the cards' entrance.
+    const again = grid.dataset.tab === state.tab && grid.childElementCount > 0;
+    const top = again ? grid.scrollTop : 0;
+    grid.dataset.tab = state.tab;
+    grid.classList.toggle("refreshing", again);
     grid.innerHTML = "";
     list().forEach((item, i) => {
       const card = document.createElement("button");
@@ -116,6 +122,7 @@
     create.addEventListener("mouseenter", Sound.hover);
     create.addEventListener("click", () => (state.tab === "personality" ? editor(null) : scenarioEditor(null)));
     grid.appendChild(create);
+    grid.scrollTop = top;
     showDetail(find(state.selected));
   }
 

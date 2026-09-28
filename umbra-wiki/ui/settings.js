@@ -1,4 +1,5 @@
-// Umbra Wiki settings: sound, motion, answer extras, the AI model, voice,
+// Umbra Wiki settings: live performance and the AI's processor limit, sound,
+// motion, answer extras, the AI model, voice,
 // storage folders, the welcome tour and resetting Umbra. Preferences live
 // in ~/.config/umbra-wiki/settings.json with the theme and loadout.
 // Loaded after app.js and uses its helpers ($, Sound, postSettings,
@@ -7,7 +8,7 @@
 
 (() => {
   const DEFAULTS = {
-    volume: 0.9, hoverSounds: true, rain: true, background: "rain", reduceMotion: false, offgrid: "off", textScale: 1,
+    volume: 0.9, hoverSounds: true, rain: true, background: "rain", reduceMotion: false, offgrid: "off", textScale: 1, cpuLimit: 100,
     suggestions: true, greeting: true, barAlert: true,
   };
   window.prefs = { ...DEFAULTS, hiddenControls: [] };
@@ -99,6 +100,25 @@
     ]);
     packagedInstall = !!paths.packaged;
     body.innerHTML = `
+      <section class="set-section set-cpu"><div class="lib-head"><span>PERFORMANCE</span><b class="cpu-now"></b></div>
+        <canvas class="cpu-graph" aria-label="Processor use over the last minute"></canvas>
+        <div class="cpu-legend"><span class="lg-total"><i></i>WHOLE PROCESSOR <b class="cpu-total">--</b></span>
+          <span class="lg-umbra"><i></i>UMBRA <b class="cpu-umbra">--</b></span><span class="cpu-span">LAST 60 S</span></div>
+        <div class="cpu-cores" title="Each processor thread"></div>
+        <div class="cpu-stats">
+          <span><small>PROCESSOR</small><b class="cpu-name">--</b></span>
+          <span><small>CORES</small><b class="cpu-count">--</b></span>
+          <span><small>TEMPERATURE</small><b class="cpu-temp">--</b></span>
+          <span><small>MEMORY</small><b class="cpu-mem">--</b></span>
+        </div>
+        <div class="set-row"><span class="set-text"><b>AI processor limit</b><small class="cpu-limit-note">How much of the processor
+          Umbra's AI may use while it writes. Lower keeps your computer cooler and quieter; answers take longer.</small></span></div>
+        <div class="seg" role="slider" tabindex="0" aria-label="AI processor limit" aria-valuemin="25" aria-valuemax="100">
+          <div class="seg-fill"></div>
+          ${[[25, "LIGHT"], [50, "BALANCED"], [75, "STRONG"], [100, "FULL"]].map(([v, name]) =>
+            `<button type="button" class="seg-step" data-v="${v}"><b>${v}%</b><small>${name}</small></button>`).join("")}
+        </div>
+      </section>
       <section class="set-section"><div class="lib-head">SOUND</div>
         ${toggle("sound", "Sound effects", "Startup, clicks, search and answer sounds")}
         <label class="set-row"><span class="set-text"><b>Volume</b><small>How loud Umbra's sounds are</small></span>
@@ -108,6 +128,7 @@
           <span class="set-previews"><select class="set-audio-out"></select><button class="ghost set-audio-test">▶ TEST</button></span></label>
         <label class="set-row"><span class="set-text"><b>Microphone</b><small class="set-audio-in-note">What voice input listens to</small></span>
           <select class="set-audio-in"></select></label>
+        <p class="lib-note set-sound-missing" hidden></p>
       </section>
       <section class="set-section"><div class="lib-head">HEADER BUTTONS</div>
         ${CONTROLS.map(([id, label]) => `
@@ -268,6 +289,14 @@
     const outSel = body.querySelector(".set-audio-out"), inSel = body.querySelector(".set-audio-in");
     fill(outSel, audio.outputs || [], audio.out);
     fill(inSel, audio.inputs || [], audio.in);
+    // No program to play sounds with (they're optional in the package): say so, with the fix.
+    const missing = body.querySelector(".set-sound-missing");
+    if (audio.player === "" && audio.fix) {
+      missing.hidden = false;
+      missing.innerHTML = `<b>No sound player is installed, so Umbra is silent.</b> Install one in a terminal with
+        <code></code> then press ▶ TEST above.`;
+      missing.querySelector("code").textContent = audio.fix;
+    }
     if (voice.daemon) body.querySelector(".set-audio-in-note").textContent = "What voice input listens to; voxtype uses it too, so F9 works with the same microphone everywhere";
     const setAudio = async (update) => {
       const r = await fetch("/api/audio", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(update) })
@@ -296,33 +325,14 @@
     vol.addEventListener("change", () => { save({ volume: Number(vol.value) }); Sound.click(); });
 
     const select = body.querySelector(".set-model");
-    const names = models.models.length ? models.models : [models.current];
-    select.innerHTML = names.map((n) => `<option>${escapeHtml(n)}</option>`).join("");
-    select.value = models.current;
     select.addEventListener("change", async () => {
       const res = await fetch("/api/model", {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: select.value }),
       }).catch(() => null);
-      if (res && res.ok) { Sound.theme(); refreshStatus(); } else { Sound.error(); select.value = models.current; }
+      if (res && res.ok) { Sound.theme(); refreshStatus(); } else { Sound.error(); select.value = select.dataset.current || ""; }
     });
-
-    // Models that can be downloaded, with progress while one is coming in.
-    const pulls = body.querySelector(".set-pulls");
-    const pull = models.pull || {};
-    const installedIds = (models.installed || []).map((m) => m.id);
-    pulls.innerHTML = (models.choices || []).filter((c) => !installedIds.includes(c.id)).map((c) => {
-      const active = pull.active && pull.model === c.id;
-      const pct = active && pull.total ? Math.round((pull.completed * 100) / pull.total) : 0;
-      return `<div class="set-row"><span class="set-text"><b>${escapeHtml(c.name)}</b><small>${c.size} GB · ${escapeHtml(c.line)}</small></span>
-        <button class="ghost set-pull" data-model="${escapeHtml(c.id)}" ${pull.active ? "disabled" : ""}>${active ? `↓ ${pct}%` : "DOWNLOAD"}</button></div>`;
-    }).join("") + (pull.status === "failed" ? `<p class="lib-note">Download failed: ${escapeHtml(pull.error || "")}</p>` : "");
-    pulls.querySelectorAll(".set-pull").forEach((b) => b.addEventListener("click", async () => {
-      await fetch("/api/model/pull", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: b.dataset.model }) });
-      Sound.click();
-      render();
-    }));
-    clearTimeout(pullTimer);
-    if (pull.active) pullTimer = setTimeout(() => { if (!panel.hidden) render(); }, 2500);
+    fillModels(models);
+    setupCpu();
 
     body.querySelector(".set-voice").innerHTML = !voice.available
       ? `Voice input isn't installed. Install it with <code>${escapeHtml(voice.install || "omarchy-voxtype-install")}</code>, then hold <b>F9</b> to talk.`
@@ -356,6 +366,151 @@
       library: body.querySelector(".set-un-library").checked,
       model: body.querySelector(".set-un-model").checked,
     }));
+  }
+
+  // The model list and the downloadable models. While a download runs, only
+  // this part refreshes, so the panel doesn't jump or lose what you're doing.
+  function fillModels(models) {
+    const select = body.querySelector(".set-model"), pulls = body.querySelector(".set-pulls");
+    if (!select || !pulls) return;
+    const names = models.models.length ? models.models : [models.current];
+    if (select.dataset.names !== names.join("|")) {
+      select.innerHTML = names.map((n) => `<option>${escapeHtml(n)}</option>`).join("");
+      select.dataset.names = names.join("|");
+    }
+    select.value = select.dataset.current = models.current;
+    const pull = models.pull || {};
+    const installedIds = (models.installed || []).map((m) => m.id);
+    pulls.innerHTML = (models.choices || []).filter((c) => !installedIds.includes(c.id)).map((c) => {
+      const active = pull.active && pull.model === c.id;
+      const pct = active && pull.total ? Math.round((pull.completed * 100) / pull.total) : 0;
+      return `<div class="set-row"><span class="set-text"><b>${escapeHtml(c.name)}</b><small>${c.size} GB · ${escapeHtml(c.line)}</small></span>
+        <button class="ghost set-pull" data-model="${escapeHtml(c.id)}" ${pull.active ? "disabled" : ""}>${active ? `↓ ${pct}%` : "DOWNLOAD"}</button></div>`;
+    }).join("") + (pull.status === "failed" ? `<p class="lib-note">Download failed: ${escapeHtml(pull.error || "")}</p>` : "");
+    pulls.querySelectorAll(".set-pull").forEach((b) => b.addEventListener("click", async () => {
+      await fetch("/api/model/pull", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: b.dataset.model }) });
+      Sound.click();
+      refreshModels();
+    }));
+    clearTimeout(pullTimer);
+    if (pull.active) pullTimer = setTimeout(refreshModels, 2500);
+  }
+  async function refreshModels() {
+    if (panel.hidden) return;
+    const models = await fetch("/api/models").then((r) => r.json()).catch(() => null);
+    if (models && !panel.hidden) fillModels(models);
+  }
+
+  // ------------------------------------------------------ performance
+
+  // A live graph of the last minute (whole processor, and Umbra's share),
+  // a bar per processor thread, and the AI's processor limit. Updates every
+  // second while Settings is open.
+  const cpuHist = { total: [], umbra: [] };
+  const CPU_POINTS = 60;
+  let cpuTimer = 0, cpuInfo = null;
+
+  function setupCpu() {
+    const seg = body.querySelector(".seg");
+    const steps = [...seg.querySelectorAll(".seg-step")];
+    const values = steps.map((b) => Number(b.dataset.v));
+    const show = (v) => {
+      const i = Math.max(0, values.indexOf(v));
+      seg.style.setProperty("--seg", String((i + 1) / values.length));
+      steps.forEach((b, k) => { b.classList.toggle("on", k <= i); b.classList.toggle("current", k === i); });
+      seg.setAttribute("aria-valuenow", String(v));
+      limitNote(v);
+    };
+    const choose = (v) => {
+      if (v === (prefs.cpuLimit || 100)) return show(v);
+      show(v);
+      save({ cpuLimit: v });
+      Sound.click();
+    };
+    // Click a step, or drag along the bar.
+    const pick = (x) => {
+      const r = seg.getBoundingClientRect();
+      return values[Math.max(0, Math.min(values.length - 1, Math.floor(((x - r.left) / r.width) * values.length)))];
+    };
+    let dragging = false;
+    seg.addEventListener("pointerdown", (e) => { dragging = true; seg.setPointerCapture(e.pointerId); show(pick(e.clientX)); });
+    seg.addEventListener("pointermove", (e) => { if (dragging) show(pick(e.clientX)); });
+    seg.addEventListener("pointerup", (e) => { if (!dragging) return; dragging = false; choose(pick(e.clientX)); });
+    seg.addEventListener("keydown", (e) => {
+      const i = values.indexOf(prefs.cpuLimit || 100);
+      if (["ArrowLeft", "ArrowDown"].includes(e.key)) { e.preventDefault(); choose(values[Math.max(0, i - 1)]); }
+      if (["ArrowRight", "ArrowUp"].includes(e.key)) { e.preventDefault(); choose(values[Math.min(values.length - 1, i + 1)]); }
+    });
+    show(prefs.cpuLimit || 100);
+    clearInterval(cpuTimer);
+    updateCpu();
+    cpuTimer = setInterval(updateCpu, window.offgrid ? 3000 : 1000);
+  }
+
+  function limitNote(v) {
+    const note = body.querySelector(".cpu-limit-note");
+    if (!note || !cpuInfo) return;
+    const cores = cpuInfo.limits[String(v)] || cpuInfo.physical, all = cpuInfo.physical;
+    note.textContent = (v === 100
+      ? `Umbra's AI may use all ${all} cores of your processor while it writes: the fastest answers.`
+      : `Umbra's AI may use ${cores} of your ${all} cores while it writes. Your computer stays cooler and quieter; answers take longer.`) +
+      " A change applies from the next answer.";
+  }
+
+  async function updateCpu() {
+    if (panel.hidden || !body.querySelector(".cpu-graph")) { clearInterval(cpuTimer); return; }
+    let c;
+    try { c = await (await fetch("/api/cpu")).json(); } catch { return; }
+    const first = !cpuInfo;
+    cpuInfo = c;
+    if (first) limitNote(prefs.cpuLimit || 100);
+    cpuHist.total.push(c.total); cpuHist.umbra.push(c.umbra);
+    for (const k of ["total", "umbra"]) if (cpuHist[k].length > CPU_POINTS) cpuHist[k].shift();
+    const q = (sel) => body.querySelector(sel);
+    q(".cpu-total").textContent = Math.round(c.total) + "%";
+    q(".cpu-umbra").textContent = Math.round(c.umbra) + "%";
+    q(".cpu-now").textContent = c.load ? `LOAD ${c.load.toFixed(2)}` : "";
+    q(".cpu-name").textContent = c.name;
+    q(".cpu-count").textContent = `${c.physical} cores · ${c.threads} threads`;
+    q(".cpu-temp").textContent = c.temp != null ? `${c.temp} °C` : "not reported";
+    q(".cpu-temp").classList.toggle("hot", c.temp >= 85);
+    q(".cpu-mem").textContent = c.memTotal ? `${(c.memUsed / 1e9).toFixed(1)} of ${(c.memTotal / 1e9).toFixed(1)} GB` : "--";
+    const cores = q(".cpu-cores");
+    if (cores.childElementCount !== c.cores.length) cores.innerHTML = c.cores.map(() => "<i><b></b></i>").join("");
+    c.cores.forEach((v, i) => { cores.children[i].firstChild.style.height = Math.max(3, v) + "%"; });
+    drawCpu();
+  }
+
+  function drawCpu() {
+    const canvas = body.querySelector(".cpu-graph");
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    }
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    const css = getComputedStyle(document.documentElement);
+    const col = (v) => css.getPropertyValue(v).trim();
+    // Grid lines at 25, 50 and 75%.
+    ctx.strokeStyle = col("--line"); ctx.lineWidth = 1;
+    ctx.setLineDash([2, 4]);
+    for (const f of [0.25, 0.5, 0.75]) { ctx.beginPath(); ctx.moveTo(0, Math.round(h * f) + 0.5); ctx.lineTo(w, Math.round(h * f) + 0.5); ctx.stroke(); }
+    ctx.setLineDash([]);
+    const plot = (data, stroke, fillAlpha) => {
+      if (data.length < 2) return;
+      const x = (i) => w - (data.length - 1 - i) * (w / (CPU_POINTS - 1));
+      const y = (v) => h - 1 - (v / 100) * (h - 2);
+      ctx.beginPath();
+      data.forEach((v, i) => (i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v))));
+      ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.lineTo(x(data.length - 1), h); ctx.lineTo(x(0), h); ctx.closePath();
+      ctx.globalAlpha = fillAlpha; ctx.fillStyle = stroke; ctx.fill(); ctx.globalAlpha = 1;
+    };
+    plot(cpuHist.total, col("--dim"), 0.12);
+    plot(cpuHist.umbra, col("--signal"), 0.28);
   }
 
   // Reset asks twice: it deletes everything personal.
@@ -412,7 +567,11 @@
       $("#library-btn").classList.remove("on");
       if (window.closeHistory) window.closeHistory();
       if (window.closeLoadout) window.closeLoadout(true);
+      body.scrollTop = 0;
       render();
+    } else {
+      clearInterval(cpuTimer);
+      clearTimeout(pullTimer);
     }
     if (!quiet) Sound.click();
   }

@@ -58,6 +58,10 @@ own computer.
 
 ![Umbra at work](docs/waiting.png)
 
+Every conversation reads as one long page: scroll up (even while Umbra is
+still writing) to reread, all the way back to the start screen above it.
+Click the emblem or the name in the top left for a new conversation.
+
 ### A field manual that is always there
 
 Twenty short pages of critical basics ship with Umbra, from severe bleeding
@@ -139,7 +143,13 @@ transition styles to choose from, with previews in Settings.
 
 ### Settings for how you use it
 
-Text size, sound output and microphone, volume, which header buttons show,
+At the top, **Performance**: a live graph of your processor over the last
+minute (and how much of it Umbra uses), a bar per processor thread, the
+temperature and memory, and the **AI processor limit**: a four-step bar
+(25, 50, 75 or 100%) that sets how many cores the AI may use while it writes,
+to keep a laptop cooler and quieter.
+
+Then text size, sound output and microphone, volume, which header buttons show,
 transitions, backgrounds, reduced motion, the local AI model, voice input,
 backups, and **off-grid mode**: a battery saver that calms the animations,
 skips Umbra's extra AI work and keeps answers short, automatically when you
@@ -356,9 +366,45 @@ Umbra Wiki speaks and understands English.
 | STATUS says NO MODEL | pick or download a model in Settings → AI model |
 | STATUS says CORE OFFLINE | Ollama isn't running: `sudo systemctl enable --now ollama` |
 | The window says the backend failed | `systemctl --user status umbra-wiki` and `journalctl --user -u umbra-wiki` |
-| No sounds | check Settings → Sound (output, volume, mute) |
+| No sounds | see [No sound](#no-sound) below |
 | Answers are slow | normal on a processor; try the 1B model or off-grid mode |
 | Voice input missing | Omarchy: `omarchy-voxtype-install`; Arch: `yay -S voxtype-bin && voxtype setup --download --model base.en` |
+| The CPU gets hot or loud while Umbra writes | Settings → Performance → lower the **AI processor limit** |
+
+### No sound
+
+Umbra plays its sounds with a small system program: `pw-play` (from
+`pipewire-audio`) or, on PulseAudio systems, `paplay` (from `libpulse`). The
+package lists them as optional, so a minimal Arch install may have neither,
+and Umbra then stays silent. Go through these steps in order:
+
+1. **Unmute Umbra.** The speaker button in the top right (or Settings → Sound →
+   Sound effects) should be on, and the volume above zero.
+2. **Look at Settings → Sound.** If it says *No sound player is installed*, it
+   shows the exact command to run. Otherwise, run this check in a terminal
+   while Umbra is open. It changes nothing and plays one beep:
+
+   ```bash
+   echo "players: $(command -v pw-play paplay | tr '\n' ' ')"; [ -S "$XDG_RUNTIME_DIR/pipewire-0" ] && echo "pipewire: yes" || echo "pipewire: no"; curl -s localhost:8766/api/settings | grep -o '"muted": *[a-z]*'; curl -s -X POST -H 'Content-Type: application/json' -d '{"name":"beep"}' localhost:8766/api/sound; echo
+   ```
+
+3. **Install a sound player** if `players:` is empty:
+
+   | The check says | Run |
+   |---|---|
+   | `pipewire: yes` (most systems) | `sudo pacman -S --needed pipewire-audio` |
+   | `pipewire: no` (PulseAudio) | `sudo pacman -S --needed libpulse` |
+
+   Then press **▶ TEST** in Settings → Sound. No restart is needed.
+4. **Choose the right speakers.** If `"muted": true` shows, turn Sound effects
+   on. If a player is listed but you hear nothing, pick your speakers or
+   headphones in Settings → Sound → Sound output and press ▶ TEST.
+5. **Check the system volume** (for example with `wpctl status`, or your
+   desktop's volume control). Other apps should be able to play sound too.
+6. **Still silent?** Look at the backend log for errors:
+   `journalctl --user -u umbra-wiki -n 50`, and open an
+   [issue](https://github.com/umbraxc/omarchy-umbra/issues) with what the
+   check printed.
 
 ---
 

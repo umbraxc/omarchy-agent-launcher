@@ -505,7 +505,18 @@ def audio_devices():
             return []
     settings = read_json(SETTINGS_FILE, {})
     return {"outputs": listing("sinks"), "inputs": listing("sources"),
-            "out": settings.get("audioOut", ""), "in": settings.get("audioIn", "")}
+            "out": settings.get("audioOut", ""), "in": settings.get("audioIn", ""), **sound_player()}
+
+
+def sound_player():
+    """Which program plays Umbra's sounds, and the command that installs one
+    when there is none (the package lists them as optional)."""
+    found = player(os.devnull)
+    if found:
+        return {"player": found[0], "fix": ""}
+    runtime = os.environ.get("XDG_RUNTIME_DIR") or "/tmp"
+    pipewire = os.path.exists(os.path.join(runtime, "pipewire-0"))
+    return {"player": "", "fix": "sudo pacman -S --needed " + ("pipewire-audio" if pipewire else "libpulse")}
 
 
 def set_audio(out=None, source=None):
@@ -829,16 +840,158 @@ MODEL_CHOICES = [
 ]
 
 
-def system_info():
-    """What this computer can do, for choosing a model."""
-    cpu = "Unknown processor"
+# ------------------------------------------------------------------ CPU
+
+CPU_LOCK = threading.Lock()
+CPU_PREV = {}
+CLK_TCK = os.sysconf("SC_CLK_TCK") if hasattr(os, "sysconf") else 100
+CPU_LIMITS = (25, 50, 75, 100)
+
+
+def cpu_times():
+    """(busy, total) jiffies for the whole CPU, then each core, from /proc/stat."""
+    out = []
+    try:
+        for line in open("/proc/stat"):
+            if not line.startswith("cpu"):
+                break
+            v = [int(x) for x in line.split()[1:9]]
+            idle = v[3] + (v[4] if len(v) > 4 else 0)
+            out.append((sum(v) - idle, sum(v)))
+    except (OSError, ValueError):
+        pass
+    return out
+
+
+def umbra_ticks():
+    """CPU time used so far by Umbra's processes: the local AI (Ollama), the
+    library server (kiwix-serve), this backend, and the window with its web view."""
+    procs = {}
+    for pid in os.listdir("/proc"):
+        if not pid.isdigit():
+            continue
+        try:
+            with open(f"/proc/{pid}/stat") as f:
+                stat = f.read()
+        except OSError:
+            continue
+        comm = stat[stat.find("(") + 1:stat.rfind(")")]
+        fields = stat[stat.rfind(")") + 2:].split()
+        try:
+            procs[int(pid)] = (comm, int(fields[1]), int(fields[11]) + int(fields[12]))
+        except (IndexError, ValueError):
+            continue
+    window = {pid for pid, (comm, _, _) in procs.items() if comm == "umbra-wiki"}
+    return sum(ticks for pid, (comm, ppid, ticks) in procs.items()
+               if comm.startswith("ollama") or comm == "kiwix-serve" or pid == os.getpid()
+               or pid in window or ppid in window)
+
+
+def physical_cores():
+    """Real cores (not threads): what Ollama uses by default."""
+    cores = set()
+    phys = core = None
+    try:
+        for line in open("/proc/cpuinfo"):
+            if line.startswith("physical id"):
+                phys = line.split(":")[1].strip()
+            elif line.startswith("core id"):
+                core = line.split(":")[1].strip()
+            elif not line.strip():
+                if core is not None:
+                    cores.add((phys, core))
+                phys = core = None
+    except OSError:
+        pass
+    return len(cores) or os.cpu_count() or 1
+
+
+def cpu_limit():
+    value = read_json(SETTINGS_FILE, {}).get("cpuLimit", 100)
+    return value if value in CPU_LIMITS else 100
+
+
+def ai_threads(limit=None):
+    """How many cores the local AI may use at a CPU limit (%)."""
+    limit = cpu_limit() if limit is None else limit
+    return max(1, round(physical_cores() * limit / 100))
+
+
+def ai_options(**extra):
+    """Ollama options shared by every request, so the model never reloads
+    between them. Below 100% the AI gets fewer cores (num_thread)."""
+    options = {"num_ctx": 4096, **extra}
+    if cpu_limit() < 100:
+        options["num_thread"] = ai_threads()
+    return options
+
+
+def cpu_temp():
+    """The processor temperature in °C, if the system reports it."""
+    for hw in glob.glob("/sys/class/hwmon/hwmon*"):
+        try:
+            if open(hw + "/name").read().strip() in ("coretemp", "k10temp", "zenpower"):
+                return round(int(open(hw + "/temp1_input").read()) / 1000)
+        except (OSError, ValueError):
+            continue
+    fallback = None
+    for zone in sorted(glob.glob("/sys/class/thermal/thermal_zone*")):
+        try:
+            kind = open(zone + "/type").read().strip()
+            temp = round(int(open(zone + "/temp").read()) / 1000)
+        except (OSError, ValueError):
+            continue
+        if kind == "x86_pkg_temp":
+            return temp
+        if fallback is None and kind in ("acpitz", "cpu-thermal", "cpu_thermal", "TCPU", "soc_thermal"):
+            fallback = temp
+    return fallback
+
+
+def cpu_status():
+    """Live CPU use (whole processor, each thread, and Umbra's share) since
+    the previous call, plus temperature, memory and the AI's core limit."""
+    now, times, ticks = time.monotonic(), cpu_times(), umbra_ticks()
+    with CPU_LOCK:
+        prev = dict(CPU_PREV)
+        CPU_PREV.update(at=now, times=times, ticks=ticks)
+    pct = lambda a, b: round(max(0.0, min(100.0, (a[0] - b[0]) * 100 / max(1, a[1] - b[1]))), 1)
+    threads = max(1, len(times) - 1)
+    total, cores, umbra = 0.0, [0.0] * threads, 0.0
+    if prev.get("times") and len(prev["times"]) == len(times) and now - prev["at"] > 0.05:
+        total = pct(times[0], prev["times"][0])
+        cores = [pct(a, b) for a, b in zip(times[1:], prev["times"][1:])]
+        umbra = round(max(0.0, min(100.0, (ticks - prev["ticks"]) * 100 / ((now - prev["at"]) * CLK_TCK * threads))), 1)
+    mem = {}
+    try:
+        for line in open("/proc/meminfo"):
+            key, value = line.split(":", 1)
+            if key in ("MemTotal", "MemAvailable"):
+                mem[key] = int(value.split()[0]) * 1024
+    except (OSError, ValueError):
+        pass
+    name = system_info_cpu()
+    limit = cpu_limit()
+    return {"total": total, "umbra": min(umbra, 100.0), "cores": cores, "threads": threads,
+            "physical": physical_cores(), "name": name, "temp": cpu_temp(),
+            "memTotal": mem.get("MemTotal", 0), "memUsed": mem.get("MemTotal", 0) - mem.get("MemAvailable", 0),
+            "load": os.getloadavg()[0] if hasattr(os, "getloadavg") else 0,
+            "limit": limit, "aiThreads": ai_threads(limit), "limits": {str(l): ai_threads(l) for l in CPU_LIMITS}}
+
+
+def system_info_cpu():
     try:
         for line in open("/proc/cpuinfo"):
             if line.startswith("model name"):
-                cpu = re.sub(r"\s+", " ", line.split(":", 1)[1]).replace("(R)", "").replace("(TM)", "").strip()
-                break
+                return re.sub(r"\s+", " ", line.split(":", 1)[1]).replace("(R)", "").replace("(TM)", "").strip()
     except OSError:
         pass
+    return "Unknown processor"
+
+
+def system_info():
+    """What this computer can do, for choosing a model."""
+    cpu = system_info_cpu()
     ram = 0
     try:
         for line in open("/proc/meminfo"):
@@ -1194,6 +1347,8 @@ def apply_settings(update):
             settings["textScale"] = max(0.8, min(1.4, float(update["textScale"])))
         if isinstance(update.get("volume"), (int, float)):
             settings["volume"] = max(0.0, min(1.0, float(update["volume"])))
+        if update.get("cpuLimit") in CPU_LIMITS:
+            settings["cpuLimit"] = update["cpuLimit"]
         for key in ("scenario", "personality"):
             if isinstance(update.get(key), str) and re.fullmatch(r"[a-z0-9-]{1,40}", update[key]):
                 settings[key] = update[key]
@@ -1722,6 +1877,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(drives())
         if path == "/api/power":
             return self.send_json({"battery": on_battery()})
+        if path == "/api/cpu":
+            return self.send_json(cpu_status())
         if path.startswith("/api/history/"):
             try:
                 conv = read_json(history_path(path.rsplit("/", 1)[1]), None)
@@ -1758,7 +1915,11 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/api/settings":
             update = self.read_json()
-            return self.send_json(apply_settings(update))
+            before = cpu_limit()
+            settings = apply_settings(update)
+            if cpu_limit() != before:
+                threading.Thread(target=warm_model, daemon=True).start()   # reload the AI with its new core count now
+            return self.send_json(settings)
         if self.path == "/api/voice":
             return self.send_json(voice_action(str(self.read_json().get("action", ""))))
         if self.path == "/api/audio":
@@ -2001,7 +2162,7 @@ def answer(req, emit):
 
 
 def stream_chat(messages, emit, limit=None):
-    options = {"num_ctx": 4096, "temperature": 0.4}
+    options = ai_options(temperature=0.4)
     if limit:
         options["num_predict"] = limit
     body = json.dumps({
@@ -2033,7 +2194,7 @@ def quick_generate(prompt, num_predict, system=None, lines=False):
     """A short one-line completion from the local model ('' on failure);
     with lines=True, all non-empty lines as a list."""
     req = {"model": MODEL, "prompt": prompt, "stream": False, "keep_alive": "30m",
-           "options": {"num_ctx": 4096, "temperature": 0.4, "num_predict": num_predict}}
+           "options": ai_options(temperature=0.4, num_predict=num_predict)}
     if system:
         req["system"] = system
     body = json.dumps(req).encode()
@@ -2075,7 +2236,7 @@ def suggest_reply(question, answer_text):
 def warm_model():
     """Load Gemma into memory ahead of the first question."""
     try:
-        body = json.dumps({"model": MODEL, "keep_alive": "30m", "options": {"num_ctx": 4096}}).encode()
+        body = json.dumps({"model": MODEL, "keep_alive": "30m", "options": ai_options()}).encode()
         urllib.request.urlopen(urllib.request.Request(
             OLLAMA + "/api/generate", body, {"Content-Type": "application/json"}), timeout=120).read()
     except Exception:

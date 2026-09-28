@@ -1,7 +1,7 @@
 // Umbra Wiki history: every conversation is saved on this computer
 // (~/.local/share/umbra-wiki/history) and can be reopened and continued from
 // the History panel. Loaded after app.js and uses its helpers ($, Sound,
-// feed, chat, controller, locked, addUser, addBot, finishAnswer, showIntro,
+// feed, chat, controller, locked, addUser, addBot, finishAnswer, showIntro, keepScroll,
 // stopRain, toggleThemes, confirmDialog, suggestFor, setSuggestion).
 "use strict";
 
@@ -78,6 +78,9 @@
   }
 
   function render() {
+    keepScroll(list, fill);
+  }
+  function fill() {
     const hidden = new Set(pendingDeletes.keys());
     const shown = (results || items).filter((c) => !hidden.has(c.id));
     list.innerHTML = !items.length
@@ -134,8 +137,7 @@
       c = await r.json();
     } catch { Sound.error(); load(); return; }
     convo = { id: c.id, title: c.title, messages: c.messages || [] };
-    stopRain();
-    feed.innerHTML = "";
+    showIntro(false, { greet: false });   // the start screen sits above the conversation
     chat.length = 0;
     for (const m of convo.messages) {
       addUser(m.shown || m.question, m.online);

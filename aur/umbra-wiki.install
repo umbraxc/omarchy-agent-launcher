@@ -6,6 +6,8 @@ post_install() {
 ==> 2. Open "Umbra Wiki" from your app launcher, or run: umbra-wiki
 ==>    The welcome tour picks the AI model and the offline library with you.
 ==> Voice input (optional): yay -S voxtype-bin && voxtype setup --download --model base.en
+==> No sound in Umbra? Install a sound player:
+==>      sudo pacman -S --needed pipewire-audio   (or libpulse on PulseAudio systems)
 MSG
 }
 

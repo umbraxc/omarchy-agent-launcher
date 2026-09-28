@@ -1,5 +1,22 @@
 # Changelog
 
+## 3.2.0
+
+- **Performance in Settings**: a live graph of the processor (and Umbra's
+  share), a bar per thread, temperature and memory, and an **AI processor
+  limit** (25 / 50 / 75 / 100%) that caps the cores the AI uses while it
+  writes.
+- **One long page**: the start screen stays above the conversation, so
+  scrolling up (also while Umbra is answering) brings it back. Scrolling up
+  now works on touchpads during an answer too.
+- **Home**: click the emblem or name in the top left for a new conversation.
+- Panels that refresh themselves (library and model downloads, history,
+  loadout cards) keep their scroll position instead of jumping to the top.
+- The boot and goodbye animations follow the window when it's resized or
+  made fullscreen mid-animation, and are sharp on scaled (HiDPI) screens.
+- **No sound?** Settings → Sound says when no sound player is installed and
+  shows the command to fix it; the README has a step-by-step checklist.
+
 ## 3.1.0
 
 - **An Arch package and repository**: `umbra-wiki` installs system-wide on
