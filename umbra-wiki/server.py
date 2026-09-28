@@ -26,6 +26,9 @@ import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import maps  # noqa: E402  (offline maps: maps.py next to this file)
+
 HOME = os.path.expanduser("~")
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 UI_DIR = os.path.join(APP_DIR, "ui")
@@ -171,6 +174,46 @@ def fetch(url, timeout=30, headers=None):
     req = urllib.request.Request(url, headers=headers or {})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read().decode("utf-8", "replace")
+
+
+# --------------------------------------------------------------------- maps
+
+MAPS = None   # set up once the data folder is known (below)
+WAYPOINTS_FILE = os.path.join(DATA_DIR, "waypoints.json")
+WAYPOINT_ICONS = ("pin", "camp", "water", "danger", "rally", "cache", "medical", "home")
+
+
+def get_waypoints():
+    wps = read_json(WAYPOINTS_FILE, {}).get("waypoints", [])
+    return wps if isinstance(wps, list) else []
+
+
+def save_waypoints(items):
+    """The user's waypoints on the map, checked like everything else."""
+    if not isinstance(items, list):
+        raise ValueError("bad waypoints")
+    clean = []
+    for w in items[:500]:
+        if not isinstance(w, dict):
+            continue
+        try:
+            lat, lon = float(w.get("lat")), float(w.get("lon"))
+        except (TypeError, ValueError):
+            continue
+        if not (-85 <= lat <= 85 and -180 <= lon <= 180):
+            continue
+        wid = str(w.get("id") or "")
+        if not re.fullmatch(r"[a-z0-9]{4,24}", wid):
+            continue
+        clean.append({"id": wid, "name": re.sub(r"\s+", " ", str(w.get("name") or "Waypoint")).strip()[:40],
+                      "lat": round(lat, 6), "lon": round(lon, 6),
+                      "icon": w.get("icon") if w.get("icon") in WAYPOINT_ICONS else "pin",
+                      "note": str(w.get("note") or "").strip()[:200],
+                      "created": int(w.get("created") or time.time() * 1000)})
+    write_json(WAYPOINTS_FILE, {"waypoints": clean})
+    for w in clean:
+        record("waypoints", w["id"])
+    return clean
 
 
 # ------------------------------------------------------------------ updates
@@ -955,7 +998,8 @@ def _stat(st, stat):
         return sum(1 for t in TOPICS if st["topics"].get(t))
     if stat == "streak":
         return max(_streak(st["days"]), counts.get("bestStreak", 0))
-    if stat in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations"):
+    if stat in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
+                "mapPacks", "mapRegions", "waypoints", "mapSearches"):
         return len(sets.get(stat, []))
     if stat == "profileName":
         return 1 if get_profile().get("name") else 0
@@ -1011,7 +1055,8 @@ def record(event, value=None, **info):
             counts["longestConversation"] = max(counts.get("longestConversation", 0), int(info.get("turn") or 1))
         elif event in ("suggestions", "sources", "stops", "voice", "backups", "usbExports", "tour", "password"):
             counts[event] = counts.get(event, 0) + 1
-        elif event in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations"):
+        elif event in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
+                       "mapPacks", "mapRegions", "waypoints", "mapSearches"):
             item = str(value or "")[:60]
             if item and item not in sets.get(event, []):
                 sets[event] = sets.get(event, []) + [item]
@@ -1063,7 +1108,8 @@ def restore_achievements(data):
                 if isinstance(v, int) and re.fullmatch(r"[A-Za-z]{1,30}", str(k)):
                     st[key][k] = max(v, st[key].get(k, 0))
         for k, v in (data.get("sets") or {}).items():
-            if k in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations") and isinstance(v, list):
+            if k in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
+                     "mapPacks", "mapRegions", "waypoints", "mapSearches") and isinstance(v, list):
                 st["sets"][k] = sorted(set(st["sets"].get(k, [])) | {str(x)[:60] for x in v[:200]})
         st["days"] = sorted(set(st["days"]) | {d for d in (data.get("days") or [])[:400]
                                                if isinstance(d, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", d)})[-400:]
@@ -1444,10 +1490,12 @@ def set_model(name):
 
 
 def reset_umbra():
-    """Back to a fresh install: settings, profile, achievements, custom themes,
-    personalities and scenarios, and all saved conversations are deleted. The AI model,
+    """Back to a fresh install: settings, profile, achievements, waypoints,
+    custom themes, personalities and scenarios, and all saved conversations
+    are deleted (downloaded maps stay, like the library). The AI model,
     the library and config.json (model, library folder) are kept."""
-    for path in (SETTINGS_FILE, PROFILE_FILE, CUSTOM_THEMES_FILE, PERSONALITIES_FILE, SCENARIOS_FILE, LOCK_FILE, ACH_FILE):
+    for path in (SETTINGS_FILE, PROFILE_FILE, CUSTOM_THEMES_FILE, PERSONALITIES_FILE, SCENARIOS_FILE, LOCK_FILE, ACH_FILE,
+                 WAYPOINTS_FILE):
         try:
             os.remove(path)
         except OSError:
@@ -1607,7 +1655,7 @@ def apply_settings(update):
             if isinstance(update.get(key), bool):
                 settings[key] = update[key]
         if isinstance(update.get("hiddenControls"), list):
-            allowed = {"loadout-btn", "history-btn", "library-btn", "theme-btn", "sound", "lock"}
+            allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "theme-btn", "sound", "lock"}
             settings["hiddenControls"] = [c for c in update["hiddenControls"] if c in allowed]
         if update.get("background") in ("rain", "rise", "rings", "stars", "forest", "snow", "aurora",
                                          "embers", "radar", "none"):
@@ -1804,7 +1852,7 @@ def backup(include_history, target=""):
         "umbraBackup": 1, "created": int(time.time() * 1000),
         "settings": read_json(SETTINGS_FILE, {}), "profile": get_profile(),
         "themes": custom_themes(), "personalities": custom_personalities(), "scenarios": custom_scenarios(),
-        "achievements": read_json(ACH_FILE, {}),
+        "achievements": read_json(ACH_FILE, {}), "waypoints": get_waypoints(),
         "history": [read_json(history_path(i["id"]), {}) for i in history_list()["items"]] if include_history else [],
     }
     path = os.path.join(folder, f"umbra-backup-{time.strftime('%Y-%m-%d-%H%M')}.json")
@@ -1822,6 +1870,13 @@ def restore(data):
     if isinstance(data.get("profile"), dict):
         save_profile(data["profile"])
     restore_achievements(data.get("achievements"))
+    if isinstance(data.get("waypoints"), list):
+        mine = {w["id"]: w for w in get_waypoints()}
+        mine.update({w.get("id"): w for w in data["waypoints"] if isinstance(w, dict)})
+        try:
+            save_waypoints(list(mine.values()))
+        except ValueError:
+            pass
     counts = {"themes": 0, "personalities": 0, "scenarios": 0, "conversations": 0}
     for key, save in (("themes", save_custom_theme), ("personalities", save_personality),
                       ("scenarios", save_scenario), ("history", lambda c: history_save(c, keep_time=True))):
@@ -2158,6 +2213,28 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(achievements())
         if path == "/api/update-check":
             return self.send_json(check_update())
+        if path == "/api/maps":
+            st = MAPS.status()
+            st["dir"] = st["dir"].replace(HOME, "~", 1)
+            return self.send_json(st)
+        if path == "/api/waypoints":
+            return self.send_json(get_waypoints())
+        if path == "/api/mapsearch":
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("q", [""])[0]
+            return self.send_json(MAPS.search(q[:60]))
+        if path.startswith("/api/mapdata/"):
+            pid = path.rsplit("/", 1)[1]
+            file = MAPS.path(pid) if pid in [p["id"] for p in maps.catalog()] else ""
+            if not file or not os.path.isfile(file):
+                return self.send_json({"error": "not installed"}, 404)
+            with open(file, "rb") as f:
+                body = f.read()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if path == "/api/achievements/unseen":
             return self.send_json(achievements(mark_seen=True))
         if path.startswith("/api/history/"):
@@ -2323,12 +2400,36 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/themes/delete":
             return self.send_json(delete_custom_theme(str(self.read_json().get("id", ""))))
+        if self.path == "/api/maps/download":
+            wanted = [str(x) for x in (self.read_json().get("packs") or [])][:40]
+
+            def done(ids):
+                for pid in ids:
+                    record("mapPacks", pid)
+                    if pid.startswith("terrain-"):
+                        record("mapRegions", pid[8:])
+            try:
+                return self.send_json(MAPS.start(wanted, done))
+            except ValueError as e:
+                return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/maps/delete":
+            try:
+                return self.send_json(MAPS.delete(str(self.read_json().get("id", ""))))
+            except ValueError as e:
+                return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/waypoints":
+            try:
+                return self.send_json(save_waypoints(self.read_json().get("waypoints")))
+            except ValueError as e:
+                return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/achievements/event":
             req = self.read_json()
             event, value = str(req.get("event", "")), req.get("value")
             if event == "manualPages":
                 if value not in [p.get("id") for p in field_manual()]:
                     return self.send_json({"error": "unknown page"}, 400)
+            elif event == "mapSearches":
+                value = str(value or "")[:60].lower()
             elif event not in ("suggestions", "sources", "stops", "voice"):
                 return self.send_json({"error": "unknown event"}, 400)
             record(event, value)
@@ -2553,6 +2654,8 @@ def warm_model():
     except Exception:
         pass
 
+
+MAPS = maps.Maps(DATA_DIR, APP_DIR)
 
 if __name__ == "__main__":
     signal.signal(signal.SIGTERM, stop_kiwix)

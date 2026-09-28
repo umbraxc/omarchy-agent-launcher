@@ -25,6 +25,10 @@
    "OFF THE GRID"
   ],
   [
+   "maps",
+   "MAPS"
+  ],
+  [
    "style",
    "STYLE"
   ],
@@ -514,6 +518,50 @@
    "category": "offgrid"
   },
   {
+   "id": "cartographer",
+   "name": "Cartographer",
+   "description": "Download your first map pack.",
+   "icon": "󰍍",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "mapPacks",
+   "goal": 1,
+   "category": "maps"
+  },
+  {
+   "id": "trailblazer",
+   "name": "Trailblazer",
+   "description": "Drop 5 waypoints on the map.",
+   "icon": "󰉀",
+   "tier": "silver",
+   "points": 25,
+   "stat": "waypoints",
+   "goal": 5,
+   "category": "maps"
+  },
+  {
+   "id": "navigator",
+   "name": "Navigator",
+   "description": "Search the map for 10 different places.",
+   "icon": "󱎂",
+   "tier": "silver",
+   "points": 25,
+   "stat": "mapSearches",
+   "goal": 10,
+   "category": "maps"
+  },
+  {
+   "id": "world-traveller",
+   "name": "World Traveller",
+   "description": "Download the detailed maps of every region.",
+   "icon": "󰇧",
+   "tier": "gold",
+   "points": 50,
+   "stat": "mapRegions",
+   "goal": 8,
+   "category": "maps"
+  },
+  {
    "id": "wardrobe-change",
    "name": "Wardrobe Change",
    "description": "Try 5 themes.",
@@ -587,7 +635,7 @@
    "tier": "legendary",
    "points": 100,
    "stat": "allOthers",
-   "goal": 46,
+   "goal": 50,
    "category": "legend"
   }
  ]

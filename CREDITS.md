@@ -37,6 +37,15 @@ before you redistribute anything.
 | Military Medicine | US government field manuals, via the [Federation of American Scientists](https://irp.fas.org) | public domain (US government works) |
 | Medical Library, Food for Preppers, Water Treatment Library, A Library of Knots, Post Disaster Resource Library | Various authors, collected by openZIM's [zimgit](https://github.com/openzim/zimgit) project | each document under its own terms |
 
+## Maps
+
+| Data | By | License |
+|---|---|---|
+| World overview (`umbra-wiki/maps/world.json`, built in), World Atlas and regional maps (downloaded on request) | [Natural Earth](https://www.naturalearthdata.com), a NACIS project, via [natural-earth-vector](https://github.com/nvkelso/natural-earth-vector) | public domain |
+
+Umbra converts the data into its own compact format and draws it itself; the
+map styles and symbols are umbraxc's (MIT).
+
 Online mode reads [Wikipedia](https://wikipedia.org) articles (CC BY-SA 4.0)
 through the Wikipedia API.
 

@@ -2,7 +2,18 @@
 
 ## 3.1.1
 
-- **Achievements**: 47 of them in four tiers with their own badges, progress
+- **Maps** (Ctrl+G): offline maps drawn by Umbra, in a military
+  Topographic style and a dark Tactical one; a built-in world overview plus
+  the World Atlas and eight regions to download (terrain & places,
+  infrastructure); lat/long grid, MGRS grid zones, a degree and MGRS readout;
+  search across all maps, coordinates and MGRS; waypoints, distance
+  measuring, ASK UMBRA about a place; full screen and a pop-out window. Four
+  map achievements. Data: Natural Earth (public domain).
+- **Settings search**: find any setting as you type, with highlights.
+- The welcome tour now sets up the whole profile (callsign, where you are,
+  units, experience, household, health notes, name colour) and the AI
+  processor limit, and shows Maps and Achievements.
+- **Achievements**: 51 of them in four tiers with their own badges, progress
   bars, secret ones, an unlock chime and pop-up, points and ranks (Recruit to
   Legend), in the new ACHIEVEMENTS tab of the loadout. Earned ones are kept
   for good and included in backups; earlier conversations count after

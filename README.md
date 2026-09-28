@@ -118,12 +118,12 @@ the screen private.
 
 ### Achievements
 
-47 achievements in four tiers (bronze, silver, gold and legendary), each with
+51 achievements in four tiers (bronze, silver, gold and legendary), each with
 its own badge, in the Loadout's **ACHIEVEMENTS** tab: your first question and
 the welcome tour, 10 to 500 questions, the ten survival topics (water, fire,
 shelter, first aid, food, navigation, power, radio, repairs, disasters),
 reading the whole field manual, a full library, off-grid answers, backups to
-a USB stick, day streaks, trying themes and personalities, creating your own,
+a USB stick, day streaks, maps and waypoints, trying themes and personalities, creating your own,
 and a few secret ones. Progress bars show how far along you are; a chime and
 a pop-up celebrate each new one. Points raise your rank from Recruit to
 Legend.
@@ -132,6 +132,36 @@ Earned achievements are kept for good: deleting conversations doesn't take
 them away, updates keep them, and backups include them. Only Reset and
 Uninstall remove them. After updating from an earlier version, Umbra counts
 your saved conversations once, so earlier use counts too.
+
+![Achievements](docs/achievements.png)
+
+### Maps
+
+A map tab (Ctrl+G) with offline maps that Umbra draws itself, in two styles:
+**Topographic**, in the colours of a military paper map (blue water, green
+vegetation, brown hatched mountains, red main roads, dash-dot borders, a
+degree collar), and **Tactical**, dark and in your Umbra theme. A small world
+overview is built in; download the **World Atlas** and any of eight regions
+(Europe, Africa, the Middle East & Central Asia, Russia & North Asia, South &
+East Asia, Australia & Oceania, North America, South America & Caribbean),
+each as **Terrain & places** (borders, provinces, cities and towns, rivers,
+lakes, mountain ranges, peaks, glaciers, seas) and **Infrastructure** (roads,
+railways, airports, ports, built-up areas). A region takes 1 to 6 MB.
+
+- A lat/long grid, the **MGRS grid zones**, and a live readout of the
+  crosshair or cursor in degrees and MGRS, with a scale bar and compass.
+- **Search** places across every downloaded map, or type coordinates
+  (`52.09, 5.12`, `52°5'26"N 5°7'17"E`) or an MGRS reference
+  (`31U FT 45332 73249`).
+- **Waypoints** (camp, water, danger, rally point, cache, medical, home…)
+  with notes, saved on your computer and in backups; **measure** distances in
+  your units; **ASK UMBRA** about any place.
+- **Full screen**, or pop the map out into **its own window** beside the chat.
+
+Map data: [Natural Earth](https://www.naturalearthdata.com), public domain.
+
+![Maps, topographic style](docs/maps-topo.png)
+![Maps, tactical style with waypoints and a measured route](docs/maps-tactical.png)
 
 ### History, export and backup
 
@@ -165,7 +195,11 @@ transition styles to choose from, with previews in Settings.
 
 ### Settings for how you use it
 
-At the top, **Performance**: a live graph of your processor over the last
+A **search box** at the top finds any setting as you type (Ctrl+F while
+Settings is open), and points you to the right panel for things that live
+elsewhere, like themes or your profile.
+
+Then **Performance**: a live graph of your processor over the last
 minute (and how much of it Umbra uses), a bar per processor thread, the
 temperature and memory, and the **AI processor limit**: a four-step bar
 (25, 50, 75 or 100%) that sets how many cores the AI may use while it writes,
@@ -331,8 +365,10 @@ Umbra Wiki speaks and understands English.
 - **Nothing leaves your computer** in local mode: the AI, the library, your
   history and your settings are all on your disk. Online mode sends only
   your question's key words to Wikipedia, and only after you switch it on.
+  Umbra goes online otherwise only when you ask it to: downloading the
+  library, an AI model or maps, and checking for updates.
 - Your data lives in `~/.config/umbra-wiki` (settings, profile) and
-  `~/.local/share/umbra-wiki` (history). Exports and backups go to
+  `~/.local/share/umbra-wiki` (history, achievements, waypoints, maps). Exports and backups go to
   `~/Documents/Umbra` or the USB stick you choose.
 - The **optional password** is stored only as a salted, slow hash. It keeps
   Umbra's screen private; it does not encrypt your files. Umbra's background
@@ -355,6 +391,7 @@ Umbra Wiki speaks and understands English.
 | Ctrl+E | export this conversation |
 | Ctrl+L | library and field manual |
 | Ctrl+P / Ctrl+O | profile / loadout |
+| Ctrl+G | maps (inside: / search, W waypoint, M measure, G grid, F full screen, + and − zoom) |
 | Ctrl+T | themes |
 | Ctrl+M | mute |
 | Ctrl+, | settings |

@@ -808,6 +808,28 @@ kbd { font: inherit; opacity: .7; margin-left: 4px; }
 .ac-toast-text b { color: var(--fg-bright); font-size: 14px; letter-spacing: .06em; }
 .ac-toast-text span { color: var(--dim); font-size: 11px; line-height: 1.35; }
 
+/* Settings search: pinned above the list, filters as you type. */
+.set-search {
+  display: flex; align-items: center; gap: 10px; margin: 12px 16px 2px; padding: 0 12px; cursor: text;
+  background: var(--bg-2); border: 1px solid var(--line); transition: border-color .15s;
+}
+.set-search:focus-within { border-color: var(--signal); }
+.set-search .g { color: var(--signal); font-size: 15px; line-height: 1; }
+.set-search input {
+  flex: 1; min-width: 0; padding: 9px 0; font: 12.5px var(--font); color: var(--fg-bright);
+  background: none; border: 0; outline: 0;
+}
+.set-search input::placeholder { color: var(--faint); }
+.set-search-count { color: var(--signal); font-size: 9.5px; letter-spacing: .2em; white-space: nowrap; }
+.set-search kbd {
+  font: 9.5px var(--font); letter-spacing: .12em; color: var(--faint); padding: 2px 6px;
+  border: 1px solid var(--line); white-space: nowrap;
+}
+.set-search:focus-within kbd { display: none; }
+.sr-hide { display: none !important; }
+.set-empty { margin-top: 6px; }
+::highlight(set-hit) { background-color: var(--signal); color: var(--bg); }
+
 /* Settings → Updates */
 .set-version-now { color: var(--dim); font-weight: 400; letter-spacing: .2em; }
 .set-update-note.fresh { color: var(--signal); }
@@ -819,6 +841,136 @@ kbd { font: inherit; opacity: .7; margin-left: 4px; }
 .set-howto.mine { border-color: var(--signal); }
 .set-howto.mine b::after { content: " · THIS COMPUTER"; color: var(--signal); font-size: 9.5px; letter-spacing: .2em; }
 .set-manual code { display: block; margin: 5px 0 0; color: var(--signal); word-break: break-all; }
+
+/* -------------------------------------------------------------------- maps */
+
+.maps {
+  position: fixed; inset: 0; z-index: 45; display: flex; flex-direction: column;
+  background: var(--bg); animation: fade .2s ease-out both;
+}
+.mp-head {
+  display: flex; align-items: center; gap: 14px; padding: 10px 16px;
+  background: var(--bg-1); border-bottom: 1px solid var(--line);
+}
+.mp-search { position: relative; flex: 1; max-width: 560px; display: flex; align-items: center; gap: 10px; padding: 0 12px;
+  background: var(--bg-2); border: 1px solid var(--line); }
+.mp-search:focus-within { border-color: var(--signal); }
+.mp-search .g { color: var(--signal); font-size: 15px; line-height: 1; }
+.mp-search input { flex: 1; min-width: 0; padding: 8px 0; font: 12.5px var(--font); color: var(--fg-bright); background: none; border: 0; outline: 0; }
+.mp-search input::placeholder { color: var(--faint); }
+.mp-results {
+  position: absolute; left: -1px; right: -1px; top: calc(100% + 4px); z-index: 5; max-height: 60vh; overflow-y: auto;
+  background: var(--bg-1); border: 1px solid var(--signal); box-shadow: 0 12px 30px rgba(0, 0, 0, .45);
+}
+.mp-hit {
+  display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 12px; font: 12px var(--font); color: var(--fg); text-align: left; cursor: pointer;
+  background: none; border: 0; border-bottom: 1px dashed var(--line);
+}
+.mp-hit .g { color: var(--signal); font-size: 14px; text-align: center; }
+.mp-hn { color: var(--fg-bright); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mp-hit small { color: var(--faint); font-size: 9.5px; letter-spacing: .16em; white-space: nowrap; }
+.mp-hit.on, .mp-hit:hover { background: var(--signal-soft); }
+.mp-tools { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.mp-style { margin-right: 6px; }
+.mp-style button { padding: 7px 10px; }
+.maps-window .mp-popout { display: none; }
+.maps-window .mp-close { display: none; }
+
+.mp-body { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.mp-canvas { position: absolute; inset: 0; display: block; cursor: grab; touch-action: none; }
+.mp-canvas:active { cursor: grabbing; }
+.maps.tooling .mp-canvas { cursor: crosshair; }
+/* Tactical: faint scanlines and a vignette over the map, like a field display. */
+.maps.tactical .mp-body::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, .12) 0 1px, transparent 1px 3px),
+              radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, .45));
+}
+.mp-cross { position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; pointer-events: none; opacity: .55; }
+.mp-cross::before, .mp-cross::after { content: ""; position: absolute; background: var(--signal); }
+.mp-cross::before { left: 12px; top: 0; width: 2px; height: 26px; }
+.mp-cross::after { top: 12px; left: 0; height: 2px; width: 26px; }
+.maps:not(.tactical) .mp-cross::before, .maps:not(.tactical) .mp-cross::after { background: #8a1c1c; }
+.mp-compass {
+  position: absolute; right: 30px; top: 30px; width: 54px; height: 54px; border-radius: 50%; pointer-events: none;
+  border: 1.5px solid var(--signal); background: color-mix(in srgb, var(--bg) 70%, transparent);
+  display: grid; place-items: center;
+}
+.mp-compass::before { content: ""; position: absolute; top: 6px; left: 50%; margin-left: -6px; border: 6px solid transparent; border-bottom: 18px solid var(--signal); border-top: 0; }
+.mp-compass span { margin-top: 18px; font: 700 10px var(--font); color: var(--signal); letter-spacing: .1em; }
+.maps:not(.tactical) .mp-compass { border-color: #1b1b1b; background: rgba(243, 236, 216, .85); }
+.maps:not(.tactical) .mp-compass::before { border-bottom-color: #8a1c1c; }
+.maps:not(.tactical) .mp-compass span { color: #1b1b1b; }
+.mp-zoom { position: absolute; right: 30px; top: 100px; display: flex; flex-direction: column; gap: 6px; }
+.mp-zoom .ctl { background: var(--bg-1); }
+.mp-scale { position: absolute; left: 30px; bottom: 30px; display: flex; flex-direction: column; gap: 3px; pointer-events: none; }
+.mp-scale i { display: block; height: 7px; border: 2px solid var(--signal); border-top: 0; min-width: 20px; }
+.mp-scale span { font: 700 10px var(--font); color: var(--signal); letter-spacing: .14em; }
+.maps:not(.tactical) .mp-scale i { border-color: #1b1b1b; }
+.maps:not(.tactical) .mp-scale span { color: #1b1b1b; text-shadow: 0 0 3px #f3ecd8; }
+.mp-hint {
+  position: absolute; left: 50%; top: 30px; transform: translateX(-50%); padding: 6px 14px; pointer-events: none;
+  font: 700 10px var(--font); letter-spacing: .2em; color: var(--bg); background: var(--signal);
+}
+.mp-card {
+  position: absolute; left: 30px; top: 30px; width: min(330px, calc(100% - 60px)); padding: 14px 16px; z-index: 3;
+  background: var(--bg-1); border: 1px solid var(--signal); box-shadow: 0 12px 30px rgba(0, 0, 0, .45);
+  animation: rise .25s ease-out both;
+}
+.mp-card-kind { font-size: 9.5px; letter-spacing: .26em; color: var(--signal); margin-bottom: 4px; }
+.mp-card-name { color: var(--fg-bright); font-size: 15px; font-weight: 700; letter-spacing: .04em; }
+.mp-card-extra { color: var(--dim); font-size: 10px; letter-spacing: .16em; margin-top: 2px; }
+.mp-card-note { color: var(--fg); font-size: 11.5px; margin: 8px 0 0; }
+.mp-card-coords { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line); color: var(--fg); font-size: 11px; line-height: 1.6; letter-spacing: .06em; }
+.mp-card-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; margin-top: 12px; }
+.mp-card-actions .ghost, .mp-card-actions .solid { padding: 5px 10px; font-size: 10px; }
+.mp-card input, .mp-card textarea {
+  width: 100%; margin-top: 8px; font: 12.5px var(--font); color: var(--fg-bright); background: var(--bg-2);
+  border: 1px solid var(--line); padding: 7px 10px; outline: 0; resize: vertical; box-sizing: border-box;
+}
+.mp-card input:focus, .mp-card textarea:focus { border-color: var(--signal); }
+.mp-wp-icons { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.mp-wp-icons .ctl { width: 32px; height: 32px; }
+.mp-panel {
+  position: absolute; right: 0; top: 0; bottom: 0; width: min(400px, 90%); z-index: 4; overflow-y: auto;
+  padding: 16px; background: var(--bg-1); border-left: 1px solid var(--signal); animation: slide .25s ease-out both;
+}
+.mp-panel code { color: var(--signal); }
+.mp-region { margin: 10px 0 4px; }
+.mp-rname { font-size: 10px; letter-spacing: .26em; color: var(--fg-bright); margin: 12px 0 4px; }
+.mp-pack {
+  display: grid; grid-template-columns: 22px minmax(0, 1fr) auto auto; align-items: center; gap: 4px 10px;
+  padding: 8px 6px; border-bottom: 1px dashed var(--line); cursor: pointer;
+}
+.mp-pack input { accent-color: var(--signal); margin: 0; }
+.mp-pack b { display: block; color: var(--fg-bright); font-size: 12px; font-weight: 600; }
+.mp-pack small { display: block; color: var(--dim); font-size: 10px; line-height: 1.4; }
+.mp-pack.have { cursor: default; }
+.mp-have { color: var(--signal); font-size: 10px; letter-spacing: .12em; white-space: nowrap; }
+.mp-builtin { color: var(--signal); text-align: center; }
+.mp-del { padding: 3px 8px; font-size: 10px; }
+.mp-legend-t { font-size: 9px; color: var(--faint); }
+.mp-dl {
+  position: sticky; bottom: -16px; margin: 12px -16px -16px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--bg-1); border-top: 1px solid var(--line); font-size: 11px; color: var(--dim);
+}
+.mp-pt {
+  display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: center; width: 100%; padding: 8px 6px; cursor: pointer; text-align: left;
+  font: 12px var(--font); color: var(--fg); background: none; border: 0; border-bottom: 1px dashed var(--line);
+}
+.mp-pt:hover { background: var(--signal-soft); }
+.mp-pt .g { color: var(--signal); font-size: 16px; text-align: center; }
+.mp-pt b { display: block; color: var(--fg-bright); font-weight: 600; }
+.mp-pt small { color: var(--dim); font-size: 10px; }
+.mp-foot {
+  display: flex; gap: 22px; align-items: center; padding: 6px 16px; flex-wrap: wrap;
+  font-size: 10px; letter-spacing: .16em; color: var(--dim); background: var(--bg-1); border-top: 1px solid var(--line);
+}
+.mp-coord, .mp-mgrs { color: var(--fg-bright); }
+.mp-credit { margin-left: auto; color: var(--faint); }
+/* Full screen: only the map, its head and foot. */
+.maps.full .mp-head { padding: 6px 12px; }
 
 /* ---------------------------------------------------------------- settings */
 

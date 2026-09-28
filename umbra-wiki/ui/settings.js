@@ -13,7 +13,7 @@
   };
   window.prefs = { ...DEFAULTS, hiddenControls: [] };
   // Header buttons that can be hidden (Settings itself always stays).
-  const CONTROLS = [["loadout-btn", "Profile & loadout"], ["history-btn", "History"], ["library-btn", "Library"],
+  const CONTROLS = [["loadout-btn", "Profile & loadout"], ["history-btn", "History"], ["library-btn", "Library"], ["maps-btn", "Maps"],
                     ["theme-btn", "Themes"], ["sound", "Sound"], ["lock", "Lock"]];
   const panel = $("#settings");
   let pullTimer = 0;
@@ -85,6 +85,100 @@
     applyPrefs();
     postSettings(update);
   }
+
+  // ---------------------------------------------------------- search
+
+  // Words people might search for that aren't written in a section, so
+  // "cpu", "mic" or "dark" still find the right place.
+  const KEYWORDS = {
+    PERFORMANCE: "cpu processor performance speed fast slow hot fan heat temperature memory ram cores threads limit battery graph",
+    SOUND: "audio volume speaker speakers headphones mute quiet loud output input microphone mic beep",
+    "HEADER BUTTONS": "hide show icons toolbar top buttons header",
+    MOTION: "animation animations background rain transition boot intro outro reduce motion effects",
+    CONVERSATION: "chat text size font bigger smaller greeting suggestions replies alert close exit",
+    POWER: "battery off-grid offgrid power saver laptop unplugged",
+    KEYBOARD: "keys shortcuts hotkeys keyboard",
+    BACKUP: "backup restore export save usb copy transfer",
+    "AI MODEL": "model ai llm gemma llama ollama brain download",
+    VOICE: "voice speech dictation talk microphone f9 voxtype",
+    STORAGE: "folders files location library history path disk",
+    "WELCOME TOUR": "tour tutorial intro help onboarding",
+    UPDATES: "update updates version upgrade release new check",
+    "DANGER ZONE": "reset uninstall delete remove wipe erase",
+  };
+  const search = $("#set-q");
+  let query = "";
+  const highlight = window.CSS && CSS.highlights && typeof Highlight === "function" ? new Highlight() : null;
+  if (highlight) CSS.highlights.set("set-hit", highlight);
+
+  // Show only what matches, as you type: whole sections whose name or
+  // keywords match, otherwise just the matching rows. Matches are marked.
+  function applySearch() {
+    const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+    const sections = body.querySelectorAll(".set-section");
+    let shown = 0;
+    if (highlight) highlight.clear();
+    sections.forEach((sec) => {
+      const head = sec.querySelector(".lib-head");
+      const title = head ? (head.querySelector("span") || head).textContent.trim() : "";
+      const keys = (KEYWORDS[title] || "") + " " + title.toLowerCase();
+      const rows = [...sec.children].filter((el) => el !== head);
+      // A class of its own, so things hidden for other reasons stay hidden.
+      if (!words.length) { sec.classList.remove("sr-hide"); rows.forEach((r) => r.classList.remove("sr-hide")); return; }
+      const whole = words.every((w) => keys.includes(w));
+      let hits = 0;
+      rows.forEach((r) => {
+        const text = r.textContent.toLowerCase() + " " + (r.querySelector("select") ? [...r.querySelectorAll("option")].map((o) => o.textContent).join(" ").toLowerCase() : "");
+        const match = whole || words.every((w) => text.includes(w) || keys.includes(w));
+        r.classList.toggle("sr-hide", !match);
+        if (match && !r.hidden) hits++;
+      });
+      sec.classList.toggle("sr-hide", hits === 0);
+      shown += hits;
+    });
+    if (highlight && words.length) markWords(words);
+    const count = $(".set-search-count");
+    count.textContent = words.length ? (shown ? `${shown} ${shown === 1 ? "MATCH" : "MATCHES"}` : "") : "";
+    let empty = body.querySelector(".set-empty");
+    if (words.length && !shown) {
+      if (!empty) { empty = document.createElement("p"); empty.className = "lib-note set-empty"; body.prepend(empty); }
+      // Some things live in their own panels: point there.
+      const elsewhere = [
+        [/theme|colou?r|dark|light|palette|look/, "Colours and themes have their own panel: the palette button at the top (Ctrl+T)."],
+        [/name|profile|password|picture|avatar|callsign|units|metric|imperial|health|achiev|badge|rank/, "That's in your Profile (Ctrl+P): name, callsign, units, health notes, password, achievements."],
+        [/scenario|personality|loadout|voice of|character/, "Scenarios and personalities are in the Loadout (Ctrl+O)."],
+        [/map|waypoint|region|gps|mgrs|coordinate/, "Maps have their own panel: the map button at the top (Ctrl+G)."],
+        [/library|collection|zim|download|manual/, "The offline library and the field manual are in the Library (Ctrl+L)."],
+        [/history|conversation|export|chat/, "Conversations are in History (Ctrl+H)."],
+      ].find(([re]) => re.test(query.toLowerCase()));
+      empty.textContent = elsewhere ? elsewhere[1] : `Nothing in Settings matches "${query.trim()}". Try another word, like sound, model, backup or battery.`;
+    } else if (empty) empty.remove();
+  }
+  // Marks each occurrence of the words in the visible text (CSS highlights:
+  // nothing in the page is rewritten).
+  function markWords(words) {
+    const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT, {
+      acceptNode: (n) => (n.parentElement.closest("[hidden], .sr-hide, select, option, .cpu-cores") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
+    });
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const low = n.data.toLowerCase();
+      for (const w of words) {
+        for (let i = low.indexOf(w); i >= 0; i = low.indexOf(w, i + w.length)) {
+          const r = new Range(); r.setStart(n, i); r.setEnd(n, i + w.length); highlight.add(r);
+        }
+      }
+    }
+  }
+  search.addEventListener("input", () => { query = search.value; body.scrollTop = 0; applySearch(); });
+  search.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && search.value) { e.stopPropagation(); search.value = query = ""; applySearch(); }
+    if (e.key === "Enter") {   // jump to the first match
+      const first = body.querySelector(".set-section:not(.sr-hide) > :not(.lib-head):not([hidden]):not(.sr-hide)");
+      first?.scrollIntoView({ block: "center", behavior: "smooth" });
+      first?.querySelector("input, select, button")?.focus({ preventScroll: true });
+    }
+  });
+  window.focusSettingsSearch = () => { search.focus(); search.select(); };
 
   // ----------------------------------------------------------- panel
 
@@ -380,6 +474,7 @@
     });
     fillModels(models);
     setupCpu();
+    applySearch();
 
     body.querySelector(".set-voice").innerHTML = !voice.available
       ? `Voice input isn't installed. Install it with <code>${escapeHtml(voice.install || "omarchy-voxtype-install")}</code>, then hold <b>F9</b> to talk.`
@@ -615,6 +710,7 @@
       if (window.closeHistory) window.closeHistory();
       if (window.closeLoadout) window.closeLoadout(true);
       body.scrollTop = 0;
+      search.value = query = "";
       render();
     } else {
       clearInterval(cpuTimer);
@@ -629,7 +725,14 @@
   $("#settings-btn").addEventListener("click", () => open());
   $("#settings-close").addEventListener("click", () => open(false));
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !panel.hidden && $("#modal").hidden) { e.stopImmediatePropagation(); open(false); }
+    if (e.key === "Escape" && !panel.hidden && $("#modal").hidden) {
+      if (document.activeElement === search && search.value) return;   // Esc clears the search first
+      e.stopImmediatePropagation(); open(false);
+    }
+    // Ctrl+F searches Settings while it's open (elsewhere it searches History).
+    if (e.ctrlKey && !e.altKey && e.key.toLowerCase() === "f" && !panel.hidden) {
+      e.preventDefault(); e.stopImmediatePropagation(); window.focusSettingsSearch();
+    }
   }, true);
   new MutationObserver(() => { if (document.body.classList.contains("locked")) open(false, true); })
     .observe(document.body, { attributes: true, attributeFilter: ["class"] });

@@ -46,6 +46,7 @@
       <button id="loadout-btn" class="ctl" title="Profile and loadout"><span class="g">󰀄</span></button>
       <button id="history-btn" class="ctl" title="History"><span class="g">󰋚</span></button>
       <button id="library-btn" class="ctl" title="Library"><span class="g">󱉟</span></button>
+      <button id="maps-btn" class="ctl" title="Maps"><span class="g">󰍍</span></button>
       <button id="theme-btn" class="ctl" title="Themes"><span class="g">󰏘</span></button>
       <button id="sound" class="ctl" title="Sound on (click to mute)"><span class="g" id="sound-icon">󰕾</span></button>
       <button id="lock" class="ctl" title="Lock the screen"><span class="g" id="lock-icon">󰌿</span></button>
@@ -125,6 +126,9 @@
     <span class="themes-title"><span class="spin" data-spin>✻</span> SETTINGS</span>
     <button id="settings-close" class="ghost" title="Close (Esc)">CLOSE ✕</button>
   </div>
+  <label class="set-search"><span class="g">󰍉</span>
+    <input id="set-q" type="text" placeholder="Search settings…" spellcheck="false" autocomplete="off">
+    <span class="set-search-count"></span><kbd>CTRL F</kbd></label>
   <div id="settings-body" class="library-body"></div>
 </div>
 
@@ -192,6 +196,7 @@
 <script src="loadout.js"></script>
 <script src="profile.js"></script>
 <script src="achievements.js"></script>
+<script src="maps.js"></script>
 <script src="history.js"></script>
 <script src="settings.js"></script>
 <script src="onboarding.js"></script>

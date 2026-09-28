@@ -1,7 +1,10 @@
 // Umbra Wiki welcome tour: on the very first launch (and after a reset, or
 // from Settings) Umbra walks the user through everything in the chat: who
-// it is, their name, what it's for, theme, scenario and personality, a
-// spotlight tour of the screen, and the extras. Scripted, so it's instant.
+// it is, their profile (name, callsign, about, where they are, units,
+// experience, household, health notes, name colour), a password, what it's
+// for, the AI model and library, theme, scenario and personality, comfort
+// and power (text size, background, processor limit, off-grid), a spotlight
+// tour of the screen, and the extras. Scripted, so it's instant.
 "use strict";
 
 (() => {
@@ -57,7 +60,7 @@
   }
 
   // A text field under the last message; resolves with the text ("" = skipped).
-  function field(answer, placeholder, max, multiline = false, secret = false) {
+  function field(answer, placeholder, max, multiline = false, secret = false, auto = "Alex") {
     return new Promise((resolve, reject) => {
       const box = document.createElement("div");
       box.className = "tour-field";
@@ -75,7 +78,7 @@
       skipHooks.push(() => reject(SKIP));
       wake();
       setTimeout(() => inp.focus(), 50);
-      if (AUTO) { inp.value = multiline || secret ? "" : "Alex"; autoClick(box.querySelector(secret ? ".ghost" : ".solid")); }
+      if (AUTO) { inp.value = multiline || secret ? "" : auto; autoClick(box.querySelector(secret || !inp.value ? ".ghost" : ".solid")); }
     });
   }
 
@@ -113,16 +116,17 @@
   // -------------------------------------------------------- spotlight
 
   const SPOTS = [
-    [".brand", "UMBRA // WIKI", "Your current loadout is shown under the name. Click it to switch scenario or personality."],
+    [".brand", "UMBRA // WIKI", "Click the emblem or the name to go back to the start screen with a new conversation. Your loadout is shown under the name: click it to switch scenario or personality."],
     ["#link", "LINK", "LOCAL means fully offline (the default). Switch to ONLINE when you have internet and I add Wikipedia for fuller, more current answers. I always ask first."],
     [".cell.status", "STATUS", "Shows when I'm ready, working, or can't reach my AI."],
-    ["#loadout-btn", "PROFILE & LOADOUT", "Your profile (name, picture, character), plus scenarios and personalities. You can create your own of both."],
+    ["#loadout-btn", "PROFILE & LOADOUT", "Your profile (name, callsign, character, what I should know about you), your Achievements and rank, plus scenarios and personalities. You can create your own of both."],
     ["#history-btn", "HISTORY", "Every conversation is saved on this computer. Reopen and continue any of them, search through everything that was said, and export them to a file or a USB stick."],
     ["#library-btn", "LIBRARY", "The offline collections I read from, and my built-in Field Manual: the critical basics, always available. Download more collections here."],
+    ["#maps-btn", "MAPS", "Offline maps with a military look: download regions, search places, drop waypoints and measure distances. Open them full screen or in their own window."],
     ["#theme-btn", "THEMES", "Pick a colour theme, follow your Omarchy theme, or design your own."],
     ["#sound", "SOUND", "Mute or unmute my sounds."],
     ["#lock", "LOCK", "Locks the window so nothing can be clicked or typed by accident."],
-    ["#settings-btn", "SETTINGS", "Text size, the start screen background, off-grid mode, sounds, the AI model, voice, backups, keyboard shortcuts (F1), replaying this tour, and more."],
+    ["#settings-btn", "SETTINGS", "Search box at the top. Performance and the processor limit, sounds, text size, backgrounds, off-grid mode, the AI model, voice, backups, updates, replaying this tour, and more."],
     ["#q", "ASK", "Type here. Enter sends, Shift+Enter adds a line, Tab uses my suggested reply, Ctrl+Z undoes."],
     ["#mic", "VOICE", "Hold F9 (or click) and just talk. Speech is turned into text offline."],
     ["#send", "TRANSMIT", "Sends your question. While I'm answering it becomes STOP (or press Esc)."],
@@ -192,20 +196,68 @@
     a = await say("Let me show you around. It takes about two minutes, and you can skip it at any time with **SKIP TOUR** at the top.");
     if (await choose(a, [["SHOW ME AROUND ▸", "go", true], ["SKIP THE TOUR", "skip"]]) === "skip") throw SKIP;
 
-    // Name and a little about the user: this becomes their profile.
+    // The profile, step by step; every step can be skipped. It's saved as
+    // it grows, so skipping the rest of the tour keeps what's there.
+    const me = { ...profile };
+    const saveMe = async () => {
+      const r = await post("/api/profile", me).then((x) => x.json()).catch(() => null);
+      if (r && !r.error && window.UmbraProfile) Object.assign(window.UmbraProfile.data, r);
+    };
     a = await say("First things first: **what should I call you?**");
     const name = await field(a, "Your name, any way you like to write it", 32);
     let who = name;
     if (name) {
       addUser(name);
-      a = await say(`Nice to meet you, **${name}**. Want to tell me a little about yourself? Where you live, who you look after, what you're into. It helps me give advice that fits you. This stays on this computer.`);
-      const about = await field(a, "For example: I live in the countryside with my partner and two dogs, and I'm new to camping.", 500, true);
-      if (about) addUser(about);
-      await post("/api/profile", { ...profile, name, about: about || profile.about || "" });
-      if (window.UmbraProfile) Object.assign(window.UmbraProfile.data, { name, about: about || profile.about || "" });
+      me.name = name;
+      a = await say(`Nice to meet you, **${name}**. Every good survivor has a **callsign**, too. Want one? I'll show it next to your name.`);
+      const callsign = await field(a, "e.g. Nomad-7, Fox, Northstar", 24, false, false, "");
+      if (callsign) { addUser(callsign); me.callsign = callsign; }
+      a = await say("Want to tell me a little about yourself? What you're into, what you'd like to be ready for. It helps me give advice that fits you. This stays on this computer.");
+      const about = await field(a, "For example: I'm new to camping and I'd like to be ready for power cuts.", 500, true);
+      if (about) { addUser(about); me.about = about; }
+      await saveMe();
     } else {
       who = "friend";
     }
+
+    // Tailoring: where they are, units, experience, household, health.
+    a = await say("A few details make my answers fit **your** situation: plants, weather and gear differ a lot from place to place. " +
+      "**Where are you?** A region and climate is plenty.");
+    const where = await field(a, "e.g. Northern Europe, wet and cold winters", 80, false, false, "");
+    if (where) { addUser(where); me.location = where; }
+    // The time zone says more than the language (plenty of people outside the
+    // US use US English): the US, Liberia and Myanmar use imperial units.
+    const zone = (Intl.DateTimeFormat().resolvedOptions().timeZone || "");
+    const guessUnits = /^(America\/(New_York|Detroit|Chicago|Denver|Phoenix|Los_Angeles|Anchorage|Juneau|Sitka|Nome|Adak|Boise|Menominee|Metlakatla|Yakutat|Indiana\/.*|Kentucky\/.*|North_Dakota\/.*)|US\/.*|Pacific\/Honolulu|Africa\/Monrovia|Asia\/(Yangon|Rangoon))$/.test(zone) ? "imperial" : "metric";
+    a = await say("**Which units** should I use for temperatures, distances and weights?");
+    me.units = me.units || guessUnits;
+    await cards(a, [
+      { id: "metric", name: "Metric" + (guessUnits === "metric" ? "  ★" : ""), line: "°C, kilometres, metres, kilograms, litres" },
+      { id: "imperial", name: "Imperial" + (guessUnits === "imperial" ? "  ★" : ""), line: "°F, miles, feet, pounds, gallons" },
+    ], me.units, (id) => { me.units = id; Sound.click(); });
+    a = await say("And **how much experience** do you have with survival and preparedness? I'll explain more, or less.");
+    me.experience = me.experience || "some";
+    await cards(a, [
+      { id: "new", name: "New to this", line: "Explain the basics, step by step" },
+      { id: "some", name: "Some experience", line: "A good balance" },
+      { id: "experienced", name: "Seasoned", line: "Skip the basics, be concise and technical" },
+    ], me.experience, (id) => { me.experience = id; Sound.click(); });
+    a = await say("**Who do you look after?** Kids, older family, pets: I'll plan for them too when it matters.");
+    const household = await field(a, "e.g. 2 adults, a child of 6, a dog", 160, false, false, "");
+    if (household) { addUser(household); me.household = household; }
+    a = await say("Anything about your **health** I should keep in mind for first aid and food advice? Allergies, conditions, medication. " +
+      "Completely optional, and it never leaves this computer.");
+    const health = await field(a, "e.g. allergic to penicillin, asthma", 300, true);
+    if (health) { addUser("(health notes saved)"); me.health = health; }
+    a = await say("Last touch: **the colour of your name** in our conversations.");
+    const colours = [["", "Default"], ["signal", "Signal"], ["accent", "Accent"], ["net", "Network"], ["red", "Red"], ["fg-bright", "White"]];
+    await cards(a, colours.map(([id, label]) => ({
+      id, name: label, line: "",
+      swatch: `<span class="tour-sw"><i style="background:var(--${id || "fg"})"></i></span>`,
+    })), me.color || "", (id) => { me.color = id; Sound.click(); });
+    await saveMe();
+    await say("Saved to your **Profile**, where you can change any of it. You'll also find your **Achievements** there: " +
+      "badges you earn as you learn and prepare. You may have just earned your first ones.");
 
     // An optional password: typed as dots, asked twice.
     a = await say("Would you like a **password** on Umbra? It's optional. I'll ask for it when I start and when you lock the screen, " +
@@ -348,6 +400,13 @@
         Sound.click();
       });
     }
+    a = await say("**How hard may I work your processor** while I write? Lower keeps a laptop cooler and quieter; answers take longer.");
+    await cards(a, [
+      { id: "100", name: "Full  ★", line: "Fastest answers" },
+      { id: "75", name: "Strong", line: "Most of the processor" },
+      { id: "50", name: "Balanced", line: "Half: cooler and quieter" },
+      { id: "25", name: "Light", line: "Gentle on the battery and fans; slow" },
+    ], String(settings.cpuLimit || 100), (id) => { postSettings({ cpuLimit: Number(id) }); if (window.prefs) window.prefs.cpuLimit = Number(id); Sound.click(); });
     let offgridChoice = settings.offgrid || "auto";
     a = await say("One more, and it matters off the grid: **off-grid mode**, my battery saver. It stops the animations, keeps me quiet, " +
       "skips my extra AI work and makes my answers shorter, so the battery lasts. \"On battery\" switches it on by itself when you unplug.");
@@ -372,6 +431,8 @@
       "- I usually end with an offer. Click it, or press **Tab** then **Enter**, to accept.\n" +
       "- While I think, a little scene and **field notes** keep you company. Answers take a minute or so, because everything runs on this computer.\n" +
       "- My **Field Manual** (in the Library) has the critical basics, from bleeding to water, and I use it in my answers too.\n" +
+      "- Scroll up any time, even while I'm writing: the whole conversation is one long page, with the start screen on top.\n" +
+      "- Earn **achievements** as you go (questions, topics, streaks, the field manual…); pin your favourite badges to your profile.\n" +
       "- **Export** conversations or the manual to a file or a USB stick, and **back up** your whole Umbra from Settings.\n" +
       "- Press **F1** any time for the keyboard shortcuts.\n" +
       "- On Omarchy, the **Umbra icon in the top bar** opens me, shows your loadout and a new field note every hour, and lights up when an answer is waiting.");
@@ -408,6 +469,7 @@
 
   // First launch (or after a reset): no "onboarded" in the settings yet.
   fetch("/api/settings").then((r) => r.json()).then((s) => {
-    if (!s.onboarded && !new URLSearchParams(location.search).get("q")) setTimeout(startTour, 4600);   // as the boot animation opens up
+    const params = new URLSearchParams(location.search);
+    if (!s.onboarded && !params.get("q") && params.get("view") !== "maps") setTimeout(startTour, 4600);   // as the boot animation opens up
   }).catch(() => {});
 })();

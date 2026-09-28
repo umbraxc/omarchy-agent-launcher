@@ -27,6 +27,7 @@ gi.require_version("WebKit2", "4.1")
 from gi.repository import Gdk, Gio, GLib, Gtk, WebKit2  # noqa: E402
 
 APP_ID = "org.umbra.wiki"
+LAUNCHER = os.path.abspath(sys.argv[0])
 URL = f"http://127.0.0.1:{os.environ.get('UMBRA_PORT', '8766')}/"
 
 
@@ -91,6 +92,9 @@ class UmbraWiki(Gtk.Application):
                 query = "?" + urllib.parse.urlencode({"manual": self.question[9:].strip()})   # a field-manual page
             elif self.question.startswith("--open "):
                 query = "?" + urllib.parse.urlencode({"open": self.question[7:].strip()})   # a saved conversation
+            elif self.question == "--maps":
+                query = "?view=maps"   # the map in a window of its own
+                win.set_title("Umbra Maps")
             elif self.question == "--autotour":
                 query = "?autotour=1"   # plays the welcome tour by itself (testing)
             else:
@@ -133,6 +137,14 @@ class UmbraWiki(Gtk.Application):
         if text == "close":
             self.closing = True
             win.close()
+        elif text == "fullscreen":
+            win.fullscreen()
+        elif text == "unfullscreen":
+            win.unfullscreen()
+        elif text == "maps-window":
+            # The map in its own window, next to the chat (same program, --maps).
+            subprocess.Popen([sys.executable, LAUNCHER, "--maps"], start_new_session=True,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 if __name__ == "__main__":
