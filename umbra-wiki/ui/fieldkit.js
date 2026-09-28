@@ -936,16 +936,46 @@
         <div class="fk-pages">${pages.map((p) => `<label class="fk-check"><input type="checkbox" value="${escapeHtml(p.id)}" ${chosen.has(p.id) ? "checked" : ""}> ${escapeHtml(p.title)}</label>`).join("")}</div>
       </section>
       <section class="fk-card"><div class="fk-h"><span class="g">${I.pin}</span> ALSO ON THE CARDS</div>
+        <label class="fk-check"><input type="checkbox" class="fk-c-id" checked> My ID & medical card (from your profile: blood type, allergies, medication, emergency contact)</label>
         <label class="fk-check"><input type="checkbox" class="fk-c-wp" checked> My waypoints, with coordinates and MGRS</label>
         <label class="fk-check"><input type="checkbox" class="fk-c-sup" checked> My supplies summary</label>
         <label class="lo-field"><span>EMERGENCY CONTACTS</span><textarea class="fk-c-contacts" rows="4" maxlength="1500" placeholder="Name, relation, phone number — one per line"></textarea></label>
         <label class="lo-field"><span>NOTES</span><textarea class="fk-c-notes" rows="3" maxlength="1500" placeholder="Meeting points, medication, blood type, radio channels…"></textarea></label>
         <p class="lib-note">Cards are A6, four to an A4 page with cut lines. They're saved as a page you open and print (Ctrl+P).</p>
         <div class="lo-actions"><button class="solid fk-print">${I.print} MAKE THE CARDS</button></div>
+      </section>
+      <section class="fk-card fk-cards-preview"><div class="fk-h"><span class="g">${I.card}</span> WHAT YOU'LL GET <small class="fk-cp-count"></small></div>
+        <pre class="fk-cp"></pre>
+        <p class="lib-note">A sketch of the first page: four cards to an A4 sheet, cut along the dashed lines, and keep them dry (a zip bag works).</p>
       </section></div>`;
     const q = (s) => body.querySelector(s);
     q(".fk-c-contacts").value = store.get("contacts", "");
     q(".fk-c-notes").value = store.get("card-notes", "");
+    // The preview: the cards that will be made, as a sketch of the first page.
+    const preview = () => {
+      const titles = [];
+      if (q(".fk-c-id").checked) titles.push(["ID & MEDICAL", ["Name · callsign", "Blood type · allergy", "Medication", "ICE contact"]]);
+      body.querySelectorAll(".fk-pages input:checked").forEach((c) => { const p = pages.find((x) => x.id === c.value); if (p) titles.push([p.title, null]); });
+      if (q(".fk-c-wp").checked) titles.push(["WAYPOINTS", ["Name   grid", "Name   grid", "Name   grid"]]);
+      if (q(".fk-c-sup").checked) titles.push(["SUPPLIES", ["Water   days", "Food    days", "- items"]]);
+      if (q(".fk-c-contacts").value.trim()) titles.push(["CONTACTS", ["Name   phone", "Name   phone"]]);
+      if (q(".fk-c-notes").value.trim()) titles.push(["NOTES", null]);
+      const w = 17, cut = (t) => (t.length > w - 2 ? t.slice(0, w - 3) + "…" : t).padEnd(w - 2);
+      const card = (c) => {
+        if (!c) return Array(8).fill(" ".repeat(w - 2));
+        const [t, lines] = c, body = lines || ["1. ─────────", "2. ────────", "3. ──────────", "4. ──────"];
+        return ["UMBRA · CARD".padEnd(w - 2), cut(t.toUpperCase()), "═".repeat(w - 2), ...body.slice(0, 4).map(cut), ...Array(Math.max(0, 4 - body.length)).fill(" ".repeat(w - 2)), "·call 112·".padStart(w - 4).padEnd(w - 2)];
+      };
+      const page = [titles[0], titles[1], titles[2], titles[3]].map(card);
+      const row = (a, b) => a.map((l, i) => `┆ ${l} ┆ ${b[i]} ┆`).join("\n");
+      const line = "┄".repeat(w) , top = `┌${line}┬${line}┐`, mid = `├${line}┼${line}┤`, bot = `└${line}┴${line}┘`;
+      q(".fk-cp").textContent = titles.length ? [top, row(page[0], page[1]), mid, row(page[2], page[3]), bot].join("\n") : "Choose something to put on the cards.";
+      const n = titles.length;
+      q(".fk-cp-count").textContent = n ? `· ${n} ${n === 1 ? "CARD" : "CARDS"} · ${Math.ceil(n / 4)} ${Math.ceil(n / 4) === 1 ? "PAGE" : "PAGES"}` : "";
+    };
+    body.querySelectorAll("input[type=checkbox]").forEach((c) => c.addEventListener("change", preview));
+    for (const s of [".fk-c-contacts", ".fk-c-notes"]) q(s).addEventListener("input", preview);
+    preview();
     for (const s of [".fk-c-contacts", ".fk-c-notes"]) q(s).addEventListener("keydown", (e) => e.stopPropagation());
     q(".fk-print").addEventListener("click", async () => {
       const ids = [...body.querySelectorAll(".fk-pages input:checked")].map((c) => c.value);
@@ -970,7 +1000,7 @@
             ...sup.items.map((it) => `- ${it.qty} × ${it.name}${it.expires ? ` (best before ${it.expires})` : ""}`)].join("\n");
         }
       }
-      exportTo({ what: "cards", pages: ids, waypoints: wps, supplies: supText, contacts: q(".fk-c-contacts").value, notes: q(".fk-c-notes").value }, "your pocket cards");
+      exportTo({ what: "cards", idcard: q(".fk-c-id").checked, pages: ids, waypoints: wps, supplies: supText, contacts: q(".fk-c-contacts").value, notes: q(".fk-c-notes").value }, "your pocket cards");
     });
   }
 

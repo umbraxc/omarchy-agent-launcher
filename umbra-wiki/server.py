@@ -376,6 +376,16 @@ def pocket_cards(req, folder):
     manual pages, waypoints with MGRS, the supply summary and emergency
     contacts. Written as a web page: open it and print."""
     cards = []
+    if req.get("idcard"):
+        # An ID and medical card from the profile: what a helper needs to know.
+        p = get_profile()
+        rows = [("Name", " · ".join(x for x in (p.get("name"), p.get("callsign")) if x)), ("Blood type", p.get("blood")),
+                ("Allergies", p.get("allergies")), ("Medication", p.get("meds")), ("Health", p.get("health")),
+                ("Emergency contact", p.get("contact")), ("Household", p.get("household"))]
+        rows = [(k, v) for k, v in rows if v]
+        if rows:
+            cards.append(("ID & medical", "Identity",
+                          "<table>" + "".join(f"<tr><td><b>{html.escape(k)}</b></td><td>{html.escape(str(v))}</td></tr>" for k, v in rows) + "</table>"))
     wanted = set(str(x) for x in (req.get("pages") or [])[:40])
     for page in field_manual():
         if page.get("id") in wanted:
