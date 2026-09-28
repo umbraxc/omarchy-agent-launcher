@@ -417,7 +417,7 @@ def manuals_open(mid, folder=False):
     path = MANUALS_DIR if folder else os.path.join(MANUALS_DIR, mid + ".pdf")
     if not os.path.exists(path):
         raise ValueError("not downloaded")
-    subprocess.Popen(["xdg-open", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    open_path(path)
     record("manualsRead", mid)
     return {"ok": True}
 
@@ -1052,6 +1052,32 @@ def hum(on):
 
 
 _sound_procs = {}
+
+
+# Running inside Windows (WSL, the Linux built into Windows 10 and 11)?
+def in_wsl():
+    try:
+        return "microsoft" in open("/proc/sys/kernel/osrelease").read().lower()
+    except OSError:
+        return False
+
+
+IN_WSL = in_wsl()
+
+
+def open_path(target):
+    """Open a file, a folder or a web link with the system's own app. Under
+    WSL that's Windows (Explorer, the PDF reader, the browser)."""
+    if IN_WSL and shutil.which("explorer.exe"):
+        if not re.match(r"^https?://", target) and shutil.which("wslpath"):
+            try:
+                target = subprocess.run(["wslpath", "-w", target], capture_output=True, text=True, timeout=5).stdout.strip() or target
+            except (OSError, subprocess.SubprocessError):
+                pass
+        cmd = ["explorer.exe", target]
+    else:
+        cmd = ["xdg-open", target]
+    subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
 
 
 def play_sound(name):
@@ -3084,8 +3110,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json({"error": str(e)}, 400)
             if req.get("open"):
                 folder = os.path.expanduser(out["path"])
-                subprocess.Popen(["xdg-open", folder if os.path.isdir(folder) else os.path.dirname(folder)],
-                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+                open_path(folder if os.path.isdir(folder) else os.path.dirname(folder))
             return self.send_json(out)
         if self.path == "/api/uninstall":
             req = self.read_json()
@@ -3103,8 +3128,7 @@ class Handler(BaseHTTPRequestHandler):
             if not folder:
                 return self.send_json({"ok": False}, 400)
             os.makedirs(folder, exist_ok=True)
-            subprocess.Popen(["xdg-open", folder], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                             start_new_session=True)
+            open_path(folder)
             return self.send_json({"ok": True})
         if self.path == "/api/profile":
             try:
@@ -3287,8 +3311,7 @@ class Handler(BaseHTTPRequestHandler):
             url = str(self.read_json().get("url", ""))
             if not re.match(r"^https?://", url):
                 return self.send_json({"ok": False}, 400)
-            subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                             start_new_session=True)
+            open_path(url)
             return self.send_json({"ok": True})
         if self.path != "/api/ask":
             self.send_error(404)

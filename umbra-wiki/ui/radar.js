@@ -239,7 +239,8 @@
     $("#radar .rd-count").textContent = all.length ? `· ${all.length}` : "";
     const w = data.wifi, b = data.bluetooth;
     let html = "";
-    if (show.wifi && w.available === false) html += `<p class="lib-note">No Wi-Fi adapter found.</p>`;
+    if (data.wsl) html += `<p class="lib-note">Umbra is running inside Windows (WSL). Windows keeps Wi-Fi and Bluetooth to itself, so the radar can't hear any signals here; the system panels still work.</p>`;
+    else if (show.wifi && w.available === false) html += `<p class="lib-note">No Wi-Fi adapter found.</p>`;
     else if (show.wifi && w.enabled === false) html += `<p class="lib-note">Wi-Fi is switched off. Turn it on to see the networks around you.</p>`;
     if (show.bt && b.available && (b.enabled === false || !b.powered)) html += `<p class="lib-note">Bluetooth is off. Switch it on (Omarchy: the Bluetooth menu, or <code>rfkill unblock bluetooth</code>) to see devices.</p>`;
     html += all.map((s) => `<button class="rd-row ${picked && picked.id === s.id ? "on" : ""}" data-id="${escapeHtml(s.id)}" data-type="${s.type}">
@@ -449,6 +450,7 @@
     if (picked) { const s = signals().find((x) => x.id === picked.id); if (s && !$("#radar .rd-detail").hidden) picked = s; }
     list();
     if (force) Sound.found();
+    $("#radar .rd-kill").hidden = !!data.wsl;   // no radios to switch inside WSL
     scanTimer = setTimeout(scan, 10000);
   }
 

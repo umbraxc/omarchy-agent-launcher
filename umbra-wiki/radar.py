@@ -48,6 +48,14 @@ def maker(mac):
     return _oui.get(mac.replace(":", "").upper()[:6], "")
 
 
+def _wsl():
+    """Inside Windows' WSL, Windows keeps the radios to itself."""
+    try:
+        return "microsoft" in open("/proc/sys/kernel/osrelease").read().lower()
+    except OSError:
+        return False
+
+
 def _blocked(kind):
     """rfkill: is this radio switched off?"""
     for path in glob.glob("/sys/class/rfkill/rfkill*"):
@@ -230,7 +238,7 @@ def forget(key=None):
 
 def scan(rescan=False):
     with _scan_lock:
-        out = {"wifi": wifi(rescan), "bluetooth": bluetooth(rescan), "time": int(time.time() * 1000)}
+        out = {"wifi": wifi(rescan), "bluetooth": bluetooth(rescan), "time": int(time.time() * 1000), "wsl": _wsl()}
     try:
         out["known"] = remember(out)
     except OSError:
