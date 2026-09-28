@@ -3489,8 +3489,21 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.flush()
 
 
+def ollama_listening():
+    """Windows takes 2 s to refuse a connection to a closed local port; ask
+    quickly first whether Ollama is there at all."""
+    import socket
+    try:
+        socket.create_connection(("127.0.0.1", 11434), timeout=0.4).close()
+        return True
+    except OSError:
+        return False
+
+
 def status():
     try:
+        if WINDOWS and not ollama_listening():
+            raise OSError("Ollama isn't running")
         tags = json.loads(fetch(OLLAMA + "/api/tags", timeout=3))
         model_ok = any(m["name"] == MODEL for m in tags.get("models", []))
         ollama_ok = True

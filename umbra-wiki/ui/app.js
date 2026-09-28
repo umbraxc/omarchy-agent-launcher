@@ -2145,6 +2145,7 @@ function showVoice(v) {
   mic.classList.toggle("rec", voice.state === "recording");
   mic.classList.toggle("busy", voice.state === "transcribing");
   mic.classList.toggle("off", !voice.available);
+  mic.hidden = !!voice.unsupported;   // the Windows app has no voice input yet
 }
 function insertText(text) {
   const a = input.selectionStart, b = input.selectionEnd, v = input.value;
@@ -2407,8 +2408,9 @@ function promptBarState() {
   if (controller) return ["▸ UMBRA IS WORKING", "ESC ABORT", true];
   const n = input.value.length;
   if (n) return [`▸ COMPOSING · ${n} ${n === 1 ? "CHAR" : "CHARS"}`, "⏎ TRANSMIT · ⇧⏎ NEW LINE · CTRL+Z UNDO", false];
-  if (suggestion) return ["▸ SUGGESTIONS READY", "⏎ TRANSMIT · F9 VOICE", true];
-  return [`▸ AWAITING INPUT${online ? " · LINK ONLINE" : ""}${window.offgrid ? " · OFF-GRID" : ""}`, "⏎ TRANSMIT · F9 VOICE · F1 KEYS", false];
+  const f9 = voice.unsupported ? "" : " · F9 VOICE";
+  if (suggestion) return ["▸ SUGGESTIONS READY", "⏎ TRANSMIT" + f9, true];
+  return [`▸ AWAITING INPUT${online ? " · LINK ONLINE" : ""}${window.offgrid ? " · OFF-GRID" : ""}`, "⏎ TRANSMIT" + f9 + " · F1 KEYS", false];
 }
 function updatePromptBar() {
   // The Tab hint, in the reply colour, beside the status while the prompt is empty.
