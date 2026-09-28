@@ -96,6 +96,20 @@ through the Wikipedia API.
 | [JetBrains Mono Nerd Font](https://www.nerdfonts.com) | Umbra's typeface | SIL Open Font License 1.1 |
 | [Omarchy](https://omarchy.org) | the desktop the bar widget runs in | MIT |
 
+## Also in the Windows app
+
+The Windows installer bundles these (the font's license and kiwix-serve's source link ship with the app):
+
+| Software | Used for | License |
+|---|---|---|
+| [Python](https://www.python.org) | runs Umbra | PSF License |
+| [pywebview](https://pywebview.flowrl.com) and [Microsoft Edge WebView2](https://developer.microsoft.com/microsoft-edge/webview2/) | the Umbra window | BSD-3-Clause; WebView2 is part of Windows |
+| [pythonnet](https://pythonnet.github.io) | connects Python to Windows | MIT |
+| [psutil](https://github.com/giampaolo/psutil) | processor, memory, battery and network readings | BSD-3-Clause |
+| [kiwix-serve 3.8.1](https://github.com/kiwix/kiwix-tools/releases/tag/3.8.1) (Windows build) | serves the offline library | GPL-3.0-or-later (source at the link) |
+| [JetBrains Mono Nerd Font 3.5.1](https://www.nerdfonts.com) | Umbra's typeface | SIL Open Font License 1.1 |
+| [PyInstaller](https://pyinstaller.org) and [Inno Setup](https://jrsoftware.org/isinfo.php) | build the app and its installer | GPL with an exception for the apps they build; Inno Setup license |
+
 ## Built with Claude
 
 Umbra was designed and directed by umbraxc and built together with

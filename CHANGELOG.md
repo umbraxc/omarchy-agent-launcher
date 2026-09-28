@@ -11,12 +11,17 @@
 - **Umbra knows you**: your profile, health notes, supplies and plans shape every answer; press **Tab** for quick actions.
 - **A fresher look**: redesigned themes (try Arctic Kill), a new profile page, history folders and first-look guides.
 - **Achievements**, settings in coloured groups, and a note like this one after every update.
-- **Windows 11**: Umbra runs there too, through WSL; see the install guide.
+- **Windows 11**: a native Windows app with a one-click installer that keeps itself up to date.
 
 ### All changes
 
+- **Windows app**: Umbra Wiki for Windows 11 (`Umbra-Wiki-Setup.exe` on each
+  release): a native window (Edge WebView2), an installer that needs no
+  administrator and offers Ollama, daily update checks with one-click,
+  checksum-verified updates, and builds tested on Windows by GitHub Actions.
 - **Windows 11 (WSL)**: files, folders and links open in the Windows apps,
   and the radar explains why it can't reach the radios there.
+- The header makes room on narrow windows instead of overlapping.
 
 - **Calendar** in the Field Kit: browse months, add reminders in six colours
   and four levels of importance, once or repeating; Umbra adds when your

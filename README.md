@@ -17,8 +17,9 @@ and no subscription. Nothing you ask leaves your machine.
 - **Made to be lived with**: scenarios and personalities, a welcome tour,
   history, voice input, 22 themes, animated backgrounds and transitions, and
   an off-grid battery saver.
-- **Runs on Omarchy and on any Arch Linux**: the bar widget is Omarchy's;
-  Umbra Wiki itself runs anywhere on Arch.
+- **Runs on Omarchy, any Arch Linux and Windows 11**: the bar widget is
+  Omarchy's; Umbra Wiki itself runs anywhere on Arch, and as a native
+  Windows app. **Windows:** [download Umbra Wiki for Windows](https://github.com/umbraxc/omarchy-umbra/releases/latest/download/Umbra-Wiki-Setup.exe).
 
 ---
 
@@ -422,16 +423,29 @@ To update a repository install, pull the new version, then reinstall:
 
 ### On Windows 11
 
-Umbra runs on Windows 11 through WSL, Windows' built-in way to run Linux
-apps in their own windows. Install Arch Linux in WSL, then Umbra from the
-signed [umbra] repository, exactly as on Arch. The step-by-step guide,
-for people new to Linux, is on the
-[Windows 11 page](https://umbraxc.github.io/umbra-repo/#windows).
+**[Download Umbra Wiki for Windows](https://github.com/umbraxc/omarchy-umbra/releases/latest/download/Umbra-Wiki-Setup.exe)** (`Umbra-Wiki-Setup.exe`,
+about 40 MB) and run it. It installs for your user only (no administrator
+needed), offers to install Ollama, the local AI engine, and adds Umbra Wiki
+to the Start menu. The welcome tour then picks the AI model and the library.
 
-Everything works, including sounds, with two exceptions: the Signals &
-Radar screen can't reach the Wi-Fi and Bluetooth radios (Windows keeps
-them), and voice input isn't set up. Files, folders and links open in your
-Windows apps, and Umbra Wiki appears in the Start menu.
+- **Updates install themselves**: once a day Umbra asks GitHub for a newer
+  version and offers to install it with one click. It checks the download
+  against the release's checksums, updates, and reopens; everything of yours
+  stays. (Switch the check off in Settings → Help & updates.)
+- **"Windows protected your PC"**: the installer isn't code-signed yet, so
+  Windows asks the first time. Click **More info → Run anyway**. Every
+  installer is built on GitHub from this repository's code (see
+  [the workflow](.github/workflows/windows.yml)), and its SHA-256 is listed in
+  `SHA256SUMS-windows.txt` on each release.
+- **What's different**: the Signals & Radar screen shows Wi-Fi networks, but
+  not Bluetooth devices, and has no kill switch (use Windows' airplane mode).
+  Voice input isn't available on Windows yet. Everything else is the same.
+- **Your data** lives in `%APPDATA%\UmbraWiki` and `%LOCALAPPDATA%\UmbraWiki`,
+  the library in `%USERPROFILE%\UmbraWiki\library`. Uninstalling from
+  Windows' Settings keeps them; Umbra's own Settings → Uninstall removes them.
+
+You can also run the Linux version on Windows through WSL; that guide is on
+the [repository page](https://umbraxc.github.io/umbra-repo/#windows).
 
 ### What gets installed
 
