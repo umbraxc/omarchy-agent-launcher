@@ -82,6 +82,29 @@
     });
   }
 
+  // Long lists of cards show a first few and a MORE button that unfolds the
+  // rest (and folds them away again), so the tour never floods the screen.
+  function foldCards(grid, keep = 6) {
+    const cards = [...grid.children];
+    if (cards.length <= keep + 1) return;
+    const onIdx = cards.findIndex((c) => c.classList.contains("on"));
+    cards.forEach((c, i) => { if (i >= keep && i !== onIdx) c.classList.add("tour-extra"); });
+    const more = document.createElement("button");
+    more.type = "button";
+    more.className = "ghost tour-more";
+    const hidden = () => grid.querySelectorAll(".tour-extra").length;
+    const label = (open) => (more.textContent = open ? "SHOW FEWER ▴" : `MORE (${hidden()}) ▾`);
+    label(false);
+    more.addEventListener("click", () => {
+      const open = !grid.classList.contains("unfolded");
+      grid.classList.toggle("unfolded", open);
+      label(open);
+      Sound.click();
+      if (!open) grid.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+    grid.after(more);
+  }
+
   // Cards that toggle on and off (several can be picked). Resolves on CONTINUE.
   function multi(answer, items, chosen) {
     return new Promise((resolve, reject) => {
@@ -99,8 +122,9 @@
       });
       next.className = "tour-choices";
       next.innerHTML = `<button class="solid">CONTINUE ▸</button>`;
-      next.querySelector("button").addEventListener("click", () => { grid.classList.add("done"); next.remove(); Sound.click(); resolve(chosen); });
+      next.querySelector("button").addEventListener("click", () => { grid.classList.add("done", "unfolded"); grid.nextElementSibling?.classList.contains("tour-more") && grid.nextElementSibling.remove(); next.remove(); Sound.click(); resolve(chosen); });
       answer.append(grid, next);
+      foldCards(grid, 8);
       skipHooks.push(() => reject(SKIP));
       wake();
       autoClick(next.querySelector("button"));
@@ -130,8 +154,16 @@
       });
       next.className = "tour-choices";
       next.innerHTML = `<button class="solid">${nextLabel ? nextLabel(current) : "CONTINUE ▸"}</button>`;
-      next.querySelector("button").addEventListener("click", () => { grid.classList.add("done"); next.remove(); Sound.click(); resolve(); });
+      next.querySelector("button").addEventListener("click", () => {
+        grid.classList.add("done");
+        // Only the chosen card stays, the rest fold away.
+        grid.querySelectorAll(".tour-card:not(.on)").forEach((c) => c.classList.add("tour-extra"));
+        grid.classList.remove("unfolded");
+        grid.nextElementSibling?.classList.contains("tour-more") && grid.nextElementSibling.remove();
+        next.remove(); Sound.click(); resolve();
+      });
       answer.append(grid, next);
+      foldCards(grid, 6);
       skipHooks.push(() => reject(SKIP));
       wake();
       autoClick(next.querySelector("button"));

@@ -19,7 +19,7 @@
     help: "\u{F0625}", alarm: "\u{F0020}", bolt: "\u{F140B}", knot: "\u{F0339}", pin: "\u{F034E}", night: "\u{F0594}",
     fire: "\u{F0238}", hand: "\u{F0E46}", hospital: "\u{F02E0}",
   };
-  const TABS = [["medic", "MEDIC"], ["sky", "SUN & MOON"], ["supplies", "SUPPLIES"], ["vault", "VAULT"], ["training", "TRAINING"], ["cards", "CARDS"]];
+  const TABS = [["medic", "MEDIC"], ["sky", "SUN & MOON"], ["supplies", "SUPPLIES"], ["calendar", "CALENDAR"], ["vault", "VAULT"], ["training", "TRAINING"], ["cards", "CARDS"]];
   let tab = "medic";
   const store = {
     get(k, d) { try { const v = localStorage.getItem("umbra-fk-" + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
@@ -74,7 +74,7 @@
     el.querySelectorAll(".lo-tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === tab));
     const body = el.querySelector(".fk-body");
     body.scrollTop = 0;
-    ({ medic: medic, sky: sky, supplies: supplies, vault: (b) => (window.UmbraVault ? UmbraVault.render(b) : null), training: training, cards: cards })[tab](body);
+    ({ medic: medic, sky: sky, supplies: supplies, calendar: (b) => (window.UmbraCalendar ? UmbraCalendar.render(b) : null), vault: (b) => (window.UmbraVault ? UmbraVault.render(b) : null), training: training, cards: cards })[tab](body);
     tip();
   }
   const TIPS = {
@@ -88,6 +88,9 @@
     supplies: ["The usual rule is 3.8 litres (a gallon) of water per person per day, double in hot weather.",
                "Keep at least 3 days of water and food; two weeks is a strong reserve.",
                "Don't ration water: drink what you need, and cut sweat instead (rest, shade)."],
+    calendar: ["Click a day to add a reminder: pick a colour, how important it is, and whether it repeats.",
+               "Water, food, best-before dates, running first-aid timers and the moon are added by Umbra itself.",
+               "Reminders ring at their time while Umbra is open; all-day ones at 09:00."],
     vault: ["Store firearms unloaded and locked, and ammunition separately, cool and dry.",
             "Sealed ammunition kept cool and dry lasts for decades; rotate the oldest first.",
             "Treat every firearm as loaded; never point it at anything you don't intend to shoot."],
@@ -1044,5 +1047,17 @@
   window.UmbraFieldKit = { sunTimes, moonLight, moonTimes, needs: () => sup && needs(),
     // Opens the kit on a tab (and a training sub-tab), e.g. open("training", "morse").
     astro: { toDays, sidereal, sunCoords, moonCoords, moonLight }, hasVault: true,
+    // For the calendar: how many days the stored water and food last, the
+    // items' best-before dates, and the running first-aid timers.
+    forecast: async () => {
+      if (!sup) sup = await fetch("/api/supplies").then((r) => r.json()).catch(() => ({}));
+      sup.household = sup.household || { adults: 1 }; sup.items = sup.items || [];
+      sup.climate = sup.climate || "temperate"; sup.activity = sup.activity || "moderate"; sup.target = sup.target || 14;
+      const n = needs();
+      const water = sup.items.reduce((s2, it) => s2 + it.qty * (it.litres || 0), 0), kcal = sup.items.reduce((s2, it) => s2 + it.qty * (it.kcal || 0), 0);
+      return { waterDays: n.water && water ? water / n.water : null, foodDays: n.kcal && kcal ? kcal / n.kcal : null,
+               items: sup.items.filter((it) => it.expires).map((it) => ({ name: it.name, expires: it.expires })),
+               timers: running.map((r) => ({ name: r.name, at: r.at, secs: r.secs, up: r.up })) };
+    },
     open: (t, st) => { if (t && TABS.some(([id]) => id === t)) tab = t; if (st) sub = st; if ($("#fieldkit").hidden) toggle(true); else render(); } };
 })();

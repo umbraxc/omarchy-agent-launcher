@@ -167,9 +167,75 @@ def bluetooth(rescan=False):
     return out
 
 
+# Every device the radar has heard, remembered on this computer (so new ones
+# stand out): first and last seen, how often, the strongest signal.
+KNOWN_FILE = None   # set by the server (DATA_DIR/radar-known.json)
+_known_lock = threading.Lock()
+
+
+def _load_known():
+    try:
+        with open(KNOWN_FILE, encoding="utf-8") as fh:
+            d = json.load(fh)
+        return d if isinstance(d, dict) else {}
+    except (OSError, ValueError, TypeError):
+        return {}
+
+
+def remember(result):
+    if not KNOWN_FILE:
+        return {}
+    now = int(time.time() * 1000)
+    with _known_lock:
+        known = _load_known()
+        first_ever = not known
+        for kind, items in (("wifi", result["wifi"]["networks"]), ("bt", result["bluetooth"]["devices"])):
+            for x in items:
+                key = kind + ":" + x["id"]
+                k = known.get(key) or {"type": kind, "first": now, "count": 0, "best": -200, "baseline": first_ever}
+                k.update(name=x.get("name") or k.get("name") or "", last=now, dbm=x.get("dbm"), count=k["count"] + 1,
+                         best=max(k.get("best", -200), x.get("dbm") or -200),
+                         detail=x.get("security") if kind == "wifi" else x.get("kind"), maker=x.get("maker") or "",
+                         band=x.get("band", ""), channel=x.get("channel", ""))
+                known[key] = k
+        if len(known) > 2000:   # keep the most recently seen
+            known = dict(sorted(known.items(), key=lambda kv: -kv[1].get("last", 0))[:2000])
+        tmp = KNOWN_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(known, fh)
+        os.replace(tmp, KNOWN_FILE)
+        try:
+            os.chmod(KNOWN_FILE, 0o600)
+        except OSError:
+            pass
+        return known
+
+
+def known_devices():
+    with _known_lock:
+        return _load_known()
+
+
+def forget(key=None):
+    with _known_lock:
+        known = _load_known()
+        if key:
+            known.pop(key, None)
+        else:
+            known = {}
+        with open(KNOWN_FILE, "w", encoding="utf-8") as fh:
+            json.dump(known, fh)
+        return known
+
+
 def scan(rescan=False):
     with _scan_lock:
-        return {"wifi": wifi(rescan), "bluetooth": bluetooth(rescan), "time": int(time.time() * 1000)}
+        out = {"wifi": wifi(rescan), "bluetooth": bluetooth(rescan), "time": int(time.time() * 1000)}
+    try:
+        out["known"] = remember(out)
+    except OSError:
+        out["known"] = {}
+    return out
 
 
 # --------------------------------------------------------------- vitals

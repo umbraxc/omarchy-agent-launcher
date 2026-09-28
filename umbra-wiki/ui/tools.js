@@ -22,6 +22,8 @@
       /\b(sunrise|sunset|daylight|dusk|dawn|twilight|moon|night ?time|how long (until|till) dark|nightfall|solstice)/i, kit("sky")],
     "kit:supplies": ["Supplies", "How long your water and food last for your household", G.box,
       /\b(supplies|stockpile|ration|how long (will|would|does) .*(last|food|water)|food storage|water storage|calories|household)/i, kit("supplies")],
+    "kit:calendar": ["Calendar", "Reminders, and when your water and food run out", "\u{F00ED}",
+      /\b(remind|reminder|calendar|schedule|appointment|deadline|expir|best before|when will .* run out|rotate (my|the) (water|food|stock))/i, kit("calendar")],
     "kit:vault": ["The Vault", "Your arsenal: firearms, ammunition and defence gear, behind your password", G.vault,
       /\b(gun|guns|firearm|rifle|pistol|shotgun|handgun|ammo|ammunition|caliber|calibre|cartridge|self[- ]defen[cs]e|arsenal|vault|crossbow|pepper spray)/i, kit("vault")],
     "kit:training": ["Training", "Morse, signal lamp, phonetic alphabet, drills and knots", G.school,

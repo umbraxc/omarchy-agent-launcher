@@ -47,10 +47,13 @@
           <div class="rd-dark" hidden><b>\u{F0425} RADIOS OFF</b><p>The kill switch is on: Wi-Fi, mobile data and Bluetooth are off. Umbra keeps working offline.</p>
             <button class="solid rd-restore">RESTORE RADIOS ▸</button></div>
           <p class="rd-note">Only the radios need to be on: no internet. Passive: Umbra connects to nothing and keeps nothing.</p></div>
-        <aside class="rd-right"><div class="rd-rtabs"><button data-r="system" class="on">SYSTEM</button><button data-r="intel">INTEL</button><button data-r="log">LOG <i class="rd-logn"></i></button></div>
+        <aside class="rd-right"><div class="rd-rtabs"><button data-r="system" class="on">SYSTEM</button><button data-r="intel">INTEL</button><button data-r="log">DEVICES <i class="rd-logn"></i></button></div>
           <div class="rd-pane" data-r="system"><div class="rd-vitals"></div><div class="rd-h">WI-FI CHANNELS</div><canvas class="rd-spectrum"></canvas></div>
           <div class="rd-pane" data-r="intel" hidden></div>
-          <div class="rd-pane" data-r="log" hidden><div class="rd-h"><span class="rd-blink">●</span> EVENT LOG</div><div class="rd-log"></div></div></aside>
+          <div class="rd-pane" data-r="log" hidden><div class="rd-h"><span class="rd-blink">●</span> KNOWN DEVICES <small class="rd-kcount"></small></div>
+            <div class="rd-kfilter"><button data-f="all" class="on">ALL</button><button data-f="range">IN RANGE</button><button data-f="new">NEW</button></div>
+            <div class="rd-log"></div>
+            <p class="lib-note rd-kfoot">Every device the radar has heard is remembered on this computer only, so new ones stand out. <button class="ghost rd-forget">FORGET ALL</button></p></div></aside>
       </div>`;
     document.body.appendChild(el);
     canvas = el.querySelector(".rd-canvas"); g = canvas.getContext("2d");
@@ -58,6 +61,15 @@
     el.querySelector(".rd-full").addEventListener("click", fullscreen);
     el.querySelector(".rd-kill").addEventListener("click", () => kill(true));
     el.querySelector(".rd-restore").addEventListener("click", () => kill(false));
+    el.querySelectorAll(".rd-kfilter button").forEach((b) => b.addEventListener("click", () => {
+      kfilter = b.dataset.f; el.querySelectorAll(".rd-kfilter button").forEach((x) => x.classList.toggle("on", x === b)); logView(); Sound.click();
+    }));
+    el.querySelector(".rd-forget").addEventListener("click", async () => {
+      const ok = await confirmDialog({ kind: "to-local", tag: "RADAR", title: "FORGET ALL DEVICES?", body: "The list of devices the radar has heard is cleared. It fills again with the next scan.", ok: "FORGET", cancel: "KEEP" });
+      if (!ok) return;
+      known = (await (await fetch("/api/radar/forget", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })).json()).known;
+      logView(); Sound.click();
+    });
     el.querySelectorAll(".rd-rtabs button").forEach((b) => b.addEventListener("click", () => {
       rtab = b.dataset.r;
       el.querySelectorAll(".rd-rtabs button").forEach((x) => x.classList.toggle("on", x === b));
@@ -176,6 +188,8 @@
         g.strokeRect(x - 12 - p * 3, y - 12 - p * 3, 24 + p * 6, 24 + p * 6);
         g.beginPath(); g.moveTo(x - 22, y); g.lineTo(x - 13, y); g.moveTo(x + 13, y); g.lineTo(x + 22, y); g.moveTo(x, y - 22); g.lineTo(x, y - 13); g.moveTo(x, y + 13); g.lineTo(x, y + 22); g.stroke();
       }
+      const kk = known[(s.type === "bt" ? "bt:" : "wifi:") + s.id];
+      if (kk && isNew(kk)) { g.globalAlpha = 0.9; g.fillStyle = red; g.font = `700 8.5px ${font}`; g.fillText("NEW", x + 8, y + 10); g.font = `600 9.5px ${font}`; }
       if (s.signal >= 55 || (picked && picked.id === s.id)) {
         g.globalAlpha = Math.max(0.55, glow); g.fillStyle = fg;
         g.fillText((s.name || "hidden").slice(0, 18) + `  ${s.dbm}`, x + 10, y - 9);
@@ -351,31 +365,47 @@
       <div class="rd-kv"><span>AVERAGE WI-FI</span><b>${w.length ? avg + " dBm" : "—"}</b></div>
       <div class="rd-kv"><span>SCANS</span><b>${scans}</b></div>`;
   }
-  // LOG: contacts appearing, leaving and getting much stronger or weaker.
+  // DEVICES: a steady list of everything the radar has ever heard, in range
+  // or not, grouped by kind. NEW marks devices first heard in the last day
+  // (not the ones from the very first scan).
+  let known = {}, kfilter = "all";
+  const DAY = 864e5;
+  const isNew = (k) => !k.baseline && Date.now() - k.first < DAY;
+  const ago = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "now" : m < 60 ? m + " min ago" : m < 1440 ? Math.round(m / 60) + " h ago" : Math.round(m / 1440) + " d ago"; };
   function logView() {
     const box = $("#radar .rd-log");
     if (!box) return;
-    const n = $("#radar .rd-logn"); if (n) n.textContent = events.length ? events.length : "";
+    const live = new Set([...(data.wifi.networks || []).map((n) => "wifi:" + n.id), ...(data.bluetooth.devices || []).map((d) => "bt:" + d.id)]);
+    const all = Object.entries(known).map(([key, k]) => ({ key, ...k, live: live.has(key) }));
+    const news = all.filter(isNew).length;
+    const n = $("#radar .rd-logn"); if (n) n.textContent = news ? news + " NEW" : "";
     if (box.closest(".rd-pane").hidden) return;
-    const hhmmss = (t) => new Date(t).toTimeString().slice(0, 8);
-    box.innerHTML = events.length ? events.slice(-80).reverse().map((e) => `<div class="rd-ev ${e.kind}"><b>${hhmmss(e.t)}</b><em>${e.kind.toUpperCase()}</em><span></span></div>`).join("") : `<p class="lib-note">Contacts appearing and leaving are logged here while the radar runs.</p>`;
-    box.querySelectorAll(".rd-ev span").forEach((sp, i) => (sp.textContent = events.slice(-80).reverse()[i].text));
+    $("#radar .rd-kcount").textContent = `· ${all.length}`;
+    const pick = all.filter((k) => kfilter === "all" || (kfilter === "range" ? k.live : isNew(k)))
+      .sort((a, b) => (b.live - a.live) || (isNew(b) - isNew(a)) || (b.last - a.last));
+    const group = (type, title) => {
+      const list = pick.filter((k) => k.type === type);
+      if (!list.length) return "";
+      return `<div class="rd-kgroup">${title} · ${list.length}</div>` + list.map((k) => `<div class="rd-krow ${k.live ? "live" : ""}" data-key="${escapeHtml(k.key)}">
+        <i class="rd-kdot"></i><span class="rd-kname"><b></b><small>${escapeHtml([k.detail, k.band, k.maker].filter(Boolean).join(" · "))}</small></span>
+        <span class="rd-kmeta">${isNew(k) ? `<em class="rd-new">NEW</em>` : ""}${k.live ? `<b>${k.dbm} dBm</b>` : `<small>${ago(k.last)}</small>`}<small>seen ${k.count}×</small></span></div>`).join("");
+    };
+    box.innerHTML = (group("wifi", "WI-FI") + group("bt", "BLUETOOTH")) || `<p class="lib-note">${kfilter === "new" ? "Nothing new in the last day." : "No devices yet: the list fills as the radar scans."}</p>`;
+    box.querySelectorAll(".rd-krow").forEach((r) => {
+      const k = known[r.dataset.key];
+      r.querySelector("b").textContent = k.name || (k.type === "wifi" ? "(hidden network)" : "Unnamed device");
+      r.addEventListener("click", () => {
+        const s = signals().find((x) => (x.type === "bt" ? "bt:" : "wifi:") + x.id === r.dataset.key);
+        if (s) pick(s); else Sound.error();
+      });
+    });
   }
   function logScan() {
-    const now = Date.now(), cur = new Map([...(data.wifi.networks || []).map((n) => [n.id, { ...n, type: "wifi" }]), ...(data.bluetooth.devices || []).map((d) => [d.id, { ...d, type: "bt" }])]);
-    const label = (x) => `${x.type === "wifi" ? "Wi-Fi" : "Bluetooth"} ${x.name || "(hidden)"} · ${x.dbm} dBm${x.type === "wifi" && /open/i.test(x.security) ? " · OPEN" : ""}`;
-    if (seen) {
-      for (const [id, x] of cur) {
-        const was = seen.get(id);
-        if (!was) events.push({ t: now, kind: "new", text: label(x) });
-        else if (x.dbm - was.dbm >= 12) events.push({ t: now, kind: "closer", text: label(x) });
-        else if (was.dbm - x.dbm >= 12) events.push({ t: now, kind: "farther", text: label(x) });
-      }
-      for (const [id, x] of seen) if (!cur.has(id)) events.push({ t: now, kind: "lost", text: label(x) });
-    } else events.push({ t: now, kind: "scan", text: `First sweep: ${cur.size} contacts` });
-    while (events.length > 300) events.shift();
-    seen = cur;
-    hist.count.push(cur.size); if (hist.count.length > 60) hist.count.shift();
+    if (data.known) known = data.known;
+    const cur = (data.wifi.networks || []).length + (data.bluetooth.devices || []).length;
+    const fresh = Object.values(known).filter((k) => isNew(k) && Date.now() - k.first < 20000).length;
+    if (fresh && scans > 1) Sound.found();
+    hist.count.push(cur); if (hist.count.length > 60) hist.count.shift();
     logView(); intel();
   }
 

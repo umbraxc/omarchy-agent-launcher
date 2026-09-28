@@ -129,7 +129,8 @@ UMBRA_GUIDE = (
     "FIELD KIT (Ctrl+K): MEDIC tab with a CPR metronome, first-aid timers (tourniquet, burns cooling, "
     "medication), a pulse and breathing counter, triage and patient tools; SUN & MOON tab with sunrise, "
     "sunset, daylight left, moon phase and a live view of Earth, sun and moon; SUPPLIES tab that works out "
-    "how long water and food last for the household; VAULT tab, a password-locked inventory of firearms, "
+    "how long water and food last for the household; CALENDAR tab with reminders in colours and importance levels, "
+    "which also shows when water and food run out, best-before dates, first-aid timers and moon phases; VAULT tab, a password-locked inventory of firearms, "
     "ammunition, defence gear, valuables and data backups; TRAINING tab with Morse by ear and by hand, a Morse "
     "challenge, a signal lamp, the phonetic alphabet, radio procedure, grid references, compass and pace count, "
     "SALUTE reports, drills, knots, and MANUALS (US Army field manuals and civil-defence guides to download "
@@ -246,6 +247,41 @@ def save_waypoints(items):
     for w in clean:
         record("waypoints", w["id"])
     return clean
+
+
+# --------------------------------------------------------------- calendar
+
+# The calendar's own reminders (supplies, timers and moon phases are worked
+# out in the window from their own data).
+CALENDAR_FILE = os.path.join(DATA_DIR, "calendar.json")
+CAL_COLORS = ("signal", "red", "accent", "green", "net", "violet")
+CAL_REPEAT = ("", "daily", "weekly", "monthly", "yearly")
+
+
+def get_calendar():
+    ev = read_json(CALENDAR_FILE, {}).get("events", [])
+    return {"events": ev if isinstance(ev, list) else []}
+
+
+def save_calendar(events):
+    if not isinstance(events, list):
+        raise ValueError("bad calendar")
+    clean = []
+    for e in events[:2000]:
+        if not isinstance(e, dict) or not re.fullmatch(r"[a-z0-9]{4,24}", str(e.get("id", ""))):
+            continue
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(e.get("date", ""))):
+            continue
+        t = str(e.get("time") or "")
+        clean.append({"id": e["id"], "date": e["date"], "time": t if re.fullmatch(r"\d{2}:\d{2}", t) else "",
+                      "title": re.sub(r"\s+", " ", str(e.get("title") or "")).strip()[:80] or "Reminder",
+                      "note": str(e.get("note") or "").strip()[:400],
+                      "color": e.get("color") if e.get("color") in CAL_COLORS else "signal",
+                      "importance": max(1, min(4, int(e.get("importance") or 2))) if str(e.get("importance") or "2").isdigit() else 2,
+                      "repeat": e.get("repeat") if e.get("repeat") in CAL_REPEAT else "",
+                      "done": bool(e.get("done"))})
+    write_json(CALENDAR_FILE, {"events": clean})
+    return {"events": clean}
 
 
 # ---------------------------------------------------------------- manuals
@@ -1950,7 +1986,7 @@ def reset_umbra():
     are deleted (downloaded maps stay, like the library). The AI model,
     the library and config.json (model, library folder) are kept."""
     for path in (SETTINGS_FILE, PROFILE_FILE, CUSTOM_THEMES_FILE, PERSONALITIES_FILE, SCENARIOS_FILE, LOCK_FILE, ACH_FILE,
-                 WAYPOINTS_FILE, SUPPLIES_FILE, SAFETY_FILE, FOLDERS_FILE, VAULT_FILE):
+                 WAYPOINTS_FILE, SUPPLIES_FILE, SAFETY_FILE, FOLDERS_FILE, VAULT_FILE, radar.KNOWN_FILE, CALENDAR_FILE):
         try:
             os.remove(path)
         except OSError:
@@ -2336,7 +2372,7 @@ def backup(include_history, target=""):
         "settings": read_json(SETTINGS_FILE, {}), "profile": get_profile(),
         "themes": custom_themes(), "personalities": custom_personalities(), "scenarios": custom_scenarios(),
         "achievements": read_json(ACH_FILE, {}), "waypoints": get_waypoints(), "supplies": get_supplies(),
-        "safety": get_safety()["levels"], "folders": get_folders()["folders"], "vault": get_vault(),
+        "safety": get_safety()["levels"], "folders": get_folders()["folders"], "vault": get_vault(), "calendar": get_calendar()["events"],
         "history": [read_json(history_path(i["id"]), {}) for i in history_list()["items"]] if include_history else [],
     }
     path = os.path.join(folder, f"umbra-backup-{time.strftime('%Y-%m-%d-%H%M')}.json")
@@ -2358,6 +2394,13 @@ def restore(data):
         try:
             save_supplies(data["supplies"])
         except (ValueError, TypeError):
+            pass
+    if isinstance(data.get("calendar"), list) and data["calendar"]:
+        try:
+            mine = {e["id"]: e for e in get_calendar()["events"]}
+            mine.update({e.get("id"): e for e in data["calendar"] if isinstance(e, dict)})
+            save_calendar(list(mine.values()))
+        except ValueError:
             pass
     if isinstance(data.get("vault"), list) and data["vault"]:
         try:
@@ -2710,6 +2753,11 @@ def user_context(question="", client=None):
     if levels:
         names = {1: "safe", 2: "caution", 3: "avoid", 4: "danger"}
         lines.append("Countries they marked: " + ", ".join(f"{k} {names[v]}" for k, v in list(levels.items())[:20]) + ".")
+    today = time.strftime("%Y-%m-%d")
+    soon = time.strftime("%Y-%m-%d", time.localtime(time.time() + 14 * 86400))
+    upcoming = sorted((e for e in get_calendar()["events"] if not e.get("done") and today <= e["date"] <= soon), key=lambda e: (e["date"], e["time"]))
+    if upcoming:
+        lines.append("Their calendar, next two weeks: " + "; ".join(f"{e['date']}{' ' + e['time'] if e['time'] else ''} {e['title']}" for e in upcoming[:10]) + f" (today is {today}).")
     have = [m["title"] for m in manuals_catalog() if os.path.exists(os.path.join(MANUALS_DIR, m["id"] + ".pdf"))]
     if have:
         lines.append("Field manuals they downloaded (Field Kit → Training → Manuals): " + "; ".join(have) + ".")
@@ -2876,6 +2924,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(get_safety())
         if path == "/api/folders":
             return self.send_json(get_folders())
+        if path == "/api/calendar":
+            return self.send_json(get_calendar())
         if path == "/api/manuals":
             return self.send_json(manuals())
         if path == "/api/radar":
@@ -3139,6 +3189,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json({"items": save_vault(req.get("items"))})
             except ValueError as e:
                 return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/calendar":
+            try:
+                return self.send_json(save_calendar(self.read_json().get("events")))
+            except ValueError as e:
+                return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/radar/forget":
+            key = str(self.read_json().get("key", ""))[:120]
+            return self.send_json({"known": radar.forget(key or None)})
         if self.path == "/api/radios":
             # The radar's kill switch: all radios off, or back on.
             return self.send_json(radar.radios(bool(self.read_json().get("off"))))
@@ -3412,6 +3470,7 @@ def warm_model():
 
 
 MAPS = maps.Maps(DATA_DIR, APP_DIR)
+radar.KNOWN_FILE = os.path.join(DATA_DIR, "radar-known.json")
 
 if __name__ == "__main__":
     signal.signal(signal.SIGTERM, stop_kiwix)

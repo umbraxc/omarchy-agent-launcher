@@ -2377,10 +2377,19 @@ function updatePromptBar() {
   const [left, right, hot] = promptBarState();
   const key = left + "|" + right;
   if (key === barState) return;
+  // Only a new situation is typed out; while composing, just the count
+  // changes (with a small flick), the rest of the line stays put.
+  const shape = (t) => t.replace(/\d+/g, "#").replace(/CHARS?/, "CHAR");
+  const sameShape = barState && shape(barState) === shape(key);
   barState = key;
-  clearInterval(barTimer);
   barLeft.classList.toggle("hot", hot);
-  if (document.body.classList.contains("reduce-motion")) { barLeft.textContent = left; barRight.textContent = right; return; }
+  if (sameShape || document.body.classList.contains("reduce-motion")) {
+    clearInterval(barTimer);
+    barLeft.textContent = left; barRight.textContent = right;
+    if (sameShape) { barLeft.classList.remove("tick"); void barLeft.offsetWidth; barLeft.classList.add("tick"); }
+    return;
+  }
+  clearInterval(barTimer);
   // Typed out like a teleprinter, both sides at once.
   let i = 0;
   const len = Math.max(left.length, right.length);
