@@ -3084,6 +3084,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json({"items": save_vault(req.get("items"))})
             except ValueError as e:
                 return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/radios":
+            # The radar's kill switch: all radios off, or back on.
+            return self.send_json(radar.radios(bool(self.read_json().get("off"))))
         if self.path.startswith("/api/manuals/"):
             req = self.read_json()
             try:

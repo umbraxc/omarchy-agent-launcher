@@ -13,7 +13,10 @@
               bat: "\u{F0079}", disk: "\u{F02CA}", net: "\u{F0317}", scan: "\u{F0450}", lock: "\u{F033E}", open: "\u{F0FC6}" };
   let data = { wifi: { networks: [] }, bluetooth: { devices: [] } }, vit = null, picked = null, show = { wifi: true, bt: true };
   let ro = null, canvas, g, W = 0, H = 0, dpr = 1, raf = 0, scanTimer = 0, vitTimer = 0, lastScan = 0, sweep = 0, t0 = performance.now();
-  const hist = { cpu: [], rx: [], tx: [] };
+  const hist = { cpu: [], rx: [], tx: [], count: [] };
+  const events = [];        // [{t, kind, text}] the event log
+  let seen = null, scans = 0, lastScanAt = 0, rtab = "system", killed = false, fullOn = false;
+  const pings = [];         // detection rings: {x, y, t, col}
   const lit = new Map();   // id -> time the sweep last passed it
   const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
   // A theme colour with transparency (themes give #rrggbb; anything else stays solid).
@@ -31,18 +34,37 @@
         <div class="rd-tools">
           <button class="ctl rd-t on" data-t="wifi" title="Wi-Fi|Show or hide the Wi-Fi networks."><span class="g">${G.wifi}</span></button>
           <button class="ctl rd-t on" data-t="bt" title="Bluetooth|Show or hide the Bluetooth devices."><span class="g">${G.bt}</span></button>
-          <button class="ghost rd-scan" title="Scan now|Asks the radios to listen again (a few seconds).">${G.scan} SCAN</button>
+          <button class="ghost rd-scan" title="Scan now · S|Asks the radios to listen again (a few seconds).">${G.scan} SCAN</button>
+          <button class="ctl rd-full" title="Full screen · F|Use the whole screen for the radar."><span class="g">\u{F0293}</span></button>
+          <button class="ghost rd-kill" title="Kill switch|Turns Wi-Fi, mobile data and Bluetooth off at once, for when you need to go dark. Umbra keeps working offline.">\u{F0425} KILL SWITCH</button>
           <button class="ghost rd-close" title="Close · Esc|Back to where you were.">CLOSE ✕</button></div></div>
       <div class="rd-body">
         <aside class="rd-left"><div class="rd-h">SIGNALS <small class="rd-count"></small></div><div class="rd-list"></div></aside>
         <div class="rd-center"><canvas class="rd-canvas"></canvas><div class="rd-detail" hidden></div>
+          <div class="rd-hud rd-hud-tl"><b class="rd-blink">● SIGINT · PASSIVE</b><span class="rd-hud-scan"></span></div>
+          <div class="rd-hud rd-hud-tr"><span class="rd-hud-brg"></span><span class="rd-hud-sig"></span></div>
+          <div class="rd-hud rd-hud-bl"><span>RF 2.4 · 5 · 6 GHz · BLE</span><span class="rd-hud-coords"></span></div>
+          <div class="rd-dark" hidden><b>\u{F0425} RADIOS OFF</b><p>The kill switch is on: Wi-Fi, mobile data and Bluetooth are off. Umbra keeps working offline.</p>
+            <button class="solid rd-restore">RESTORE RADIOS ▸</button></div>
           <p class="rd-note">Only the radios need to be on: no internet. Passive: Umbra connects to nothing and keeps nothing.</p></div>
-        <aside class="rd-right"><div class="rd-h">SYSTEM</div><div class="rd-vitals"></div>
-          <div class="rd-h">WI-FI CHANNELS</div><canvas class="rd-spectrum"></canvas></aside>
+        <aside class="rd-right"><div class="rd-rtabs"><button data-r="system" class="on">SYSTEM</button><button data-r="intel">INTEL</button><button data-r="log">LOG <i class="rd-logn"></i></button></div>
+          <div class="rd-pane" data-r="system"><div class="rd-vitals"></div><div class="rd-h">WI-FI CHANNELS</div><canvas class="rd-spectrum"></canvas></div>
+          <div class="rd-pane" data-r="intel" hidden></div>
+          <div class="rd-pane" data-r="log" hidden><div class="rd-h"><span class="rd-blink">●</span> EVENT LOG</div><div class="rd-log"></div></div></aside>
       </div>`;
     document.body.appendChild(el);
     canvas = el.querySelector(".rd-canvas"); g = canvas.getContext("2d");
     el.querySelector(".rd-close").addEventListener("click", () => toggle(false));
+    el.querySelector(".rd-full").addEventListener("click", fullscreen);
+    el.querySelector(".rd-kill").addEventListener("click", () => kill(true));
+    el.querySelector(".rd-restore").addEventListener("click", () => kill(false));
+    el.querySelectorAll(".rd-rtabs button").forEach((b) => b.addEventListener("click", () => {
+      rtab = b.dataset.r;
+      el.querySelectorAll(".rd-rtabs button").forEach((x) => x.classList.toggle("on", x === b));
+      el.querySelectorAll(".rd-pane").forEach((p) => (p.hidden = p.dataset.r !== rtab));
+      if (rtab === "intel") intel(); if (rtab === "log") logView();
+      Sound.click();
+    }));
     el.querySelector(".rd-scan").addEventListener("click", () => { scan(true); Sound.searchstart(); });
     el.querySelectorAll(".rd-t").forEach((b) => b.addEventListener("click", () => {
       show[b.dataset.t] = !show[b.dataset.t]; b.classList.toggle("on", show[b.dataset.t]); list(); Sound.click();
@@ -88,67 +110,89 @@
     const now = performance.now(), dt = Math.min(0.1, (now - t0) / 1000); t0 = now;
     const still = document.body.classList.contains("reduce-motion") || window.offgrid;
     const sig = css("--signal") || "#e8d27c", net = css("--net") || "#5fb8c9", acc = css("--accent") || "#e68e0d";
-    const bg = css("--bg") || "#000", fg = css("--fg") || "#ccc", faint = css("--faint") || "#555", red = css("--red") || "#e06a6a";
+    const bg = css("--bg") || "#000", fg = css("--fg") || "#ccc", red = css("--red") || "#e06a6a", font = css("--font");
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.fillStyle = bg; g.fillRect(0, 0, W, H);
-    const cx = W / 2, cy = H / 2, R = Math.min(W, H) * 0.44;
-    // The scope: a dim disc, rings with signal levels, a crosshair, bearings.
-    const disc = g.createRadialGradient(cx, cy, 0, cx, cy, R);
-    disc.addColorStop(0, ca(sig, 0.08)); disc.addColorStop(1, ca(sig, 0.02));
-    g.fillStyle = disc; g.beginPath(); g.arc(cx, cy, R, 0, 6.3); g.fill();
-    g.strokeStyle = sig; g.lineWidth = 1;
-    g.font = `600 9px ${css("--font")}`; g.textAlign = "left"; g.textBaseline = "middle";
+    const cx = W / 2, cy = H / 2, R = Math.min(W, H) * 0.42;
+    // The scope: a glowing disc, rings with levels, cross, and a slowly
+    // turning outer bezel of bearings.
+    const disc = g.createRadialGradient(cx, cy, R * 0.05, cx, cy, R * 1.05);
+    disc.addColorStop(0, ca(sig, 0.1)); disc.addColorStop(0.7, ca(sig, 0.035)); disc.addColorStop(1, ca(sig, 0));
+    g.fillStyle = disc; g.beginPath(); g.arc(cx, cy, R * 1.05, 0, 6.3); g.fill();
+    g.strokeStyle = sig; g.lineWidth = 1; g.font = `600 9px ${font}`; g.textAlign = "left"; g.textBaseline = "middle";
     [[0.25, "-40 dBm"], [0.5, "-55"], [0.75, "-70"], [1, "-90"]].forEach(([k, label]) => {
-      g.globalAlpha = k === 1 ? 0.55 : 0.22; g.beginPath(); g.arc(cx, cy, R * k, 0, 6.3); g.stroke();
-      g.globalAlpha = 0.45; g.fillStyle = sig; g.fillText(label, cx + 4, cy - R * k + 8);
+      g.globalAlpha = k === 1 ? 0.6 : 0.2; g.setLineDash(k === 1 ? [] : [2, 6]);
+      g.beginPath(); g.arc(cx, cy, R * k, 0, 6.3); g.stroke();
+      g.globalAlpha = 0.5; g.fillStyle = sig; g.fillText(label, cx + 5, cy - R * k + 9);
     });
-    g.globalAlpha = 0.18;
-    g.beginPath(); g.moveTo(cx - R, cy); g.lineTo(cx + R, cy); g.moveTo(cx, cy - R); g.lineTo(cx, cy + R); g.stroke();
-    for (let d = 0; d < 360; d += 10) {
-      const a = (d - 90) * Math.PI / 180, l = d % 30 ? 5 : 10;
-      g.globalAlpha = d % 30 ? 0.25 : 0.55;
-      g.beginPath(); g.moveTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); g.lineTo(cx + Math.cos(a) * (R + l), cy + Math.sin(a) * (R + l)); g.stroke();
-      if (!(d % 90)) { g.fillStyle = sig; g.textAlign = "center"; g.fillText(String(d).padStart(3, "0"), cx + Math.cos(a) * (R + 20), cy + Math.sin(a) * (R + 20)); }
+    g.setLineDash([]);
+    g.globalAlpha = 0.14;
+    for (let a = 0; a < 12; a++) { const t = (a * Math.PI) / 6; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(t) * R, cy + Math.sin(t) * R); g.stroke(); }
+    const bez = still ? 0 : (now / 1000) * 0.03;
+    for (let d = 0; d < 360; d += 5) {
+      const a = (d - 90) * Math.PI / 180 + bez, l = d % 30 ? (d % 10 ? 3 : 6) : 11;
+      g.globalAlpha = d % 30 ? 0.3 : 0.7;
+      g.beginPath(); g.moveTo(cx + Math.cos(a) * (R + 4), cy + Math.sin(a) * (R + 4)); g.lineTo(cx + Math.cos(a) * (R + 4 + l), cy + Math.sin(a) * (R + 4 + l)); g.stroke();
     }
-    // The sweep: a bright line with a fading wake.
-    if (!still) sweep = (sweep + dt * 1.6) % (Math.PI * 2);
-    const wake = g.createConicGradient ? g.createConicGradient(sweep - 1.2, cx, cy) : null;
-    if (wake) {
-      wake.addColorStop(0, ca(sig, 0)); wake.addColorStop(0.19, ca(sig, 0.23)); wake.addColorStop(0.191, ca(sig, 0)); wake.addColorStop(1, ca(sig, 0));
-      g.globalAlpha = 1; g.fillStyle = wake; g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, R, sweep - 1.2, sweep + 0.01); g.closePath(); g.fill();
+    g.globalAlpha = 0.8; g.fillStyle = sig; g.textAlign = "center";
+    for (const d of [0, 90, 180, 270]) { const a = (d - 90) * Math.PI / 180; g.fillText(String(d).padStart(3, "0"), cx + Math.cos(a) * (R + 26), cy + Math.sin(a) * (R + 26)); }
+    // The sweep, slow, with a long phosphor wake and a bright edge.
+    if (!still) sweep = (sweep + dt * 0.62) % (Math.PI * 2);
+    if (g.createConicGradient) {
+      const wake = g.createConicGradient(sweep - 1.6, cx, cy);
+      wake.addColorStop(0, ca(sig, 0)); wake.addColorStop(0.2, ca(sig, 0.08)); wake.addColorStop(0.2545, ca(sig, 0.3)); wake.addColorStop(0.255, ca(sig, 0)); wake.addColorStop(1, ca(sig, 0));
+      g.globalAlpha = 1; g.fillStyle = wake; g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, R, sweep - 1.6, sweep + 0.005); g.closePath(); g.fill();
     }
-    g.globalAlpha = 0.9; g.strokeStyle = sig; g.lineWidth = 1.6;
+    g.globalAlpha = 1; g.strokeStyle = sig; g.lineWidth = 2;
+    g.shadowColor = sig; g.shadowBlur = 8;
     g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(sweep) * R, cy + Math.sin(sweep) * R); g.stroke();
-    // The blips: lit by the sweep, fading after it (phosphor).
+    g.shadowBlur = 0;
+    // Grain: a few specks of noise.
+    if (!still) { g.fillStyle = sig; for (let i = 0; i < 14; i++) { const a = Math.random() * 6.3, r = Math.random() * R; g.globalAlpha = Math.random() * 0.35; g.fillRect(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 1, 1); } }
+    // The blips: lit as the sweep passes, then fading like phosphor, with a
+    // ring going out from each new contact.
     const list = signals();
-    g.font = `600 9.5px ${css("--font")}`; g.textAlign = "left";
+    g.font = `600 9.5px ${font}`; g.textAlign = "left";
     for (const s of list) {
-      const [x, y, a] = pos(s);
+      const [x0, y0, a] = pos(s);
+      const j = still ? 0 : Math.sin(now / 700 + hash(s.id) * 20) * 0.8, x = x0 + j, y = y0 - j;
       const behind = ((sweep - ((a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) + 4 * Math.PI) % (2 * Math.PI);
-      if (behind < dt * 1.7 + 0.02) lit.set(s.id, now);
-      const age = (now - (lit.get(s.id) || 0)) / 1000, glow = still ? 1 : Math.max(0.25, 1 - age / 3.8);
       const col = s.type === "wifi" ? net : acc;
-      g.globalAlpha = glow;
-      g.fillStyle = col; g.strokeStyle = col;
+      if (behind < dt * 0.7 + 0.03 && now - (lit.get(s.id) || 0) > 1500) { lit.set(s.id, now); pings.push({ x, y, t: now, col }); }
+      const age = (now - (lit.get(s.id) || 0)) / 1000, glow = still ? 1 : Math.max(0.22, 1 - age / 7);
+      if (glow > 0.3) {
+        const halo = g.createRadialGradient(x, y, 0, x, y, 14);
+        halo.addColorStop(0, ca(col, 0.45 * glow)); halo.addColorStop(1, ca(col, 0));
+        g.globalAlpha = 1; g.fillStyle = halo; g.beginPath(); g.arc(x, y, 14, 0, 6.3); g.fill();
+      }
+      g.globalAlpha = glow; g.fillStyle = col; g.strokeStyle = col;
       if (s.type === "wifi") { g.beginPath(); g.moveTo(x, y - 5); g.lineTo(x + 5, y); g.lineTo(x, y + 5); g.lineTo(x - 5, y); g.closePath(); g.fill(); }
       else { g.beginPath(); g.arc(x, y, 4, 0, 6.3); g.fill(); }
-      if (glow > 0.8 && !still) { g.globalAlpha = (glow - 0.8) * 3; g.beginPath(); g.arc(x, y, 6 + (1 - glow) * 40, 0, 6.3); g.lineWidth = 1; g.stroke(); }
-      if (s.connected || s.paired) { g.globalAlpha = 0.9; g.lineWidth = 1.4; g.beginPath(); g.arc(x, y, 9, 0, 6.3); g.stroke(); }
+      if (/open/i.test(s.security || "") && s.type === "wifi") { g.strokeStyle = red; g.lineWidth = 1.2; g.beginPath(); g.arc(x, y, 8, 0, 6.3); g.stroke(); }
+      if (s.connected || s.paired) { g.globalAlpha = 0.95; g.strokeStyle = col; g.lineWidth = 1.4; g.setLineDash([2, 2]); g.beginPath(); g.arc(x, y, 10, 0, 6.3); g.stroke(); g.setLineDash([]); }
       if (picked && picked.id === s.id) {
-        g.globalAlpha = 1; g.strokeStyle = sig; g.lineWidth = 1.5; g.beginPath(); g.arc(x, y, 13, 0, 6.3); g.stroke();
-        g.beginPath(); g.moveTo(x - 18, y); g.lineTo(x - 8, y); g.moveTo(x + 8, y); g.lineTo(x + 18, y); g.moveTo(x, y - 18); g.lineTo(x, y - 8); g.moveTo(x, y + 8); g.lineTo(x, y + 18); g.stroke();
+        const p = still ? 0 : (now / 400) % 1;
+        g.globalAlpha = 1; g.strokeStyle = sig; g.lineWidth = 1.5;
+        g.strokeRect(x - 12 - p * 3, y - 12 - p * 3, 24 + p * 6, 24 + p * 6);
+        g.beginPath(); g.moveTo(x - 22, y); g.lineTo(x - 13, y); g.moveTo(x + 13, y); g.lineTo(x + 22, y); g.moveTo(x, y - 22); g.lineTo(x, y - 13); g.moveTo(x, y + 13); g.lineTo(x, y + 22); g.stroke();
       }
       if (s.signal >= 55 || (picked && picked.id === s.id)) {
-        g.globalAlpha = Math.max(0.5, glow); g.fillStyle = fg;
-        g.fillText((s.name || "hidden").slice(0, 18), x + 9, y - 8);
+        g.globalAlpha = Math.max(0.55, glow); g.fillStyle = fg;
+        g.fillText((s.name || "hidden").slice(0, 18) + `  ${s.dbm}`, x + 10, y - 9);
       }
+    }
+    for (let i = pings.length - 1; i >= 0; i--) {
+      const p = pings[i], k = (now - p.t) / 1100;
+      if (k > 1 || still) { pings.splice(i, 1); continue; }
+      g.globalAlpha = (1 - k) * 0.7; g.strokeStyle = p.col; g.lineWidth = 1;
+      g.beginPath(); g.arc(p.x, p.y, 5 + k * 26, 0, 6.3); g.stroke();
     }
     // You, in the centre.
     g.globalAlpha = 1; g.fillStyle = red;
-    const p = still ? 0 : (now / 1000) % 1.6 / 1.6;
+    const pu = still ? 0 : (now / 1000) % 1.6 / 1.6;
     g.beginPath(); g.arc(cx, cy, 4.5, 0, 6.3); g.fill();
-    g.strokeStyle = red; g.globalAlpha = 1 - p; g.beginPath(); g.arc(cx, cy, 5 + p * 24, 0, 6.3); g.stroke();
-    g.globalAlpha = 0.8; g.fillStyle = fg; g.textAlign = "center"; g.fillText("YOU", cx, cy + 18);
+    g.strokeStyle = red; g.globalAlpha = 1 - pu; g.beginPath(); g.arc(cx, cy, 5 + pu * 26, 0, 6.3); g.stroke();
+    g.globalAlpha = 0.85; g.fillStyle = fg; g.textAlign = "center"; g.fillText("YOU", cx, cy + 18);
     // A line from the picked signal to its window.
     const win = $("#radar .rd-detail");
     if (picked && !win.hidden) {
@@ -161,6 +205,15 @@
       }
     }
     g.globalAlpha = 1;
+    // The HUD in the corners: the sweep's bearing and the strongest contact on it.
+    if (!draw.hud || now - draw.hud > (still ? 900 : 250)) {
+      draw.hud = now;
+      const brg = Math.round(((sweep * 180) / Math.PI + 90 + 360) % 360);
+      const onBeam = list.filter((sg) => { const a = pos(sg)[2]; const d = Math.abs(((a - sweep + 3 * Math.PI) % (2 * Math.PI)) - Math.PI); return d < 0.25; }).sort((x, y) => y.signal - x.signal)[0];
+      $("#radar .rd-hud-brg").textContent = `BEARING ${String(brg).padStart(3, "0")}°`;
+      $("#radar .rd-hud-sig").textContent = onBeam ? `CONTACT ${(onBeam.name || "HIDDEN").slice(0, 16).toUpperCase()} ${onBeam.dbm} dBm` : "NO CONTACT ON BEAM";
+      $("#radar .rd-hud-scan").textContent = `SCAN #${scans} · ${lastScanAt ? Math.round((Date.now() - lastScanAt) / 1000) + " S AGO" : "…"} · ${list.length} CONTACTS`;
+    }
     if (!still) raf = requestAnimationFrame(draw); else setTimeout(() => (raf = requestAnimationFrame(draw)), 500);
   }
 
@@ -271,6 +324,88 @@
     });
   }
 
+  // ------------------------------------------------------ intel & log
+
+  // INTEL: what the scan shows at a glance.
+  function intel() {
+    const box = $("#radar .rd-pane[data-r=intel]");
+    if (!box || box.hidden) return;
+    const w = data.wifi.networks || [], b = data.bluetooth.devices || [];
+    const by = (arr, f) => arr.reduce((m, x) => { const k = f(x) || "?"; m[k] = (m[k] || 0) + 1; return m; }, {});
+    const bands = by(w, (n) => n.band), sec = by(w, (n) => (/open/i.test(n.security) ? "OPEN" : /WPA3/.test(n.security) ? "WPA3" : /WPA2/.test(n.security) ? "WPA2" : /WPA|WEP/.test(n.security) ? "OLD (WPA/WEP)" : n.security || "?"));
+    const makers = Object.entries(by([...w, ...b].filter((x) => x.maker && x.maker !== "Private address"), (x) => x.maker.split(/[ ,]/)[0])).sort((x, y) => y[1] - x[1]).slice(0, 5);
+    const strongest = [...w, ...b].sort((x, y) => y.signal - x.signal)[0];
+    const avg = w.length ? Math.round(w.reduce((n, x) => n + x.dbm, 0) / w.length) : 0;
+    const hidden = w.filter((n) => !n.name).length, open = w.filter((n) => /open/i.test(n.security));
+    const bar = (m) => { const tot = Object.values(m).reduce((a, x) => a + x, 0) || 1; return Object.entries(m).map(([k, v]) => `<div class="rd-bar"><span>${escapeHtml(k)}</span><i style="width:${(v / tot) * 100}%"></i><b>${v}</b></div>`).join(""); };
+    box.innerHTML = `<div class="rd-h"><span class="rd-blink">●</span> SIGNAL INTELLIGENCE</div>
+      <div class="rd-kpis"><span><small>WI-FI</small><b>${w.length}</b></span><span><small>BLUETOOTH</small><b>${b.length}</b></span>
+        <span><small>HIDDEN</small><b>${hidden}</b></span><span class="${open.length ? "warn" : ""}"><small>OPEN</small><b>${open.length}</b></span></div>
+      <div class="rd-v"><small>CONTACTS OVER TIME</small>${spark(hist.count, Math.max(5, ...hist.count))}</div>
+      <div class="rd-h">BANDS</div>${bar(bands) || `<p class="lib-note">—</p>`}
+      <div class="rd-h">SECURITY</div>${bar(sec) || `<p class="lib-note">—</p>`}
+      ${open.length ? `<p class="rd-warn">⚠ ${open.length} open network${open.length > 1 ? "s" : ""}: anyone nearby can read what's sent over ${open.length > 1 ? "them" : "it"}.</p>` : ""}
+      <div class="rd-h">MAKERS</div>${makers.length ? makers.map(([k, v]) => `<div class="rd-kv"><span>${escapeHtml(k.toUpperCase())}</span><b>${v}</b></div>`).join("") : `<p class="lib-note">Most devices hide their maker behind private addresses.</p>`}
+      <div class="rd-h">READINGS</div>
+      <div class="rd-kv"><span>STRONGEST</span><b>${strongest ? escapeHtml((strongest.name || "hidden").slice(0, 22)) + " · " + strongest.dbm + " dBm" : "—"}</b></div>
+      <div class="rd-kv"><span>AVERAGE WI-FI</span><b>${w.length ? avg + " dBm" : "—"}</b></div>
+      <div class="rd-kv"><span>SCANS</span><b>${scans}</b></div>`;
+  }
+  // LOG: contacts appearing, leaving and getting much stronger or weaker.
+  function logView() {
+    const box = $("#radar .rd-log");
+    if (!box) return;
+    const n = $("#radar .rd-logn"); if (n) n.textContent = events.length ? events.length : "";
+    if (box.closest(".rd-pane").hidden) return;
+    const hhmmss = (t) => new Date(t).toTimeString().slice(0, 8);
+    box.innerHTML = events.length ? events.slice(-80).reverse().map((e) => `<div class="rd-ev ${e.kind}"><b>${hhmmss(e.t)}</b><em>${e.kind.toUpperCase()}</em><span></span></div>`).join("") : `<p class="lib-note">Contacts appearing and leaving are logged here while the radar runs.</p>`;
+    box.querySelectorAll(".rd-ev span").forEach((sp, i) => (sp.textContent = events.slice(-80).reverse()[i].text));
+  }
+  function logScan() {
+    const now = Date.now(), cur = new Map([...(data.wifi.networks || []).map((n) => [n.id, { ...n, type: "wifi" }]), ...(data.bluetooth.devices || []).map((d) => [d.id, { ...d, type: "bt" }])]);
+    const label = (x) => `${x.type === "wifi" ? "Wi-Fi" : "Bluetooth"} ${x.name || "(hidden)"} · ${x.dbm} dBm${x.type === "wifi" && /open/i.test(x.security) ? " · OPEN" : ""}`;
+    if (seen) {
+      for (const [id, x] of cur) {
+        const was = seen.get(id);
+        if (!was) events.push({ t: now, kind: "new", text: label(x) });
+        else if (x.dbm - was.dbm >= 12) events.push({ t: now, kind: "closer", text: label(x) });
+        else if (was.dbm - x.dbm >= 12) events.push({ t: now, kind: "farther", text: label(x) });
+      }
+      for (const [id, x] of seen) if (!cur.has(id)) events.push({ t: now, kind: "lost", text: label(x) });
+    } else events.push({ t: now, kind: "scan", text: `First sweep: ${cur.size} contacts` });
+    while (events.length > 300) events.shift();
+    seen = cur;
+    hist.count.push(cur.size); if (hist.count.length > 60) hist.count.shift();
+    logView(); intel();
+  }
+
+  // ----------------------------------------------- full screen, kill switch
+
+  function fullscreen() {
+    fullOn = !fullOn;
+    $("#radar").classList.toggle("full", fullOn);
+    $("#radar .rd-full").classList.toggle("on", fullOn);
+    try { window.webkit.messageHandlers.umbra.postMessage(fullOn ? "fullscreen" : "unfullscreen"); } catch {}
+    Sound.click();
+  }
+  async function kill(off) {
+    if (off) {
+      const ok = await confirmDialog({ kind: "error", tag: "KILL SWITCH", title: "GO DARK?",
+        body: "Wi-Fi, mobile data and Bluetooth are switched off at once. This computer disconnects from networks and from Bluetooth devices (headphones, mice). Umbra keeps working fully offline. Turn them back on here with RESTORE RADIOS.",
+        ok: "KILL ALL RADIOS", cancel: "CANCEL" });
+      if (!ok) return;
+    }
+    const r = await fetch("/api/radios", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ off }) }).then((x) => x.json()).catch(() => null);
+    killed = off && !!r && r.done.length > 0;
+    $("#radar .rd-dark").hidden = !killed;
+    $("#radar .rd-kill").classList.toggle("on", killed);
+    events.push({ t: Date.now(), kind: off ? "lost" : "new", text: r ? `${off ? "Kill switch" : "Radios restored"}: ${r.done.join(", ") || "nothing could be changed"}${r.failed.length ? " · failed: " + r.failed.join(", ") : ""}` : "Kill switch: no answer from Umbra" });
+    logView();
+    off ? Sound.lock() : Sound.unlock();
+    if (!r || (off && !r.done.length)) confirmDialog({ kind: "error", tag: "KILL SWITCH", title: "COULDN'T SWITCH THE RADIOS", body: "This system didn't allow it. Use the Wi-Fi and Bluetooth menus of your desktop, or your laptop's flight-mode key.", cancel: "OK" });
+    setTimeout(() => scan(true), 1500);
+  }
+
   // ------------------------------------------------------------ scanning
 
   async function scan(force = false) {
@@ -279,7 +414,7 @@
     const re = force || Date.now() - lastScan > 30000;
     if (re) lastScan = Date.now();
     $("#radar .rd-scan").classList.add("busy");
-    try { data = await (await fetch("/api/radar" + (re ? "?scan=1" : ""))).json(); } catch {}
+    try { data = await (await fetch("/api/radar" + (re ? "?scan=1" : ""))).json(); scans++; lastScanAt = Date.now(); logScan(); } catch {}
     $("#radar .rd-scan").classList.remove("busy");
     if (picked) { const s = signals().find((x) => x.id === picked.id); if (s && !$("#radar .rd-detail").hidden) picked = s; }
     list();
@@ -294,6 +429,7 @@
     const el = $("#radar");
     if (!on) {
       if (el.hidden) return;
+      if (fullOn) fullscreen();
       el.hidden = true; document.body.classList.remove("radar-open"); $("#radar-btn")?.classList.remove("on");
       clearTimeout(scanTimer); clearTimeout(vitTimer); cancelAnimationFrame(raf); raf = 0; ro.disconnect();
       if (!quiet) { Sound.click(); if (typeof goBack === "function") goBack(); }
@@ -321,7 +457,8 @@
   if (btn) btn.addEventListener("click", () => toggle());
   document.addEventListener("keydown", (e) => {
     if ($("#radar").hidden || !$("#modal").hidden) return;
-    if (e.key === "Escape") { e.stopImmediatePropagation(); if (!$("#radar .rd-detail").hidden) closeDetail(); else toggle(false); }
+    if (e.key === "Escape") { e.stopImmediatePropagation(); if (!$("#radar .rd-detail").hidden) closeDetail(); else if (fullOn) fullscreen(); else toggle(false); }
+    else if (e.key.toLowerCase() === "f" && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); fullscreen(); }
     else if (e.key.toLowerCase() === "s" && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); scan(true); Sound.searchstart(); }
   }, true);
   new MutationObserver(() => { if (document.body.classList.contains("locked") && !$("#radar").hidden) toggle(false, true); })

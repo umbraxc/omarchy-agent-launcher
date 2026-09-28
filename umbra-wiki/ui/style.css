@@ -2229,3 +2229,37 @@ body.reduce-motion .mp-ambient, body.offgrid .mp-ambient { display: none; }
 .tr-mact { display: flex; gap: 6px; }
 .tr-mact .ghost, .tr-mact .solid { padding: 5px 10px; font-size: 10px; }
 .tr-mstate { margin: 4px 0 6px; color: var(--signal) !important; }
+
+/* Radar, round two: HUD corners, tabs, intel, log, kill switch. */
+.rd-hud { position: absolute; display: flex; flex-direction: column; gap: 3px; font: 700 9.5px var(--font); letter-spacing: .18em; color: var(--signal); pointer-events: none; opacity: .85; }
+.rd-hud-tl { left: 14px; top: 12px; } .rd-hud-tr { right: 14px; top: 12px; text-align: right; } .rd-hud-bl { left: 14px; bottom: 30px; color: var(--dim); }
+.rd-blink { animation: rd-blink 1.4s steps(1, end) infinite; color: var(--red); }
+@keyframes rd-blink { 50% { opacity: .25; } }
+body.reduce-motion .rd-blink { animation: none; }
+.rd-kill { color: var(--red); border-color: color-mix(in srgb, var(--red) 60%, transparent); }
+.rd-kill:hover, .rd-kill.on { background: var(--red); color: var(--bg); border-color: var(--red); }
+.rd-dark { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; z-index: 3;
+  background: color-mix(in srgb, var(--bg) 82%, transparent); text-align: center; }
+.rd-dark b { font-size: 22px; letter-spacing: .3em; color: var(--red); animation: rd-blink 2s steps(1, end) infinite; }
+.rd-dark p { max-width: 380px; color: var(--fg); font-size: 12px; }
+.rd-rtabs { display: flex; gap: 4px; margin-bottom: 12px; }
+.rd-rtabs button { flex: 1; padding: 5px 4px; cursor: pointer; font: 700 9.5px var(--font); letter-spacing: .18em; color: var(--dim); background: var(--bg-2); border: 1px solid var(--line); }
+.rd-rtabs button.on { color: var(--bg); background: var(--signal); border-color: var(--signal); }
+.rd-rtabs i { font-style: normal; color: var(--red); }
+.rd-rtabs button.on i { color: var(--bg); }
+.rd-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 10px; }
+.rd-kpis span { display: flex; flex-direction: column; padding: 5px 6px; background: var(--bg-2); border-top: 2px solid var(--signal); }
+.rd-kpis span.warn { border-top-color: var(--red); }
+.rd-kpis small { font-size: 8px; letter-spacing: .16em; color: var(--faint); }
+.rd-kpis b { font-size: 15px; color: var(--fg-bright); }
+.rd-bar { display: grid; grid-template-columns: 96px 1fr 26px; gap: 6px; align-items: center; margin: 3px 0; font-size: 9.5px; letter-spacing: .08em; color: var(--dim); }
+.rd-bar i { display: block; height: 6px; background: var(--net); }
+.rd-bar b { text-align: right; color: var(--fg-bright); }
+.rd-warn { margin: 8px 0; padding: 6px 8px; font-size: 10.5px; color: var(--fg-bright); background: color-mix(in srgb, var(--red) 18%, transparent); border-left: 2px solid var(--red); }
+.rd-log { font-size: 10.5px; }
+.rd-ev { display: grid; grid-template-columns: 58px 58px 1fr; gap: 6px; padding: 4px 0; border-bottom: 1px dashed var(--line); animation: rise .25s ease-out both; }
+.rd-ev b { color: var(--faint); font-weight: 400; }
+.rd-ev em { font-style: normal; font-weight: 700; letter-spacing: .12em; font-size: 9px; }
+.rd-ev.new em { color: #3fae5a; } .rd-ev.lost em { color: var(--red); } .rd-ev.closer em { color: var(--signal); } .rd-ev.farther em { color: var(--dim); } .rd-ev.scan em { color: var(--net); }
+.rd-ev span { color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.radar.full .rd-head { padding: 6px 12px; }

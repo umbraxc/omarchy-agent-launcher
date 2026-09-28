@@ -212,3 +212,30 @@ def vitals():
     except (OSError, ValueError):
         pass
     return out
+
+
+# ------------------------------------------------------------ kill switch
+
+def radios(off):
+    """The kill switch: turn Wi-Fi (and mobile data) and Bluetooth off, or
+    back on, with whatever this system offers. Returns what worked."""
+    done, failed = [], []
+    state = "off" if off else "on"
+    if shutil.which("nmcli") and _run(["nmcli", "-t", "-f", "RUNNING", "general"], 4).strip() == "running":
+        r = subprocess.run(["nmcli", "radio", "all", state], capture_output=True, text=True, timeout=10)
+        (done if r.returncode == 0 else failed).append("Wi-Fi and mobile data (NetworkManager)")
+    elif shutil.which("iwctl"):
+        ok = True
+        for dev in [os.path.basename(p) for p in glob.glob("/sys/class/net/*") if os.path.isdir(os.path.join(p, "wireless"))]:
+            r = subprocess.run(["iwctl", "device", dev, "set-property", "Powered", state], capture_output=True, text=True, timeout=10)
+            ok = ok and r.returncode == 0
+        (done if ok else failed).append("Wi-Fi (iwd)")
+    if shutil.which("bluetoothctl"):
+        r = subprocess.run(["bluetoothctl", "power", state], capture_output=True, text=True, timeout=10)
+        (done if r.returncode == 0 and "succeeded" in (r.stdout + r.stderr).lower() else failed).append("Bluetooth")
+    if shutil.which("rfkill"):
+        r = subprocess.run(["rfkill", "block" if off else "unblock", "all"], capture_output=True, text=True, timeout=10)
+        if r.returncode == 0:
+            done.append("all radios (rfkill)")
+    return {"off": off, "done": done, "failed": [f for f in failed if not (off and "all radios (rfkill)" in done)],
+            "wifi": _blocked("wlan"), "bluetooth": _blocked("bluetooth")}
