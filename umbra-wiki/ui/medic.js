@@ -16,6 +16,30 @@ window.UmbraMedic = (() => {
   const hhmm = (t) => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
   const warn = (t) => `<p class="fk-warn">${t}</p>`;
 
+  // Small ASCII animations in the corner of each card (one clock for all).
+  const ANIM = {
+    triage: ["[R][Y][G][B]", "[R] Y  G  B ", " R [Y] G  B ", " R  Y [G] B ", " R  Y  G [B]"],
+    eye: ["(◉)", "(◉)", "(◉)", "(-)", "(◉)", "(◎)"],
+    ecg: [], burn: ["  ) \n ( )\n/_\\", "  ( \n ) (\n/_\\", " )  \n( ) \n/_\\"],
+    pill: ["[██|  ]", "[ ██|  ]", "[  ██| ]", "[ ██|  ]"], drip: [" ┬ \n ▼ \n   \n ~ ", " ┬ \n   \n ▼ \n ~ ", " ┬ \n   \n   \n≈≈≈"],
+    glass: ["|~~~|\n|   |\n|___|", "|   |\n|~~~|\n|___|", "|   |\n|   |\n|~~~|"], body: [" o \n/|\\\n/ \\", " o \n\\|/\n/ \\"],
+    clock: ["( │ )", "( ╱ )", "( ─ )", "( ╲ )"], radio: ["((·))", "( (·) )", "((  ·  ))"], book: ["[≡ ]", "[ ≡]", "[≡≡]"],
+  };
+  const ECG = "___/\\_/‾\\____/\\/\\___";
+  for (let i = 0; i < ECG.length; i++) ANIM.ecg.push((ECG.slice(i) + ECG.slice(0, i)).slice(0, 10));
+  const anim = (k) => `<pre class="md-anim" data-a="${k}">${escapeHtml(ANIM[k][0])}</pre>`;
+  let animTimer = 0;
+  function runAnims(box) {
+    clearInterval(animTimer);
+    let f = 0;
+    animTimer = setInterval(() => {
+      if (!box.isConnected) { clearInterval(animTimer); return; }
+      if (document.body.classList.contains("reduce-motion") || window.offgrid) return;
+      f++;
+      box.querySelectorAll(".md-anim").forEach((el) => { const fr = ANIM[el.dataset.a]; el.textContent = fr[f % fr.length]; });
+    }, 320);
+  }
+
   // ------------------------------------------------------------ ASSESS
 
   // START triage, one question at a time; and a tally for many casualties.
@@ -43,18 +67,19 @@ window.UmbraMedic = (() => {
     ["Preschool (3–5)", "80–120", "20–28"], ["School age (6–11)", "75–118", "18–25"], ["Teen (12–15)", "60–100", "12–20"], ["Adult", "60–100", "12–20"],
   ];
   function assess(box) {
+    setTimeout(() => runAnims(box), 0);
     let step = "walk";
     const tally = store.get("tally", { red: 0, yellow: 0, green: 0, black: 0 });
     const gcs = { eyes: 4, verbal: 5, motor: 6 };
     box.innerHTML = `<div class="fk-grid">
-      <section class="fk-card md-triage"><div class="fk-h">TRIAGE · START</div>
+      <section class="fk-card md-triage"><div class="fk-h">TRIAGE · START ${anim("triage")}</div>
         <p class="lib-note">For many casualties: 30 to 60 seconds each. Only stop to open an airway or stop major bleeding.</p>
         <div class="md-q"></div>
         <div class="md-tally">${Object.keys(TAG).map((k) => `<div class="md-t md-${k}"><b>${TAG[k][0]}</b><span class="md-n" data-k="${k}">0</span>
           <span><button class="ghost" data-k="${k}" data-d="-1">−</button><button class="ghost" data-k="${k}" data-d="1">+</button></span></div>`).join("")}</div>
         <div class="fk-row"><button class="ghost md-tally-reset">RESET COUNT</button></div>
       </section>
-      <section class="fk-card"><div class="fk-h">GLASGOW COMA SCALE</div>
+      <section class="fk-card"><div class="fk-h">GLASGOW COMA SCALE ${anim("eye")}</div>
         ${Object.entries(GCS).map(([k, [name, opts]]) => `<div class="md-gcs"><small>${name}</small><div class="md-opts" data-k="${k}">${opts.map((o, i) =>
           `<button data-v="${i + 1}" title="${i + 1} · ${o}"><b>${i + 1}</b>${o}</button>`).join("")}</div></div>`).join("")}
         <div class="md-score"><b class="md-gcs-total">15</b><span class="md-gcs-say"></span></div>
@@ -63,7 +88,7 @@ window.UmbraMedic = (() => {
           .map(([l, n, d]) => `<div><b>${l}</b><span>${n}<small>${d}</small></span></div>`).join("")}</div>
         ${warn("P or U: about a GCS of 8 or less. Protect the airway: recovery position if breathing, and get help.")}
       </section>
-      <section class="fk-card"><div class="fk-h">NORMAL VITAL SIGNS</div>
+      <section class="fk-card"><div class="fk-h">NORMAL VITAL SIGNS ${anim("ecg")}</div>
         <table class="fk-ranges md-vitals"><tr><th>AGE</th><th>PULSE</th><th>BREATHS</th></tr>${VITALS.map(([a, h, r]) => `<tr><td>${a}</td><td>${h}</td><td>${r}</td></tr>`).join("")}</table>
         <p class="lib-note">Adults: oxygen saturation 95–100%, blood pressure around 90–120 over 60–80, temperature 36.1–37.2 °C. Typical resting ranges: a scared or feverish person runs higher.</p>
       </section></div>`;
@@ -114,10 +139,11 @@ window.UmbraMedic = (() => {
       liquids: [["100 mg / 5 ml", 20], ["200 mg / 5 ml", 40]], note: "With food or milk. Not for babies under 3 months or 5 kg, nor with dehydration, asthma made worse by it, or bleeding problems." },
   };
   function calculate(box) {
+    setTimeout(() => runAnims(box), 0);
     const s = store.get("calc", { age: "adult", burns: [], weight: 70, drug: "paracetamol", liquid: 0, vol: 1000, hours: 8, drop: 20, kidKg: 15 });
     const save = () => store.set("calc", s);
     box.innerHTML = `<div class="fk-grid">
-      <section class="fk-card"><div class="fk-h">BURN AREA · PARKLAND</div>
+      <section class="fk-card"><div class="fk-h">BURN AREA · PARKLAND ${anim("burn")}</div>
         <div class="fk-seg pf-choice md-age"><button data-a="adult">ADULT</button><button data-a="child">CHILD</button></div>
         <p class="lib-note">Tick the areas with deep or blistered burns (not just red skin). A patient's palm with fingers is about 1%.</p>
         <div class="md-areas"></div>
@@ -126,7 +152,7 @@ window.UmbraMedic = (() => {
         <div class="md-out md-park"></div>
         ${warn("Cool the burn with running water for 20 minutes first. Over 10% in a child or 20% in an adult, or any burn to the face, hands, groin or airway: this is an emergency. Fluids by drip are for trained hands.")}
       </section>
-      <section class="fk-card"><div class="fk-h">CHILD DOSE · BY WEIGHT</div>
+      <section class="fk-card"><div class="fk-h">CHILD DOSE · BY WEIGHT ${anim("pill")}</div>
         <div class="fk-seg pf-choice md-drug">${Object.entries(DRUGS).map(([k, d]) => `<button data-d="${k}">${d.name.split(" ")[0].toUpperCase()}</button>`).join("")}</div>
         <label class="md-in"><span>CHILD'S WEIGHT KG</span><input type="number" class="md-kid" min="3" max="60" step="0.5"></label>
         <label class="md-in"><span>OR AGE, TO GUESS IT</span><input type="number" class="md-kid-age" min="1" max="10" placeholder="1–10 years"></label>
@@ -134,12 +160,12 @@ window.UmbraMedic = (() => {
         <div class="md-out md-dose"></div>
         ${warn("Check the dose on the package and follow it if it differs. Use the measuring syringe that came with it. Under 3 months, or if unsure: ask a doctor or pharmacist.")}
       </section>
-      <section class="fk-card"><div class="fk-h">DRIP RATE</div>
+      <section class="fk-card"><div class="fk-h">DRIP RATE ${anim("drip")}</div>
         <div class="md-row3"><label class="md-in"><span>VOLUME ML</span><input type="number" class="md-vol" min="10" max="5000"></label>
           <label class="md-in"><span>OVER HOURS</span><input type="number" class="md-hrs" min="0.25" max="48" step="0.25"></label></div>
         <div class="md-in"><span>DROPS PER ML (ON THE SET)</span><div class="fk-seg pf-choice md-drops">${[10, 15, 20, 60].map((d) => `<button data-d="${d}">${d}</button>`).join("")}</div></div>
         <div class="md-out md-drip"></div>
-        <div class="fk-h md-sub">ORAL REHYDRATION SALTS</div>
+        <div class="fk-h md-sub">ORAL REHYDRATION SALTS ${anim("glass")}</div>
         <p class="md-recipe"><b>1 litre</b> clean water · <b>6 level teaspoons</b> sugar · <b>½ level teaspoon</b> salt. Stir until dissolved.
           Sip often: a child 50–100 ml after each loose stool. Too salty (saltier than tears)? Add water.</p>
         <div class="fk-h md-sub">BLOOD LOSS · SIGNS</div>
@@ -226,11 +252,12 @@ window.UmbraMedic = (() => {
   ];
   const HURT = { bleed: ["Bleeding", "#d8412f"], burn: ["Burn", "#e8892a"], break: ["Fracture", "#9b6ae0"], wound: ["Wound", "#e0b83a"], pain: ["Pain", "#2fa7c4"] };
   function patient(box) {
+    setTimeout(() => runAnims(box), 0);
     const p = store.get("patient", { name: "", age: "", sex: "", mech: "", marks: {}, log: [], nine: {} });
     const save = () => store.set("patient", p);
     let brush = "bleed";
     box.innerHTML = `<div class="fk-grid">
-      <section class="fk-card"><div class="fk-h">PATIENT</div>
+      <section class="fk-card"><div class="fk-h">PATIENT ${anim("body")}</div>
         <div class="md-row3"><label class="md-in"><span>NAME / ID</span><input class="md-p-name" maxlength="40"></label>
           <label class="md-in"><span>AGE</span><input class="md-p-age" maxlength="10"></label>
           <label class="md-in"><span>SEX</span><input class="md-p-sex" maxlength="10"></label></div>
@@ -240,7 +267,7 @@ window.UmbraMedic = (() => {
         <div class="md-bodies"><svg viewBox="0 0 100 166" class="md-body" data-side="front"></svg><svg viewBox="0 0 100 166" class="md-body" data-side="back"></svg></div>
         <div class="md-marks"></div>
       </section>
-      <section class="fk-card"><div class="fk-h">LOG · WITH TIMES</div>
+      <section class="fk-card"><div class="fk-h">LOG · WITH TIMES ${anim("clock")}</div>
         <div class="md-row3"><label class="md-in"><span>PULSE</span><input class="md-l-p" type="number"></label>
           <label class="md-in"><span>BREATHS</span><input class="md-l-r" type="number"></label>
           <label class="md-in"><span>AVPU</span><input class="md-l-a" maxlength="1" placeholder="A V P U"></label></div>
@@ -248,7 +275,7 @@ window.UmbraMedic = (() => {
         <div class="fk-row"><button class="solid md-l-add">+ LOG NOW</button><button class="ghost md-new">NEW PATIENT</button></div>
         <div class="md-log"></div>
       </section>
-      <section class="fk-card"><div class="fk-h">HANDOVER</div>
+      <section class="fk-card"><div class="fk-h">HANDOVER ${anim("radio")}</div>
         <div class="fk-seg pf-choice md-rep"><button data-r="mist">MIST</button><button data-r="nine">9-LINE MEDEVAC</button></div>
         <div class="md-nine"></div>
         <pre class="md-report"></pre>
@@ -388,8 +415,9 @@ window.UmbraMedic = (() => {
       "Toothache: clove oil on the gum, painkillers, salt-water rinses. Swelling of the face with fever: see a doctor."]],
   ];
   function guides(box) {
+    setTimeout(() => runAnims(box), 0);
     box.innerHTML = `<div class="md-guides">${GUIDES.map(([title, color, steps]) => `<section class="fk-card md-guide" style="--cat:color-mix(in oklab, ${color} 78%, var(--fg))">
-      <div class="fk-h">${escapeHtml(title.toUpperCase())}</div><ol>${steps.map((s) => `<li>${s}</li>`).join("")}</ol></section>`).join("")}</div>
+      <div class="fk-h">${escapeHtml(title.toUpperCase())} ${anim("book")}</div><ol>${steps.map((s) => `<li>${s}</li>`).join("")}</ol></section>`).join("")}</div>
       ${warn("Quick reminders, not training. Call emergency services when you can; the field manual in the Library has more.")}`;
   }
 

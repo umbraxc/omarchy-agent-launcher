@@ -265,5 +265,69 @@ window.UmbraTraining = (() => {
     });
   }
 
-  return { challenge, phonetic, radio, grid, compass, salute };
+  // --------------------------------------------------------- manuals
+
+  // Public field manuals and civil-defence guides from armed forces and
+  // civil-defence agencies, downloaded on request (manuals.json) and read
+  // in the system's PDF viewer.
+  const MART = {
+    tent: ["    /\\    \n   /  \\   \n  / /\\ \\  \n /_/__\\_\\ ", "    /\\    \n   /  \\ ° \n  / /\\ \\  \n /_/__\\_\\ "],
+    cross: ["   ┌──┐   \n ┌─┘  └─┐ \n └─┐  ┌─┘ \n   └──┘   ", "   ┌──┐   \n ┌─┘▓▓└─┐ \n └─┐▓▓┌─┘ \n   └──┘   "],
+    compass: ["    N     \n  ╭─┼─╮   \nW ┤ ◆ ├ E \n  ╰─┼─╯   ", "    N     \n  ╭─┼─╮   \nW ┤ ◇ ├ E \n  ╰─┼─╯   "],
+    snow: ["  \\ | /   \n ── ✱ ──  \n  / | \\   \n  · ·  ·  ", "  \\ | /   \n ── ✚ ──  \n  / | \\   \n ·  · ·   "],
+    sun: ["  \\ | /   \n ─( ☼ )─  \n  / | \\   \n ▁▂▃▂▁▂▃  ", "   \\|/    \n──( ☼ )── \n   /|\\    \n ▂▁▂▃▂▁▂  "],
+    peaks: ["     /\\    \n  /\\/  \\   \n /  \\   \\  \n/____\\___\\ ", "     /\\ ·  \n  /\\/  \\   \n /  \\   \\  \n/____\\___\\ "],
+    knot: ["  ╭──╮    \n ─┼──┼──  \n  ╰──╯    \n          ", "  ╭──╮    \n ─┼─╳┼──  \n  ╰──╯    \n          "],
+    boots: ["  ▐▌  ▐▌  \n  ▐▌  ▐▌  \n ▟█▙ ▟█▙  \n · · · ·  ", "  ▐▌ ▐▌   \n  ▐▌ ▐▌   \n ▟█▙▟█▙   \n  · · · · "],
+    house: ["    /\\    \n   /  \\   \n  |[] []|  \n  |__▯__|  ", "   )/\\    \n   /  \\   \n  |[] []|  \n  |__▯__|  "],
+  };
+  let mTimer = 0;
+  async function manualsTab(box) {
+    const draw = async () => {
+      if (!box.isConnected) { clearInterval(mTimer); return; }
+      let d; try { d = await (await fetch("/api/manuals")).json(); } catch { return; }
+      const st = d.state || {}, busy = d.manuals.some((m) => m.queued);
+      box.innerHTML = `<section class="fk-card tr-man-head"><div class="fk-h">FIELD MANUALS & GUIDES</div>
+        <p class="lib-note">Public manuals from armed forces and civil-defence agencies: US Army field manuals (public domain, from the Internet Archive),
+          Sweden's civil-defence brochure and FEMA's preparedness guide (from their official sites). Download the ones you want; they open in your PDF viewer
+          and stay on this computer${d.dir ? ` (<code>${escapeHtml(d.dir)}</code>)` : ""}.</p>
+        ${busy && window.UmbraDownloads ? `<div class="dl-controls">${UmbraDownloads.controls("docs", { paused: d.paused })}</div>${UmbraDownloads.note("the download")}` : ""}
+        ${st.error ? `<p class="lib-note mp-err">${escapeHtml(st.error)} Press resume to try again.</p>` : ""}</section>
+        <div class="tr-man">${d.manuals.map((m) => {
+          const pct = m.id === st.id && st.total ? Math.round((st.done / st.total) * 100) : m.got && m.size ? Math.round((m.got / m.size) * 100) : 0;
+          const art = MART[m.art] || MART.tent;
+          return `<article class="tr-mcard ${m.installed ? "have" : ""}"><pre class="tr-mart" data-a="${m.art}">${escapeHtml(art[0])}</pre>
+            <div class="tr-mtext"><small>${escapeHtml(m.org)} · ${m.year}</small><b>${escapeHtml(m.title)}</b><p>${escapeHtml(m.summary)}</p>
+            ${m.queued ? `<div class="dl-bar"><i style="width:${pct}%"></i></div><small class="tr-mstate">${d.paused ? "PAUSED" : m.id === st.id ? "DOWNLOADING " + pct + "%" : "WAITING"}</small>` : ""}
+            <div class="tr-mact">${m.installed ? `<button class="solid tr-mopen" data-id="${m.id}">OPEN ▸</button><button class="ghost tr-mdel" data-id="${m.id}" title="Remove it from this computer">✕</button>`
+              : m.queued ? "" : `<button class="ghost tr-mget" data-id="${m.id}">󰇚 DOWNLOAD · ${Math.max(1, Math.round(m.size / 1e6))} MB</button>`}</div></div></article>`;
+        }).join("")}</div>`;
+      box.querySelectorAll(".tr-mget").forEach((b) => b.addEventListener("click", async () => {
+        await fetch("/api/manuals/download", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: [b.dataset.id] }) });
+        Sound.click(); if (window.UmbraDownloads) UmbraDownloads.refresh(); draw();
+      }));
+      box.querySelectorAll(".tr-mopen").forEach((b) => b.addEventListener("click", async () => {
+        const r = await fetch("/api/manuals/open", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: b.dataset.id }) });
+        r.ok ? Sound.found() : Sound.error();
+      }));
+      box.querySelectorAll(".tr-mdel").forEach((b) => b.addEventListener("click", async () => {
+        const ok = await confirmDialog({ kind: "to-local", tag: "MANUALS", title: "REMOVE THIS MANUAL?", body: "You can download it again any time.", ok: "REMOVE", cancel: "KEEP" });
+        if (!ok) return;
+        await fetch("/api/manuals/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: b.dataset.id }) });
+        Sound.click(); draw();
+      }));
+      if (window.UmbraDownloads) UmbraDownloads.wire(box, draw);
+    };
+    await draw();
+    clearInterval(mTimer);
+    let f = 0;
+    mTimer = setInterval(() => {
+      if (!box.isConnected) { clearInterval(mTimer); return; }
+      f++;
+      if (!document.body.classList.contains("reduce-motion")) box.querySelectorAll(".tr-mart").forEach((el, i) => { if ((f + i) % 3 === 0) { const a = MART[el.dataset.a] || MART.tent; el.textContent = a[Math.floor((f + i) / 3) % a.length]; } });
+      if (f % 3 === 0 && box.querySelector(".tr-mstate")) draw();
+    }, 600);
+  }
+
+  return { challenge, phonetic, radio, grid, compass, salute, manuals: manualsTab };
 })();

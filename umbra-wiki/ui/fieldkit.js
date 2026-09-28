@@ -684,7 +684,7 @@
 
   function training(body) {
     body.innerHTML = `<div class="fk-subtabs pf-choice">${[["morse", "MORSE"], ["challenge", "MORSE CHALLENGE"], ["lamp", "SIGNAL LAMP"], ["phonetic", "PHONETIC"],
-      ["radio", "RADIO"], ["grid", "GRID REFS"], ["compass", "COMPASS"], ["salute", "SALUTE"], ["drill", "DAILY DRILL"], ["knots", "KNOTS"]]
+      ["radio", "RADIO"], ["grid", "GRID REFS"], ["compass", "COMPASS"], ["salute", "SALUTE"], ["manuals", "MANUALS"], ["drill", "DAILY DRILL"], ["knots", "KNOTS"]]
       .filter(([k]) => ["morse", "lamp", "drill", "knots"].includes(k) || window.UmbraTraining)
       .map(([k, n]) => `<button data-s="${k}">${n}</button>`).join("")}</div><div class="fk-sub"></div>`;
     body.querySelectorAll(".fk-subtabs button").forEach((b) => b.addEventListener("click", () => { sub = b.dataset.s; Sound.click(); showSub(body); }));
@@ -696,7 +696,7 @@
     const T = window.UmbraTraining;
     const K = { MORSE, FROM, audio, unit, wpm: () => wpm, playMorse };
     ({ morse: morseTab, lamp: lampTab, drill: drillTab, knots: knotsTab, challenge: (b) => T.challenge(b, K), phonetic: T && T.phonetic,
-       radio: T && T.radio, grid: T && T.grid, compass: T && T.compass, salute: T && T.salute }[sub] || morseTab)(box);
+       radio: T && T.radio, grid: T && T.grid, compass: T && T.compass, salute: T && T.salute, manuals: T && T.manuals }[sub] || morseTab)(box);
   }
 
   function morseTab(box) {

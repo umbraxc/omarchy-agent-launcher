@@ -2077,7 +2077,7 @@ body.reduce-motion .v-a { animation: none; -webkit-text-fill-color: currentColor
 /* ------------------------------------------------------ training drills */
 
 .fk-subtabs { flex-wrap: wrap; row-gap: 4px; }
-.fk-subtabs button { white-space: nowrap; }
+.fk-subtabs button { white-space: nowrap; flex: 0 0 auto; padding-left: 12px; padding-right: 12px; }
 .tr-card { max-width: 820px; }
 .tr-bar { display: flex; gap: 8px; margin-bottom: 12px; }
 .tr-bar span { display: flex; flex-direction: column; padding: 5px 12px; background: var(--bg-2); border-top: 2px solid var(--signal); }
@@ -2206,3 +2206,26 @@ body.reduce-motion .mp-ambient, body.offgrid .mp-ambient { display: none; }
 .mp-cf-mil { display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin-bottom: 6px; background: var(--bg-1); border-left: 3px solid var(--red); }
 .mp-cf-mil .g { font-size: 20px; color: var(--red); }
 .mp-cf-mil b { font-size: 12px; color: var(--fg-bright); }
+
+/* Medic: animated corners, and a layout that holds together full screen. */
+.md-anim { margin: 0 0 0 auto; font: 700 9px/1.05 var(--font); color: var(--signal); opacity: .8; white-space: pre; text-align: right; letter-spacing: 0; }
+.fk-msub, .fk .fk-sky, .fk .v-main, .fk .v-top { max-width: 1480px; margin-left: auto; margin-right: auto; }
+.fk-subnav { max-width: 1480px; margin-left: auto; margin-right: auto; }
+.fk-msub .fk-grid { grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); }
+.md-in input { min-width: 140px; }
+.md-row3 .md-in input { width: 100%; box-sizing: border-box; }
+.md-loss td, .md-vitals td { text-align: left !important; }
+.md-loss td:first-child, .md-vitals td:first-child { width: 42%; color: var(--fg-bright); }
+
+.tr-man-head { margin-bottom: 12px; }
+.tr-man { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 10px; }
+.tr-mcard { position: relative; display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; padding: 12px; background: var(--bg-1); border: 1px solid var(--line); }
+.tr-mcard::before { content: ""; position: absolute; top: -1px; left: -1px; width: 10px; height: 10px; border-top: 2px solid var(--signal); border-left: 2px solid var(--signal); }
+.tr-mcard.have { border-color: color-mix(in srgb, var(--signal) 40%, var(--line)); }
+.tr-mart { margin: 0; font: 700 9.5px/1.15 var(--font); color: var(--signal); white-space: pre; }
+.tr-mtext small { display: block; font-size: 9px; letter-spacing: .2em; color: var(--faint); }
+.tr-mtext b { display: block; margin: 3px 0 4px; font-size: 12.5px; color: var(--fg-bright); }
+.tr-mtext p { margin: 0 0 8px; font-size: 11px; line-height: 1.5; color: var(--dim); }
+.tr-mact { display: flex; gap: 6px; }
+.tr-mact .ghost, .tr-mact .solid { padding: 5px 10px; font-size: 10px; }
+.tr-mstate { margin: 4px 0 6px; color: var(--signal) !important; }

@@ -860,6 +860,7 @@
     }
     renderCountry(c);
     Sound.glitch();
+    if (window.track) track("countries", c.a3);
     frame();
     return true;
   }

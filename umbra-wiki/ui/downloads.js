@@ -11,6 +11,7 @@
     maps: { icon: "󰍍", title: "MAP", verb: "Map area" },
     library: { icon: "󱉟", title: "LIBRARY", verb: "Library" },
     model: { icon: "󰚩", title: "AI MODEL", verb: "AI model" },
+    docs: { icon: "\u{F0219}", title: "MANUALS", verb: "Manuals" },
   };
   let state = null, timer = 0, open = false;
 
@@ -37,6 +38,11 @@
       out.library = { pct: lib.percent || 0, active: lib.active, paused: lib.paused,
                       line: left.length === 1 ? left[0].name : `${left.length} collections` };
     }
+    const dc = d.docs || {};
+    if (dc.left && (dc.active || dc.paused)) {
+      out.docs = { pct: dc.total ? Math.round((dc.done / dc.total) * 100) : 0, active: dc.active, paused: dc.paused,
+                   line: dc.left === 1 ? dc.title : `${dc.title} + ${dc.left - 1} more` };
+    }
     const mo = d.model || {};
     if (mo.active || mo.paused) {
       out.model = { pct: mo.total ? Math.round((mo.completed * 100) / mo.total) : 0, active: mo.active, paused: mo.paused,
@@ -55,7 +61,7 @@
     if (state) {
       for (const k of Object.keys(before)) {
         if (!before[k].active || now[k]) continue;
-        const done = k === "maps" ? d.maps.phase === "done" : k === "model" ? d.model.status === "done" || !d.model.status
+        const done = k === "docs" ? !(d.docs && d.docs.error) : k === "maps" ? d.maps.phase === "done" : k === "model" ? d.model.status === "done" || !d.model.status
           : (d.library.items || []).every((x) => x.installed);
         if (done) finished(k, before[k].line);
       }
@@ -122,8 +128,8 @@
     Sound.complete();
     const t = document.createElement("div");
     t.className = "dl-toast";
-    const what = kind === "maps" ? "MAP READY" : kind === "library" ? "LIBRARY READY" : "AI MODEL READY";
-    const more = kind === "maps" ? "is on this computer and works offline." : kind === "library" ? "joined the library." : "is installed and ready.";
+    const what = kind === "maps" ? "MAP READY" : kind === "library" ? "LIBRARY READY" : kind === "docs" ? "MANUAL READY" : "AI MODEL READY";
+    const more = kind === "maps" ? "is on this computer and works offline." : kind === "library" ? "joined the library." : kind === "docs" ? "is ready to read (Field Kit → Training → Manuals)." : "is installed and ready.";
     t.innerHTML = `<span class="g">󰄬</span><div><b>${what}</b><p></p></div><button class="ghost" title="Close">✕</button>`;
     t.querySelector("p").textContent = `${line.replace(/ · .*$/, "")} ${more}`;
     document.body.appendChild(t);

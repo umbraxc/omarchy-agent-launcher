@@ -97,6 +97,53 @@ window.UmbraVault = (() => {
       " ▐███▌███████████████▌ ",
       " ▝▀▀▀▘▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▘ "],
       parts: [["BRASS HEAD", 0, 3], ["HULL", 2, 13], ["CRIMP", 1, 22]] },
+    coin: { art: [
+      "   ▄▄▄▄▄▄▄   ",
+      " ▄█▀     ▀█▄ ",
+      "██   ▄█▄   ██",
+      "██  ▀█▀█▀  ██",
+      " ▀█▄     ▄█▀ ",
+      "   ▀▀▀▀▀▀▀   "],
+      parts: [["RIM", 0, 6], ["FACE", 3, 6], ["EDGE", 4, 11]] },
+    bar: { art: [
+      "     ▗▄▄▄▄▄▄▄▄▄▄▄▄▄▖   ",
+      "   ▗▟█████████████▙▖  ",
+      "  ▟██ 999.9  FINE ██▙ ",
+      " ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ "],
+      parts: [["STAMP", 2, 9], ["TOP", 0, 12]] },
+    cash: { art: [
+      " ┌───────────────────────┐ ",
+      " │ ◉  ═══════════   (§)  │ ",
+      " │    ─────  100  ─────  │ ",
+      " └───────────────────────┘ "],
+      parts: [["SERIAL", 1, 8], ["VALUE", 2, 15]] },
+    jewel: { art: [
+      "    ▄▄▄▄▄    ",
+      "  ▄▀ ◆◆◆ ▀▄  ",
+      " █  ◆◆◆◆◆  █ ",
+      "  ▀▄     ▄▀  ",
+      "    ▀▀▀▀▀    "],
+      parts: [["STONES", 2, 6], ["BAND", 4, 6]] },
+    drive: { art: [
+      " ▗▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▖ ",
+      " ▐ ▄▄▄▄   ●  ▬▬▬▬▬▬  ▌▬",
+      " ▐ ▀▀▀▀      ▬▬▬▬▬▬  ▌▬",
+      " ▝▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▘ "],
+      parts: [["LABEL", 1, 5], ["LIGHT", 1, 11], ["PORT", 1, 22]] },
+    stick: { art: [
+      " ▗▄▄▄▄▄▄▄▄▄▄▄▄▖▄▄▄▖ ",
+      " ▐██████████████▌▒▒▒▌",
+      " ▝▀▀▀▀▀▀▀▀▀▀▀▀▘▀▀▀▘ "],
+      parts: [["BODY", 0, 7], ["PLUG", 2, 18]] },
+    papers: { art: [
+      "  ┌──────────────┐  ",
+      "  │ ═══════════  │┐ ",
+      "  │ ─────── ──── ││ ",
+      "  │ ────── ───── ││ ",
+      "  │ ────     ✎   ││ ",
+      "  └──────────────┘│ ",
+      "   └──────────────┘ "],
+      parts: [["TITLE", 1, 9], ["SIGNATURE", 4, 13]] },
     box: { art: [
       " ▗▄▄▄▄▄▄▄▄▄▄▄▄▄▖ ",
       " ▐█▀▀▀▀▀▀▀▀▀▀▀█▌ ",
@@ -161,8 +208,24 @@ window.UmbraVault = (() => {
     g20: ["20 gauge shells", "shell", "ammo", "20ga", "", "", "", "", ""],
     arrows: ["Arrows", "box", "ammo", "arrow", "", "", "", "", "Match spine and length to your bow; check for cracks."],
     bolts: ["Crossbow bolts", "box", "ammo", "bolt", "", "", "", "", "Use the length and nock your crossbow calls for."],
+    // Valuables: [name, drawing, kind, "", what it is, size, weight, "", notes]
+    goldcoin: ["Gold coins (1 oz)", "coin", "valuables", "", "Bullion coin, e.g. Krugerrand, Maple Leaf, Eagle", "1 troy oz (31.1 g) of gold", "≈ 33 g", "", "Recognisable everywhere; keep the original tubes or capsules."],
+    goldsmall: ["Small gold (1/10 oz)", "coin", "valuables", "", "Fractional gold coins", "3.1 g of gold", "≈ 3.4 g", "", "Easier to trade for small amounts than full ounces."],
+    silvercoin: ["Silver coins (1 oz)", "coin", "valuables", "", "Bullion coin", "1 troy oz (31.1 g) of silver", "≈ 31 g", "", "Low value per coin: good for small trades."],
+    goldbar: ["Gold bar", "bar", "valuables", "", "Bullion bar with stamp and serial", "e.g. 10 g, 1 oz, 100 g", "", "", "Keep the certificate with it."],
+    cash: ["Cash", "cash", "valuables", "", "Banknotes, small denominations", "", "", "", "Small notes are easier to use when change is scarce. Keep some in your go-bag."],
+    foreigncash: ["Foreign cash", "cash", "valuables", "", "Banknotes in another currency", "", "", "", "Useful near a border or if you may have to leave."],
+    jewellery: ["Jewellery", "jewel", "valuables", "", "Rings, chains, watches", "", "", "", "Photograph pieces for insurance; note their hallmarks."],
+    watch: ["Watch", "jewel", "valuables", "", "Mechanical or quartz", "", "", "", "A mechanical watch keeps time with no battery."],
+    // Data: backups and documents.
+    usb: ["USB stick", "stick", "data", "", "Flash drive", "", "≈ 10 g", "", "Encrypt it (e.g. LUKS or VeraCrypt) if it holds documents."],
+    ssd: ["External drive", "drive", "data", "", "SSD or hard drive backup", "", "", "", "Test a restore now and then; a backup you can't open isn't one."],
+    sdcard: ["Memory card", "stick", "data", "", "SD or microSD", "", "≈ 1 g", "", "Tiny and easy to hide; easy to lose too."],
+    docs: ["Document copies", "papers", "data", "", "Passports, IDs, deeds, insurance, prescriptions", "", "", "", "Paper copies in a waterproof bag, and a scan on an encrypted stick."],
+    backup: ["Offline backup", "drive", "data", "", "A copy of your important files, kept away from the computer", "", "", "", "Keep one copy off-site (3-2-1: three copies, two kinds of media, one elsewhere)."],
+    umbrabackup: ["Umbra backup", "stick", "data", "", "Your Umbra backup file (Settings → Back up)", "", "", "", "Your profile, conversations, waypoints and this vault, ready to restore."],
   };
-  const KINDS = { weapon: "WEAPONS", ammo: "AMMUNITION", gear: "GEAR" };
+  const KINDS = { weapon: "WEAPONS", ammo: "AMMUNITION", gear: "GEAR", valuables: "VALUABLES", data: "DATA" };
 
   // ----------------------------------------------------------- drawing
 
@@ -214,7 +277,8 @@ window.UmbraVault = (() => {
   }
   // Rounds on hand per calibre.
   const rounds = () => { const m = {}; for (const it of items) if (it.kind === "ammo" && it.calibre) m[it.calibre] = (m[it.calibre] || 0) + (it.count || 0); return m; };
-  const typeOf = (it) => (LIB[it.model] ? LIB[it.model][1] : it.kind === "ammo" ? (/ga$/.test(it.calibre) ? "shell" : /arrow|bolt/.test(it.calibre) ? "box" : "ammo") : it.kind === "gear" ? "knife" : "rifle");
+  const typeOf = (it) => (LIB[it.model] ? LIB[it.model][1] : it.kind === "ammo" ? (/ga$/.test(it.calibre) ? "shell" : /arrow|bolt/.test(it.calibre) ? "box" : "ammo")
+    : it.kind === "gear" ? "knife" : it.kind === "valuables" ? "coin" : it.kind === "data" ? "drive" : "rifle");
 
   // ------------------------------------------------------------ the door
 
@@ -237,7 +301,7 @@ window.UmbraVault = (() => {
     const lock = await fetch("/api/lock").then((r) => r.json()).catch(() => ({}));
     body.innerHTML = `<div class="v-gate"><pre class="v-door">${DOOR(SPOKES[0]).join("\n")}</pre>
       <div class="v-gate-side"><div class="fk-h">THE VAULT</div>
-        <p class="lib-note">Your arsenal: firearms, ammunition and defence gear, with an inspect view of each and the rounds you have for every weapon.
+        <p class="lib-note">Your arsenal and what matters most: firearms, ammunition, defence gear, valuables (gold, silver, cash, jewellery) and data (backups, drives, document copies), with an inspect view of each.
           ${lock.password ? "Enter your lock password to open it." : "No lock password is set, so it opens with a click; set one in your Profile to keep it closed."}</p>
         ${lock.password ? `<input type="password" class="v-pw" placeholder="Lock password" autocomplete="off">` : ""}
         <button class="solid v-open">OPEN THE VAULT ▸</button><small class="v-msg"></small>
@@ -270,7 +334,10 @@ window.UmbraVault = (() => {
   function inside(body) {
     const R = rounds();
     const weapons = items.filter((i) => i.kind === "weapon").reduce((n, i) => n + (i.count || 1), 0);
+    const count = (k) => items.filter((i) => i.kind === k).reduce((n, i) => n + (i.count || 1), 0);
     body.innerHTML = `<div class="v-top"><span class="v-stat"><small>WEAPONS</small><b>${weapons}</b></span>
+      ${count("valuables") ? `<span class="v-stat"><small>VALUABLES</small><b>${items.filter((i) => i.kind === "valuables").length}</b></span>` : ""}
+      ${count("data") ? `<span class="v-stat"><small>DATA</small><b>${items.filter((i) => i.kind === "data").length}</b></span>` : ""}
       ${Object.entries(R).map(([c, n]) => `<span class="v-stat"><small>${escapeHtml(CAL[c] || c)}</small><b>${n}</b></span>`).join("")}
       <span class="v-top-right"><button class="solid v-add">+ ADD</button><button class="ghost v-lock" title="Lock the vault|Closes it again; it asks for the password next time.">\u{F033E} LOCK</button></span></div>
       <div class="v-main"><div class="v-list"></div><div class="v-inspect"></div></div>
@@ -305,7 +372,8 @@ window.UmbraVault = (() => {
     sel = it.id;
     const box = body.querySelector(".v-inspect"), L = LIB[it.model], R = rounds();
     const have = it.kind === "weapon" && it.calibre ? [it.calibre, ...(ALSO[it.calibre] || [])].reduce((n, c) => n + (R[c] || 0), 0) : null;
-    const spec = L ? [["ACTION", L[4]], ["CAPACITY", L[5]], ["WEIGHT", L[6]], ["EFFECTIVE RANGE", L[7]]].filter(([, v]) => v) : [];
+    const other = it.kind === "valuables" || it.kind === "data";
+    const spec = L ? [[other ? "WHAT" : "ACTION", L[4]], [other ? "SIZE" : "CAPACITY", L[5]], ["WEIGHT", L[6]], ["EFFECTIVE RANGE", L[7]]].filter(([, v]) => v) : [];
     box.innerHTML = `<div class="v-card"><div class="v-card-head"><span>INSPECT · ${KINDS[it.kind].slice(0, -1)}</span><b>${escapeHtml(it.name.toUpperCase())}</b></div>
       <pre class="v-art">${inspectArt(typeOf(it))}</pre>
       <div class="v-specs">${it.calibre ? `<div><small>CALIBRE</small><b>${escapeHtml(CAL[it.calibre] || it.calibre)}</b></div>` : ""}
@@ -314,13 +382,13 @@ window.UmbraVault = (() => {
       ${L && L[8] ? `<p class="v-note">${escapeHtml(L[8])}</p>` : ""}
       <div class="v-fields">
         <label class="md-in"><span>NAME</span><input class="v-f-name" maxlength="60"></label>
-        ${it.kind !== "gear" ? `<label class="md-in"><span>CALIBRE</span><select class="v-f-cal"><option value="">—</option>${Object.entries(CAL).map(([k, n]) => `<option value="${k}" ${it.calibre === k ? "selected" : ""}>${escapeHtml(n)}</option>`).join("")}</select></label>` : ""}
-        <label class="md-in"><span>${it.kind === "ammo" ? "ROUNDS" : "HOW MANY"}</span><input class="v-f-count" type="number" min="0" max="99999"></label>
+        ${it.kind === "weapon" || it.kind === "ammo" ? `<label class="md-in"><span>CALIBRE</span><select class="v-f-cal"><option value="">—</option>${Object.entries(CAL).map(([k, n]) => `<option value="${k}" ${it.calibre === k ? "selected" : ""}>${escapeHtml(n)}</option>`).join("")}</select></label>` : ""}
+        <label class="md-in"><span>${it.kind === "ammo" ? "ROUNDS" : it.kind === "valuables" && /cash/.test(it.model) ? "AMOUNT" : "HOW MANY"}</span><input class="v-f-count" type="number" min="0" max="99999"></label>
         ${it.kind === "weapon" ? `<label class="md-in"><span>SERIAL NUMBER</span><input class="v-f-serial" maxlength="40" placeholder="optional"></label>` : ""}
         <label class="md-in"><span>WHERE IT'S KEPT</span><input class="v-f-where" maxlength="60" placeholder="e.g. safe, top shelf"></label>
         <label class="md-in"><span>CONDITION</span><select class="v-f-condition">${["", "New", "Good", "Worn", "Needs work"].map((c) => `<option ${it.condition === c ? "selected" : ""}>${c}</option>`).join("")}</select></label>
       </div>
-      <label class="md-in"><span>NOTES</span><textarea class="v-f-notes" rows="2" maxlength="400" placeholder="Accessories, zeroing, last cleaned…"></textarea></label>
+      <label class="md-in"><span>NOTES</span><textarea class="v-f-notes" rows="2" maxlength="400" placeholder="${{ weapon: "Accessories, zeroing, last cleaned…", ammo: "Type (FMJ, hollow point…), lot, bought when…", gear: "Where it lives, condition…", valuables: "Purity, certificates, where bought…", data: "What's on it, encrypted?, last updated…" }[it.kind] || ""}"></textarea></label>
       <div class="fk-row"><button class="solid v-save">SAVE ◆</button><button class="ghost v-del">✕ REMOVE</button><small class="v-saved"></small></div></div>`;
     const q = (s) => box.querySelector(s);
     q(".v-f-name").value = it.name; q(".v-f-count").value = it.count || (it.kind === "ammo" ? 0 : 1);
@@ -364,7 +432,7 @@ window.UmbraVault = (() => {
       box.querySelectorAll(".v-libi").forEach((b) => b.addEventListener("click", async () => {
         const L = LIB[b.dataset.id];
         const it = L ? { id: newId(), kind: L[2], model: b.dataset.id, name: L[0], calibre: L[3], count: L[2] === "ammo" ? 50 : 1, added: Date.now() }
-          : { id: newId(), kind, model: "", name: kind === "ammo" ? "Ammunition" : kind === "gear" ? "Gear" : "Firearm", calibre: "", count: kind === "ammo" ? 50 : 1, added: Date.now() };
+          : { id: newId(), kind, model: "", name: { ammo: "Ammunition", gear: "Gear", valuables: "Valuable", data: "Data" }[kind] || "Firearm", calibre: "", count: kind === "ammo" ? 50 : 1, added: Date.now() };
         items.push(it); adding = false; sel = it.id;
         if (await persist()) { Sound.found(); inside(body); }
       }));

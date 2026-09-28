@@ -246,6 +246,144 @@ def save_waypoints(items):
     return clean
 
 
+# ---------------------------------------------------------------- manuals
+
+# Public field manuals and civil-defence guides (manuals.json), downloaded
+# on request from their official or archive sources into
+# ~/.local/share/umbra-wiki/manuals, one at a time, resumable (after a pause
+# or a restart), and opened in the system's PDF viewer.
+MANUALS_DIR = os.path.join(DATA_DIR, "manuals")
+MANUALS_STATE = os.path.join(DATA_DIR, "manuals-queue.json")
+doc_state = {"active": False, "id": "", "done": 0, "total": 0, "paused": False, "error": ""}
+_doc_lock = threading.Lock()
+
+
+def manuals_catalog():
+    try:
+        with open(os.path.join(APP_DIR, "manuals.json"), encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return []
+
+
+def manuals():
+    q = read_json(MANUALS_STATE, {})
+    out = []
+    for m in manuals_catalog():
+        path = os.path.join(MANUALS_DIR, m["id"] + ".pdf")
+        part = path + ".part"
+        got = os.path.getsize(part) if os.path.exists(part) else 0
+        out.append({**m, "installed": os.path.exists(path), "got": got, "queued": m["id"] in q.get("ids", [])})
+    return {"manuals": out, "state": dict(doc_state), "paused": bool(q.get("paused")), "dir": MANUALS_DIR.replace(HOME, "~", 1)}
+
+
+def manuals_download(ids):
+    known = {m["id"] for m in manuals_catalog()}
+    q = read_json(MANUALS_STATE, {})
+    ids = [i for i in ids if i in known and i not in q.get("ids", [])]
+    q["ids"] = q.get("ids", []) + ids
+    q["paused"] = False
+    write_json(MANUALS_STATE, q)
+    _doc_kick()
+    return manuals()
+
+
+def _doc_kick():
+    with _doc_lock:
+        if doc_state["active"]:
+            return
+        doc_state.update(active=True, paused=False, error="")
+    threading.Thread(target=_doc_worker, daemon=True).start()
+
+
+def _doc_worker():
+    try:
+        while True:
+            q = read_json(MANUALS_STATE, {})
+            if q.get("paused") or not q.get("ids"):
+                break
+            mid = q["ids"][0]
+            m = next((x for x in manuals_catalog() if x["id"] == mid), None)
+            path = os.path.join(MANUALS_DIR, mid + ".pdf")
+            if m and not os.path.exists(path):
+                os.makedirs(MANUALS_DIR, exist_ok=True)
+                part = path + ".part"
+                have = os.path.getsize(part) if os.path.exists(part) else 0
+                doc_state.update(id=mid, done=have, total=m.get("size", 0))
+                req = urllib.request.Request(m["url"], headers={"User-Agent": "umbra-wiki/" + VERSION, **({"Range": f"bytes={have}-"} if have else {})})
+                with urllib.request.urlopen(req, timeout=60) as r, open(part, "ab" if have and r.status == 206 else "wb") as fh:
+                    if not (have and r.status == 206):
+                        doc_state["done"] = 0
+                    length = r.headers.get("Content-Length")
+                    if length:
+                        doc_state["total"] = doc_state["done"] + int(length)
+                    while True:
+                        if read_json(MANUALS_STATE, {}).get("paused") or doc_state.get("stop"):
+                            return
+                        chunk = r.read(65536)
+                        if not chunk:
+                            break
+                        fh.write(chunk)
+                        doc_state["done"] += len(chunk)
+                with open(part, "rb") as fh:
+                    if fh.read(4) != b"%PDF":
+                        os.remove(part)
+                        raise ValueError(f"{m['title']}: not a PDF (the source may have moved)")
+                os.replace(part, path)
+                record("manuals", mid)
+            q = read_json(MANUALS_STATE, {})
+            q["ids"] = [i for i in q.get("ids", []) if i != mid]
+            write_json(MANUALS_STATE, q)
+    except Exception as e:
+        doc_state["error"] = str(e)[:200]
+        q = read_json(MANUALS_STATE, {})
+        q["paused"] = True   # a failure waits for the resume button
+        write_json(MANUALS_STATE, q)
+    finally:
+        doc_state.update(active=False, stop=False)
+
+
+def manuals_control(action):
+    q = read_json(MANUALS_STATE, {})
+    if action == "pause":
+        q["paused"] = True
+        write_json(MANUALS_STATE, q)
+    elif action == "resume":
+        q["paused"] = False
+        write_json(MANUALS_STATE, q)
+        _doc_kick()
+    elif action == "cancel":
+        doc_state["stop"] = True
+        for mid in q.get("ids", []):
+            try:
+                os.remove(os.path.join(MANUALS_DIR, mid + ".pdf.part"))
+            except OSError:
+                pass
+        write_json(MANUALS_STATE, {"ids": [], "paused": False})
+    return manuals()
+
+
+def manuals_open(mid, folder=False):
+    if not re.fullmatch(r"[a-z0-9-]{1,40}", mid or ""):
+        raise ValueError("unknown manual")
+    path = MANUALS_DIR if folder else os.path.join(MANUALS_DIR, mid + ".pdf")
+    if not os.path.exists(path):
+        raise ValueError("not downloaded")
+    subprocess.Popen(["xdg-open", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    record("manualsRead", mid)
+    return {"ok": True}
+
+
+def manuals_delete(mid):
+    if re.fullmatch(r"[a-z0-9-]{1,40}", mid or ""):
+        for suffix in (".pdf", ".pdf.part"):
+            try:
+                os.remove(os.path.join(MANUALS_DIR, mid + suffix))
+            except OSError:
+                pass
+    return manuals()
+
+
 # ------------------------------------------------------------------- vault
 
 # The Field Kit's Vault: the user's own inventory of firearms, ammunition and
@@ -253,7 +391,7 @@ def save_waypoints(items):
 # every read and write); the file is readable by the user only. Not
 # encrypted: the password keeps the screen private, like the lock screen.
 VAULT_FILE = os.path.join(DATA_DIR, "vault.json")
-VAULT_KINDS = ("weapon", "ammo", "gear")
+VAULT_KINDS = ("weapon", "ammo", "gear", "valuables", "data")
 
 
 def get_vault():
@@ -1234,7 +1372,7 @@ def _stat(st, stat):
     if stat == "streak":
         return max(_streak(st["days"]), counts.get("bestStreak", 0))
     if stat in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
-                "mapPacks", "waypoints", "mapSearches"):
+                "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries"):
         return len(sets.get(stat, []))
     if stat == "profileName":
         return 1 if get_profile().get("name") else 0
@@ -1292,7 +1430,7 @@ def record(event, value=None, **info):
                        "cprMinutes", "morseLetters", "drills", "timers", "sunChecks", "cards", "quartermaster"):
             counts[event] = counts.get(event, 0) + 1
         elif event in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
-                       "mapPacks", "waypoints", "mapSearches"):
+                       "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries"):
             item = str(value or "")[:60]
             if item and item not in sets.get(event, []):
                 sets[event] = sets.get(event, []) + [item]
@@ -1345,7 +1483,7 @@ def restore_achievements(data):
                     st[key][k] = max(v, st[key].get(k, 0))
         for k, v in (data.get("sets") or {}).items():
             if k in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
-                     "mapPacks", "waypoints", "mapSearches") and isinstance(v, list):
+                     "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries") and isinstance(v, list):
                 st["sets"][k] = sorted(set(st["sets"].get(k, [])) | {str(x)[:60] for x in v[:200]})
         st["days"] = sorted(set(st["days"]) | {d for d in (data.get("days") or [])[:400]
                                                if isinstance(d, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", d)})[-400:]
@@ -1649,7 +1787,11 @@ def downloads():
     maps = {"active": bool(job.get("active")) or bool(job.get("resumable")), "paused": bool(job.get("paused")),
             "phase": job.get("phase", ""), "name": (job.get("plan") or {}).get("name", ""), "kind": job.get("kind", ""),
             "received": job.get("received", 0), "total": job.get("total", 0), "done": job.get("done", 0), "count": job.get("count", 0)}
-    return {"library": library, "model": dict(pull_state), "maps": maps}
+    q = read_json(MANUALS_STATE, {})
+    docs = {"active": bool(doc_state["active"]), "paused": bool(q.get("paused")) and bool(q.get("ids")), "left": len(q.get("ids", [])),
+            "title": next((m["title"] for m in manuals_catalog() if m["id"] == (q.get("ids") or [""])[0]), ""),
+            "done": doc_state["done"], "total": doc_state["total"], "error": doc_state["error"]}
+    return {"library": library, "model": dict(pull_state), "maps": maps, "docs": docs}
 
 
 def library_control(action):
@@ -2679,6 +2821,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(get_safety())
         if path == "/api/folders":
             return self.send_json(get_folders())
+        if path == "/api/manuals":
+            return self.send_json(manuals())
         if path == "/api/radar":
             # Signals & Radar: the Wi-Fi and Bluetooth signals heard now.
             qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
@@ -2901,7 +3045,7 @@ class Handler(BaseHTTPRequestHandler):
                                                     on_done=lambda aid: record("mapPacks", aid)))
             except (ValueError, TypeError) as e:
                 return self.send_json({"error": str(e)}, 400)
-        m = re.fullmatch(r"/api/downloads/(maps|library|model)/(pause|resume|cancel)", self.path)
+        m = re.fullmatch(r"/api/downloads/(maps|library|model|docs)/(pause|resume|cancel)", self.path)
         if m:
             kind, action = m.groups()
             try:
@@ -2909,6 +3053,8 @@ class Handler(BaseHTTPRequestHandler):
                     getattr(MAPS, action)()
                 elif kind == "library":
                     library_control(action)
+                elif kind == "docs":
+                    manuals_control(action)
                 else:
                     pull_control(action)
             except ValueError as e:
@@ -2938,6 +3084,17 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json({"items": save_vault(req.get("items"))})
             except ValueError as e:
                 return self.send_json({"error": str(e)}, 400)
+        if self.path.startswith("/api/manuals/"):
+            req = self.read_json()
+            try:
+                if self.path == "/api/manuals/download":
+                    return self.send_json(manuals_download([str(i) for i in (req.get("ids") or [])][:20]))
+                if self.path == "/api/manuals/open":
+                    return self.send_json(manuals_open(str(req.get("id", "")), bool(req.get("folder"))))
+                if self.path == "/api/manuals/delete":
+                    return self.send_json(manuals_delete(str(req.get("id", ""))))
+            except ValueError as e:
+                return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/safety":
             try:
                 return self.send_json(save_safety(self.read_json().get("levels")))
@@ -2956,6 +3113,8 @@ class Handler(BaseHTTPRequestHandler):
                     return self.send_json({"error": "unknown page"}, 400)
             elif event == "mapSearches":
                 value = str(value or "")[:60].lower()
+            elif event == "countries":
+                value = re.sub(r"[^A-Z]", "", str(value or ""))[:3]
             elif event not in ("suggestions", "sources", "stops", "voice", "cprMinutes", "morseLetters", "drills",
                                "timers", "sunChecks", "cards"):
                 return self.send_json({"error": "unknown event"}, 400)
@@ -3202,6 +3361,8 @@ if __name__ == "__main__":
     threading.Thread(target=warm_model, daemon=True).start()
     resume_pull()
     threading.Thread(target=resume_library, daemon=True).start()
+    if read_json(MANUALS_STATE, {}).get("ids") and not read_json(MANUALS_STATE, {}).get("paused"):
+        _doc_kick()   # manuals that were downloading go on
     MAPS.restore(on_done=lambda aid: record("mapPacks", aid))
     print(f"umbra: {n} archives, model {MODEL}, http://{HOST}:{PORT}", flush=True)
     ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
