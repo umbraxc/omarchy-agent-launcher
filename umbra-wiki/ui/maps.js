@@ -512,7 +512,7 @@
       g.beginPath(); g.moveTo(x, cy + 10); g.lineTo(x, y); g.strokeStyle = col; g.lineWidth = 2; g.stroke();
       g.font = `12px ${font}`; g.textAlign = "center"; g.textBaseline = "middle";
       g.fillStyle = light(col) ? "#111" : "#fff";
-      g.fillText(m[2], x, cy + (m[1] === "tri" ? 2 : 0));
+      if (!w.sym || !drawSym(g, w.sym, x, cy + (m[1] === "tri" ? 2 : 0), 13, g.fillStyle)) g.fillText(m[2], x, cy + (m[1] === "tri" ? 2 : 0));
       g.font = `700 10px ${font}`; g.lineWidth = 3.5; g.strokeStyle = halo; g.fillStyle = col;
       g.strokeText(w.name.toUpperCase(), x, y + 9); g.fillText(w.name.toUpperCase(), x, y + 9);
     }
@@ -696,7 +696,7 @@
   function loadAtlas() {
     if (atlas || atlasLoading) return atlasLoading;
     atlasLoading = Promise.all([
-      fetch("/api/maps/atlas").then((r) => r.json()).catch(() => []),
+      fetch("/api/maps/atlas", { cache: "no-store" }).then((r) => r.json()).catch(() => []),
       fetch("/api/safety").then((r) => r.json()).catch(() => ({ levels: {} })),
     ]).then(([list, s]) => {
       safety = s.levels || {};
@@ -869,6 +869,79 @@
     win.hidden = true; picked = null; frame(); Sound.click();
   }
 
+  // Resources as small symbols: [words, icon].
+  const RES = [[/petroleum|oil/, "\u{F03C7}", "Oil"], [/natural gas/, "\u{F0238}", "Gas"], [/coal/, "\u{F01A6}", "Coal"],
+    [/iron|steel/, "\u{F089B}", "Iron"], [/gold/, "\u{F124F}", "Gold"], [/silver|platinum/, "\u{F124F}", "Silver"],
+    [/copper|zinc|lead|nickel|tin|bauxite|alumin|manganese|chrom|cobalt|tungsten|molybden|titanium/, "\u{F08B7}", "Metals"],
+    [/diamond|gem|emerald|ruby|sapphire/, "\u{F01C8}", "Gems"], [/uranium/, "\u{F043C}", "Uranium"], [/timber|forest|wood/, "\u{F0405}", "Timber"],
+    [/fish|seafood/, "\u{F023A}", "Fish"], [/arable|farm|land/, "\u{F0E66}", "Farmland"], [/hydro/, "\u{F12E5}", "Hydropower"],
+    [/salt|potash|phosphate|sulfur|gypsum|limestone|sand|gravel|clay|marble/, "\u{F0DDA}", "Minerals"], [/rare earth|lithium|graphite/, "\u{F0768}", "Rare earths"]];
+  function resourceChips(text) {
+    const t = String(text || "").toLowerCase();
+    return RES.filter(([re]) => re.test(t)).map(([, g, n]) => `<span class="mp-cf-res"><span class="g">${g}</span>${n}</span>`).join("");
+  }
+  // A river whose width follows how much fresh water the country has.
+  let riverTimer = 0;
+  function river(km3) {
+    const lvl = Math.max(1, Math.min(6, Math.round(Math.log10((km3 || 0) + 1) * 1.5)));
+    return { lvl, frame: (t) => {
+      const w = 34, rows = [];
+      for (let r = 0; r < lvl; r++) {
+        let line = "";
+        for (let i = 0; i < w; i++) {
+          const k = (i + t + r * 3) % 7;
+          line += r === 0 || r === lvl - 1 ? (k === 0 ? "~" : "-") : (k < 2 ? "≈" : k < 4 ? "~" : " ");
+        }
+        rows.push(line);
+      }
+      return rows.join("\n");
+    } };
+  }
+
+  // Each country's own short tune, made here (no recordings): notes from a
+  // scale that fits its part of the world, picked and timed from the
+  // country's code, so every country has its own and it's always the same.
+  let tuneCtx = null;
+  function countryTune(c) {
+    if (Sound.muted || window.offgrid) return;
+    try { tuneCtx = tuneCtx || new (window.AudioContext || window.webkitAudioContext)(); } catch { return; }
+    const ac = tuneCtx; if (ac.state === "suspended") ac.resume();
+    const [lon, lat] = c.label;
+    const SCALES = {
+      eastAsia: [0, 2, 4, 7, 9], southAsia: [0, 1, 4, 5, 7, 8, 11], mideast: [0, 1, 4, 5, 7, 8, 10], africa: [0, 3, 5, 7, 10],
+      nordic: [0, 2, 3, 5, 7, 8, 10], europe: [0, 2, 4, 5, 7, 9, 11], latin: [0, 2, 4, 5, 7, 9, 10], oceania: [0, 2, 4, 6, 7, 9, 11], americas: [0, 2, 4, 5, 7, 9, 11],
+    };
+    const region = lon > 95 && lon < 150 && lat > -10 ? "eastAsia" : lon > 60 && lon <= 95 && lat > 5 ? "southAsia"
+      : lon > -20 && lon <= 60 && lat > 12 && lat < 42 && !(lon < 30 && lat > 36) ? "mideast" : lon > -20 && lon < 55 && lat <= 12 ? "africa"
+      : lon > -30 && lon < 45 && lat >= 55 ? "nordic" : lon > -30 && lon < 45 && lat >= 35 ? "europe" : lon < -30 && lat < 25 ? "latin"
+      : lon >= 110 || lon < -150 ? "oceania" : "americas";
+    const timbre = { eastAsia: "pluck", southAsia: "drone", mideast: "pluck", africa: "marimba", nordic: "bell", europe: "bell", latin: "pluck", oceania: "marimba", americas: "bell" }[region];
+    let h = 7; for (const ch of c.a3) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const rnd = () => ((h = (h * 1103515245 + 12345) >>> 0) / 4294967296);
+    const scale = SCALES[region], root = 220 * Math.pow(2, Math.floor(rnd() * 7) / 12), beat = 0.16 + rnd() * 0.08;
+    const vol = (window.prefs && window.prefs.volume != null ? window.prefs.volume : 0.9) * 0.22;
+    const note = (deg, t, len) => {
+      const f = root * Math.pow(2, (scale[((deg % scale.length) + scale.length) % scale.length] + 12 * Math.floor(deg / scale.length)) / 12);
+      const o = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain();
+      o.type = timbre === "pluck" ? "triangle" : "sine"; o.frequency.value = f;
+      o2.type = "sine"; o2.frequency.value = f * (timbre === "bell" ? 2.76 : timbre === "marimba" ? 4 : 2);
+      const g2 = ac.createGain(); g2.gain.value = timbre === "bell" ? 0.35 : 0.15;
+      const decay = timbre === "marimba" ? 0.35 : timbre === "pluck" ? 0.6 : timbre === "drone" ? len : 1.2;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0008, t + decay);
+      o.connect(g); o2.connect(g2).connect(g); g.connect(ac.destination);
+      o.start(t); o2.start(t); o.stop(t + decay + 0.05); o2.stop(t + decay + 0.05);
+    };
+    const t0 = ac.currentTime + 0.25, n = 5 + Math.floor(rnd() * 3);
+    let deg = Math.floor(rnd() * 3), t = t0;
+    if (timbre === "drone") note(-7, t0, beat * (n + 2));
+    for (let i = 0; i < n; i++) {
+      note(deg, t, beat * 2);
+      t += beat * (rnd() < 0.3 ? 2 : 1);
+      deg += [-2, -1, 1, 1, 2, 3][Math.floor(rnd() * 6)];
+      if (i === n - 2) deg = scale.length;   // end on the octave, like an answer
+    }
+  }
+
   function renderCountry(c) {
     const win = $("#maps .mp-cfile");
     const f = c.facts || {};
@@ -899,15 +972,33 @@
       ${cities ? `<div class="mp-cf-sec">MAIN CITIES</div><div class="mp-cf-cities">${cities}</div>` : ""}
       ${f.climate || f.terrain ? `<div class="mp-cf-sec">THE LAND</div>` : ""}
       ${row("CLIMATE", f.climate)}${row("TERRAIN", f.terrain)}${row("HIGHEST", f.highest)}${row("LOWEST", f.lowest)}
+      ${f.resources ? `<div class="mp-cf-resrow">${resourceChips(f.resources)}</div>` : ""}
       ${row("RESOURCES", f.resources)}${row("HAZARDS", f.hazards, "warn")}${row("BORDERS", f.neighbours)}${row("COAST", f.coastline)}
+      ${f.waterKm3 || (f.rivers && f.rivers.length) ? `<div class="mp-cf-sec">WATER</div>
+        <pre class="mp-cf-river" data-km3="${f.waterKm3 || 0}"></pre>
+        ${row("FRESH WATER", f.waterRes ? f.waterRes + " a year, renewable" : "")}${row("RIVERS", (f.rivers || []).join("; "))}${row("LAKES", (f.lakes || []).join("; "))}` : ""}
       ${f.water || f.doctors ? `<div class="mp-cf-sec">HEALTH & WATER</div>` : ""}
       ${row("SAFE WATER", f.water)}${row("DOCTORS", f.doctors)}${row("HOSPITAL", f.beds)}${row("LIFESPAN", f.life)}
+      ${f.forces || f.personnel ? `<div class="mp-cf-sec">ARMED FORCES</div>
+        ${f.personnel ? `<div class="mp-cf-mil"><span class="g">\u{F0D3A}</span><b></b></div>` : ""}
+        ${row("FORCES", f.forces)}${row("SPENDING", f.spending)}${row("SERVICE", f.service)}${row("EQUIPMENT", f.equipment)}
+        ${row("DEPLOYED ABROAD", f.deployments)}${row("NOTE", f.milNote)}${row("ARMED GROUPS", f.groups ? f.groups + " (on the US terrorism list)" : "", "warn")}` : ""}
       <div class="mp-card-actions">
         <button class="ghost mp-cf-dl" title="Download this country|Opens the download panel with ${escapeHtml(c.name)} chosen: check the size first.">󰇚 GET MAP</button>
         <button class="solid mp-cf-ask">ASK UMBRA ▸</button></div>
       <p class="mp-cf-src">CIA World Factbook (public domain) · Natural Earth · cities: Natural Earth</p>`;
     win.hidden = false;
     win.scrollTop = 0;
+    if (f.personnel) win.querySelector(".mp-cf-mil b").textContent = f.personnel;
+    // The river flows while the file is open.
+    clearInterval(riverTimer);
+    const rv = win.querySelector(".mp-cf-river");
+    if (rv) {
+      const R = river(+rv.dataset.km3);
+      let t = 0; rv.textContent = R.frame(0); rv.dataset.lvl = R.lvl;
+      if (!document.body.classList.contains("reduce-motion")) riverTimer = setInterval(() => { if (!rv.isConnected || win.hidden) { clearInterval(riverTimer); return; } rv.textContent = R.frame(++t); }, 220);
+    }
+    setTimeout(() => countryTune(c), 350);
     win.classList.remove("glitch"); void win.offsetWidth; win.classList.add("glitch");
     win.querySelector(".mp-cf-x").addEventListener("click", closeCountry);
     win.querySelectorAll(".mp-cf-city").forEach((b) => b.addEventListener("click", () => {
@@ -1033,6 +1124,17 @@
   ICON.medical = ICON.medic; ICON_NAMES.medical = ICON_NAMES.medic;
   // Whether a colour is light (dark symbols on it then).
   const light = (c) => { const m = /^#?([0-9a-f]{6})$/i.exec(c || ""); if (!m) return false; const [r, g, b] = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)); return r * 0.3 + g * 0.59 + b * 0.11 > 150; };
+  // A symbol from the icon library (mapicons.js), drawn in a square of
+  // size s centred on x, y.
+  const symPaths = new Map();
+  function drawSym(g, name, x, y, s, color) {
+    const I = window.UmbraIcons && UmbraIcons[name];
+    if (!I) return false;
+    let p = symPaths.get(name);
+    if (!p) { p = new Path2D(I[2]); symPaths.set(name, p); }
+    g.save(); g.translate(x - s / 2, y - s / 2); g.scale(s / 512, s / 512); g.fillStyle = color; g.fill(p); g.restore();
+    return true;
+  }
   // Draws a marker's shape at x, y (also used for the editor's buttons).
   function markerPath(g, shape, x, y, r) {
     g.beginPath();
@@ -1079,6 +1181,7 @@
         <div class="mp-card" hidden></div>
         <div class="mp-cfile" hidden></div>
         <div class="mp-legend" hidden></div>
+        <div class="mp-ambient" aria-hidden="true">${Array.from({ length: 14 }, (_, i) => `<i style="left:${(i * 37 + 11) % 97}%;top:${(i * 53 + 7) % 91}%;animation-delay:${-(i * 1.7).toFixed(1)}s;animation-duration:${14 + (i % 5) * 3}s"></i>`).join("")}<b class="mp-glitch"></b><u class="mp-scanline"></u></div>
         <aside class="mp-panel" hidden></aside>
         <div class="mp-hint" hidden></div>
         <div class="mp-first" hidden><b>󰇚 GET A DETAILED MAP</b>This is the built-in world map. For streets, paths, water points,
@@ -1344,6 +1447,13 @@
       <div class="mp-wp-preview"><canvas width="64" height="64"></canvas><input class="mp-wp-name" maxlength="40" placeholder="Name, e.g. Water source"></div>
       <div class="mp-wp-t">MARKER</div>
       <div class="mp-wp-types">${Object.entries(MARK).map(([k, m]) => `<button type="button" class="mp-wp-type" data-i="${k}" title="${m[0]}"><canvas width="28" height="28"></canvas></button>`).join("")}</div>
+      <div class="mp-wp-t">SYMBOL <small>from the icon library, or the marker's own</small></div>
+      <div class="mp-wp-syms"><button type="button" class="mp-wp-sym" data-s="" title="The marker's own symbol">AUTO</button>${window.UmbraIcons ? (() => {
+        const groups = {};
+        for (const [k, v] of Object.entries(UmbraIcons)) (groups[v[1]] = groups[v[1]] || []).push([k, v[0]]);
+        return Object.entries(groups).map(([gname, list]) => `<div class="mp-wp-sg">${gname}</div>` + list.map(([k, label]) =>
+          `<button type="button" class="mp-wp-sym" data-s="${k}" title="${escapeHtml(label)}"><canvas width="22" height="22"></canvas></button>`).join("")).join("");
+      })() : ""}</div>
       <div class="mp-wp-t">COLOUR <small class="mp-wp-auto"></small></div>
       <div class="mp-wp-colors"><button type="button" class="mp-wp-color" data-c="" title="The marker's own colour">AUTO</button>${Object.keys(MCOLOR).map((c) =>
         `<button type="button" class="mp-wp-color" data-c="${c}" title="${c}" style="--mc:${MCOLOR[c] || "var(--fg-bright)"}"><i></i></button>`).join("")}</div>
@@ -1361,21 +1471,37 @@
       markerPath(g, m[1], size / 2, size / 2, r);
       g.fillStyle = col; g.fill(); g.lineWidth = 1.2; g.strokeStyle = "#000"; g.stroke();
       g.font = `${Math.round(r * 1.2)}px ${css("--font")}`; g.textAlign = "center"; g.textBaseline = "middle";
-      g.fillStyle = light(col) ? "#111" : "#fff"; g.fillText(m[2], size / 2, size / 2 + (m[1] === "tri" ? r * 0.2 : 0));
+      g.fillStyle = light(col) ? "#111" : "#fff";
+      if (!draft.sym || !drawSym(g, draft.sym, size / 2, size / 2 + (m[1] === "tri" ? r * 0.2 : 0), r * 1.3, g.fillStyle)) g.fillText(m[2], size / 2, size / 2 + (m[1] === "tri" ? r * 0.2 : 0));
     };
     const show = () => {
       card.querySelectorAll(".mp-wp-type").forEach((b) => { b.classList.toggle("on", b.dataset.i === draft.icon); paint(b.querySelector("canvas"), b.dataset.i, draft.color, 8.5); });
       card.querySelectorAll(".mp-wp-color").forEach((b) => b.classList.toggle("on", b.dataset.c === (draft.color || "")));
+      card.querySelectorAll(".mp-wp-sym").forEach((b) => {
+        b.classList.toggle("on", b.dataset.s === (draft.sym || ""));
+        const cv = b.querySelector("canvas");
+        if (cv && !cv.dataset.done) {
+          cv.dataset.done = 1;
+          const d = Math.min(2, window.devicePixelRatio || 1), gg = cv.getContext("2d");
+          cv.width = 22 * d; cv.height = 22 * d; cv.style.width = cv.style.height = "22px"; gg.scale(d, d);
+          drawSym(gg, b.dataset.s, 11, 11, 20, css("--fg-bright") || "#eee");
+        }
+      });
       card.querySelector(".mp-wp-auto").textContent = draft.color ? "" : "· " + MARK[draft.icon][3].toUpperCase();
       paint(card.querySelector(".mp-wp-preview canvas"), draft.icon, draft.color, 20);
       if (!name.value || Object.values(ICON_NAMES).includes(name.placeholder)) name.placeholder = MARK[draft.icon][0];
     };
     card.querySelectorAll(".mp-wp-type").forEach((b) => b.addEventListener("click", () => { draft.icon = b.dataset.i; show(); Sound.click(); }));
     card.querySelectorAll(".mp-wp-color").forEach((b) => b.addEventListener("click", () => { draft.color = b.dataset.c; show(); Sound.click(); }));
+    card.querySelectorAll(".mp-wp-sym").forEach((b) => b.addEventListener("click", () => {
+      draft.sym = b.dataset.s;
+      if (draft.sym && (!name.value || Object.values(ICON_NAMES).includes(name.value))) name.placeholder = UmbraIcons[draft.sym][0];
+      show(); Sound.click();
+    }));
     show();
     setTimeout(() => name.focus(), 30);
     const saveIt = async () => {
-      draft.name = name.value.trim() || MARK[draft.icon][0];
+      draft.name = name.value.trim() || (draft.sym && window.UmbraIcons && UmbraIcons[draft.sym] ? UmbraIcons[draft.sym][0] : MARK[draft.icon][0]);
       draft.note = note.value.trim();
       if (!draft.id) { draft.id = Math.random().toString(36).slice(2, 12).padEnd(6, "0"); draft.created = Date.now(); waypoints.push(draft); }
       else waypoints = waypoints.map((x) => (x.id === draft.id ? draft : x));

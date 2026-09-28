@@ -237,6 +237,7 @@ def save_waypoints(items):
                       "lat": round(lat, 6), "lon": round(lon, 6),
                       "icon": w.get("icon") if w.get("icon") in WAYPOINT_ICONS else "medic" if w.get("icon") == "medical" else "pin",
                       "color": w.get("color") if w.get("color") in WAYPOINT_COLORS else "",
+                      "sym": w.get("sym") if re.fullmatch(r"[a-z-]{1,40}", str(w.get("sym") or "")) else "",
                       "note": str(w.get("note") or "").strip()[:200],
                       "created": int(w.get("created") or time.time() * 1000)})
     write_json(WAYPOINTS_FILE, {"waypoints": clean})
@@ -2671,7 +2672,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(body)))
-            self.send_header("Cache-Control", "max-age=86400")
+            self.send_header("Cache-Control", "no-cache")   # updates bring new data
             self.end_headers()
             return self.wfile.write(body)
         if path == "/api/safety":
