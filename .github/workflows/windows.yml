@@ -51,8 +51,11 @@ jobs:
       - name: Window check (opens the app and takes a screenshot)
         continue-on-error: true
         run: |
+          $env:UMBRA_PROBE = "1"
           Start-Process -FilePath "dist\Umbra Wiki\Umbra Wiki.exe"
-          Start-Sleep -Seconds 45
+          Start-Sleep -Seconds 25
+          python -c "from PIL import ImageGrab; ImageGrab.grab().save('window-1.png')"
+          Start-Sleep -Seconds 60
           python -c "from PIL import ImageGrab; ImageGrab.grab().save('window.png')"
           Get-Process "Umbra Wiki" -ErrorAction SilentlyContinue | Stop-Process -Force
           Get-Content "$env:LOCALAPPDATA\UmbraWiki\umbra.log" -ErrorAction SilentlyContinue | Select-Object -Last 40
@@ -96,7 +99,7 @@ jobs:
             dist/SHA256SUMS-windows.txt
             selftest.json
             selftest.log
-            window.png
+            window*.png
 
       - name: Attach to the release
         if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.release != ''

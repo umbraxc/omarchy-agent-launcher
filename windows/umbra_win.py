@@ -132,20 +132,21 @@ def selftest():
 
 
 class Bridge:
-    """What the page can ask of the window (window.umbraNative in app.js)."""
+    """What the page can ask of the window (window.umbraNative in app.js).
+    pywebview offers the page every public attribute, so the rest is private."""
 
     def __init__(self):
-        self.window = None
-        self.closing = False
-        self.full = False
+        self._window = None
+        self._closing = False
+        self._full = False
 
     def message(self, text):
         if text == "close":
-            self.closing = True
-            self.window.destroy()
-        elif text in ("fullscreen", "unfullscreen") and (text == "fullscreen") != self.full:
-            self.full = not self.full
-            self.window.toggle_fullscreen()
+            self._closing = True
+            self._window.destroy()
+        elif text in ("fullscreen", "unfullscreen") and (text == "fullscreen") != self._full:
+            self._full = not self._full
+            self._window.toggle_fullscreen()
 
 
 def main():
@@ -174,20 +175,27 @@ def main():
     import webview
 
     bridge = Bridge()
+    # 1180 x 820, or less on a small screen.
+    width, height = 1180, 820
+    try:
+        screen = webview.screens[0]
+        width, height = min(width, int(screen.width * 0.92)), min(height, int(screen.height * 0.88))
+    except Exception:
+        pass
     if backend_up():
-        window = webview.create_window("Umbra Wiki", URL + query, js_api=bridge, width=1180, height=820,
+        window = webview.create_window("Umbra Wiki", URL + query, js_api=bridge, width=width, height=height,
                                        min_size=(760, 560), background_color="#090909", text_select=True)
     else:
         window = webview.create_window("Umbra Wiki", html=(
             "<body style='background:#090909;color:#d35f5f;font:15px Consolas,monospace;padding:40px'>"
             "UMBRA WIKI // the background service didn't start.<br><br>"
             "Details are in %LOCALAPPDATA%\\UmbraWiki\\umbra.log</body>"), width=900, height=500, background_color="#090909")
-    bridge.window = window
+    bridge._window = window
 
     def on_closing():
         """Ask the page first: it confirms, plays the outro and says "close".
         If it can't answer, the window just closes."""
-        if bridge.closing:
+        if bridge._closing:
             return True
 
         def ask():
@@ -196,12 +204,29 @@ def main():
             except Exception:
                 answer = "no"
             if answer != "ok":
-                bridge.closing = True
+                bridge._closing = True
                 window.destroy()
         threading.Thread(target=ask, daemon=True).start()
         return False
 
     window.events.closing += on_closing
+    if os.environ.get("UMBRA_PROBE"):   # the build's window check: report what the page shows
+        def probe():
+            for wait in (20, 30, 30):
+                time.sleep(wait)
+                try:
+                    print("probe:", window.evaluate_js(
+                        "JSON.stringify({status: document.querySelector('#t-status').textContent, body: document.body.className,"
+                        " tour: !!document.querySelector('.tour, #tour'), text: document.body.innerText.slice(0, 300)})"), flush=True)
+                    t0 = time.time()
+                    urllib.request.urlopen(URL + "api/status", timeout=30).read()
+                    print(f"probe: /api/status took {time.time() - t0:.1f}s", flush=True)
+                    t0 = time.time()
+                    urllib.request.urlopen(URL + "api/downloads", timeout=30).read()
+                    print(f"probe: /api/downloads took {time.time() - t0:.1f}s", flush=True)
+                except Exception as e:
+                    print("probe failed:", e, flush=True)
+        threading.Thread(target=probe, daemon=True).start()
     webview.start(gui="edgechromium", private_mode=False, storage_path=os.path.join(DATA, "webview"))
     if server:
         server.shutdown()
