@@ -1018,6 +1018,7 @@
     if (window.closeLoadout) window.closeLoadout(true);
     if (window.closeHistory) window.closeHistory();
     if (window.closeMaps) window.closeMaps();
+    if (window.closeRadar) window.closeRadar();
     toggleThemes(false, true);
     $("#library").hidden = true; $("#library-btn").classList.remove("on");
     el.hidden = false; $("#fieldkit-btn").classList.add("on");

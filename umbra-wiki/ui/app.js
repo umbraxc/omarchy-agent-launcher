@@ -586,6 +586,7 @@ function goHome() {
   if (window.closeLoadout) window.closeLoadout(true);
   if (window.closeMaps) window.closeMaps();
   if (window.closeFieldKit) window.closeFieldKit();
+  if (window.closeRadar) window.closeRadar();
   toggleThemes(false, true);
   $("#library").hidden = true;
   $("#library-btn").classList.remove("on");

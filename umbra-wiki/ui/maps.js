@@ -1711,6 +1711,7 @@
     if (window.closeLoadout) window.closeLoadout(true);
     if (window.closeHistory) window.closeHistory();
     if (window.closeFieldKit) window.closeFieldKit();
+    if (window.closeRadar) window.closeRadar();
     toggleThemes(false, true);
     $("#library").hidden = true; $("#library-btn").classList.remove("on");
     el.hidden = false;

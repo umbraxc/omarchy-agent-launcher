@@ -28,6 +28,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import maps  # noqa: E402  (offline maps: maps.py next to this file)
+import radar  # noqa: E402  (signals & radar: radar.py next to this file)
 
 HOME = os.path.expanduser("~")
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -1988,7 +1989,7 @@ def apply_settings(update):
             if isinstance(update.get(key), bool):
                 settings[key] = update[key]
         if isinstance(update.get("hiddenControls"), list):
-            allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "fieldkit-btn", "theme-btn", "sound", "lock"}
+            allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "fieldkit-btn", "radar-btn", "theme-btn", "sound", "lock"}
             settings["hiddenControls"] = [c for c in update["hiddenControls"] if c in allowed]
         if update.get("background") in ("rain", "rise", "rings", "stars", "forest", "snow", "aurora",
                                          "embers", "radar", "none"):
@@ -2677,6 +2678,12 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(get_safety())
         if path == "/api/folders":
             return self.send_json(get_folders())
+        if path == "/api/radar":
+            # Signals & Radar: the Wi-Fi and Bluetooth signals heard now.
+            qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            return self.send_json(radar.scan(rescan=qs.get("scan", ["0"])[0] == "1"))
+        if path == "/api/vitals":
+            return self.send_json({**radar.vitals(), "cpu": cpu_status()})
         if path == "/api/whatsnew":
             return self.send_json(whats_new())
         # Map tiles: /api/tile/z/x/y (roads, places...), /api/points/15/x/y
