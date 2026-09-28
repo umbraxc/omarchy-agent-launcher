@@ -37,7 +37,7 @@ exe = EXE(
     pyz,
     a.scripts,
     # UTF-8 mode: Umbra's files are UTF-8, whatever Windows' own code page is.
-    [("X utf8_mode=1", None, "OPTION")],
+    [("X utf8", None, "OPTION")],
     exclude_binaries=True,
     name="Umbra Wiki",
     icon=os.path.join(ROOT, "windows", "umbra.ico"),
