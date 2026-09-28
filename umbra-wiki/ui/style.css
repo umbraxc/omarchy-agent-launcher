@@ -2173,3 +2173,7 @@ body.reduce-motion .v-a { animation: none; -webkit-text-fill-color: currentColor
 .rd-kv b { color: var(--fg-bright); font-weight: 600; text-align: right; }
 .rd-spectrum { display: block; width: 100%; height: 90px; background: var(--bg-2); border: 1px solid var(--line); }
 @media (max-width: 1100px) { .rd-body { grid-template-columns: minmax(0, 1fr) minmax(220px, 280px); } .rd-left { display: none; } }
+
+.hpic { flex: none; width: 58px; margin: 0 0 0 6px; font: 700 8.5px/1.1 var(--font); color: var(--fc, var(--signal)); opacity: .75; white-space: pre; text-align: center; }
+.hist-row:hover .hpic { opacity: 1; }
+.hb-pic { margin: 0; font: 700 8.5px/1.1 var(--font); color: var(--fc); white-space: pre; }

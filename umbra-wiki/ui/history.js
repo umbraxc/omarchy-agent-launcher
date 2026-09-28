@@ -45,6 +45,42 @@
     if (!panel.hidden) load();
   };
 
+  // ------------------------------------------------------ small pictures
+
+  // Every conversation gets a little ASCII picture of what it was about
+  // (two frames, swapped slowly; faster under the mouse).
+  const PICS = [
+    [/water|drink|filter|purif|boil|thirst|rain/i, ["  .  \n ( ) \n ~~~ ", " . . \n ( ) \n~~~~~"]],
+    [/fire|burn|stove|warm|heat(?!stroke)|smoke/i, ["  )  \n ) ( \n/\\/\\", "  (  \n ( ) \n/\\/\\"]],
+    [/bleed|wound|cpr|first aid|injur|medic|pain|fever|sick|burnt|fractur|choking|doctor|health/i, [" ┌┐  \n─┘└─ \n─┐┌─ \n └┘  ", " ┌┐  \n─┘└─·\n─┐┌─ \n └┘  "]],
+    [/shelter|tent|camp|cabin|sleep|cold|freez|snow/i, ["  /\\  \n /  \\ \n/____\\", "  /\\  \n /░░\\ \n/____\\"]],
+    [/food|eat|cook|hunt|fish|garden|forag|ration|store/i, [" ___ \n|~~~|\n|___|", " _°_ \n|~~~|\n|___|"]],
+    [/map|navig|compass|lost|route|north|walk|hike/i, ["  N  \nW ✦ E\n  S  ", "  N  \nW ✧ E\n  S  "]],
+    [/power|electric|battery|solar|generator|outage|blackout/i, [" ┌─┐ \n │ϟ│ \n └┬┘ ", " ┌─┐ \n │ │ \n └┬┘ "]],
+    [/radio|signal|morse|phone|call|comms/i, ["((·))\n  |  \n  |  ", "(( · ))\n  |  \n  |  "]],
+    [/flood|storm|earthquake|wildfire|weather|hurricane|tornado/i, ["▗▄▄▄▖\n ╱╱╱ \n╱╱╱  ", "▗▄▄▄▖\n  ╱╱╱\n ╱╱╱ "]],
+    [/repair|fix|tool|engine|car|pipe|leak/i, ["  ┌┐ \n ─┤├─\n  └┘ ", " ─┐┌─\n  ├┤ \n ─┘└─"]],
+  ];
+  const GENERAL = [" ┌───┐\n │ ≡ │\n └───┘", " ┌───┐\n │ ≡·│\n └───┘"];
+  const picFor = (title) => (PICS.find(([re]) => re.test(title || "")) || [0, GENERAL])[1];
+  let picTimer = 0, picTick = 0;
+  function animatePics() {
+    clearInterval(picTimer);
+    picTimer = setInterval(() => {
+      if (panel.hidden) { clearInterval(picTimer); return; }
+      if (document.body.classList.contains("reduce-motion") || window.offgrid) return;
+      picTick++;
+      list.querySelectorAll(".hist-row").forEach((row, i) => {
+        const hot = row.matches(":hover");
+        if (!hot && (picTick + i) % 5) return;
+        const f = picFor(row.dataset.title);
+        row.querySelector(".hpic").textContent = f[(hot ? picTick : Math.floor((picTick + i) / 5)) % f.length];
+      });
+      const fold = panel.querySelector(".hist-brief .hb-pic");
+      if (fold) fold.textContent = picTick % 8 < 4 ? " ___\n|__ \\___\n|   ≡   |\n|_______|" : " ___\n|__ \\___\n|  ≡ ≡  |\n|_______|";
+    }, 450);
+  }
+
   // ---------------------------------------------------------- listing
 
   const dayStart = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -104,7 +140,7 @@
     if (f) {
       if (!brief) { brief = document.createElement("div"); brief.className = "hist-brief"; panel.insertBefore(brief, list); }
       brief.style.setProperty("--fc", fcolor(f));
-      brief.innerHTML = `<span class="g">\u{F024B}</span><div><b></b><small></small></div><button class="ghost hb-edit">✎ EDIT</button>`;
+      brief.innerHTML = `<pre class="hb-pic"> ___\n|__ \\___\n|   ≡   |\n|_______|</pre><div><b></b><small></small></div><button class="ghost hb-edit">✎ EDIT</button>`;
       brief.querySelector("b").textContent = f.name.toUpperCase();
       brief.querySelector("small").textContent = f.brief ? "Umbra keeps in mind: " + f.brief : "No brief yet. Add one and Umbra reads it in every conversation of this folder.";
       brief.querySelector(".hb-edit").addEventListener("click", () => editFolder(f));
@@ -213,7 +249,8 @@
       row.classList.toggle("in-folder", !!fold);
       row.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/umbra-conv", c.id); row.classList.add("dragging"); });
       row.addEventListener("dragend", () => row.classList.remove("dragging"));
-      row.innerHTML = `<button class="hopen"><span class="htitle"></span><span class="hmeta"></span>${c.snippet ? '<span class="hsnip"></span>' : ""}</button>
+      row.dataset.title = c.title || "";
+      row.innerHTML = `<pre class="hpic">${escapeHtml(picFor(c.title)[0])}</pre><button class="hopen"><span class="htitle"></span><span class="hmeta"></span>${c.snippet ? '<span class="hsnip"></span>' : ""}</button>
         <span class="hactions"><button class="ghost hpin ${c.pinned ? "on" : ""}" title="${c.pinned ? "Unpin" : "Pin to the top"}">\u{F0403}</button>
         <button class="ghost hmove" title="Move to a folder">\u{F024B}</button>
         <button class="ghost hexp" title="Export this conversation">󰈇</button>
@@ -234,6 +271,7 @@
       row.querySelector(".hexp").addEventListener("click", () => exportTo({ what: "conversation", id: c.id }, "this conversation"));
       list.appendChild(row);
     });
+    animatePics();
     $("#hist-foot").innerHTML = dir ? `Saved on this computer only, in <code></code>` : "";
     if (dir) $("#hist-foot code").textContent = dir;
   }
