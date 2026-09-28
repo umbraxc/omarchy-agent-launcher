@@ -110,7 +110,23 @@
                 count: 0, cycles: 0, start: 0, next: 0, breathing: 0, timer: 0, minutes: 0 };
   const BPM = 110;
 
+  // MEDIC has pages: life support (here), and assess, calculate, patient
+  // and guides (medic.js).
+  const MSUBS = [["life", "LIFE SUPPORT", "heart"], ["assess", "ASSESS", "brain"], ["calculate", "CALCULATE", "thermo"],
+                 ["patient", "PATIENT", "hand"], ["guides", "GUIDES", "bandage"]];
+  let msub = store.get("msub", "life");
   function medic(body) {
+    if (!window.UmbraMedic) msub = "life";
+    body.innerHTML = `<div class="fk-subnav">${MSUBS.map(([id, name, icon]) => `<button data-s="${id}" class="${id === msub ? "on" : ""}"><span class="g">${I[icon]}</span>${name}</button>`).join("")}</div><div class="fk-msub"></div>`;
+    body.querySelectorAll(".fk-subnav button").forEach((b) => b.addEventListener("click", () => {
+      if (msub === b.dataset.s) return;
+      msub = b.dataset.s; store.set("msub", msub); Sound.click(); medic(body);
+    }));
+    const inner = body.querySelector(".fk-msub");
+    if (msub !== "life") { window.UmbraMedic[msub](inner); return; }
+    lifeSupport(inner);
+  }
+  function lifeSupport(body) {
     body.innerHTML = `<div class="fk-grid">
       <section class="fk-card fk-cpr">
         <div class="fk-h"><span class="g">${I.heart}</span> CPR METRONOME</div>

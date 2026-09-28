@@ -1921,3 +1921,71 @@ body.reduce-motion .pf-scan { display: none; }
   color: var(--dim); background: var(--bg-2); border: 1px solid var(--line); }
 .mp-wp-color i { width: 13px; height: 13px; background: var(--mc); border: 1px solid rgba(0, 0, 0, .5); }
 .mp-wp-color.on { border-color: var(--signal); box-shadow: 0 0 0 1px var(--signal); color: var(--fg-bright); }
+
+/* ---------------------------------------------------------- medic pages */
+
+.fk-subnav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.fk-subnav button { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; cursor: pointer; font: 700 10px var(--font); letter-spacing: .18em;
+  color: var(--dim); background: var(--bg-1); border: 1px solid var(--line); border-bottom: 2px solid transparent; }
+.fk-subnav button .g { font-size: 13px; color: var(--signal); }
+.fk-subnav button:hover { color: var(--fg-bright); }
+.fk-subnav button.on { color: var(--fg-bright); border-color: var(--signal); border-bottom-color: var(--signal); background: var(--signal-soft); }
+.md-q { min-height: 96px; padding: 10px 12px; margin-bottom: 10px; background: var(--bg-2); border: 1px dashed var(--line); }
+.md-ask { margin: 0 0 8px; color: var(--fg-bright); font-size: 13px; line-height: 1.45; }
+.md-tag { padding: 8px 12px; border-left: 4px solid var(--tc); background: color-mix(in srgb, var(--tc) 16%, transparent); }
+.md-tag b { color: var(--tc); letter-spacing: .3em; font-size: 14px; }
+.md-tag p { margin: 4px 0 0; font-size: 11.5px; color: var(--fg); }
+.md-red { --tc: #e0493f; } .md-yellow { --tc: #e0b83a; } .md-green { --tc: #3fae5a; } .md-black { --tc: #8a93a6; }
+.md-tally { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.md-t { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px; border-top: 3px solid var(--tc); background: var(--bg-2); }
+.md-t b { font-size: 8.5px; letter-spacing: .14em; color: var(--tc); }
+.md-t .md-n { font-size: 20px; font-weight: 800; color: var(--fg-bright); }
+.md-t .ghost { padding: 1px 8px; font-size: 11px; }
+.md-gcs { margin-bottom: 8px; }
+.md-gcs small { font-size: 9px; letter-spacing: .24em; color: var(--faint); }
+.md-opts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.md-opts button { display: flex; align-items: center; gap: 6px; padding: 4px 8px; cursor: pointer; font: 11px var(--font); color: var(--dim); background: var(--bg-2); border: 1px solid var(--line); }
+.md-opts button b { color: var(--signal); }
+.md-opts button.on { color: var(--fg-bright); border-color: var(--signal); background: var(--signal-soft); }
+.md-score { display: flex; align-items: baseline; gap: 12px; padding: 8px 12px; margin: 8px 0; border-left: 4px solid #3fae5a; background: var(--bg-2); }
+.md-score b { font-size: 26px; color: var(--fg-bright); }
+.md-score span { font-size: 10.5px; letter-spacing: .12em; color: var(--dim); }
+.md-score.mid { border-left-color: #e0b83a; } .md-score.bad { border-left-color: #e0493f; }
+.md-sub { margin-top: 14px; }
+.md-avpu { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.md-avpu div { display: flex; gap: 10px; align-items: center; padding: 6px 8px; background: var(--bg-2); border: 1px solid var(--line); }
+.md-avpu b { font-size: 18px; color: var(--signal); width: 18px; text-align: center; }
+.md-avpu span { font-size: 11.5px; color: var(--fg-bright); }
+.md-avpu small { display: block; font-size: 10px; color: var(--dim); }
+.md-vitals th { text-align: left; font-size: 9px; letter-spacing: .2em; color: var(--faint); font-weight: 400; }
+.md-areas { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; margin-bottom: 6px; }
+.md-areas small { color: var(--faint); }
+.md-in { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
+.md-in > span { font-size: 9px; letter-spacing: .22em; color: var(--faint); }
+.md-in input, .md-in select { font: 12.5px var(--font); color: var(--fg-bright); background: var(--bg-2); border: 1px solid var(--line); padding: 6px 8px; outline: 0; min-width: 0; }
+.md-in input:focus, .md-in select:focus { border-color: var(--signal); }
+.md-row3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 0 8px; }
+.md-out { padding: 8px 10px; margin: 8px 0; font-size: 11.5px; line-height: 1.55; color: var(--fg); background: var(--signal-soft); border-left: 2px solid var(--signal); }
+.md-out b { color: var(--fg-bright); }
+.md-recipe { font-size: 11.5px; line-height: 1.55; color: var(--fg); margin: 0; }
+.md-recipe b { color: var(--fg-bright); }
+.md-brush { display: flex; flex-wrap: wrap; gap: 4px; }
+.md-brush button { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; cursor: pointer; font: 700 9px var(--font); letter-spacing: .14em; color: var(--dim); background: var(--bg-2); border: 1px solid var(--line); }
+.md-brush i { width: 9px; height: 9px; background: var(--hc); }
+.md-brush button.on { color: var(--fg-bright); border-color: var(--hc); box-shadow: 0 0 0 1px var(--hc); }
+.md-bodies { display: flex; justify-content: center; gap: 18px; margin: 8px 0; }
+.md-body { width: 130px; height: auto; }
+.md-body path { fill: var(--bg-2); stroke: color-mix(in srgb, var(--fg) 45%, transparent); stroke-width: .8; cursor: pointer; transition: fill .15s; }
+.md-body path:hover { stroke: var(--signal); stroke-width: 1.3; }
+.md-side { font: 700 5px var(--font); letter-spacing: .12em; fill: var(--faint); text-anchor: middle; }
+.md-marks { font-size: 10.5px; color: var(--dim); line-height: 1.5; }
+.md-log { max-height: 260px; overflow-y: auto; margin-top: 8px; }
+.md-entry { display: flex; gap: 10px; padding: 5px 0; border-bottom: 1px dashed var(--line); font-size: 11.5px; }
+.md-entry b { color: var(--signal); flex: none; }
+.md-report { margin: 8px 0; padding: 10px; font: 11px/1.55 var(--font); color: var(--fg-bright); background: var(--bg-2); border: 1px solid var(--line); white-space: pre-wrap; }
+.md-guides { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.md-guide { border-top: 3px solid var(--cat); }
+.md-guide .fk-h { color: var(--cat); }
+.md-guide ol { margin: 0; padding-left: 18px; font-size: 11.5px; line-height: 1.55; color: var(--fg); }
+.md-guide li { margin: 4px 0; }
+.md-guide b { color: var(--fg-bright); }
