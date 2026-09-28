@@ -19,7 +19,7 @@
     help: "\u{F0625}", alarm: "\u{F0020}", bolt: "\u{F140B}", knot: "\u{F0339}", pin: "\u{F034E}", night: "\u{F0594}",
     fire: "\u{F0238}", hand: "\u{F0E46}", hospital: "\u{F02E0}",
   };
-  const TABS = [["medic", "MEDIC"], ["sky", "SUN & MOON"], ["supplies", "SUPPLIES"], ["training", "TRAINING"], ["cards", "CARDS"]];
+  const TABS = [["medic", "MEDIC"], ["sky", "SUN & MOON"], ["supplies", "SUPPLIES"], ["vault", "VAULT"], ["training", "TRAINING"], ["cards", "CARDS"]];
   let tab = "medic";
   const store = {
     get(k, d) { try { const v = localStorage.getItem("umbra-fk-" + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
@@ -74,7 +74,7 @@
     el.querySelectorAll(".lo-tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === tab));
     const body = el.querySelector(".fk-body");
     body.scrollTop = 0;
-    ({ medic: medic, sky: sky, supplies: supplies, training: training, cards: cards })[tab](body);
+    ({ medic: medic, sky: sky, supplies: supplies, vault: (b) => (window.UmbraVault ? UmbraVault.render(b) : null), training: training, cards: cards })[tab](body);
     tip();
   }
   const TIPS = {
@@ -88,6 +88,9 @@
     supplies: ["The usual rule is 3.8 litres (a gallon) of water per person per day, double in hot weather.",
                "Keep at least 3 days of water and food; two weeks is a strong reserve.",
                "Don't ration water: drink what you need, and cut sweat instead (rest, shade)."],
+    vault: ["Store firearms unloaded and locked, and ammunition separately, cool and dry.",
+            "Sealed ammunition kept cool and dry lasts for decades; rotate the oldest first.",
+            "Treat every firearm as loaded; never point it at anything you don't intend to shoot."],
     training: ["SOS is ··· ——— ···: three short, three long, three short, sent as one word.",
                "Learn Morse by sound, not by counting dots: listen to whole letters.",
                "The signal lamp turns this screen into a flashing light for SOS at night."],
@@ -1004,6 +1007,6 @@
   window.closeFieldKit = () => { if (!$("#fieldkit").hidden) toggle(false, true); };
   window.UmbraFieldKit = { sunTimes, moonLight, moonTimes, needs: () => sup && needs(),
     // Opens the kit on a tab (and a training sub-tab), e.g. open("training", "morse").
-    astro: { toDays, sidereal, sunCoords, moonCoords, moonLight },
+    astro: { toDays, sidereal, sunCoords, moonCoords, moonLight }, hasVault: true,
     open: (t, st) => { if (t && TABS.some(([id]) => id === t)) tab = t; if (st) sub = st; if ($("#fieldkit").hidden) toggle(true); else render(); } };
 })();

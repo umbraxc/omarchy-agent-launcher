@@ -244,6 +244,46 @@ def save_waypoints(items):
     return clean
 
 
+# ------------------------------------------------------------------- vault
+
+# The Field Kit's Vault: the user's own inventory of firearms, ammunition and
+# defence gear. Behind the lock password when one is set (checked here for
+# every read and write); the file is readable by the user only. Not
+# encrypted: the password keeps the screen private, like the lock screen.
+VAULT_FILE = os.path.join(DATA_DIR, "vault.json")
+VAULT_KINDS = ("weapon", "ammo", "gear")
+
+
+def get_vault():
+    items = read_json(VAULT_FILE, {}).get("items", [])
+    return items if isinstance(items, list) else []
+
+
+def save_vault(items):
+    if not isinstance(items, list):
+        raise ValueError("bad vault")
+    clean = []
+    num = lambda v, hi: max(0, min(hi, int(v))) if isinstance(v, (int, float)) and not isinstance(v, bool) else 0
+    text = lambda v, n: re.sub(r"\s+", " ", str(v or "")).strip()[:n]
+    for it in items[:400]:
+        if not isinstance(it, dict) or it.get("kind") not in VAULT_KINDS:
+            continue
+        iid = str(it.get("id") or "")
+        if not re.fullmatch(r"[a-z0-9]{4,24}", iid):
+            continue
+        clean.append({"id": iid, "kind": it["kind"], "model": re.sub(r"[^a-z0-9-]", "", str(it.get("model") or ""))[:40],
+                      "name": text(it.get("name"), 60) or "Item", "calibre": text(it.get("calibre"), 40),
+                      "count": num(it.get("count"), 99999), "serial": text(it.get("serial"), 40),
+                      "where": text(it.get("where"), 60), "condition": text(it.get("condition"), 20),
+                      "notes": str(it.get("notes") or "").strip()[:400], "added": num(it.get("added"), 10**14) or int(time.time() * 1000)})
+    write_json(VAULT_FILE, {"items": clean})
+    try:
+        os.chmod(VAULT_FILE, 0o600)
+    except OSError:
+        pass
+    return clean
+
+
 # ------------------------------------------------------------------ safety
 
 # How safe the user considers each country (their own judgement, shown as a
@@ -1754,7 +1794,7 @@ def reset_umbra():
     are deleted (downloaded maps stay, like the library). The AI model,
     the library and config.json (model, library folder) are kept."""
     for path in (SETTINGS_FILE, PROFILE_FILE, CUSTOM_THEMES_FILE, PERSONALITIES_FILE, SCENARIOS_FILE, LOCK_FILE, ACH_FILE,
-                 WAYPOINTS_FILE, SUPPLIES_FILE, SAFETY_FILE, FOLDERS_FILE):
+                 WAYPOINTS_FILE, SUPPLIES_FILE, SAFETY_FILE, FOLDERS_FILE, VAULT_FILE):
         try:
             os.remove(path)
         except OSError:
@@ -2140,7 +2180,7 @@ def backup(include_history, target=""):
         "settings": read_json(SETTINGS_FILE, {}), "profile": get_profile(),
         "themes": custom_themes(), "personalities": custom_personalities(), "scenarios": custom_scenarios(),
         "achievements": read_json(ACH_FILE, {}), "waypoints": get_waypoints(), "supplies": get_supplies(),
-        "safety": get_safety()["levels"], "folders": get_folders()["folders"],
+        "safety": get_safety()["levels"], "folders": get_folders()["folders"], "vault": get_vault(),
         "history": [read_json(history_path(i["id"]), {}) for i in history_list()["items"]] if include_history else [],
     }
     path = os.path.join(folder, f"umbra-backup-{time.strftime('%Y-%m-%d-%H%M')}.json")
@@ -2162,6 +2202,13 @@ def restore(data):
         try:
             save_supplies(data["supplies"])
         except (ValueError, TypeError):
+            pass
+    if isinstance(data.get("vault"), list) and data["vault"]:
+        try:
+            mine = {v["id"]: v for v in get_vault()}
+            mine.update({v.get("id"): v for v in data["vault"] if isinstance(v, dict)})
+            save_vault(list(mine.values()))
+        except ValueError:
             pass
     if isinstance(data.get("folders"), list) and data["folders"]:
         try:
@@ -2861,6 +2908,17 @@ class Handler(BaseHTTPRequestHandler):
                     record("quartermaster")
                 return self.send_json(out)
             except (ValueError, TypeError) as e:
+                return self.send_json({"error": str(e)}, 400)
+        if self.path in ("/api/vault/open", "/api/vault/save"):
+            req = self.read_json()
+            if not check_password(str(req.get("password", ""))):
+                time.sleep(0.6)
+                return self.send_json({"error": "wrong password"}, 403)
+            if self.path == "/api/vault/open":
+                return self.send_json({"items": get_vault(), "password": has_password()})
+            try:
+                return self.send_json({"items": save_vault(req.get("items"))})
+            except ValueError as e:
                 return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/safety":
             try:

@@ -2001,3 +2001,63 @@ body.reduce-motion .pf-scan { display: none; }
 .orr-l-sun { background: var(--signal); } .orr-l-moon { background: var(--fg); margin-left: 6px; }
 .orr-legend b { color: var(--red); margin-left: 6px; }
 .orr-lapse { padding: 3px 9px; font-size: 9.5px; }
+
+/* --------------------------------------------------------------- vault */
+
+.v-gate { display: flex; flex-wrap: wrap; gap: 30px; align-items: center; justify-content: center; padding: 30px 10px; }
+.v-door { margin: 0; font: 700 15px/1.05 var(--font); color: var(--signal); text-shadow: 0 0 12px var(--signal-soft); transform-origin: left center;
+  transition: transform .5s cubic-bezier(.5, 0, .7, 1), opacity .5s; }
+.v-door.open { transform: perspective(600px) rotateY(-80deg); opacity: .2; }
+.v-door.shake { animation: v-shake .35s ease-in-out; }
+@keyframes v-shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+.v-gate-side { width: min(380px, 100%); display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.v-pw { width: 100%; box-sizing: border-box; font: 14px var(--font); letter-spacing: .3em; color: var(--fg-bright); background: var(--bg-2); border: 1px solid var(--line); padding: 8px 10px; outline: 0; }
+.v-pw:focus { border-color: var(--signal); }
+.v-msg { color: var(--red); font-size: 11px; }
+.v-top { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; margin-bottom: 12px; }
+.v-stat { display: flex; flex-direction: column; gap: 2px; padding: 6px 12px; background: var(--bg-1); border: 1px solid var(--line); border-top: 2px solid var(--signal); }
+.v-stat small { font-size: 8.5px; letter-spacing: .16em; color: var(--faint); }
+.v-stat b { font-size: 16px; color: var(--fg-bright); }
+.v-top-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.v-main { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 14px; align-items: start; }
+@media (max-width: 900px) { .v-main { grid-template-columns: 1fr; } }
+.v-group { margin-bottom: 12px; }
+.v-row { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; padding: 7px 8px; cursor: pointer; text-align: left;
+  font: 12px var(--font); color: var(--fg); background: var(--bg-1); border: 1px solid var(--line); border-left: 2px solid transparent; margin-bottom: 4px; }
+.v-row:hover { border-left-color: var(--dim); }
+.v-row.on { border-color: var(--signal); border-left-color: var(--signal); background: var(--signal-soft); }
+.v-mini { margin: 0; font: 7px/1 var(--font); color: var(--signal); overflow: hidden; white-space: pre; }
+.v-row b { display: block; color: var(--fg-bright); font-weight: 600; }
+.v-row small { display: block; font-size: 9.5px; letter-spacing: .06em; color: var(--dim); }
+.v-row em { font-style: normal; color: var(--signal); font-size: 11px; }
+.v-card { position: relative; padding: 14px 16px; background: var(--bg-1); border: 1px solid var(--line); }
+.v-card::before, .v-card::after { content: ""; position: absolute; width: 12px; height: 12px; border: 2px solid var(--signal); }
+.v-card::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+.v-card::after { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+.v-card-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
+.v-card-head span { font-size: 9.5px; letter-spacing: .3em; color: var(--signal); }
+.v-card-head b { font-size: 18px; letter-spacing: .14em; color: var(--fg-bright); }
+/* The inspect drawing, with a slow light sweeping over the metal. */
+.v-art { position: relative; margin: 0 0 12px; padding: 16px 8px; overflow-x: auto; font: 700 13.5px/1.12 var(--font); white-space: pre; text-align: center;
+  background: repeating-linear-gradient(0deg, transparent 0 3px, color-mix(in srgb, var(--fg) 3%, transparent) 3px 4px), var(--bg); border: 1px solid var(--line); }
+.v-a { color: var(--fg-bright); background: linear-gradient(100deg, var(--fg) 40%, var(--fg-bright) 50%, var(--fg) 60%) 0 0 / 300% 100%;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation: v-sheen 5s linear infinite; }
+@keyframes v-sheen { from { background-position: 150% 0; } to { background-position: -150% 0; } }
+body.reduce-motion .v-a { animation: none; -webkit-text-fill-color: currentColor; }
+.v-l { color: var(--signal); transition: opacity .2s; }
+.v-k { color: color-mix(in srgb, var(--signal) 55%, transparent); transition: opacity .2s; }
+.v-specs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; margin-bottom: 10px; }
+.v-specs div { padding: 6px 8px; background: var(--bg-2); border-left: 2px solid var(--signal); }
+.v-specs div.v-low { border-left-color: var(--red); }
+.v-specs small { display: block; font-size: 8.5px; letter-spacing: .2em; color: var(--faint); }
+.v-specs b { font-size: 11.5px; color: var(--fg-bright); font-weight: 600; }
+.v-note { font-size: 11.5px; color: var(--dim); margin: 0 0 10px; line-height: 1.5; }
+.v-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0 10px; }
+.v-card textarea { width: 100%; box-sizing: border-box; font: 12px var(--font); color: var(--fg-bright); background: var(--bg-2); border: 1px solid var(--line); padding: 6px 8px; outline: 0; resize: vertical; }
+.v-saved { color: var(--signal); font-size: 11px; }
+.v-lib { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; max-height: 420px; overflow-y: auto; }
+.v-libi { display: flex; flex-direction: column; gap: 3px; padding: 8px; cursor: pointer; text-align: left; font: 11.5px var(--font); color: var(--fg); background: var(--bg-2); border: 1px solid var(--line); }
+.v-libi:hover { border-color: var(--signal); background: var(--signal-soft); }
+.v-libi pre { margin: 0 0 4px; font: 7px/1 var(--font); color: var(--signal); white-space: pre; overflow: hidden; }
+.v-libi b { color: var(--fg-bright); font-weight: 600; }
+.v-libi small { color: var(--dim); font-size: 9.5px; }
