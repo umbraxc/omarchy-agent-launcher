@@ -239,6 +239,7 @@
     $("#radar .rd-count").textContent = all.length ? `· ${all.length}` : "";
     const w = data.wifi, b = data.bluetooth;
     let html = "";
+    if (data.windows) html += `<p class="lib-note">On Windows the radar hears Wi-Fi networks. Bluetooth devices and the kill switch aren't available here: use Windows' airplane mode to switch every radio off.</p>`;
     if (data.wsl) html += `<p class="lib-note">Umbra is running inside Windows (WSL). Windows keeps Wi-Fi and Bluetooth to itself, so the radar can't hear any signals here; the system panels still work.</p>`;
     else if (show.wifi && w.available === false) html += `<p class="lib-note">No Wi-Fi adapter found.</p>`;
     else if (show.wifi && w.enabled === false) html += `<p class="lib-note">Wi-Fi is switched off. Turn it on to see the networks around you.</p>`;
@@ -416,7 +417,7 @@
     fullOn = !fullOn;
     $("#radar").classList.toggle("full", fullOn);
     $("#radar .rd-full").classList.toggle("on", fullOn);
-    try { window.webkit.messageHandlers.umbra.postMessage(fullOn ? "fullscreen" : "unfullscreen"); } catch {}
+    window.umbraNative(fullOn ? "fullscreen" : "unfullscreen");
     Sound.click();
   }
   async function kill(off) {
@@ -450,7 +451,7 @@
     if (picked) { const s = signals().find((x) => x.id === picked.id); if (s && !$("#radar .rd-detail").hidden) picked = s; }
     list();
     if (force) Sound.found();
-    $("#radar .rd-kill").hidden = !!data.wsl;   // no radios to switch inside WSL
+    $("#radar .rd-kill").hidden = !!(data.wsl || data.windows);   // no radios to switch inside WSL or from the Windows app
     scanTimer = setTimeout(scan, 10000);
   }
 

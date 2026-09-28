@@ -364,7 +364,16 @@
     // A fresh install may not have started Ollama yet (packages can't start
     // services themselves): explain how, and check again.
     let core = await fetch("/api/status").then((r) => r.json()).catch(() => ({}));
-    while (!core.ollama && !AUTO) {
+    while (!core.ollama && !AUTO && core.platform === "windows") {
+      a = await say("First, my AI engine **Ollama** isn't installed or running yet. The Umbra installer offers it; if you skipped it, " +
+        "get it from **ollama.com/download** (free, about a gigabyte), install it, and check again.");
+      const pick = await choose(a, [["OPEN OLLAMA.COM ▸", "get", true], ["CHECK AGAIN", "again"], ["SKIP FOR NOW", "skip"]]);
+      if (pick === "skip") break;
+      if (pick === "get") fetch("/api/open", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: "https://ollama.com/download/windows" }) });
+      core = await fetch("/api/status").then((r) => r.json()).catch(() => ({}));
+      if (core.ollama) await say("There it is. Ollama is running.");
+    }
+    while (!core.ollama && !AUTO && core.platform !== "windows") {
       a = await say("First, my AI engine **Ollama** isn't running yet. Start it once with this command in a terminal, " +
         "and it will start by itself from then on:\n\n`sudo systemctl enable --now ollama`");
       if (await choose(a, [["I'VE STARTED IT, CHECK AGAIN ▸", "again", true], ["SKIP FOR NOW", "skip"]]) === "skip") break;

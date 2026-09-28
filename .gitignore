@@ -1,2 +1,9 @@
 __pycache__/
 *.pyc
+
+# The Windows build (windows/prepare.py, PyInstaller)
+windows/build/
+/build/
+/dist/
+selftest.*
+window.png

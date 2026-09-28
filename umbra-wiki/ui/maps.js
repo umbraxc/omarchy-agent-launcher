@@ -1868,7 +1868,7 @@
     fullOn = !fullOn;
     $("#maps").classList.toggle("full", fullOn);
     $("#maps .mp-t[data-t=full]").classList.toggle("on", fullOn);
-    try { window.webkit.messageHandlers.umbra.postMessage(fullOn ? "fullscreen" : "unfullscreen"); } catch {}
+    window.umbraNative(fullOn ? "fullscreen" : "unfullscreen");
     Sound.click();
   }
 

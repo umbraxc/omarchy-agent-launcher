@@ -18,6 +18,7 @@
   const panel = $("#settings");
   let pullTimer = 0;
   let packagedInstall = false;   // installed with pacman (the AUR): removal goes through pacman
+  let onWindowsApp = false;      // the Windows app: removal ends in Windows' own uninstaller
   const body = $("#settings-body");
 
   // Hidden buttons glitch out and the rest close up to the right; shown ones
@@ -288,6 +289,7 @@
       fetch("/api/paths").then((r) => r.json()).catch(() => ({})),
     ]);
     packagedInstall = !!paths.packaged;
+    const onWindows = onWindowsApp = paths.installKind === "windows";
     body.innerHTML = `
       <section class="set-section set-cpu"><div class="lib-head"><span>PERFORMANCE</span><b class="cpu-now"></b></div>
         <canvas class="cpu-graph" aria-label="Processor use over the last minute"></canvas>
@@ -394,14 +396,17 @@
         <div class="set-row"><span class="set-text"><b>Check for updates</b><small class="set-update-note">Asks GitHub for the newest
           release. Only this check goes online, and nothing about you is sent.</small></span>
           <button class="ghost set-update">CHECK NOW</button></div>
+        <div class="set-win-only" hidden>${toggle("autoUpdate", "Check automatically", "Once a day, when you're online, Umbra asks GitHub for a newer version and offers to install it")}</div>
         <details class="set-manual"><summary>How to update by hand</summary>
+          <div class="set-howto" data-kind="windows"><b>Windows app</b>: download the newest installer and run it; it keeps everything of yours
+            <code>github.com/umbraxc/omarchy-umbra/releases/latest</code></div>
           <div class="set-howto" data-kind="package"><b>Installed with pacman</b> (the [umbra] repository)
             <code>sudo pacman -Syu</code></div>
           <div class="set-howto" data-kind="omarchy"><b>Omarchy plugin</b>: updates to <i>Omarchy Umbra</i> arrive through Omarchy's
             plugin marketplace; Umbra runs the new version after the restart below.</div>
           <div class="set-howto" data-kind="clone"><b>From a downloaded copy</b>: in its folder,
             <code>git pull && ./install-arch.sh --update</code></div>
-          <p>Then restart Umbra's background service and reopen this window:
+          <p class="set-linux-only">Then restart Umbra's background service and reopen this window:
             <code>systemctl --user restart umbra-wiki</code></p>
           <p>Your settings, profile, achievements, conversations and library are never touched by an update.
             Every release, with what changed, is listed on GitHub:
@@ -429,6 +434,11 @@
       <p class="set-about">Umbra Wiki <span class="set-version"></span> · part of Omarchy Umbra · sounds by Kenney (CC0) · MIT license</p>`;
     arrange();
     fillPlaces();
+    // The Windows app: automatic updates; no speaker/microphone choice (it
+    // plays through Windows' default output) and no voice input yet.
+    body.querySelectorAll(".set-win-only").forEach((el) => (el.hidden = !onWindows));
+    body.querySelectorAll(".set-linux-only").forEach((el) => (el.hidden = onWindows));
+    if (onWindows) [".set-audio-out", ".set-audio-in"].forEach((sel) => { const row = body.querySelector(sel).closest(".set-row"); if (row) row.hidden = true; });
     body.querySelector(".set-guides").addEventListener("click", (e) => { window.UmbraGuide && UmbraGuide.reset(); e.target.textContent = "DONE ✓"; Sound.found(); });
     body.querySelector(".set-news").addEventListener("click", () => window.UmbraNews && UmbraNews.show());
     fetch("/api/status").then((r) => r.json()).then((s) => {
@@ -452,6 +462,10 @@
       if (r.error) {
         note.textContent = "Couldn't reach GitHub: this computer seems to be offline. Umbra works fine without updates; try again when you're connected.";
         Sound.error();
+      } else if (r.newer && r.installable && window.UmbraUpdate) {
+        note.textContent = `Umbra ${r.latest} is out (you have ${r.current}).`;
+        Sound.found();
+        window.UmbraUpdate.offer(r);
       } else if (r.newer) {
         note.textContent = `Umbra ${r.latest} is out (you have ${r.current}). Update as shown below, under "How to update by hand".`;
         body.querySelector(".set-manual").open = true;
@@ -582,7 +596,9 @@
     setupCpu();
     applySearch();
 
-    body.querySelector(".set-voice").innerHTML = !voice.available
+    body.querySelector(".set-voice").innerHTML = voice.unsupported
+      ? "Voice input isn't available in the Windows app yet. Type your questions; everything else works the same."
+      : !voice.available
       ? `Voice input isn't installed. Install it with <code>${escapeHtml(voice.install || "omarchy-voxtype-install")}</code>, then hold <b>F9</b> to talk.`
       : voice.daemon
         ? "Voice input is ready: hold <b>F9</b> anywhere, or click the microphone next to TRANSMIT. Speech is turned into text offline by voxtype."
@@ -796,7 +812,9 @@
       kind: "error", tag: "UNINSTALL", title: "UNINSTALL UMBRA WIKI?",
       body: "Umbra Wiki, its settings, profile and every conversation will be removed from this computer" +
         (extra.length ? `, together with ${extra.join(" and ")}.` : ". The library and the AI model stay.") +
-        (packagedInstall
+        (onWindowsApp
+          ? "\n\nThis window will close, and Windows' uninstaller opens to remove the app itself."
+          : packagedInstall
           ? "\n\nThis window will close. The app itself was installed as a package: remove it afterwards with\n\nsudo pacman -R umbra-wiki"
           : "\n\nThis window will close. You can set Umbra up again from the Omarchy Umbra widget."),
       ok: "UNINSTALL", cancel: "KEEP UMBRA",
@@ -807,6 +825,7 @@
       body: JSON.stringify({ confirm: "UNINSTALL", library, model }),
     }).catch(() => null);
     document.body.innerHTML = `<div class="goodbye"><pre class="ascii">UMBRA // OFFLINE</pre><p>Umbra Wiki has been uninstalled. Stay safe out there.</p></div>`;
+    if (onWindowsApp) setTimeout(() => window.umbraNative("close"), 2500);   // so Windows' uninstaller can remove the app
   }
 
   // ------------------------------------------------------ open / close

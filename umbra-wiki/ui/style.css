@@ -1,3 +1,12 @@
+/* The Windows app brings its own copy of the font (JetBrains Mono Nerd Font,
+   SIL OFL, in ui/fonts/ of that build only); on Linux the installed one is
+   found first and these files are never asked for. */
+@font-face { font-family: "Umbra Mono"; src: url("fonts/JetBrainsMonoNerdFont-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Umbra Mono"; src: url("fonts/JetBrainsMonoNerdFont-SemiBold.ttf") format("truetype"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Umbra Mono"; src: url("fonts/JetBrainsMonoNerdFont-Bold.ttf") format("truetype"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Umbra Mono"; src: url("fonts/JetBrainsMonoNerdFont-ExtraBold.ttf") format("truetype"); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: "Umbra Mono"; src: url("fonts/JetBrainsMonoNerdFont-Italic.ttf") format("truetype"); font-weight: 400; font-style: italic; font-display: swap; }
+
 /* Umbra Wiki. Every colour comes from the active theme (themes.json), set
    as custom properties on :root by app.js; the values below are the default
    "Umbra" theme so the page is right before the script runs.
@@ -13,7 +22,7 @@
   --accent: #e68e0d; --red: #e06a6a; --net: #5fb8c9;
   --signal-soft: color-mix(in srgb, var(--signal) 12%, transparent);
   --net-soft: color-mix(in srgb, var(--net) 14%, transparent);
-  --font: "JetBrainsMono Nerd Font", "JetBrains Mono", monospace;
+  --font: "JetBrainsMono Nerd Font", "Umbra Mono", "JetBrains Mono", monospace;
   --weight: .25px;          /* a hair heavier than Regular, for readability */
   color-scheme: dark;
 }

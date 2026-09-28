@@ -1,0 +1,109 @@
+# Builds Umbra Wiki for Windows (the app and its installer), tests it on
+# Windows, and attaches the installer to the GitHub release. Runs by itself
+# for every version tag (vX.Y.Z); can also be started by hand for a release
+# that already exists, or to just build (Actions > Windows app > Run workflow).
+
+name: Windows app
+
+on:
+  push:
+    tags: ["v*"]
+    branches: ["windows"]
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Attach the installer to this release (for example v3.1.1). Leave empty to only build and test."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build tools
+        run: python -m pip install -r windows/requirements.txt
+
+      - name: Bundled parts (kiwix-serve, the font), checked against pinned checksums
+        run: python windows/prepare.py
+
+      - name: The app
+        run: pyinstaller windows/umbra.spec --noconfirm
+
+      - name: Self-test (backend, UI files, Windows code paths)
+        run: |
+          $p = Start-Process -FilePath "dist\Umbra Wiki\Umbra Wiki.exe" -ArgumentList "--selftest" -Wait -PassThru
+          Get-Content selftest.log -ErrorAction SilentlyContinue | Select-Object -Last 60
+          if ($p.ExitCode -ne 0) { exit 1 }
+
+      - name: Window check (opens the app and takes a screenshot)
+        continue-on-error: true
+        run: |
+          Start-Process -FilePath "dist\Umbra Wiki\Umbra Wiki.exe"
+          Start-Sleep -Seconds 45
+          python -c "from PIL import ImageGrab; ImageGrab.grab().save('window.png')"
+          Get-Process "Umbra Wiki" -ErrorAction SilentlyContinue | Stop-Process -Force
+          Get-Content "$env:LOCALAPPDATA\UmbraWiki\umbra.log" -ErrorAction SilentlyContinue | Select-Object -Last 40
+
+      - name: The installer
+        run: |
+          $v = (Get-Content windows/build/version).Trim()
+          "VERSION=$v" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
+          & $iscc "/DAppVersion=$v" windows\installer.iss
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          Copy-Item "dist\Umbra-Wiki-Setup-$v.exe" "dist\Umbra-Wiki-Setup.exe"
+          $lines = foreach ($f in "Umbra-Wiki-Setup-$v.exe", "Umbra-Wiki-Setup.exe") {
+            (Get-FileHash "dist\$f" -Algorithm SHA256).Hash.ToLower() + "  " + $f }
+          $lines | Set-Content -Path dist\SHA256SUMS-windows.txt -Encoding ascii
+          Get-Content dist\SHA256SUMS-windows.txt
+          Get-Item dist\*.exe | Select-Object Name, Length
+
+      - name: Installer check (quiet install, self-test of the installed app, uninstall)
+        run: |
+          $p = Start-Process "dist\Umbra-Wiki-Setup-$env:VERSION.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/MERGETASKS=!ollama" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { "setup exit $($p.ExitCode)"; exit 1 }
+          $app = "$env:LOCALAPPDATA\Programs\Umbra Wiki"
+          if (-not (Test-Path "$app\Umbra Wiki.exe")) { "not installed"; exit 1 }
+          $lnk = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Umbra Wiki.lnk"
+          if (-not (Test-Path $lnk)) { "no Start menu entry"; exit 1 }
+          $p = Start-Process -FilePath "$app\Umbra Wiki.exe" -ArgumentList "--selftest" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { Get-Content selftest.json; exit 1 }
+          $p = Start-Process "$app\unins000.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES" -Wait -PassThru
+          Start-Sleep -Seconds 3
+          if (Test-Path "$app\Umbra Wiki.exe") { "uninstall left the app behind"; exit 1 }
+          "installed, tested and uninstalled cleanly"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: umbra-wiki-windows
+          path: |
+            dist/Umbra-Wiki-Setup-*.exe
+            dist/SHA256SUMS-windows.txt
+            selftest.json
+            selftest.log
+            window.png
+
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.release != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.inputs.release || github.ref_name }}
+        run: |
+          # A new tag's release may still be being written: wait for it.
+          for ($i = 0; $i -lt 60; $i++) { gh release view $env:TAG *> $null; if ($LASTEXITCODE -eq 0) { break }; Start-Sleep 10 }
+          gh release upload $env:TAG "dist\Umbra-Wiki-Setup-$env:VERSION.exe" "dist\Umbra-Wiki-Setup.exe" "dist\SHA256SUMS-windows.txt" --clobber

@@ -30,6 +30,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import maps  # noqa: E402  (offline maps: maps.py next to this file)
 import radar  # noqa: E402  (signals & radar: radar.py next to this file)
 
+# The Windows app (built from windows/): its own places, tools and readings.
+WINDOWS = os.name == "nt"
+if WINDOWS:
+    import winplat  # noqa: E402
+    winplat.hide_consoles()
+
 HOME = os.path.expanduser("~")
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 UI_DIR = os.path.join(APP_DIR, "ui")
@@ -38,6 +44,8 @@ UI_DIR = os.path.join(APP_DIR, "ui")
 PACKAGED = APP_DIR.startswith("/usr/")
 CONFIG_DIR = os.path.join((os.environ.get("XDG_CONFIG_HOME") or os.path.join(HOME, ".config")), "umbra-wiki")
 DATA_DIR = os.path.join((os.environ.get("XDG_DATA_HOME") or os.path.join(HOME, ".local", "share")), "umbra-wiki")
+if WINDOWS:   # %APPDATA%\UmbraWiki and %LOCALAPPDATA%\UmbraWiki
+    CONFIG_DIR, DATA_DIR = winplat.config_dir(), winplat.data_dir()
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")      # model, libraryDir (set by setup)
 SETTINGS_FILE = os.path.join(CONFIG_DIR, "settings.json")  # theme, muted (changed from the UI)
 CUSTOM_THEMES_FILE = os.path.join(CONFIG_DIR, "themes.json")  # themes made in the editor
@@ -177,7 +185,7 @@ def start_kiwix():
         print("umbra: no .zim files in", LIBRARY_DIR, file=sys.stderr)
         return 0
     kiwix_proc = subprocess.Popen(
-        ["kiwix-serve", "--address", HOST, "--port", str(KIWIX_PORT), *zims],
+        [winplat.kiwix_exe(APP_DIR) if WINDOWS else "kiwix-serve", "--address", HOST, "--port", str(KIWIX_PORT), *zims],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
     )
     for _ in range(100):
@@ -207,6 +215,18 @@ def stop_kiwix(*_):
     if kiwix_proc and kiwix_proc.poll() is None:
         kiwix_proc.terminate()
     sys.exit(0)
+
+
+def shutdown():
+    """The Windows app is closing: stop what this backend started."""
+    maps.SHUTDOWN.set()
+    if WINDOWS:
+        DOWNLOADS.halt()
+        winplat.stop_ollama()
+    if kiwix_proc and kiwix_proc.poll() is None:
+        kiwix_proc.terminate()
+    if HTTPD:
+        HTTPD.shutdown()
 
 
 def fetch(url, timeout=30, headers=None):
@@ -623,6 +643,8 @@ RELEASES_API = "https://api.github.com/repos/umbraxc/omarchy-umbra/releases/late
 
 def install_kind():
     """How this copy was installed, which decides how it's updated."""
+    if WINDOWS:
+        return "windows"
     if PACKAGED:
         return "package"
     return "omarchy" if "/omarchy/plugins/" in APP_DIR else "clone"
@@ -639,9 +661,60 @@ def check_update():
         return {"current": VERSION, "kind": kind, "error": "offline"}
     latest = str(release.get("tag_name", "")).lstrip("v")
     as_tuple = lambda v: tuple(int(x) for x in re.findall(r"\d+", v)[:3])
-    return {"current": VERSION, "kind": kind, "latest": latest,
-            "newer": bool(latest) and as_tuple(latest) > as_tuple(VERSION),
-            "url": str(release.get("html_url", ""))[:200], "published": str(release.get("published_at", ""))[:10]}
+    out = {"current": VERSION, "kind": kind, "latest": latest,
+           "newer": bool(latest) and as_tuple(latest) > as_tuple(VERSION),
+           "url": str(release.get("html_url", ""))[:200], "published": str(release.get("published_at", ""))[:10]}
+    if WINDOWS:
+        setup, sums = winplat.release_assets(release, latest)
+        out["installable"] = bool(out["newer"] and setup and sums)
+        if out["installable"]:
+            UPDATE.update(setup=setup, sums=sums, version=latest)
+    return out
+
+
+# The Windows app updates itself: it checks once a day (unless switched off
+# in Settings), and on the user's click downloads the new installer, checks
+# it against the release's checksums and runs it; the installer reopens Umbra.
+UPDATE = {}
+UPDATE_FILE = os.path.join(DATA_DIR, "update.json")
+
+
+def auto_update_check():
+    if not WINDOWS or read_json(SETTINGS_FILE, {}).get("autoUpdate") is False:
+        return {}
+    state = read_json(UPDATE_FILE, {})
+    if time.time() - state.get("checked", 0) < 20 * 3600:
+        return state.get("result", {}) if state.get("result", {}).get("current") == VERSION else {}
+    result = check_update()
+    if result.get("error"):
+        return {}
+    write_json(UPDATE_FILE, {"checked": time.time(), "result": result})
+    return result
+
+
+def install_update():
+    if not WINDOWS:
+        raise ValueError("updates on Linux come through its package manager")
+    if not UPDATE.get("setup"):
+        result = check_update()
+        if not result.get("installable"):
+            raise ValueError("no newer version to install" if not result.get("error") else "GitHub can't be reached")
+    if UPDATE.get("busy"):
+        return {"ok": True}
+    UPDATE.update(busy=True, done=0, total=0, error="", ready=False)
+
+    def work():
+        try:
+            path = winplat.download_update(UPDATE["setup"], UPDATE["sums"], UPDATE["version"], WEB_HEADERS,
+                                           lambda done, total: UPDATE.update(done=done, total=total))
+            winplat.run_installer(path)
+            UPDATE.update(ready=True)
+        except Exception as e:
+            UPDATE.update(error=str(e)[:200])
+        finally:
+            UPDATE["busy"] = False
+    threading.Thread(target=work, daemon=True).start()
+    return {"ok": True}
 
 
 # ------------------------------------------------------------------ retrieval
@@ -967,6 +1040,8 @@ _hum = None
 
 def audio_devices():
     """Speakers/headphones and microphones known to PipeWire (via pactl)."""
+    if WINDOWS:   # the window plays through Windows' default output
+        return {"outputs": [], "inputs": [], "out": "", "in": "", "player": "window", "fix": ""}
     def listing(kind):
         try:
             out = subprocess.run(["pactl", "-f", "json", "list", kind], capture_output=True, text=True, timeout=4).stdout
@@ -982,6 +1057,8 @@ def audio_devices():
 def sound_player():
     """Which program plays Umbra's sounds, and the command that installs one
     when there is none (the package lists them as optional)."""
+    if WINDOWS:
+        return {"player": "window", "fix": ""}
     found = player(os.devnull)
     if found:
         return {"player": found[0], "fix": ""}
@@ -1016,7 +1093,10 @@ def set_audio(out=None, source=None):
 
 def player(path):
     """The command that plays a sound: PipeWire's pw-play (to the chosen
-    output), or PulseAudio's paplay on systems that don't run PipeWire."""
+    output), or PulseAudio's paplay on systems that don't run PipeWire.
+    On Windows the window plays them itself (see Sound in app.js)."""
+    if WINDOWS:
+        return None
     runtime = os.environ.get("XDG_RUNTIME_DIR") or "/tmp"
     if shutil.which("pw-play") and os.path.exists(os.path.join(runtime, "pipewire-0")):
         return ["pw-play", *audio_target("audioOut"), "--volume", sound_volume(),
@@ -1068,6 +1148,8 @@ IN_WSL = in_wsl()
 def open_path(target):
     """Open a file, a folder or a web link with the system's own app. Under
     WSL that's Windows (Explorer, the PDF reader, the browser)."""
+    if WINDOWS:
+        return winplat.open_path(target)
     if IN_WSL and shutil.which("explorer.exe"):
         if not re.match(r"^https?://", target) and shutil.which("wslpath"):
             try:
@@ -1629,6 +1711,8 @@ CPU_LIMITS = (25, 50, 75, 100)
 
 def cpu_times():
     """(busy, total) jiffies for the whole CPU, then each core, from /proc/stat."""
+    if WINDOWS:
+        return winplat.cpu_times()
     out = []
     try:
         for line in open("/proc/stat"):
@@ -1645,6 +1729,8 @@ def cpu_times():
 def umbra_ticks():
     """CPU time used so far by Umbra's processes: the local AI (Ollama), the
     library server (kiwix-serve), this backend, and the window with its web view."""
+    if WINDOWS:
+        return winplat.umbra_ticks()
     procs = {}
     for pid in os.listdir("/proc"):
         if not pid.isdigit():
@@ -1668,6 +1754,8 @@ def umbra_ticks():
 
 def physical_cores():
     """Real cores (not threads): what Ollama uses by default."""
+    if WINDOWS:
+        return winplat.physical_cores()
     cores = set()
     phys = core = None
     try:
@@ -1707,6 +1795,8 @@ def ai_options(**extra):
 
 def cpu_temp():
     """The processor temperature in °C, if the system reports it."""
+    if WINDOWS:
+        return None   # Windows doesn't report it without extra drivers
     for hw in glob.glob("/sys/class/hwmon/hwmon*"):
         try:
             if open(hw + "/name").read().strip() in ("coretemp", "k10temp", "zenpower"):
@@ -1743,7 +1833,10 @@ def cpu_status():
         umbra = round(max(0.0, min(100.0, (ticks - prev["ticks"]) * 100 / ((now - prev["at"]) * CLK_TCK * threads))), 1)
     mem = {}
     try:
-        for line in open("/proc/meminfo"):
+        if WINDOWS:
+            total, used = winplat.memory()
+            mem = {"MemTotal": total, "MemAvailable": total - used}
+        for line in ([] if WINDOWS else open("/proc/meminfo")):
             key, value = line.split(":", 1)
             if key in ("MemTotal", "MemAvailable"):
                 mem[key] = int(value.split()[0]) * 1024
@@ -1759,6 +1852,8 @@ def cpu_status():
 
 
 def system_info_cpu():
+    if WINDOWS:
+        return winplat.cpu_name()
     try:
         for line in open("/proc/cpuinfo"):
             if line.startswith("model name"):
@@ -1772,22 +1867,24 @@ def system_info():
     """What this computer can do, for choosing a model."""
     cpu = system_info_cpu()
     ram = 0
+    if WINDOWS:
+        ram = math.ceil(winplat.memory()[0] / 1024 ** 3)
     try:
-        for line in open("/proc/meminfo"):
+        for line in ([] if WINDOWS else open("/proc/meminfo")):
             if line.startswith("MemTotal"):
                 ram = math.ceil(int(line.split()[1]) / 1024 / 1024)  # usable memory is a bit under the installed size
     except (OSError, ValueError):
         pass
-    gpus = []
+    gpus = winplat.gpus() if WINDOWS else []
     try:
-        out = subprocess.run(["lspci"], capture_output=True, text=True, timeout=3).stdout
+        out = "" if WINDOWS else subprocess.run(["lspci"], capture_output=True, text=True, timeout=3).stdout
         for line in out.splitlines():
             if re.search(r"VGA|3D controller|Display controller", line):
                 name = line.split(": ", 1)[-1]
                 gpus.append(re.sub(r"\s*\(rev \w+\)", "", name))
     except (OSError, subprocess.SubprocessError):
         pass
-    accel = next((kind for pkg, kind in (("ollama-cuda", "NVIDIA CUDA"), ("ollama-rocm", "AMD ROCm"),
+    accel = winplat.accel(gpus) if WINDOWS else next((kind for pkg, kind in (("ollama-cuda", "NVIDIA CUDA"), ("ollama-rocm", "AMD ROCm"),
                                          ("ollama-vulkan", "Vulkan"))
                   if subprocess.run(["pacman", "-Q", pkg], capture_output=True).returncode == 0), None)
     os.makedirs(LIBRARY_DIR, exist_ok=True)
@@ -1843,6 +1940,12 @@ def start_download(ids):
     ids = [i for i in ids if i not in queued]
     if not ids:
         return True
+    if WINDOWS:   # a background thread (no systemd); it finishes the whole queue
+        if DOWNLOADS.active():
+            DOWNLOADS.halt()
+        everything = queued + ids
+        write_json(DOWNLOADS_FILE, {"ids": everything})
+        return DOWNLOADS.start([known[i] for i in everything], LIBRARY_DIR, reload_library)
     # The download unit gets this backend's config location and port.
     env = [f"--setenv={k}={os.environ[k]}" for k in ("XDG_CONFIG_HOME", "UMBRA_PORT") if os.environ.get(k)]
     r = subprocess.run(["systemd-run", "--user", "--collect", f"--unit={DOWNLOAD_UNIT}-{int(time.time() * 1000)}", *env,
@@ -1887,7 +1990,9 @@ def library_control(action):
     known = {c["id"]: c for c in catalog()}
     left = [i for i in state.get("ids", []) if i in known and not os.path.exists(os.path.join(LIBRARY_DIR, known[i]["file"]))]
     if action in ("pause", "cancel"):
-        for unit in _download_units():
+        if WINDOWS:
+            DOWNLOADS.halt()
+        for unit in ([] if WINDOWS else _download_units()):
             subprocess.run(["systemctl", "--user", "stop", unit], capture_output=True)
     if action == "pause":
         write_json(DOWNLOADS_FILE, {**state, "paused": True})
@@ -1919,9 +2024,14 @@ def resume_library():
 
 
 def _download_units():
+    if WINDOWS:
+        return ["thread"] if DOWNLOADS.active() else []
     out = subprocess.run(["systemctl", "--user", "list-units", "--plain", "--no-legend", "--state=active,activating",
                           f"{DOWNLOAD_UNIT}-*"], capture_output=True, text=True).stdout
     return [line.split()[0] for line in out.splitlines() if line.strip()]
+
+
+DOWNLOADS = winplat.Downloads() if WINDOWS else None
 
 
 # Model downloads go through Ollama's API in a background thread; a pending
@@ -2028,6 +2138,27 @@ def set_model(name):
     return list_models()
 
 
+def uninstall_windows(library_too, model_too):
+    """Windows: remove Umbra's data (and, if asked, the library and the
+    model), then start Windows' own uninstaller for the app itself."""
+    if model_too and winplat.ollama_exe():
+        subprocess.run([winplat.ollama_exe(), "rm", MODEL], capture_output=True, timeout=60)
+    if library_too:
+        for c in catalog():
+            for f in (c["file"], c["file"] + ".part"):
+                try:
+                    os.remove(os.path.join(LIBRARY_DIR, f))
+                except OSError:
+                    pass
+    DOWNLOADS.halt()
+    winplat.remove_tree(CONFIG_DIR)
+    winplat.remove_tree(DATA_DIR)   # the open log file stays until the app closes
+    app = winplat.uninstaller(APP_DIR)
+    if app:
+        winplat.run_uninstaller(app)
+    return {"ok": True, "uninstaller": bool(app)}
+
+
 def reset_umbra():
     """Back to a fresh install: settings, profile, achievements, waypoints,
     custom themes, personalities and scenarios, and all saved conversations
@@ -2068,6 +2199,8 @@ def voxtype_daemon():
 
 
 def voice_status():
+    if WINDOWS:   # voxtype is Linux-only
+        return {"available": False, "daemon": False, "state": "idle", "install": "", "unsupported": True}
     if not shutil.which("voxtype"):
         install = ("omarchy-voxtype-install" if shutil.which("omarchy-voxtype-install")
                    else "yay -S voxtype-bin && voxtype setup --download --model base.en")
@@ -2324,6 +2457,8 @@ def manual_sources(terms, limit=2):
 # ------------------------------------------------------ export, drives, backup
 
 def documents_dir():
+    if WINDOWS:
+        return os.path.join(winplat.documents_dir(), "Umbra")
     try:
         d = subprocess.run(["xdg-user-dir", "DOCUMENTS"], capture_output=True, text=True, timeout=3).stdout.strip()
     except (OSError, subprocess.SubprocessError):
@@ -2336,10 +2471,12 @@ def drives():
     sticks), as places to export and back up to."""
     base = os.environ.get("UMBRA_MEDIA_DIR") or os.path.join("/run/media", os.environ.get("USER", ""))   # override: testing
     try:
-        names = sorted(n for n in os.listdir(base) if os.path.isdir(os.path.join(base, n)))
+        names = [] if WINDOWS else sorted(n for n in os.listdir(base) if os.path.isdir(os.path.join(base, n)))
     except OSError:
         names = []
     out = [{"id": "documents", "name": "Documents folder", "path": documents_dir().replace(HOME, "~", 1)}]
+    if WINDOWS:
+        out += [{"id": root, "name": f"USB drive: {label} ({root[:2]})", "path": root} for root, label in winplat.removable_drives()]
     for n in names:
         path = os.path.join(base, n)
         if os.access(path, os.W_OK):
@@ -2495,6 +2632,8 @@ def restore(data):
 
 def on_battery():
     """True when running on battery (for off-grid mode's automatic setting)."""
+    if WINDOWS:
+        return winplat.on_battery()
     try:
         supplies = os.environ.get("UMBRA_POWER_DIR") or "/sys/class/power_supply"   # override: testing
         mains = [p for p in glob.glob(os.path.join(supplies, "*"))
@@ -2941,6 +3080,10 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(cpu_status())
         if path == "/api/achievements":
             return self.send_json(achievements())
+        if path == "/api/update-auto":
+            return self.send_json(auto_update_check())
+        if path == "/api/update-state":
+            return self.send_json({k: v for k, v in UPDATE.items() if k not in ("setup", "sums")})
         if path == "/api/update-check":
             return self.send_json(check_update())
         if path == "/api/maps":
@@ -3031,16 +3174,19 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(library())
         if path == "/":
             path = "/index.html"
-        file = os.path.normpath(os.path.join(UI_DIR, path.lstrip("/")))
-        if not file.startswith(UI_DIR) or not os.path.isfile(file):
+        # Sounds are also served, for the Windows window, which plays them itself.
+        root, rel = (SOUNDS_DIR, path[len("/sounds/"):]) if path.startswith("/sounds/") else (UI_DIR, path.lstrip("/"))
+        file = os.path.normpath(os.path.join(root, rel))
+        if not file.startswith(root + os.sep) or not os.path.isfile(file):
             self.send_error(404)
             return
         types = {".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".svg": "image/svg+xml",
-                 ".json": "application/json"}
+                 ".json": "application/json", ".png": "image/png", ".ogg": "audio/ogg", ".ttf": "font/ttf"}
+        kind = types.get(os.path.splitext(file)[1], "application/octet-stream")
         with open(file, "rb") as f:
             body = f.read()
         self.send_response(200)
-        self.send_header("Content-Type", types.get(os.path.splitext(file)[1], "application/octet-stream") + "; charset=utf-8")
+        self.send_header("Content-Type", kind + ("; charset=utf-8" if kind.startswith("text/") or kind.endswith(("json", "svg+xml")) else ""))
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-cache")
         self.end_headers()
@@ -3112,10 +3258,17 @@ class Handler(BaseHTTPRequestHandler):
                 folder = os.path.expanduser(out["path"])
                 open_path(folder if os.path.isdir(folder) else os.path.dirname(folder))
             return self.send_json(out)
+        if self.path == "/api/update-install":
+            try:
+                return self.send_json(install_update())
+            except ValueError as e:
+                return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/uninstall":
             req = self.read_json()
             if req.get("confirm") != "UNINSTALL":
                 return self.send_json({"error": "not confirmed"}, 400)
+            if WINDOWS:
+                return self.send_json(uninstall_windows(bool(req.get("library")), bool(req.get("model"))))
             # Its own unit: the script stops this backend on the way.
             flags = [f for f, on in (("--library", req.get("library")), ("--model", req.get("model"))) if on]
             subprocess.Popen(["systemd-run", "--user", "--collect", "--unit=umbra-wiki-uninstall",
@@ -3349,6 +3502,7 @@ def status():
         "ollama": ollama_ok,
         "modelReady": model_ok,
         "version": VERSION,
+        "platform": "windows" if WINDOWS else "linux",
     }
 
 
@@ -3522,10 +3676,19 @@ def warm_model():
 MAPS = maps.Maps(DATA_DIR, APP_DIR)
 radar.KNOWN_FILE = os.path.join(DATA_DIR, "radar-known.json")
 
-if __name__ == "__main__":
-    signal.signal(signal.SIGTERM, stop_kiwix)
-    signal.signal(signal.SIGINT, stop_kiwix)
+HTTPD = None
+
+
+def run(signals=True):
+    """Start everything and serve until stopped. The Windows app runs this in
+    a thread of its own process (signals=False) and calls shutdown()."""
+    global HTTPD
+    if signals:
+        signal.signal(signal.SIGTERM, stop_kiwix)
+        signal.signal(signal.SIGINT, stop_kiwix)
     os.makedirs(LIBRARY_DIR, exist_ok=True)
+    if WINDOWS:
+        winplat.start_ollama(OLLAMA)
     n = start_kiwix()
     set_attention(False)
     threading.Thread(target=warm_model, daemon=True).start()
@@ -3534,5 +3697,10 @@ if __name__ == "__main__":
     if read_json(MANUALS_STATE, {}).get("ids") and not read_json(MANUALS_STATE, {}).get("paused"):
         _doc_kick()   # manuals that were downloading go on
     MAPS.restore(on_done=lambda aid: record("mapPacks", aid))
+    HTTPD = ThreadingHTTPServer((HOST, PORT), Handler)
     print(f"umbra: {n} archives, model {MODEL}, http://{HOST}:{PORT}", flush=True)
-    ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
+    HTTPD.serve_forever()
+
+
+if __name__ == "__main__":
+    run()

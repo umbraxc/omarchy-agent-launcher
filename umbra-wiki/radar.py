@@ -13,6 +13,7 @@ import subprocess
 import threading
 import time
 
+WINDOWS = os.name == "nt"   # the Windows app: Wi-Fi from netsh, no Bluetooth list or kill switch
 OUI_FILE = "/usr/share/hwdata/oui.txt"   # the IEEE list of makers, from hwdata
 _oui = None
 _scan_lock = threading.Lock()
@@ -74,6 +75,13 @@ def _band(freq):
 
 
 def wifi(rescan=False):
+    if WINDOWS:
+        import winplat
+        out = winplat.wifi_networks()
+        out["networks"].sort(key=lambda n: -n["signal"])
+        for n in out["networks"]:
+            n.setdefault("dbm", round(n["signal"] / 2 - 100))
+        return out
     blocked = _blocked("wlan")
     ifaces = [os.path.basename(p) for p in glob.glob("/sys/class/net/*") if os.path.isdir(os.path.join(p, "wireless"))]
     out = {"available": bool(ifaces), "enabled": blocked is not True, "networks": [], "tool": ""}
@@ -143,6 +151,8 @@ BT_KIND = {"phone": "Phone", "computer": "Computer", "audio-headset": "Headset",
 
 def bluetooth(rescan=False):
     global _last_bt_scan
+    if WINDOWS:
+        return {"available": False, "enabled": True, "powered": False, "devices": []}
     blocked = _blocked("bluetooth")
     out = {"available": blocked is not None or bool(glob.glob("/sys/class/bluetooth/hci*")), "enabled": blocked is not True,
            "powered": False, "devices": []}
@@ -238,7 +248,8 @@ def forget(key=None):
 
 def scan(rescan=False):
     with _scan_lock:
-        out = {"wifi": wifi(rescan), "bluetooth": bluetooth(rescan), "time": int(time.time() * 1000), "wsl": _wsl()}
+        out = {"wifi": wifi(rescan), "bluetooth": bluetooth(rescan), "time": int(time.time() * 1000), "wsl": _wsl(),
+               "windows": WINDOWS}
     try:
         out["known"] = remember(out)
     except OSError:
@@ -251,6 +262,9 @@ def scan(rescan=False):
 def vitals():
     """Battery, disk, network traffic and uptime (the processor and memory
     come from the backend's own CPU readout)."""
+    if WINDOWS:
+        import winplat
+        return winplat.vitals()
     out = {}
     for p in glob.glob("/sys/class/power_supply/*"):
         try:
@@ -294,6 +308,8 @@ def radios(off):
     """The kill switch: turn Wi-Fi (and mobile data) and Bluetooth off, or
     back on, with whatever this system offers. Returns what worked."""
     done, failed = [], []
+    if WINDOWS:
+        return {"off": off, "done": [], "failed": ["Windows' radios (use Windows' airplane mode)"], "wifi": None, "bluetooth": None}
     state = "off" if off else "on"
     if shutil.which("nmcli") and _run(["nmcli", "-t", "-f", "RUNNING", "general"], 4).strip() == "running":
         r = subprocess.run(["nmcli", "radio", "all", state], capture_output=True, text=True, timeout=10)

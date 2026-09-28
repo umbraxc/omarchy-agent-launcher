@@ -124,13 +124,35 @@ async function postSettings(update) {
 
 // ------------------------------------------------------------------ sound
 
+// A message to the app window around the page ("close", "fullscreen",
+// "unfullscreen"): the Linux window (WebKitGTK) or the Windows one (pywebview).
+window.umbraNative = (msg) => {
+  try { window.webkit.messageHandlers.umbra.postMessage(msg); return true; } catch {}
+  try { if (window.pywebview && window.pywebview.api) { window.pywebview.api.message(msg); return true; } } catch {}
+  return false;
+};
+
 // Short bundled sounds (Kenney, CC0), played by the backend through PipeWire
-// so they work regardless of the web view's audio support.
+// so they work regardless of the web view's audio support. The Windows
+// window (Edge WebView2) plays them itself.
 const Sound = (() => {
   let muted = false, last = 0;
+  const inPage = /Windows/.test(navigator.userAgent);
+  const cache = {};
+  const volume = () => (window.prefs && typeof prefs.volume === "number" ? prefs.volume : 0.9);
+  const playHere = (name) => {
+    const a = cache[name] || (cache[name] = new Audio(`/sounds/${name}.ogg`));
+    // Short interface sounds cut their previous one (no tail of clicks).
+    const s = ["key", "hover", "click"].includes(name) ? a : a.cloneNode();
+    if (s === a) { a.pause(); a.currentTime = 0; }
+    s.volume = volume();
+    s.play().catch(() => {});
+  };
+  let humAudio = null;
   const play = (name) => {
     last = performance.now();
     if (muted) return;
+    if (inPage) return playHere(name);
     fetch("/api/sound", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) })
       .catch(() => {});
   };
@@ -144,6 +166,11 @@ const Sound = (() => {
   // The quiet background hum while Umbra searches and thinks.
   api.hum = (on) => {
     if (on && (muted || window.offgrid)) return;
+    if (inPage) {
+      if (humAudio) { humAudio.pause(); humAudio = null; }
+      if (on) { humAudio = new Audio("/sounds/hum.ogg"); humAudio.volume = volume(); humAudio.play().catch(() => {}); }
+      return;
+    }
     fetch("/api/sound", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "hum", on }) })
       .catch(() => {});
   };
@@ -1972,7 +1999,7 @@ function asciiOutro(farewell, { keep = true } = {}) {
 // tells the window to close. A second close request goes straight out.
 let exitAsked = false, exiting = false;
 function closeWindow() {
-  try { window.webkit.messageHandlers.umbra.postMessage("close"); } catch { window.close(); }
+  if (!window.umbraNative("close")) window.close();
 }
 async function leaveUmbra() {
   if (exiting) return;
