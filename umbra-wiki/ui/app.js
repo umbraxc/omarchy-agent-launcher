@@ -225,7 +225,11 @@ const THEME_VARS = {
   accent: "--accent", red: "--red", net: "--net",
 };
 
+// Themes that were redesigned under new names in 3.1.1.
+const RENAMED_THEMES = { synthwave: "thermal", toxic: "hazmat", dune: "sahara", abyss: "aurora", volcano: "thermal", jungle: "monsoon",
+                         imperium: "tyrian", pharaoh: "lapis", victorian: "burgundy", deco: "jade" };
 function applyTheme(id, { animate = true, force = false } = {}) {
+  id = RENAMED_THEMES[id] || id;
   const t = themes.find((x) => x.id === id) || themes[0];
   if (!t || (t.id === currentTheme && !force)) return;
   currentTheme = t.id;
