@@ -205,7 +205,9 @@ def fetch(url, timeout=30, headers=None):
 
 MAPS = None   # set up once the data folder is known (below)
 WAYPOINTS_FILE = os.path.join(DATA_DIR, "waypoints.json")
-WAYPOINT_ICONS = ("pin", "camp", "water", "danger", "rally", "cache", "medical", "home")
+WAYPOINT_ICONS = ("pin", "objective", "friendly", "enemy", "danger", "rally", "lz", "medic", "cache", "water", "food",
+                  "op", "checkpoint", "camp", "home")
+WAYPOINT_COLORS = ("red", "orange", "yellow", "green", "cyan", "blue", "violet", "ink")
 
 
 def get_waypoints():
@@ -232,7 +234,8 @@ def save_waypoints(items):
             continue
         clean.append({"id": wid, "name": re.sub(r"\s+", " ", str(w.get("name") or "Waypoint")).strip()[:40],
                       "lat": round(lat, 6), "lon": round(lon, 6),
-                      "icon": w.get("icon") if w.get("icon") in WAYPOINT_ICONS else "pin",
+                      "icon": w.get("icon") if w.get("icon") in WAYPOINT_ICONS else "medic" if w.get("icon") == "medical" else "pin",
+                      "color": w.get("color") if w.get("color") in WAYPOINT_COLORS else "",
                       "note": str(w.get("note") or "").strip()[:200],
                       "created": int(w.get("created") or time.time() * 1000)})
     write_json(WAYPOINTS_FILE, {"waypoints": clean})

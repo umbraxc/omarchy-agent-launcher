@@ -500,13 +500,20 @@
   function overlay(pal) {
     const g = ctx, font = css("--font") || "monospace", ink = pal.ink;
     const halo = style === "topo" ? "#f7f1df" : pal.sea;
+    drawRings(g, font, ink, halo);
     for (const w of waypoints) {
       const [x, y] = toScreen(projX(w.lon), projY(w.lat));
-      if (x < -20 || x > W + 20 || y < -20 || y > H + 20) continue;
-      g.font = `18px ${font}`; g.textAlign = "center"; g.textBaseline = "middle";
-      g.lineWidth = 3.5; g.strokeStyle = halo; g.strokeText(ICON[w.icon] || ICON.pin, x, y - 9);
-      g.fillStyle = ink; g.fillText(ICON[w.icon] || ICON.pin, x, y - 9);
-      g.font = `700 10px ${font}`;
+      if (x < -30 || x > W + 30 || y < -30 || y > H + 30) continue;
+      const m = markOf(w), col = colorOf(w, pal), cy = y - 12;
+      markerPath(g, m[1], x, cy, 10);
+      g.lineWidth = 4; g.strokeStyle = halo; g.stroke();
+      g.fillStyle = col; g.fill();
+      g.lineWidth = 1.2; g.strokeStyle = style === "topo" ? "#1b1b1b" : "#000"; g.stroke();
+      g.beginPath(); g.moveTo(x, cy + 10); g.lineTo(x, y); g.strokeStyle = col; g.lineWidth = 2; g.stroke();
+      g.font = `12px ${font}`; g.textAlign = "center"; g.textBaseline = "middle";
+      g.fillStyle = light(col) ? "#111" : "#fff";
+      g.fillText(m[2], x, cy + (m[1] === "tri" ? 2 : 0));
+      g.font = `700 10px ${font}`; g.lineWidth = 3.5; g.strokeStyle = halo; g.fillStyle = col;
       g.strokeText(w.name.toUpperCase(), x, y + 9); g.fillText(w.name.toUpperCase(), x, y + 9);
     }
     if (target) {
@@ -1004,8 +1011,36 @@
 
   // ----------------------------------------------------------------- UI
 
-  const ICON = { pin: "󰍎", camp: "󰔈", water: "󰖌", danger: "󰀪", rally: "󰈻", cache: "󰜦", medical: "󰋠", home: "󰋜" };
-  const ICON_NAMES = { pin: "Pin", camp: "Camp", water: "Water", danger: "Danger", rally: "Rally point", cache: "Cache", medical: "Medical", home: "Home" };
+  // Map markers, in the spirit of military map symbols (and Arma's and
+  // Zomboid's markers): a shape that says what kind of thing it is, a
+  // symbol inside, and a colour of your choice.
+  // type: [name, shape, symbol, default colour]
+  const MARK = {
+    pin: ["Pin", "circle", "\u{F034E}", "red"], objective: ["Objective", "tri", "\u{F023B}", "yellow"],
+    friendly: ["Friendly", "rect", "\u{F0498}", "blue"], enemy: ["Enemy", "diamond", "\u{F01A4}", "red"],
+    danger: ["Danger", "diamond", "\u{F0026}", "orange"], rally: ["Rally point", "rect", "\u{F0240}", "green"],
+    lz: ["Landing zone", "circle", "\u{F0AC2}", "cyan"], medic: ["Medic", "circle", "\u{F02E0}", "red"],
+    cache: ["Cache", "rect", "\u{F03D6}", "violet"], water: ["Water", "circle", "\u{F058C}", "cyan"],
+    food: ["Food", "circle", "\u{F025A}", "green"], op: ["Observation post", "tri", "\u{F00A5}", "blue"],
+    checkpoint: ["Checkpoint", "rect", "\u{F0E86}", "orange"], camp: ["Camp", "tri", "\u{F0508}", "green"],
+    home: ["Home", "rect", "\u{F02DC}", "ink"],
+  };
+  const MCOLOR = { red: "#d8412f", orange: "#e8892a", yellow: "#e0b83a", green: "#3fae5a", cyan: "#2fa7c4", blue: "#3a6fd8", violet: "#9b6ae0", ink: "" };
+  const markOf = (w) => MARK[w.icon] || MARK[w.icon === "medical" ? "medic" : "pin"];
+  const colorOf = (w, pal) => MCOLOR[w.color || markOf(w)[3]] || (style === "topo" ? "#1b1b1b" : (pal && pal.ink) || "#e8d27c");
+  const ICON = Object.fromEntries(Object.entries(MARK).map(([k, m]) => [k, m[2]]));
+  const ICON_NAMES = Object.fromEntries(Object.entries(MARK).map(([k, m]) => [k, m[0]]));
+  ICON.medical = ICON.medic; ICON_NAMES.medical = ICON_NAMES.medic;
+  // Whether a colour is light (dark symbols on it then).
+  const light = (c) => { const m = /^#?([0-9a-f]{6})$/i.exec(c || ""); if (!m) return false; const [r, g, b] = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)); return r * 0.3 + g * 0.59 + b * 0.11 > 150; };
+  // Draws a marker's shape at x, y (also used for the editor's buttons).
+  function markerPath(g, shape, x, y, r) {
+    g.beginPath();
+    if (shape === "circle") g.arc(x, y, r, 0, TAU);
+    else if (shape === "rect") g.rect(x - r * 1.15, y - r * 0.8, r * 2.3, r * 1.6);
+    else if (shape === "diamond") { g.moveTo(x, y - r * 1.2); g.lineTo(x + r * 1.2, y); g.lineTo(x, y + r * 1.2); g.lineTo(x - r * 1.2, y); g.closePath(); }
+    else { g.moveTo(x, y - r * 1.25); g.lineTo(x + r * 1.25, y + r * 0.85); g.lineTo(x - r * 1.25, y + r * 0.85); g.closePath(); }
+  }
   let panel = "";
 
   function build() {
@@ -1022,7 +1057,7 @@
         <div class="mp-tools">
           <div class="pf-choice mp-style"><button data-s="topo" title="Topographic|A paper military map: green woods, blue water, brown relief.">TOPO</button><button data-s="tactical" title="Tactical|A dark map in the colours of your Umbra theme.">TACTICAL</button></div>
           <button class="ctl mp-t" data-t="grid" title="Grid · G|Latitude and longitude lines, with the military (MGRS) grid zones and their names."><span class="g">󰋁</span></button>
-          <button class="ctl mp-t" data-t="waypoint" title="Waypoint tool · W|Click the map to mark a spot: a camp, water, a danger, a rally point or a cache. Saved on this computer."><span class="g">󰍎</span></button>
+          <button class="ctl mp-t" data-t="waypoint" title="Waypoint tool · W|Click the map to mark a spot, or right-click anywhere: objectives, friendlies, enemies, water, caches, landing zones… in eight colours. Saved on this computer."><span class="g">󰍎</span></button>
           <button class="ctl mp-t" data-t="measure" title="Measuring tool · M|Click points on the map to measure a distance along them. Right-click or Enter to finish, Esc to clear."><span class="g">󰑭</span></button>
           <button class="ctl mp-t on" data-t="safety" title="Safety layer|Colours the countries you marked safe, caution, avoid or danger. Click a country's name to mark it."><span class="g">󰞀</span></button>
           <button class="ctl mp-t" data-t="points" title="Your waypoints|Every waypoint you saved: fly to one, or remove it."><span class="g">󰈻</span></button>
@@ -1220,7 +1255,12 @@
       zoomAt(e.clientX - r.left, e.clientY - r.top, -Math.max(-1, Math.min(1, step)) * 0.6);
     }, { passive: false });
     canvas.addEventListener("dblclick", (e) => { const r = canvas.getBoundingClientRect(); zoomAt(e.clientX - r.left, e.clientY - r.top, 1); });
-    canvas.addEventListener("contextmenu", (e) => { e.preventDefault(); if (tool === "measure") finishMeasure(); });
+    canvas.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      if (tool === "measure") { finishMeasure(); return; }
+      const r = canvas.getBoundingClientRect();
+      contextMenu(e.clientX - r.left, e.clientY - r.top);
+    });
   }
 
   function click(sx, sy) {
@@ -1230,7 +1270,7 @@
     if (tool === "waypoint") { editWaypoint({ lat, lon, name: "", icon: "pin", note: "" }); return; }
     const land = countryAt(sx, sy);
     if (land) { openCountry(land); return; }
-    const hit = waypoints.find((w) => { const [wx, wy] = toScreen(projX(w.lon), projY(w.lat)); return Math.hypot(wx - sx, wy - sy + 8) < 16; });
+    const hit = waypoints.find((w) => { const [wx, wy] = toScreen(projX(w.lon), projY(w.lat)); return Math.hypot(wx - sx, wy - 12 - sy) < 16; });
     if (hit) { showCard({ ...hit, kind: "waypoint", wp: hit, label: "WAYPOINT" }); return; }
     target = { lat, lon, name: "", kind: "spot", label: "LOCATION" };
     showCard(target);
@@ -1293,24 +1333,49 @@
     });
   }
 
+  // The waypoint editor: kind of marker (shape and symbol), colour, name,
+  // note, and when it was noted.
   function editWaypoint(w) {
     const card = $("#maps .mp-card");
     const draft = { ...w };
-    card.innerHTML = `<div class="mp-card-kind">${w.id ? "EDIT WAYPOINT" : "NEW WAYPOINT"}</div>
-      <input class="mp-wp-name" maxlength="40" placeholder="Name, e.g. Water source">
-      <div class="mp-wp-icons">${Object.entries(ICON).map(([k, g]) => `<button class="ctl" data-i="${k}" title="${ICON_NAMES[k]}"><span class="g">${g}</span></button>`).join("")}</div>
-      <textarea class="mp-wp-note" maxlength="200" rows="2" placeholder="A note (optional)"></textarea>
+    if (draft.icon === "medical") draft.icon = "medic";
+    if (!MARK[draft.icon]) draft.icon = "pin";
+    card.innerHTML = `<div class="mp-card-kind">${w.id ? "EDIT WAYPOINT" : "NEW WAYPOINT"}${w.created ? " · NOTED " + new Date(w.created).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).toUpperCase() : ""}</div>
+      <div class="mp-wp-preview"><canvas width="64" height="64"></canvas><input class="mp-wp-name" maxlength="40" placeholder="Name, e.g. Water source"></div>
+      <div class="mp-wp-t">MARKER</div>
+      <div class="mp-wp-types">${Object.entries(MARK).map(([k, m]) => `<button type="button" class="mp-wp-type" data-i="${k}" title="${m[0]}"><canvas width="28" height="28"></canvas></button>`).join("")}</div>
+      <div class="mp-wp-t">COLOUR <small class="mp-wp-auto"></small></div>
+      <div class="mp-wp-colors"><button type="button" class="mp-wp-color" data-c="" title="The marker's own colour">AUTO</button>${Object.keys(MCOLOR).map((c) =>
+        `<button type="button" class="mp-wp-color" data-c="${c}" title="${c}" style="--mc:${MCOLOR[c] || "var(--fg-bright)"}"><i></i></button>`).join("")}</div>
+      <textarea class="mp-wp-note" maxlength="200" rows="2" placeholder="A note (optional): what's here, how many, when to check it"></textarea>
       <div class="mp-card-coords">${fmtLat(w.lat)} · ${fmtLon(w.lon)}<br>MGRS ${toMGRS(w.lat, w.lon)}</div>
       <div class="mp-card-actions"><button class="ghost mp-wp-cancel">CANCEL</button><button class="solid mp-wp-save">SAVE ◆</button></div>`;
     card.hidden = false;
     const name = card.querySelector(".mp-wp-name"), note = card.querySelector(".mp-wp-note");
     name.value = draft.name || ""; note.value = draft.note || "";
-    const showIcon = () => card.querySelectorAll(".mp-wp-icons .ctl").forEach((b) => b.classList.toggle("on", b.dataset.i === draft.icon));
-    card.querySelectorAll(".mp-wp-icons .ctl").forEach((b) => b.addEventListener("click", () => { draft.icon = b.dataset.i; showIcon(); Sound.click(); }));
-    showIcon();
+    const paint = (cv, type, color, r) => {
+      const g = cv.getContext("2d"), d = Math.min(2, window.devicePixelRatio || 1), size = +(cv.dataset.s || (cv.dataset.s = cv.getAttribute("width")));
+      cv.width = size * d; cv.height = size * d; cv.style.width = cv.style.height = size + "px";
+      g.scale(d, d);
+      const m = MARK[type], col = MCOLOR[color || m[3]] || (style === "topo" ? "#1b1b1b" : css("--signal"));
+      markerPath(g, m[1], size / 2, size / 2, r);
+      g.fillStyle = col; g.fill(); g.lineWidth = 1.2; g.strokeStyle = "#000"; g.stroke();
+      g.font = `${Math.round(r * 1.2)}px ${css("--font")}`; g.textAlign = "center"; g.textBaseline = "middle";
+      g.fillStyle = light(col) ? "#111" : "#fff"; g.fillText(m[2], size / 2, size / 2 + (m[1] === "tri" ? r * 0.2 : 0));
+    };
+    const show = () => {
+      card.querySelectorAll(".mp-wp-type").forEach((b) => { b.classList.toggle("on", b.dataset.i === draft.icon); paint(b.querySelector("canvas"), b.dataset.i, draft.color, 8.5); });
+      card.querySelectorAll(".mp-wp-color").forEach((b) => b.classList.toggle("on", b.dataset.c === (draft.color || "")));
+      card.querySelector(".mp-wp-auto").textContent = draft.color ? "" : "· " + MARK[draft.icon][3].toUpperCase();
+      paint(card.querySelector(".mp-wp-preview canvas"), draft.icon, draft.color, 20);
+      if (!name.value || Object.values(ICON_NAMES).includes(name.placeholder)) name.placeholder = MARK[draft.icon][0];
+    };
+    card.querySelectorAll(".mp-wp-type").forEach((b) => b.addEventListener("click", () => { draft.icon = b.dataset.i; show(); Sound.click(); }));
+    card.querySelectorAll(".mp-wp-color").forEach((b) => b.addEventListener("click", () => { draft.color = b.dataset.c; show(); Sound.click(); }));
+    show();
     setTimeout(() => name.focus(), 30);
     const saveIt = async () => {
-      draft.name = name.value.trim() || ICON_NAMES[draft.icon];
+      draft.name = name.value.trim() || MARK[draft.icon][0];
       draft.note = note.value.trim();
       if (!draft.id) { draft.id = Math.random().toString(36).slice(2, 12).padEnd(6, "0"); draft.created = Date.now(); waypoints.push(draft); }
       else waypoints = waypoints.map((x) => (x.id === draft.id ? draft : x));
@@ -1322,7 +1387,84 @@
     };
     card.querySelector(".mp-wp-save").addEventListener("click", saveIt);
     name.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveIt(); } });
-    card.querySelector(".mp-wp-cancel").addEventListener("click", () => { card.hidden = true; });
+    card.querySelector(".mp-wp-cancel").addEventListener("click", () => { card.hidden = true; Sound.click(); });
+  }
+
+  // ------------------------------------------------- right-click menu
+
+  // Right-click the map: add a waypoint, measure, copy the coordinates,
+  // what's here, range rings, and the bearing from home.
+  let rings = null, bearing = null;
+  const brg = (a, b) => { const f1 = a.lat * toRad, f2 = b.lat * toRad, dl = (b.lon - a.lon) * toRad;
+    return ((Math.atan2(Math.sin(dl) * Math.cos(f2), Math.cos(f1) * Math.sin(f2) - Math.sin(f1) * Math.cos(f2) * Math.cos(dl)) / toRad) + 360) % 360; };
+  function contextMenu(sx, sy) {
+    const [x, y] = toWorld(sx, sy);
+    const at = { lat: unY(y), lon: wrapLon(unX(x)) };
+    const home = waypoints.find((w) => w.icon === "home");
+    let m = $("#maps .mp-ctx");
+    if (!m) { m = document.createElement("div"); m.className = "mp-ctx"; $("#maps .mp-body").appendChild(m); }
+    const items = [
+      ["wp", "\u{F0651}", "ADD A WAYPOINT HERE", "W"],
+      ["measure", "\u{F046D}", "MEASURE FROM HERE", "M"],
+      ["copy", "\u{F018F}", "COPY COORDINATES", ""],
+      ["info", "\u{F02FD}", "WHAT'S HERE", ""],
+      ["rings", "\u{F05DD}", rings ? "MOVE RANGE RINGS HERE" : "RANGE RINGS HERE", ""],
+      ...(rings ? [["norings", "\u{F05DD}", "REMOVE RANGE RINGS", ""]] : []),
+      ...(home ? [["bearing", "\u{F05F8}", `FROM HOME · ${fmtDist(distance(home, at))} · ${String(Math.round(brg(home, at))).padStart(3, "0")}°`, ""]] : []),
+      ...(bearing ? [["nobearing", "\u{F05F8}", "HIDE THE LINE FROM HOME", ""]] : []),
+    ];
+    m.innerHTML = `<div class="mp-ctx-head">${fmtLat(at.lat)} ${fmtLon(at.lon)}<br><small>MGRS ${toMGRS(at.lat, at.lon)}</small></div>` +
+      items.map(([k, g, label, key]) => `<button data-k="${k}"><span class="g">${g}</span><span>${label}</span>${key ? `<kbd>${key}</kbd>` : ""}</button>`).join("");
+    m.hidden = false;
+    m.style.left = Math.min(sx, W - 250) + "px";
+    m.style.top = Math.min(sy, H - m.offsetHeight - 8) + "px";
+    Sound.click();
+    m.querySelectorAll("button").forEach((b) => b.addEventListener("click", async () => {
+      m.hidden = true;
+      const k = b.dataset.k;
+      if (k === "wp") editWaypoint({ lat: at.lat, lon: at.lon, name: "", icon: "pin", note: "" });
+      else if (k === "measure") { if (tool !== "measure") setTool("measure"); measure = [at]; frame(); }
+      else if (k === "copy") { (await copyText(`${fmtLat(at.lat)} ${fmtLon(at.lon)} · MGRS ${toMGRS(at.lat, at.lon)}`)) ? Sound.found() : Sound.error(); }
+      else if (k === "info") { target = { ...at, name: "", kind: "spot", label: "LOCATION" }; showCard(target); frame(); }
+      else if (k === "rings") { rings = at; frame(); Sound.click(); }
+      else if (k === "norings") { rings = null; frame(); Sound.click(); }
+      else if (k === "bearing") { bearing = at; frame(); Sound.click(); }
+      else if (k === "nobearing") { bearing = null; frame(); Sound.click(); }
+    }));
+  }
+  document.addEventListener("mousedown", (e) => { const m = $("#maps .mp-ctx"); if (m && !m.hidden && !m.contains(e.target)) m.hidden = true; });
+
+  // Range rings (at a round distance for the zoom) and the line from home.
+  function drawRings(g, font, ink, halo) {
+    if (rings) {
+      const [cx, cy] = toScreen(projX(rings.lon), projY(rings.lat));
+      const mPerPx = (40075016 * Math.cos(rings.lat * toRad)) / scale();
+      const steps = [0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100, 250, 500, 1000];
+      const step = steps.find((km) => (km * 1000) / mPerPx > 70) || 1000;
+      g.save(); g.setLineDash([6, 5]); g.strokeStyle = ink; g.lineWidth = 1.4;
+      g.font = `700 10px ${font}`; g.textAlign = "left"; g.textBaseline = "middle";
+      for (let i = 1; i <= 4; i++) {
+        const r = (step * i * 1000) / mPerPx;
+        g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.stroke();
+        const label = fmtDist(step * i);
+        g.lineWidth = 3; g.strokeStyle = halo; g.strokeText(label, cx + r + 4, cy); g.fillStyle = ink; g.fillText(label, cx + r + 4, cy);
+        g.lineWidth = 1.4; g.strokeStyle = ink;
+      }
+      g.setLineDash([]); g.beginPath(); g.moveTo(cx - 6, cy); g.lineTo(cx + 6, cy); g.moveTo(cx, cy - 6); g.lineTo(cx, cy + 6); g.stroke();
+      g.restore();
+    }
+    const home = waypoints.find((w) => w.icon === "home");
+    if (bearing && home) {
+      const [ax, ay] = toScreen(projX(home.lon), projY(home.lat)), [bx, by] = toScreen(projX(bearing.lon), projY(bearing.lat));
+      g.save(); g.strokeStyle = ink; g.lineWidth = 2; g.setLineDash([12, 4, 2, 4]);
+      g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.stroke(); g.setLineDash([]);
+      g.beginPath(); g.arc(bx, by, 5, 0, TAU); g.stroke();
+      const label = `${fmtDist(distance(home, bearing))} · ${String(Math.round(brg(home, bearing))).padStart(3, "0")}°`;
+      g.font = `700 11px ${font}`; g.textAlign = "center"; g.textBaseline = "bottom";
+      const mx = (ax + bx) / 2, my = (ay + by) / 2 - 6;
+      g.lineWidth = 3.5; g.strokeStyle = halo; g.strokeText(label, mx, my); g.fillStyle = ink; g.fillText(label, mx, my);
+      g.restore();
+    }
   }
 
   async function saveWaypoints() {
@@ -1357,7 +1499,7 @@
     const top = box.scrollTop;
     if (panel === "points") {
       box.innerHTML = `<div class="lib-head"><span>WAYPOINTS · ${waypoints.length}</span></div>` + (waypoints.length
-        ? waypoints.map((w) => `<div class="mp-pt" data-id="${w.id}" title="Fly to it"><span class="g">${ICON[w.icon] || ICON.pin}</span><span><b></b><small>${fmtLat(w.lat)} ${fmtLon(w.lon)}</small></span><button class="ghost mp-del" title="Remove this waypoint">✕</button></div>`).join("")
+        ? waypoints.map((w) => `<div class="mp-pt" data-id="${w.id}" title="Fly to it"><span class="g" style="color:${colorOf(w)}">${ICON[w.icon] || ICON.pin}</span><span><b></b><small>${fmtLat(w.lat)} ${fmtLon(w.lon)}</small></span><button class="ghost mp-del" title="Remove this waypoint">✕</button></div>`).join("")
         : `<p class="lib-note">No waypoints yet. Use the pin tool (W) and click the map: camps, water, dangers, rally points, caches…</p>`);
       box.querySelectorAll(".mp-pt").forEach((b) => {
         const w = waypoints.find((x) => x.id === b.dataset.id);
@@ -1611,7 +1753,8 @@
     const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
     if (e.key === "Escape") {
       e.stopImmediatePropagation();
-      if (!$("#maps .mp-first").hidden) { $("#maps .mp-first-x").click(); }
+      if ($("#maps .mp-ctx") && !$("#maps .mp-ctx").hidden) $("#maps .mp-ctx").hidden = true;
+      else if (!$("#maps .mp-first").hidden) { $("#maps .mp-first-x").click(); }
       else if (!$("#maps .mp-cfile").hidden) closeCountry();
       else if (!$("#maps .mp-card").hidden && !tool) { $("#maps .mp-card").hidden = true; target = null; frame(); }
       else if (tool) { measure = []; setTool(tool); }

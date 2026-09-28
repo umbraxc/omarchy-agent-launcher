@@ -1894,3 +1894,30 @@ body.reduce-motion .pf-scan { display: none; }
 .hist-row.in-folder { box-shadow: inset 2px 0 0 var(--fc); }
 .hist-row.dragging { opacity: .45; }
 .hpin.on { color: var(--signal); border-color: var(--signal); }
+
+/* ------------------------------------------------ map right-click, markers */
+
+.mp-ctx { position: absolute; z-index: 6; width: 240px; padding: 4px; background: var(--bg-1); border: 1px solid var(--signal);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .5); animation: rise .15s ease-out both; }
+.mp-ctx::before { content: ""; position: absolute; top: -2px; left: -2px; width: 8px; height: 8px; border-top: 2px solid var(--signal); border-left: 2px solid var(--signal); }
+.mp-ctx-head { padding: 6px 8px 7px; margin-bottom: 3px; border-bottom: 1px dashed var(--line); font: 700 10.5px var(--font); letter-spacing: .06em; color: var(--fg-bright); }
+.mp-ctx-head small { color: var(--dim); font-weight: 400; font-size: 9.5px; }
+.mp-ctx button { display: grid; grid-template-columns: 20px 1fr auto; gap: 8px; align-items: center; width: 100%; padding: 6px 8px; cursor: pointer;
+  text-align: left; font: 700 9.5px var(--font); letter-spacing: .12em; color: var(--fg); background: none; border: 0; border-left: 2px solid transparent; }
+.mp-ctx button .g { color: var(--signal); font-size: 13px; text-align: center; }
+.mp-ctx button:hover { background: var(--signal-soft); border-left-color: var(--signal); color: var(--fg-bright); }
+.mp-ctx kbd { font-size: 9px; color: var(--faint); }
+.mp-wp-preview { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.mp-wp-preview canvas { flex: none; }
+.mp-wp-preview input { margin: 0 !important; }
+.mp-wp-t { margin: 10px 0 5px; font-size: 9px; letter-spacing: .26em; color: var(--faint); }
+.mp-wp-t small { color: var(--dim); letter-spacing: .14em; }
+.mp-wp-types { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+.mp-wp-type { display: grid; place-items: center; padding: 2px; cursor: pointer; background: var(--bg-2); border: 1px solid var(--line); }
+.mp-wp-type:hover { border-color: var(--dim); }
+.mp-wp-type.on { border-color: var(--signal); box-shadow: 0 0 0 1px var(--signal); background: var(--signal-soft); }
+.mp-wp-colors { display: flex; flex-wrap: wrap; gap: 4px; }
+.mp-wp-color { display: grid; place-items: center; min-width: 26px; height: 26px; padding: 0 6px; cursor: pointer; font: 700 9px var(--font); letter-spacing: .12em;
+  color: var(--dim); background: var(--bg-2); border: 1px solid var(--line); }
+.mp-wp-color i { width: 13px; height: 13px; background: var(--mc); border: 1px solid rgba(0, 0, 0, .5); }
+.mp-wp-color.on { border-color: var(--signal); box-shadow: 0 0 0 1px var(--signal); color: var(--fg-bright); }
