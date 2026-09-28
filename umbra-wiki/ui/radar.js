@@ -12,7 +12,7 @@
   const G = { radar: "\u{F0437}", wifi: "\u{F05A9}", bt: "\u{F00AF}", chip: "\u{F061A}", temp: "\u{F050F}", mem: "\u{F035B}",
               bat: "\u{F0079}", disk: "\u{F02CA}", net: "\u{F0317}", scan: "\u{F0450}", lock: "\u{F033E}", open: "\u{F0FC6}" };
   let data = { wifi: { networks: [] }, bluetooth: { devices: [] } }, vit = null, picked = null, show = { wifi: true, bt: true };
-  let canvas, g, W = 0, H = 0, dpr = 1, raf = 0, scanTimer = 0, vitTimer = 0, lastScan = 0, sweep = 0, t0 = performance.now();
+  let ro = null, canvas, g, W = 0, H = 0, dpr = 1, raf = 0, scanTimer = 0, vitTimer = 0, lastScan = 0, sweep = 0, t0 = performance.now();
   const hist = { cpu: [], rx: [], tx: [] };
   const lit = new Map();   // id -> time the sweep last passed it
   const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
@@ -57,7 +57,9 @@
       const r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
       canvas.style.cursor = signals().some((s) => { const [bx, by] = pos(s); return Math.hypot(bx - x, by - y) < 14; }) ? "pointer" : "";
     });
-    new ResizeObserver(resize).observe(el.querySelector(".rd-center"));
+    // Watched for size only while open: an observer costs a little on every
+    // frame of every other screen (the map's too).
+    ro = new ResizeObserver(resize);
   }
 
   // All signals shown, with their kind.
@@ -293,7 +295,7 @@
     if (!on) {
       if (el.hidden) return;
       el.hidden = true; document.body.classList.remove("radar-open"); $("#radar-btn")?.classList.remove("on");
-      clearTimeout(scanTimer); clearTimeout(vitTimer); cancelAnimationFrame(raf); raf = 0;
+      clearTimeout(scanTimer); clearTimeout(vitTimer); cancelAnimationFrame(raf); raf = 0; ro.disconnect();
       if (!quiet) { Sound.click(); if (typeof goBack === "function") goBack(); }
       if (window.startRain) startRain();
       return;
@@ -307,6 +309,7 @@
     $("#library").hidden = true; $("#library-btn").classList.remove("on");
     el.hidden = false; document.body.classList.add("radar-open"); $("#radar-btn")?.classList.add("on");
     if (window.stopRain) stopRain();
+    ro.observe(el.querySelector(".rd-center"));
     resize();
     list(); scan(true); vitals();
     if (!raf) raf = requestAnimationFrame(draw);

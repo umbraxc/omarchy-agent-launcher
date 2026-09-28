@@ -82,6 +82,31 @@
     });
   }
 
+  // Cards that toggle on and off (several can be picked). Resolves on CONTINUE.
+  function multi(answer, items, chosen) {
+    return new Promise((resolve, reject) => {
+      const grid = document.createElement("div");
+      grid.className = "tour-cards tour-multi";
+      const next = document.createElement("div");
+      items.forEach((it) => {
+        const c = document.createElement("button");
+        c.className = "tour-card" + (chosen.has(it.id) ? " on" : "");
+        c.innerHTML = "<b></b>";
+        c.querySelector("b").textContent = it.name;
+        c.addEventListener("mouseenter", Sound.hover);
+        c.addEventListener("click", () => { chosen.has(it.id) ? chosen.delete(it.id) : chosen.add(it.id); c.classList.toggle("on", chosen.has(it.id)); Sound.click(); });
+        grid.appendChild(c);
+      });
+      next.className = "tour-choices";
+      next.innerHTML = `<button class="solid">CONTINUE ▸</button>`;
+      next.querySelector("button").addEventListener("click", () => { grid.classList.add("done"); next.remove(); Sound.click(); resolve(chosen); });
+      answer.append(grid, next);
+      skipHooks.push(() => reject(SKIP));
+      wake();
+      autoClick(next.querySelector("button"));
+    });
+  }
+
   // A grid of pickable cards; picking applies at once. Resolves on CONTINUE.
   function cards(answer, items, current, onPick, nextLabel) {
     return new Promise((resolve, reject) => {
@@ -120,15 +145,17 @@
     ["#link", "LINK", "LOCAL means fully offline (the default). Switch to ONLINE when you have internet and I add Wikipedia for fuller, more current answers. I always ask first."],
     [".cell.status", "STATUS", "Shows when I'm ready, working, or can't reach my AI."],
     ["#loadout-btn", "PROFILE & LOADOUT", "Your profile (name, callsign, character, what I should know about you), your Achievements and rank, plus scenarios and personalities. You can create your own of both."],
-    ["#history-btn", "HISTORY", "Every conversation is saved on this computer. Reopen and continue any of them, search through everything that was said, and export them to a file or a USB stick."],
+    ["#history-btn", "HISTORY", "Every conversation is saved on this computer. Reopen and continue any of them, search through everything, sort them into folders (each with a brief I keep in mind), pin them, and export them."],
     ["#library-btn", "LIBRARY", "The offline collections I read from, and my built-in Field Manual: the critical basics, always available. Download more collections here."],
-    ["#maps-btn", "MAPS", "Offline maps with a military look, down to street level: download a country or any area, search towns, streets and water points, drop waypoints and measure distances. Full screen with F."],
-    ["#fieldkit-btn", "FIELD KIT", "Tools that matter in an emergency: a CPR metronome, first-aid timers, a pulse counter, sun and moon times, how long your supplies last, Morse and knot training, and printable pocket cards."],
+    ["#maps-btn", "MAPS", "Offline maps with a military look, down to street level: download a country or any area, search towns, streets, water and coordinates. Right-click for waypoints (15 marker types), measuring and range rings. Click a country's name for its file and your own safety level."],
+    ["#fieldkit-btn", "FIELD KIT", "Tools that matter in an emergency. MEDIC: CPR metronome, timers, triage, coma scale, burns and child-dose calculators, a patient chart with handover reports. SUN & MOON with a live Earth. SUPPLIES. The VAULT for your arsenal. TRAINING: Morse, radio, grid references, compass and more. Printable CARDS."],
+    ["#radar-btn", "SIGNALS & RADAR", "The Wi-Fi networks and Bluetooth devices around you on a radar, nearer the centre when stronger; click one for its details. Plus your device's vitals. No internet needed."],
+    ["#dl-btn", "DOWNLOADS", "Shows while something downloads (maps, library, AI model): pause, resume or cancel it here. Downloads go on after a restart."],
     ["#theme-btn", "THEMES", "Pick a colour theme, follow your Omarchy theme, or design your own."],
     ["#sound", "SOUND", "Mute or unmute my sounds."],
     ["#lock", "LOCK", "Locks the window so nothing can be clicked or typed by accident."],
     ["#settings-btn", "SETTINGS", "Search box at the top. Performance and the processor limit, sounds, text size, backgrounds, off-grid mode, the AI model, voice, backups, updates, replaying this tour, and more."],
-    ["#q", "ASK", "Type here. Enter sends, Shift+Enter adds a line, Tab uses my suggested reply, Ctrl+Z undoes."],
+    ["#q", "ASK", "Type here. Enter sends, Shift+Enter adds a line, Ctrl+Z undoes. Press Tab in an empty prompt for quick actions: likely replies, the right tool, questions to start with."],
     ["#mic", "VOICE", "Hold F9 (or click) and just talk. Speech is turned into text offline."],
     ["#send", "TRANSMIT", "Sends your question. While I'm answering it becomes STOP (or press Esc)."],
   ];
@@ -243,12 +270,27 @@
       { id: "some", name: "Some experience", line: "A good balance" },
       { id: "experienced", name: "Seasoned", line: "Skip the basics, be concise and technical" },
     ], me.experience, (id) => { me.experience = id; Sound.click(); });
+    a = await say("**What can you already do?** Pick the skills you have: I'll build on them and skip the basics there.");
+    const skills = await multi(a, [["firstaid", "First aid"], ["navigation", "Map & compass"], ["radio", "Radio"], ["fire", "Fire"],
+      ["shelter", "Shelter"], ["water", "Water"], ["foraging", "Foraging"], ["hunting", "Hunting"], ["fishing", "Fishing"],
+      ["cooking", "Cooking"], ["gardening", "Growing food"], ["mechanics", "Mechanics"], ["electrics", "Electrics"],
+      ["carpentry", "Carpentry"], ["sewing", "Sewing"], ["defence", "Self-defence"]].map(([id, name]) => ({ id, name })), new Set(me.skills || []));
+    me.skills = [...skills];
     a = await say("**Who do you look after?** Kids, older family, pets: I'll plan for them too when it matters.");
     const household = await field(a, "e.g. 2 adults, a child of 6, a dog", 160, false, false, "");
     if (household) { addUser(household); me.household = household; }
-    a = await say("Anything about your **health** I should keep in mind for first aid and food advice? Allergies, conditions, medication. " +
-      "Completely optional, and it never leaves this computer.");
-    const health = await field(a, "e.g. allergic to penicillin, asthma", 300, true);
+    a = await say("An **emergency contact**, for your ID card: who should a helper call? Name and phone. Optional.");
+    const contact = await field(a, "e.g. Sam (partner) +31 6 1234 5678", 80, false, false, "");
+    if (contact) { addUser(contact); me.contact = contact; }
+    a = await say("Now your **health**, for first aid and food advice, and your pocket ID card. All optional; it never leaves this computer. " +
+      "First, **your blood type**, if you know it.");
+    await cards(a, ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((b) => ({ id: b, name: b || "Don't know", line: "" })),
+      me.blood || "", (id) => { me.blood = id; Sound.click(); });
+    a = await say("Any **allergies**? I'll never suggest them.");
+    const allergies = await field(a, "e.g. penicillin, peanuts, bee stings", 160, false, false, "");
+    if (allergies) { addUser(allergies); me.allergies = allergies; }
+    a = await say("Any **medication** you take regularly, or a condition I should keep in mind?");
+    const health = await field(a, "e.g. inhaler for asthma", 300, true);
     if (health) { addUser("(health notes saved)"); me.health = health; }
     a = await say("Last touch: **the colour of your name** in our conversations.");
     const colours = [["", "Default"], ["signal", "Signal"], ["accent", "Accent"], ["net", "Network"], ["red", "Red"], ["fg-bright", "White"]];
@@ -257,8 +299,8 @@
       swatch: `<span class="tour-sw"><i style="background:var(--${id || "fg"})"></i></span>`,
     })), me.color || "", (id) => { me.color = id; Sound.click(); });
     await saveMe();
-    await say("Saved to your **Profile**, where you can change any of it. You'll also find your **Achievements** there: " +
-      "badges you earn as you learn and prepare. You may have just earned your first ones.");
+    await say("Saved to your **Profile**, where you can change any of it, and where your **dog tag** shows it at a glance. " +
+      "You'll also find your **Achievements** there: badges you earn as you learn and prepare. You may have just earned your first ones.");
 
     // An optional password: typed as dots, asked twice.
     a = await say("Would you like a **password** on Umbra? It's optional. I'll ask for it when I start and when you lock the screen, " +
@@ -433,12 +475,14 @@
 
     a = await say("A few more things worth knowing:\n\n" +
       "- My answers cite their sources as numbered tags. **Hover** one for a summary, **click** to open the page.\n" +
-      "- I usually end with an offer. Click it, or press **Tab** then **Enter**, to accept.\n" +
+      "- I usually end with an offer. Click it, or press **Tab** and pick it. Under an answer, buttons open the tool that fits (the CPR metronome for CPR, a manual page, the map…).\n" +
       "- While I think, a little scene and **field notes** keep you company. Answers take a minute or so, because everything runs on this computer.\n" +
       "- My **Field Manual** (in the Library) has the critical basics, from bleeding to water, and I use it in my answers too.\n" +
       "- Scroll up any time, even while I'm writing: the whole conversation is one long page, with the start screen on top.\n" +
       "- Earn **achievements** as you go (questions, topics, streaks, the field manual…); pin your favourite badges to your profile.\n" +
       "- **Export** conversations or the manual to a file or a USB stick, and **back up** your whole Umbra from Settings.\n" +
+      "- Every download can be **paused and resumed**, even after a restart; a chime tells you when it's done.\n" +
+      "- After an update, I'll show you **what's new**, once.\n" +
       "- Press **F1** any time for the keyboard shortcuts.\n" +
       "- On Omarchy, the **Umbra icon in the top bar** opens me, shows your loadout and a new field note every hour, and lights up when an answer is waiting.");
     a = await say(`That's the tour${who !== "friend" ? `, **${who}**` : ""}. You can replay it any time from **Settings**. Ready when you are.`);

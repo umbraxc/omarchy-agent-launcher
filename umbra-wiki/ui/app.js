@@ -155,7 +155,7 @@ const Sound = (() => {
 // (Morse keys, the metronome's tap).
 document.addEventListener("click", (e) => {
   const b = e.target.closest("button, .mp-pt, label.mp-opt, .set-chip");
-  if (!b || b.disabled || !b.closest("#maps, #fieldkit, #dl-pop, #settings, .news, .dl-toast")) return;
+  if (!b || b.disabled || !b.closest("#maps, #fieldkit, #radar, #loadout, #history, #dl-pop, #settings, .news, .dl-toast, .toolrow")) return;
   if (b.closest("[data-quiet], .fk-chart, .fk-key, .fk-tap")) return;
   setTimeout(Sound.tap, 30);
 });

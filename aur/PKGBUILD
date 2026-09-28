@@ -12,7 +12,9 @@ optdepends=('pipewire-audio: sounds and voice recording'
             'libpulse: sounds on systems that use PulseAudio'
             'voxtype-bin: offline voice input (AUR)'
             'ollama-cuda: run the AI on an NVIDIA graphics card'
-            'ollama-rocm: run the AI on an AMD graphics card')
+            'ollama-rocm: run the AI on an AMD graphics card'
+            'networkmanager: Wi-Fi networks on the Signals & Radar screen (iwd works too)'
+            'bluez-utils: Bluetooth devices on the Signals & Radar screen')
 install=umbra-wiki.install
 source=("$pkgname-$pkgver.tar.gz::https://github.com/umbraxc/omarchy-umbra/archive/refs/tags/v$pkgver.tar.gz")
 sha256sums=('599ebaa78ed0cdebe86060fce916c1bb69e64fb34a4d6e59d262797173a49e75')
