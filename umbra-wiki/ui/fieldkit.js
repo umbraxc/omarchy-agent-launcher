@@ -427,7 +427,7 @@
     let mapView = null;
     try { const v = JSON.parse(localStorage.getItem("umbra-maps") || "{}").view; if (v) mapView = { lat: (Math.atan(Math.sinh(Math.PI * (1 - 2 * v.y))) * 180) / Math.PI, lon: ((v.x * 360 + 360) % 360) - 180 }; } catch {}
     const saved = store.get("sky", null);
-    if (!skyPlace) skyPlace = saved || (mapView ? { name: "Map centre", ...mapView } : { name: "Map centre", lat: 52.09, lon: 5.12 });
+    if (!skyPlace) skyPlace = saved || (mapView ? { name: "Map centre", ...mapView } : { name: "Map centre", lat: 45.92, lon: 6.87 });
     const today = new Date();
     body.innerHTML = `<div class="fk-sky">
       <section class="fk-card fk-orrery"></section>

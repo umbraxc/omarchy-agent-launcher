@@ -2,6 +2,19 @@
 
 ## 3.1.1
 
+### Highlights
+
+- **Maps**: offline OpenStreetMap maps down to street level, with country files, your own safety levels, military-style waypoints and downloads you can pause.
+- **Field Kit**: medic tools (CPR, triage, burns, child doses, patient chart), a live Earth, Sun and Moon, supplies, a **Calendar** and the password-locked **Vault**.
+- **Training**: Morse challenge, radio, grid references, compass, and real field manuals to download.
+- **Signals & Radar**: the Wi-Fi and Bluetooth signals around you, the devices it has seen, and a kill switch.
+- **Umbra knows you**: your profile, health notes, supplies and plans shape every answer; press **Tab** for quick actions.
+- **A fresher look**: redesigned themes (try Arctic Kill), a new profile page, history folders and first-look guides.
+- **Achievements**, settings in coloured groups, and a note like this one after every update.
+
+### All changes
+
+
 - **Calendar** in the Field Kit: browse months, add reminders in six colours
   and four levels of importance, once or repeating; Umbra adds when your
   water and food run out, best-before dates, first-aid timers and the moon's

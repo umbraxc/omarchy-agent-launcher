@@ -783,6 +783,9 @@
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirm: "RESET" }),
     }).catch(() => null);
     if (!res || !res.ok) { Sound.error(); return; }
+    // What the window keeps goes too (training scores, the patient chart,
+    // timers, guides, map view...), so it really starts over.
+    try { Object.keys(localStorage).filter((k) => k.startsWith("umbra")).forEach((k) => localStorage.removeItem(k)); } catch {}
     location.reload();
   }
   window.resetUmbra = resetUmbra;

@@ -234,7 +234,8 @@ main::-webkit-scrollbar-track { background: transparent; }
   display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 10px; max-width: 760px; margin: 6px auto 0; max-height: 600px; overflow: hidden;
 }
-.prompts-bar { display: flex; justify-content: flex-end; max-width: 760px; margin: 34px auto 0; }
+.prompts-bar { display: flex; justify-content: flex-end; max-width: 760px; margin: 12px auto 0; }
+.intro > .prompts-bar:nth-child(2), .subtitle + .prompts-bar { margin-top: 30px; }
 .prompts-toggle { padding: 2px 4px; cursor: pointer; font: 700 9.5px var(--font); letter-spacing: .24em; color: var(--faint); background: none; border: 0; transition: color .15s; }
 .prompts-toggle:hover { color: var(--signal); }
 body.prompts-anim .prompts { transition: max-height .45s cubic-bezier(.4, 0, .2, 1), opacity .35s, margin .45s, filter .35s; }
@@ -654,7 +655,7 @@ kbd { font: inherit; opacity: .7; margin-left: 4px; }
 
 /* ------------------------------------------------------- greeting & labels */
 
-.greet { margin: 26px auto 0; max-width: 640px; text-align: center; opacity: 0; transition: opacity .6s; }
+.greet { margin: 20px auto 0; max-width: 640px; text-align: center; opacity: 0; transition: opacity .6s; }
 .greet.in { opacity: 1; }
 .gname { color: var(--signal); font-weight: 800; letter-spacing: .3em; font-size: 12px; }
 .gtext { margin-top: 8px; color: var(--fg); font-size: calc(13.5px * var(--ts, 1)); line-height: 1.6; min-height: 1.6em; }
@@ -2377,3 +2378,6 @@ body.reduce-motion .cal-dots i.imp4 { animation: none; }
 #fieldkit, #loadout { position: fixed; }
 .fk > .tabguide, .loadout > .tabguide { bottom: 58px; }
 .maps .tabguide, .radar .tabguide { box-shadow: none; animation: none; }
+
+.news-btns { display: flex; gap: 8px; }
+.news-btns .ghost { padding: 8px 12px; font-size: 10.5px; }

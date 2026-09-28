@@ -137,15 +137,19 @@ UMBRA_GUIDE = (
     "and read); CARDS tab that prints pocket cards and an ID and medical card. "
     "MAPS (Ctrl+G): offline world map, downloadable detailed areas, search, coordinates and MGRS, "
     "waypoints, measuring, clickable country files with facts, and safety levels per country. "
-    "SIGNALS & RADAR (Ctrl+J): nearby Wi-Fi and Bluetooth signals on a radar, intel and an event log, the "
-    "device's vitals, and a KILL SWITCH that turns all radios off at once. LIBRARY (Ctrl+L): offline collections and the built-in Umbra Field Manual. HISTORY (Ctrl+H) "
-    "with folders; PROFILE and LOADOUT (scenarios, personalities, achievements); THEMES (Ctrl+T); "
-    "SETTINGS with search. Everything works offline; only online mode, downloads and the update check use "
+    "SIGNALS & RADAR (Ctrl+J): nearby Wi-Fi and Bluetooth signals on a radar, INTEL, a DEVICES list that "
+    "remembers every device heard and marks new ones, the device's vitals, and a KILL SWITCH that turns all radios off at once. "
+    "DOWNLOADS (maps, library, AI model, manuals) can be paused and resumed from the button at the top. "
+    "Every screen shows a short first-look guide the first time; the welcome tour can be replayed from Settings. LIBRARY (Ctrl+L): offline collections and the built-in Umbra Field Manual. HISTORY (Ctrl+H) "
+    "with folders (each with a brief you keep in mind); PROFILE (name, callsign, skills, health, blood type, allergies, "
+    "medication, emergency contact, household) and LOADOUT (scenarios, personalities, achievements); THEMES (Ctrl+T), e.g. "
+    "Arctic Kill, Hazmat, Paper Map, Thermal; SETTINGS in six groups with search, backups and restore. Everything works offline; only online mode, downloads and the update check use "
     "the internet. In the prompt, Tab opens quick actions. When you mention a tool, name it exactly as above."
 )
 ABOUT_UMBRA = re.compile(r"\b(umbra|this app|the app|your (features|tools|functions)|what can you do|what are you|who are you|"
                          r"how do (i|you) use|field kit|medic tab|vault|radar|sun (and|&) moon|pocket cards?|morse trainer|"
-                         r"settings|shortcut|offline map|waypoint|help me with the app)\b", re.I)
+                         r"settings|shortcut|offline map|waypoint|calendar|reminder|manuals?|radar|kill switch|theme|tour|download|backup|"
+                         r"profile|achievement|help me with the app)\b", re.I)
 
 STOPWORDS = set("""
 a an the and or but if then so of to in on at by for from with without about into over under
@@ -1041,16 +1045,28 @@ def hum(on):
         _hum = subprocess.Popen(player(path), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
+_sound_procs = {}
+
+
 def play_sound(name):
     """Play a bundled sound through PipeWire (independent of the web view)."""
     path = os.path.join(SOUNDS_DIR, name + ".ogg")
     if not re.fullmatch(r"[a-z]{1,16}", name) or not os.path.isfile(path) or not player(path):
         return False
     now = time.monotonic()
-    if now - _last_sound.get(name, 0) < 0.04:  # collapse accidental double triggers
+    gap = 0.07 if name in ("key", "hover") else 0.04
+    if now - _last_sound.get(name, 0) < gap:  # collapse accidental double triggers and key repeat
         return True
     _last_sound[name] = now
-    subprocess.Popen(player(path), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # Short interface sounds never pile up: a new one cuts the previous one
+    # of its kind (holding Backspace doesn't leave a tail of clicks).
+    prev = _sound_procs.get(name)
+    if name in ("key", "hover", "click") and prev and prev.poll() is None:
+        try:
+            prev.terminate()
+        except OSError:
+            pass
+    _sound_procs[name] = subprocess.Popen(player(path), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return True
 
 
@@ -1986,7 +2002,7 @@ def reset_umbra():
     are deleted (downloaded maps stay, like the library). The AI model,
     the library and config.json (model, library folder) are kept."""
     for path in (SETTINGS_FILE, PROFILE_FILE, CUSTOM_THEMES_FILE, PERSONALITIES_FILE, SCENARIOS_FILE, LOCK_FILE, ACH_FILE,
-                 WAYPOINTS_FILE, SUPPLIES_FILE, SAFETY_FILE, FOLDERS_FILE, VAULT_FILE, radar.KNOWN_FILE, CALENDAR_FILE):
+                 WAYPOINTS_FILE, SUPPLIES_FILE, SAFETY_FILE, FOLDERS_FILE, VAULT_FILE, radar.KNOWN_FILE, CALENDAR_FILE, MANUALS_STATE):
         try:
             os.remove(path)
         except OSError:
@@ -2148,7 +2164,12 @@ def whats_new():
             continue
         m = re.search(rf"^## {re.escape(VERSION)}\s*\n(.*?)(?=^## |\Z)", text, re.S | re.M)
         if m:
-            for bullet in re.split(r"\n- ", "\n" + m.group(1).strip()):
+            body = m.group(1)
+            # Only the highlights, when the version has them.
+            h = re.search(r"^### Highlights\s*\n(.*?)(?=^### |\Z)", body, re.S | re.M)
+            if h:
+                body = h.group(1)
+            for bullet in re.split(r"\n- ", "\n" + body.strip()):
                 bullet = " ".join(bullet.split()).lstrip("- ").strip()
                 if bullet:
                     items.append(bullet)

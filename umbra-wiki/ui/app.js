@@ -150,12 +150,21 @@ const Sound = (() => {
   return api;
 })();
 
+// A soft hover blip on the rows and buttons of the tools, like elsewhere.
+document.addEventListener("mouseover", (e) => {
+  const b = e.target.closest(".cal-day, .cal-urow, .rd-row, .rd-krow, .v-row, .v-libi, .tr-mcard, .hist-row .hopen, .hf, .fk-subnav button, .fk-subtabs button, .mp-pt, .tm-item, .set-chip, .manual-page");
+  if (!b || b === hoverLast) return;
+  hoverLast = b;
+  Sound.hover();
+});
+let hoverLast = null;
+
 // Every button in the tools (maps, field kit, downloads, settings) answers
 // with a click, unless it just made a sound of its own or plays a tone
 // (Morse keys, the metronome's tap).
 document.addEventListener("click", (e) => {
   const b = e.target.closest("button, .mp-pt, label.mp-opt, .set-chip");
-  if (!b || b.disabled || !b.closest("#maps, #fieldkit, #radar, #loadout, #history, #dl-pop, #settings, .news, .dl-toast, .toolrow")) return;
+  if (!b || b.disabled || !b.closest("#maps, #fieldkit, #radar, #loadout, #history, #library, #themes, #dl-pop, #settings, .news, .dl-toast, .toolrow, .tabguide, .hist-edit, .hist-move")) return;
   if (b.closest("[data-quiet], .fk-chart, .fk-key, .fk-tap")) return;
   setTimeout(Sound.tap, 30);
 });
@@ -2248,6 +2257,7 @@ form.addEventListener("submit", (e) => {
   else ask(q);
 });
 
+let keyRepeat = 0;
 input.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); return; }
   const k = e.key.toLowerCase();
@@ -2266,7 +2276,10 @@ input.addEventListener("keydown", (e) => {
     Sound.key();
     return;
   }
-  if (e.key.length === 1 || e.key === "Backspace") Sound.key();
+  // Held keys repeat fast: only every fourth repeat clicks.
+  if (e.key.length === 1 || e.key === "Backspace") {
+    if (!e.repeat) { keyRepeat = 0; Sound.key(); } else if (++keyRepeat % 4 === 0) Sound.key();
+  }
 });
 
 // Grows the prompt with its text. Measuring briefly collapses the box, which

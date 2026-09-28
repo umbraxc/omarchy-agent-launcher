@@ -626,8 +626,8 @@
     const lon = (D - (1 + 2 * T1 + C1) * D ** 3 / 6 + (5 - 2 * C1 + 28 * T1 - 3 * C1 ** 2 + 8 * ep2 + 24 * T1 ** 2) * D ** 5 / 120) / Math.cos(p1);
     return { lat: lat / toRad, lon: ((zone - 1) * 6 - 180 + 3) + lon / toRad };
   }
-  // Coordinates in the forms the map shows (52.0907° N 5.1214° E, with or
-  // without "·" between them), N52.09 E5.12, 52.09, 5.12, degrees-minutes-
+  // Coordinates in the forms the map shows (45.9237° N 6.8694° E, with or
+  // without "·" between them), N45.92 E6.87, 45.92, 6.87, degrees-minutes-
   // seconds, or MGRS (31U FT 50912 81543).
   function parseCoords(text) {
     const t = text.trim().toUpperCase().replace(/^(CENTRE|CURSOR|MGRS)\s+/, "").replace(/[·;|]/g, " ").replace(/\s+/g, " ").trim();
@@ -1155,7 +1155,7 @@
       <div class="mp-head">
         <span class="lo-title"><span class="spin" data-spin>✻</span> MAPS</span>
         <div class="mp-search"><span class="g">󰍉</span>
-          <input placeholder="Search towns, streets, water, coordinates (52.09° N 5.12° E) or MGRS…" spellcheck="false" autocomplete="off">
+          <input placeholder="Search towns, streets, water, coordinates (45.92° N 6.87° E) or MGRS…" spellcheck="false" autocomplete="off">
           <div class="mp-results" hidden></div></div>
         <div class="mp-tools">
           <div class="pf-choice mp-style"><button data-s="topo" title="Topographic|A paper military map: green woods, blue water, brown relief.">TOPO</button><button data-s="tactical" title="Tactical|A dark map in the colours of your Umbra theme.">TACTICAL</button></div>

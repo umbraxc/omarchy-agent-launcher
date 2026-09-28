@@ -163,8 +163,8 @@ slid and scaled.
   street is about 0.8 GB.
 - **Search** towns, streets, water and places across every downloaded map,
   nearest first (try "drinking water"), or type coordinates the way the map
-  shows them (`52.0907° N 5.1214° E`, `N52.09 E5.12`, `52.09, 5.12`,
-  `52°5'26"N 5°7'17"E`) or an MGRS reference (`31U FT 45332 73249`). Every
+  shows them (`45.9237° N 6.8694° E`, `N45.92 E6.87`, `45.92, 6.87`,
+  `45°55'25"N 6°52'10"E`) or an MGRS reference (`32T LR 34797 87777`). Every
   place card has a **COPY** button for its coordinates.
 - **Country files:** every country's name can be clicked. The camera centres
   on it, its outline lights up and a dark data window glitches in, tied to
@@ -188,7 +188,7 @@ never part of an update or of someone else's install. Every button has a
 tooltip that says what it does.
 
 ![Maps, topographic style with relief and contours](docs/maps-topo.png)
-![Maps, tactical style](docs/maps-tactical.png)
+![Maps, tactical style with a country file](docs/maps-tactical.png)
 
 ### Field Kit
 
@@ -241,7 +241,11 @@ The tools that can matter between life and death, all offline (Ctrl+K):
   waypoints with MGRS, your supplies, emergency contacts and notes, printed
   four to an A4 page to cut out; a sketch shows the page before you print.
 
-![Field Kit](docs/fieldkit.png)
+![Field Kit: medic tools](docs/fieldkit.png)
+![Sun & Moon with the live Earth](docs/sky.png)
+![Calendar](docs/calendar.png)
+![The Vault](docs/vault.png)
+![Training: field manuals](docs/training.png)
 
 ### Signals & Radar
 
