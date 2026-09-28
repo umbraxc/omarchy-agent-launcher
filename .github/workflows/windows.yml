@@ -85,6 +85,20 @@ jobs:
           if (-not (Test-Path $lnk)) { "no Start menu entry"; exit 1 }
           $p = Start-Process -FilePath "$app\Umbra Wiki.exe" -ArgumentList "--selftest" -Wait -PassThru
           if ($p.ExitCode -ne 0) { Get-Content selftest.json; exit 1 }
+          # An update from inside Umbra: the installer starts while Umbra runs, Umbra
+          # closes, the installer waits for it, updates quietly and reopens Umbra.
+          Start-Process -FilePath "$app\Umbra Wiki.exe"
+          Start-Sleep -Seconds 20
+          $u = Start-Process "dist\Umbra-Wiki-Setup-$env:VERSION.exe" -ArgumentList "/SILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/MERGETASKS=!ollama,!desktopicon", "/RELAUNCH=1" -PassThru
+          Start-Sleep -Seconds 5
+          Get-Process "Umbra Wiki" -ErrorAction SilentlyContinue | Stop-Process -Force
+          if (-not $u.WaitForExit(240000)) { "update installer hung"; exit 1 }
+          if ($u.ExitCode -ne 0) { "update installer exit $($u.ExitCode)"; exit 1 }
+          Start-Sleep -Seconds 10
+          if (-not (Get-Process "Umbra Wiki" -ErrorAction SilentlyContinue)) { "Umbra didn't reopen after the update"; exit 1 }
+          "updated over a running Umbra and reopened it"
+          Get-Process "Umbra Wiki" -ErrorAction SilentlyContinue | Stop-Process -Force
+          Start-Sleep -Seconds 3
           $p = Start-Process "$app\unins000.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES" -Wait -PassThru
           Start-Sleep -Seconds 3
           if (Test-Path "$app\Umbra Wiki.exe") { "uninstall left the app behind"; exit 1 }
