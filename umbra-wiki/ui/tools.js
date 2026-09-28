@@ -98,9 +98,10 @@
     const was = replies.map((r) => r.text).join("|");
     replies = list || [];
     if (rec) lastRec = rec;
-    // New replies are typed in at once, then take turns.
+    // New replies are typed in at once, then take turns; when they go (a new
+    // question), the usual hint comes back the same way, never with a jump.
     if (replies.length && replies.map((r) => r.text).join("|") !== was) setTimeout(() => cycle(true), 60);
-    if (!replies.length) { clearTimeout(typing); input.classList.remove("typing-hint"); }
+    if (!replies.length && was) typeHint(DEFAULT_HINT, false);
   }
 
   function gather() {
@@ -191,25 +192,46 @@
   ];
   // After an answer the likely replies take turns in the prompt, typed in
   // the reply colour; before that, example questions.
+  // This is the only place that writes the prompt's hint: the old text is
+  // wiped quickly, then the new one typed in, each in its own single colour
+  // (replies in the reply colour, everything else faint), so it never jumps.
+  const DEFAULT_HINT = input.placeholder;
   let ex = 0, typing = 0, cycleTimer = 0;
   function typeHint(text, reply) {
     clearTimeout(typing);
-    let i = 0;
-    input.classList.add("typing-hint");
-    input.classList.toggle("suggest", !!reply);
     const tail = reply ? "    ⇥ TAB" : "";
-    const step = () => {
-      if (input.value) { input.classList.remove("typing-hint"); return; }
-      input.placeholder = text.slice(0, ++i) + (i < text.length ? "▌" : tail);
-      if (i < text.length) typing = setTimeout(step, 24 + Math.random() * 26);
+    const target = text + tail;
+    const finish = () => {   // typing started, or no motion: show it whole, at once
+      input.classList.remove("typing-hint");
+      input.classList.toggle("suggest", !!reply);
+      input.placeholder = target;
+    };
+    if (document.body.classList.contains("reduce-motion") || window.offgrid || input.value) return finish();
+    if (input.placeholder === target && input.classList.contains("suggest") === !!reply) return;
+    input.classList.add("typing-hint");
+    let shown = input.placeholder.replace("▌", ""), i = 0;
+    const type = () => {
+      if (input.value) return finish();
+      input.placeholder = target.slice(0, ++i) + (i < target.length ? "▌" : "");   // "⇥ TAB" types in too
+      if (i < target.length) typing = setTimeout(type, i > text.length ? 18 : 24 + Math.random() * 26);
       else input.classList.remove("typing-hint");
     };
-    if (document.body.classList.contains("reduce-motion") || window.offgrid) { input.placeholder = text + tail; input.classList.remove("typing-hint"); return; }
-    step();
+    const wipe = () => {
+      if (input.value) return finish();
+      if (shown.length) {
+        shown = shown.slice(0, -Math.max(2, Math.ceil(shown.length / 12)));
+        input.placeholder = shown + "▌";
+        typing = setTimeout(wipe, 16);
+        return;
+      }
+      input.classList.toggle("suggest", !!reply);   // the colour changes while the line is empty
+      type();
+    };
+    wipe();
   }
   function cycle(now = false) {
     clearTimeout(cycleTimer);
-    const calm = !input.value && !isOpen() && !locked && !document.body.classList.contains("touring");
+    const calm = !input.value && !isOpen() && !locked && !controller && !document.body.classList.contains("touring");
     const list = replies.length ? replies.map((r) => r.text) : EXAMPLES;
     if (calm && (now || list.length > 1 || !replies.length)) {
       ex = (ex + 1) % list.length;

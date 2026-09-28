@@ -1,5 +1,24 @@
 # Changelog
 
+## 3.1.2
+
+### Highlights
+
+- **Umbra Wiki for Windows**: a native Windows 11 app with a one-click installer, and updates that install themselves.
+- **A smoother prompt**: suggested replies and hints type in and out gently, each in one steady colour, and "⇥ TAB" no longer pops in.
+- **Better suggested replies**: the AI's own framing ("Here are three likely replies…") no longer shows up as a suggestion.
+- The top bar makes room on narrow windows instead of overlapping.
+
+### All changes
+
+- The prompt's hint is written in one place only: the old text is wiped quickly and the new one typed in, so a reply
+  never appears all at once and then retypes itself; its colour changes only while the line is empty; "⇥ TAB" is typed
+  in with the reply; typing mid-animation shows the whole hint afterwards instead of a half-typed one; while Umbra
+  answers, the hint stays still.
+- Suggested replies skip lines where the AI describes its list instead of writing a reply.
+- The top bar hides the model and archive counters earlier on narrow windows, so the buttons always fit.
+- Windows app: see 3.1.1's notes; built and tested on Windows for every release.
+
 ## 3.1.1
 
 ### Highlights

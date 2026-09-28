@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.umbraxc.agent-launcher",
   "name": "Omarchy Umbra",
-  "version": "3.1.1",
+  "version": "3.1.2",
   "author": "umbraxc",
   "license": "MIT",
   "description": "Umbra Wiki, an offline survival AI that answers from a library on your computer, plus your coding agents, one click away in the Omarchy bar",

@@ -466,7 +466,6 @@ body.locked .promptbar { visibility: hidden; }
   animation: caret-breathe 4.5s ease-in-out infinite; }
 @keyframes caret-breathe { 50% { opacity: .55; text-shadow: 0 0 8px var(--signal-soft); } }
 body.reduce-motion .caret { animation: none; }
-textarea.typing-hint::placeholder { color: color-mix(in srgb, var(--signal) 45%, var(--faint)); }
 textarea {
   flex: 1; resize: none; border: 0; outline: 0; background: transparent;
   color: var(--fg-bright); font: calc(15px * var(--ts, 1))/1.5 var(--font); max-height: 180px; padding: 5px 0;

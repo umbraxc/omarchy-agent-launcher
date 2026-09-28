@@ -2253,6 +2253,7 @@ function setSuggestion(text, sendAs = "", more = []) {
   suggestion = text ? { text, sendAs } : null;
   // The Tab menu offers this reply and a couple of others.
   if (window.UmbraTools) UmbraTools.setReplies(text ? [{ text }, ...more.filter((m) => m !== text).map((m) => ({ text: m }))] : []);
+  if (window.UmbraTools) return;   // tools.js types the hint in (and out) smoothly
   input.placeholder = text ? `${text}    ⇥ TAB` : DEFAULT_HINT;
   input.classList.toggle("suggest", !!text);
 }

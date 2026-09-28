@@ -1,8 +1,7 @@
 # Maintainer: umbraxc <334050264+umbraxc@users.noreply.github.com>
 pkgname=umbra-wiki
-pkgver=3.1.1
-pkgrel=2
-_commit=f68c6b873f2d2ab477874153c5f723b936b57333   # 3.1.1 plus Windows (WSL) support
+pkgver=3.1.2
+pkgrel=1
 pkgdesc="Offline survival assistant: a local AI that answers from an offline library, with sources"
 arch=('any')
 url="https://github.com/umbraxc/omarchy-umbra"
@@ -17,11 +16,11 @@ optdepends=('pipewire-audio: sounds and voice recording'
             'networkmanager: Wi-Fi networks on the Signals & Radar screen (iwd works too)'
             'bluez-utils: Bluetooth devices on the Signals & Radar screen')
 install=umbra-wiki.install
-source=("$pkgname-$pkgver-$pkgrel.tar.gz::https://github.com/umbraxc/omarchy-umbra/archive/$_commit.tar.gz")
+source=("$pkgname-$pkgver.tar.gz::https://github.com/umbraxc/omarchy-umbra/archive/refs/tags/v$pkgver.tar.gz")
 sha256sums=('def850b818a39012d61868857b656cb202c35ccfee4579632d74fc96763cb7a1')
 
 package() {
-  cd "omarchy-umbra-$_commit/umbra-wiki"
+  cd "omarchy-umbra-$pkgver/umbra-wiki"
   local app="$pkgdir/usr/share/umbra-wiki"
 
   install -d "$app"

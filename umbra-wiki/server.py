@@ -87,7 +87,7 @@ MODEL = os.environ.get("UMBRA_MODEL") or CONFIG.get("model") or "gemma3:4b"
 
 WIKI_API = "https://en.wikipedia.org/w/api.php"
 # Wikimedia asks API clients to name themselves with a contact URL.
-VERSION = "3.1.1"
+VERSION = "3.1.2"
 WEB_HEADERS = {"User-Agent": f"UmbraWiki/{VERSION} (https://github.com/umbraxc/omarchy-umbra; offline survival assistant)"}
 
 # Gemma reads context at ~25 tokens/s on this CPU, so the prompt budget is
@@ -3671,6 +3671,9 @@ def suggest_replies(question, answer_text):
     out = []
     for line in lines:
         text = re.sub(r"(?i)^\s*(?:[-*•]|\d+[.)])?\s*(user|reply|me)?\s*:?\s*", "", line).strip(" \"'*")
+        # Skip the model's own framing ("Okay, here are three likely replies:").
+        if text.endswith(":") or re.search(r"(?i)\b(likely (user )?repl|repl(y|ies) to|under \d+ words)\b", text):
+            continue
         if 3 <= len(text) <= 120 and text not in out:
             out.append(text)
     return out[:3]
