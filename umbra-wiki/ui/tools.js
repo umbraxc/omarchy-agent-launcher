@@ -92,7 +92,14 @@
   let menu = null, items = [], sel = 0;
   let replies = [];   // likely replies to the last answer, from app.js
   let lastRec = null;
-  function setReplies(list, rec) { replies = list || []; if (rec) lastRec = rec; }
+  function setReplies(list, rec) {
+    const was = replies.map((r) => r.text).join("|");
+    replies = list || [];
+    if (rec) lastRec = rec;
+    // New replies are typed in at once, then take turns.
+    if (replies.length && replies.map((r) => r.text).join("|") !== was) setTimeout(() => cycle(true), 60);
+    if (!replies.length) { clearTimeout(typing); input.classList.remove("typing-hint"); }
+  }
 
   function gather() {
     const out = [];
@@ -180,26 +187,36 @@
     "How much water does my household need a day?",
     "How do I signal for help without a phone?",
   ];
-  let ex = 0;
-  function cycle() {
-    const calm = !input.value && !input.classList.contains("suggest") && !document.body.classList.contains("reduce-motion") &&
-      !window.offgrid && !isOpen() && !locked;
-    if (calm) {
-      ex = (ex + 1) % EXAMPLES.length;
-      const text = EXAMPLES[ex];
-      let i = 0;
-      input.classList.add("typing-hint");
-      const step = () => {
-        if (input.value || input.classList.contains("suggest")) { input.classList.remove("typing-hint"); return; }
-        input.placeholder = text.slice(0, ++i) + (i < text.length ? "▌" : "");
-        if (i < text.length) setTimeout(step, 28 + Math.random() * 30);
-        else input.classList.remove("typing-hint");
-      };
-      step();
-    }
-    setTimeout(cycle, 14000 + Math.random() * 6000);
+  // After an answer the likely replies take turns in the prompt, typed in
+  // the reply colour; before that, example questions.
+  let ex = 0, typing = 0, cycleTimer = 0;
+  function typeHint(text, reply) {
+    clearTimeout(typing);
+    let i = 0;
+    input.classList.add("typing-hint");
+    input.classList.toggle("suggest", !!reply);
+    const tail = reply ? "    ⇥ TAB" : "";
+    const step = () => {
+      if (input.value) { input.classList.remove("typing-hint"); return; }
+      input.placeholder = text.slice(0, ++i) + (i < text.length ? "▌" : tail);
+      if (i < text.length) typing = setTimeout(step, 24 + Math.random() * 26);
+      else input.classList.remove("typing-hint");
+    };
+    if (document.body.classList.contains("reduce-motion") || window.offgrid) { input.placeholder = text + tail; input.classList.remove("typing-hint"); return; }
+    step();
   }
-  setTimeout(cycle, 16000);
+  function cycle(now = false) {
+    clearTimeout(cycleTimer);
+    const calm = !input.value && !isOpen() && !locked && !document.body.classList.contains("touring");
+    const list = replies.length ? replies.map((r) => r.text) : EXAMPLES;
+    if (calm && (now || list.length > 1 || !replies.length)) {
+      ex = (ex + 1) % list.length;
+      typeHint(list[replies.length ? (now ? 0 : ex) : ex], replies.length > 0);
+      if (now) ex = 0;
+    }
+    cycleTimer = setTimeout(cycle, replies.length ? 7000 + Math.random() * 2000 : 14000 + Math.random() * 6000);
+  }
+  cycleTimer = setTimeout(cycle, 16000);
 
   window.UmbraTools = { toolsFor, info, open, renderTools, setReplies, showMenu: show, hideMenu: hide, TOOLS };
 })();

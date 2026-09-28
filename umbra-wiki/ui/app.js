@@ -981,6 +981,7 @@ function showIntro(first = false, { greet = true } = {}) {
     stopRain();
     feed.innerHTML = "";
     feed.appendChild(introTemplate.cloneNode(true));
+    if (document.body.classList.contains("prompts-hidden")) setPromptsHidden(true, false);
     if (greet) showGreeting(); else $("#intro .greet")?.remove();
   }
   introWatch.disconnect();
@@ -992,6 +993,23 @@ function showIntro(first = false, { greet = true } = {}) {
   });
   showStarters();
 }
+
+// The suggested questions can be tucked away (remembered on this computer).
+function setPromptsHidden(hide, animate = true) {
+  document.body.classList.toggle("prompts-hidden", hide);
+  document.body.classList.toggle("prompts-anim", animate);
+  document.querySelectorAll(".prompts-toggle").forEach((b) => {
+    b.textContent = hide ? "SHOW QUESTIONS ▾" : "HIDE ▴";
+    b.dataset.tip = hide ? "Show the questions|Bring the suggested questions back." : "Hide the questions|Tuck the suggested questions away; show them again any time.";
+  });
+  try { localStorage.setItem("umbra-prompts-hidden", hide ? "1" : ""); } catch {}
+}
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".prompts-toggle")) return;
+  setPromptsHidden(!document.body.classList.contains("prompts-hidden"));
+  Sound.click();
+});
+try { if (localStorage.getItem("umbra-prompts-hidden")) setPromptsHidden(true, false); } catch {}
 
 // The start screen's suggested questions: the scenario's own starters at
 // once, then a few written for you (from your profile and conversations),
@@ -2231,13 +2249,26 @@ input.addEventListener("keydown", (e) => {
 // Grows the prompt with its text. Measuring briefly collapses the box, which
 // would pull the chat up and down on every key; the chat's scroll position
 // is held still around it.
+// The height is measured on a hidden copy of the prompt, so the prompt
+// itself never collapses and the chat above doesn't move while you type.
+// Only a real change of height touches the chat's scroll position.
+const sizer = document.createElement("textarea");
+sizer.setAttribute("aria-hidden", "true");
+sizer.tabIndex = -1;
+Object.assign(sizer.style, { position: "absolute", visibility: "hidden", left: "-9999px", top: "0", height: "0", overflow: "hidden" });
+document.body.appendChild(sizer);
 function autosize() {
-  const keep = feed.scrollTop, before = input.style.height;
-  input.style.height = "auto";
-  const height = input.scrollHeight + "px";
+  const cs = getComputedStyle(input);
+  for (const p of ["fontFamily", "fontSize", "fontWeight", "lineHeight", "letterSpacing", "paddingTop", "paddingBottom", "paddingLeft", "paddingRight", "boxSizing", "wordSpacing"]) sizer.style[p] = cs[p];
+  sizer.style.width = input.getBoundingClientRect().width + "px";
+  sizer.value = input.value || " ";
+  const max = parseFloat(cs.maxHeight) || 180;
+  const height = Math.min(max, sizer.scrollHeight) + "px";
+  if (height === input.style.height) return;
+  const bottom = feed.scrollHeight - feed.scrollTop;
   input.style.height = height;
-  if (height !== before && follow) feed.scrollTop = feed.scrollHeight;
-  else feed.scrollTop = keep;
+  if (follow) feed.scrollTop = feed.scrollHeight;
+  else feed.scrollTop = feed.scrollHeight - bottom;   // keep the same text in view
 }
 input.addEventListener("input", () => { autosize(); Undo.snap(true); });
 
@@ -2313,10 +2344,13 @@ function promptBarState() {
   if (controller) return ["▸ UMBRA IS WORKING", "ESC ABORT", true];
   const n = input.value.length;
   if (n) return [`▸ COMPOSING · ${n} ${n === 1 ? "CHAR" : "CHARS"}`, "⏎ TRANSMIT · ⇧⏎ NEW LINE · CTRL+Z UNDO", false];
-  if (suggestion) return ["▸ SUGGESTIONS READY", "⇥ QUICK ACTIONS · ⏎ TRANSMIT", true];
-  return [`▸ AWAITING INPUT${online ? " · LINK ONLINE" : ""}${window.offgrid ? " · OFF-GRID" : ""}`, "⇥ QUICK ACTIONS · ⏎ TRANSMIT · F9 VOICE", false];
+  if (suggestion) return ["▸ SUGGESTIONS READY", "⏎ TRANSMIT · F9 VOICE", true];
+  return [`▸ AWAITING INPUT${online ? " · LINK ONLINE" : ""}${window.offgrid ? " · OFF-GRID" : ""}`, "⏎ TRANSMIT · F9 VOICE · F1 KEYS", false];
 }
 function updatePromptBar() {
+  // The Tab hint, in the reply colour, beside the status while the prompt is empty.
+  const tabHint = $("#promptbar .pb-tab");
+  if (tabHint) tabHint.hidden = !!(input.value.length || controller || voice.state === "recording" || voice.state === "transcribing");
   const [left, right, hot] = promptBarState();
   const key = left + "|" + right;
   if (key === barState) return;
@@ -2337,44 +2371,8 @@ function updatePromptBar() {
 setInterval(updatePromptBar, 200);
 updatePromptBar();
 
-// ------------------------------------------------------------ block cursor
-
-// The prompt's cursor is a thick block, like a terminal's. The native one
-// is hidden; this one is placed with a hidden mirror of the text.
-const fakeCaret = document.createElement("span");
-fakeCaret.className = "fake-caret";
-fakeCaret.hidden = true;
-form.appendChild(fakeCaret);
-const mirror = document.createElement("div");
-mirror.setAttribute("aria-hidden", "true");
-Object.assign(mirror.style, { position: "absolute", visibility: "hidden", whiteSpace: "pre-wrap", wordWrap: "break-word", top: "0", left: "-9999px" });
-document.body.appendChild(mirror);
-let caretIdle = 0;
-function placeCaret() {
-  if (document.activeElement !== input || input.selectionStart !== input.selectionEnd || locked) { fakeCaret.hidden = true; return; }
-  const cs = getComputedStyle(input);
-  for (const p of ["fontFamily", "fontSize", "fontWeight", "lineHeight", "letterSpacing", "paddingTop", "paddingLeft", "paddingRight", "borderLeftWidth", "boxSizing"]) mirror.style[p] = cs[p];
-  mirror.style.width = input.clientWidth + "px";
-  mirror.textContent = input.value.slice(0, input.selectionStart);
-  const mark = document.createElement("span");
-  mark.textContent = input.value.slice(input.selectionStart, input.selectionStart + 1).replace("\n", "") || " ";
-  mirror.appendChild(mark);
-  const lineH = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.5;
-  fakeCaret.style.left = input.offsetLeft + mark.offsetLeft + "px";
-  fakeCaret.style.top = input.offsetTop + mark.offsetTop - input.scrollTop + (lineH - parseFloat(cs.fontSize) * 1.2) / 2 + "px";
-  fakeCaret.style.width = Math.max(7, mark.offsetWidth || parseFloat(cs.fontSize) * 0.6) + "px";
-  fakeCaret.style.height = parseFloat(cs.fontSize) * 1.2 + "px";
-  fakeCaret.hidden = false;
-  // Solid while typing, blinking when idle.
-  fakeCaret.classList.add("solid");
-  clearTimeout(caretIdle);
-  caretIdle = setTimeout(() => fakeCaret.classList.remove("solid"), 600);
-}
-["input", "focus", "blur", "click", "keyup", "scroll", "select"].forEach((ev) => input.addEventListener(ev, placeCaret));
-input.addEventListener("keydown", () => requestAnimationFrame(placeCaret));
-document.addEventListener("selectionchange", () => { if (document.activeElement === input) placeCaret(); });
-addEventListener("resize", placeCaret);
-setTimeout(placeCaret, 300);
+// The prompt uses the real text cursor, in the signal colour (it always
+// sits exactly where the next letter goes).
 
 // umbra-wiki --manual <page> opens a field-manual page.
 const manualParam = new URLSearchParams(location.search).get("manual");
