@@ -118,12 +118,12 @@ the screen private.
 
 ### Achievements
 
-51 achievements in four tiers (bronze, silver, gold and legendary), each with
+58 achievements in four tiers (bronze, silver, gold and legendary), each with
 its own badge, in the Loadout's **ACHIEVEMENTS** tab: your first question and
 the welcome tour, 10 to 500 questions, the ten survival topics (water, fire,
 shelter, first aid, food, navigation, power, radio, repairs, disasters),
 reading the whole field manual, a full library, off-grid answers, backups to
-a USB stick, day streaks, maps and waypoints, trying themes and personalities, creating your own,
+a USB stick, day streaks, maps and waypoints, the Field Kit, trying themes and personalities, creating your own,
 and a few secret ones. Progress bars show how far along you are; a chime and
 a pop-up celebrate each new one. Points raise your rank from Recruit to
 Legend.
@@ -137,31 +137,59 @@ your saved conversations once, so earlier use counts too.
 
 ### Maps
 
-A map tab (Ctrl+G) with offline maps that Umbra draws itself, in two styles:
-**Topographic**, in the colours of a military paper map (blue water, green
-vegetation, brown hatched mountains, red main roads, dash-dot borders, a
-degree collar), and **Tactical**, dark and in your Umbra theme. A small world
-overview is built in; download the **World Atlas** and any of eight regions
-(Europe, Africa, the Middle East & Central Asia, Russia & North Asia, South &
-East Asia, Australia & Oceania, North America, South America & Caribbean),
-each as **Terrain & places** (borders, provinces, cities and towns, rivers,
-lakes, mountain ranges, peaks, glaciers, seas) and **Infrastructure** (roads,
-railways, airports, ports, built-up areas). A region takes 1 to 6 MB.
+A map tab (Ctrl+G) with **OpenStreetMap** maps that work offline, drawn by
+Umbra in two styles: **Topographic**, in the colours of a military paper map
+(blue water, green woods, brown relief and contour lines, red main roads,
+dark buildings, dash-dot borders, a degree collar), and **Tactical**, dark and
+in your Umbra theme. It goes from the whole world down to single streets,
+and moves smoothly: tiles are drawn once in the background and then only
+slid and scaled.
 
-- A lat/long grid, the **MGRS grid zones**, and a live readout of the
-  crosshair or cursor in degrees and MGRS, with a scale bar and compass.
-- **Search** places across every downloaded map, or type coordinates
+- **Download any area:** a country from the list, or simply the area on
+  screen. Umbra first checks the exact size, then fetches only that area
+  from the daily OpenStreetMap build: never the whole planet. Choose the
+  detail (towns and roads, streets and paths, or everything), **relief and
+  contour lines** (elevation data), and **Essentials**: every drinking-water
+  tap, spring, shelter, pharmacy, hospital, toilet and fuel station, kept
+  small on disk. A city takes a few megabytes; the Netherlands with every
+  street is about 0.8 GB.
+- **Search** towns, streets, water and places across every downloaded map,
+  nearest first (try "drinking water"), or type coordinates
   (`52.09, 5.12`, `52°5'26"N 5°7'17"E`) or an MGRS reference
   (`31U FT 45332 73249`).
-- **Waypoints** (camp, water, danger, rally point, cache, medical, home…)
-  with notes, saved on your computer and in backups; **measure** distances in
-  your units; **ASK UMBRA** about any place.
-- **Full screen**, or pop the map out into **its own window** beside the chat.
+- A lat/long grid, the **MGRS grid zones**, a live readout in degrees and
+  MGRS, a scale bar and compass; **waypoints** with notes, **distance
+  measuring**, **ASK UMBRA** about a place, and **full screen** (F).
 
-Map data: [Natural Earth](https://www.naturalearthdata.com), public domain.
+A small world map is built in, so the tab works before any download.
 
-![Maps, topographic style](docs/maps-topo.png)
-![Maps, tactical style with waypoints and a measured route](docs/maps-tactical.png)
+![Maps, topographic style with relief and contours](docs/maps-topo.png)
+![Maps, tactical style](docs/maps-tactical.png)
+
+### Field Kit
+
+The tools that can matter between life and death, all offline (Ctrl+K):
+
+- **Medic:** a **CPR metronome** (110 a minute, adult, child and infant
+  guidance, the 30:2 breath count or hands-only, a 2-minute swap reminder),
+  **first-aid timers** that keep running and ring (tourniquet, direct
+  pressure, cooling a burn, seizure, recheck, or any minutes), and a
+  **pulse and breathing counter** with normal ranges.
+- **Sun & moon:** first light, sunrise and its direction, solar noon, sunset,
+  last light, daylight left, and the moon's phase, rise and set, for the map's
+  centre, a waypoint or any coordinates. Worked out on the computer.
+- **Supplies:** your household (adults, children, infants, seniors, pets),
+  climate and activity, and what you've stored: see how long water and food
+  last, what runs out first, and how much more you need for your goal.
+- **Training:** Morse by ear (letters and words, at your speed) and by hand
+  (hold Space to key, Umbra decodes), a **signal lamp** that flashes SOS or a
+  message on the screen, a **daily drill** of five questions, and eight knots
+  step by step.
+- **Pocket cards:** field manual pages, your waypoints with MGRS, your
+  supplies, emergency contacts and notes, printed four to an A4 page to cut
+  out and keep in your kit.
+
+![Field Kit](docs/fieldkit.png)
 
 ### History, export and backup
 
@@ -366,7 +394,8 @@ Umbra Wiki speaks and understands English.
   history and your settings are all on your disk. Online mode sends only
   your question's key words to Wikipedia, and only after you switch it on.
   Umbra goes online otherwise only when you ask it to: downloading the
-  library, an AI model or maps, and checking for updates.
+  library, an AI model or maps (from the Protomaps OpenStreetMap build and
+  the AWS Terrain Tiles), and checking for updates.
 - Your data lives in `~/.config/umbra-wiki` (settings, profile) and
   `~/.local/share/umbra-wiki` (history, achievements, waypoints, maps). Exports and backups go to
   `~/Documents/Umbra` or the USB stick you choose.
@@ -392,6 +421,7 @@ Umbra Wiki speaks and understands English.
 | Ctrl+L | library and field manual |
 | Ctrl+P / Ctrl+O | profile / loadout |
 | Ctrl+G | maps (inside: / search, W waypoint, M measure, G grid, F full screen, + and − zoom) |
+| Ctrl+K | field kit |
 | Ctrl+T | themes |
 | Ctrl+M | mute |
 | Ctrl+, | settings |

@@ -41,10 +41,13 @@ before you redistribute anything.
 
 | Data | By | License |
 |---|---|---|
-| World overview (`umbra-wiki/maps/world.json`, built in), World Atlas and regional maps (downloaded on request) | [Natural Earth](https://www.naturalearthdata.com), a NACIS project, via [natural-earth-vector](https://github.com/nvkelso/natural-earth-vector) | public domain |
+| Map data (the built-in world map, and areas downloaded on request) | © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, as vector tiles from the [Protomaps](https://protomaps.com) daily build | [ODbL 1.0](https://opendatacommons.org/licenses/odbl/); Protomaps basemap BSD / ODbL |
+| Elevation, for relief and contour lines (downloaded on request) | [Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) on AWS Open Data (Mapzen): SRTM, GMTED2010, ETOPO1, NED and other public sources | see the dataset's [attribution](https://github.com/tilezen/joerd/blob/master/docs/attribution.md) |
+| Country outlines for choosing an area (`umbra-wiki/maps/countries.json`) | [Natural Earth](https://www.naturalearthdata.com) | public domain |
 
-Umbra converts the data into its own compact format and draws it itself; the
-map styles and symbols are umbraxc's (MIT).
+Umbra reads the tiles and draws the maps itself; the map styles, symbols and
+the drawing code are umbraxc's (MIT). Umbra shows the OpenStreetMap
+attribution on the map.
 
 Online mode reads [Wikipedia](https://wikipedia.org) articles (CC BY-SA 4.0)
 through the Wikipedia API.

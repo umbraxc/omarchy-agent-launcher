@@ -2,18 +2,24 @@
 
 ## 3.1.1
 
-- **Maps** (Ctrl+G): offline maps drawn by Umbra, in a military
-  Topographic style and a dark Tactical one; a built-in world overview plus
-  the World Atlas and eight regions to download (terrain & places,
-  infrastructure); lat/long grid, MGRS grid zones, a degree and MGRS readout;
-  search across all maps, coordinates and MGRS; waypoints, distance
-  measuring, ASK UMBRA about a place; full screen and a pop-out window. Four
-  map achievements. Data: Natural Earth (public domain).
+- **Maps** (Ctrl+G): OpenStreetMap, offline, from the whole world down to
+  single streets, in a military Topographic style (relief shading and contour
+  lines) and a dark Tactical one; smooth panning and zooming (tiles drawn in
+  a background worker). Download a country or the area on screen, with an
+  exact size first and only that area fetched; detail levels, relief and
+  contours, and Essentials (every water tap, spring, shelter, pharmacy,
+  hospital, toilet and fuel station). Search towns, streets and water nearest
+  first, coordinates and MGRS; MGRS grid zones and readout; waypoints,
+  measuring, Ask Umbra, full screen. A small world map is built in.
+- **Field Kit** (Ctrl+K): CPR metronome, first-aid timers, pulse and
+  breathing counter; sun and moon times and phases; how long your supplies
+  last; Morse by ear and by hand, a signal lamp, daily drills and knots;
+  printable pocket cards. Seven new achievements (58 in all).
 - **Settings search**: find any setting as you type, with highlights.
 - The welcome tour now sets up the whole profile (callsign, where you are,
   units, experience, household, health notes, name colour) and the AI
   processor limit, and shows Maps and Achievements.
-- **Achievements**: 51 of them in four tiers with their own badges, progress
+- **Achievements**: 58 of them in four tiers with their own badges, progress
   bars, secret ones, an unlock chime and pop-up, points and ranks (Recruit to
   Legend), in the new ACHIEVEMENTS tab of the loadout. Earned ones are kept
   for good and included in backups; earlier conversations count after

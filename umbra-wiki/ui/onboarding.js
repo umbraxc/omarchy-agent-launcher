@@ -122,7 +122,8 @@
     ["#loadout-btn", "PROFILE & LOADOUT", "Your profile (name, callsign, character, what I should know about you), your Achievements and rank, plus scenarios and personalities. You can create your own of both."],
     ["#history-btn", "HISTORY", "Every conversation is saved on this computer. Reopen and continue any of them, search through everything that was said, and export them to a file or a USB stick."],
     ["#library-btn", "LIBRARY", "The offline collections I read from, and my built-in Field Manual: the critical basics, always available. Download more collections here."],
-    ["#maps-btn", "MAPS", "Offline maps with a military look: download regions, search places, drop waypoints and measure distances. Open them full screen or in their own window."],
+    ["#maps-btn", "MAPS", "Offline maps with a military look, down to street level: download a country or any area, search towns, streets and water points, drop waypoints and measure distances. Full screen with F."],
+    ["#fieldkit-btn", "FIELD KIT", "Tools that matter in an emergency: a CPR metronome, first-aid timers, a pulse counter, sun and moon times, how long your supplies last, Morse and knot training, and printable pocket cards."],
     ["#theme-btn", "THEMES", "Pick a colour theme, follow your Omarchy theme, or design your own."],
     ["#sound", "SOUND", "Mute or unmute my sounds."],
     ["#lock", "LOCK", "Locks the window so nothing can be clicked or typed by accident."],
@@ -469,7 +470,6 @@
 
   // First launch (or after a reset): no "onboarded" in the settings yet.
   fetch("/api/settings").then((r) => r.json()).then((s) => {
-    const params = new URLSearchParams(location.search);
-    if (!s.onboarded && !params.get("q") && params.get("view") !== "maps") setTimeout(startTour, 4600);   // as the boot animation opens up
+    if (!s.onboarded && !new URLSearchParams(location.search).get("q")) setTimeout(startTour, 4600);   // as the boot animation opens up
   }).catch(() => {});
 })();

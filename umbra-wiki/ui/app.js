@@ -541,6 +541,7 @@ function goHome() {
   if (window.closeSettings) window.closeSettings();
   if (window.closeLoadout) window.closeLoadout(true);
   if (window.closeMaps) window.closeMaps();
+  if (window.closeFieldKit) window.closeFieldKit();
   toggleThemes(false, true);
   $("#library").hidden = true;
   $("#library-btn").classList.remove("on");
@@ -1086,9 +1087,7 @@ Promise.all([
   fetch("/api/power").then((r) => r.json()).catch(() => ({})),
 ]).then(([s, p, power]) => {
   const offgrid = s.offgrid === "on" || (s.offgrid === "auto" && power.battery);
-  if (s.reduceMotion || offgrid || new URLSearchParams(location.search).get("view") === "maps") {
-    document.body.classList.remove("booting"); if (!document.body.classList.contains("maps-window")) Sound.launch(); return;
-  }
+  if (s.reduceMotion || offgrid) { document.body.classList.remove("booting"); Sound.launch(); return; }
   const welcome = !s.onboarded ? "" : p.name ? `WELCOME BACK, ${p.name}` : "WELCOME BACK, SURVIVOR";
   asciiWipe(() => {}, { covered: true, welcome });
 });
@@ -1879,7 +1878,6 @@ window.previewTransition = async (which) => {
 };
 
 window.umbraExit = () => {
-  if (document.body.classList.contains("maps-window")) return "no";   // the map window just closes
   if (exiting) return "ok";
   if (exitAsked || (window.prefs && window.prefs.confirmExit === false)) { leaveUmbra(); return "ok"; }
   exitAsked = true;
@@ -2178,7 +2176,7 @@ const SHORTCUTS = [
   ["Tab", "Use the suggested reply"], ["F9", "Hold to talk (voice input)"], ["Ctrl + Z", "Undo in the prompt"], ["Ctrl + Y", "Redo in the prompt"],
   ["Ctrl + N", "New conversation"], ["Ctrl + H", "History"], ["Ctrl + F", "Search your conversations"],
   ["Ctrl + E", "Export this conversation"], ["Ctrl + L", "Library and field manual"], ["Ctrl + P", "Your profile"],
-  ["Ctrl + O", "Loadout: scenario and personality"], ["Ctrl + G", "Maps"], ["Ctrl + T", "Themes"], ["Ctrl + M", "Mute or unmute sounds"],
+  ["Ctrl + O", "Loadout: scenario and personality"], ["Ctrl + G", "Maps"], ["Ctrl + K", "Field kit: CPR, timers, sun & moon, supplies"], ["Ctrl + T", "Themes"], ["Ctrl + M", "Mute or unmute sounds"],
   ["Ctrl + ,", "Settings"], ["F1", "This list"],
 ];
 function showShortcuts() {
@@ -2212,6 +2210,7 @@ document.addEventListener("keydown", (e) => {
     o: () => window.openLoadout && window.openLoadout("scenario"),
     t: () => toggleThemes(),
     g: () => window.toggleMaps && window.toggleMaps(),
+    k: () => window.toggleFieldKit && window.toggleFieldKit(),
     m: () => setMuted(!Sound.muted),
     ",": () => window.openSettings && window.openSettings(),
   };

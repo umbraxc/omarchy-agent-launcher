@@ -13,7 +13,7 @@
   };
   window.prefs = { ...DEFAULTS, hiddenControls: [] };
   // Header buttons that can be hidden (Settings itself always stays).
-  const CONTROLS = [["loadout-btn", "Profile & loadout"], ["history-btn", "History"], ["library-btn", "Library"], ["maps-btn", "Maps"],
+  const CONTROLS = [["loadout-btn", "Profile & loadout"], ["history-btn", "History"], ["library-btn", "Library"], ["maps-btn", "Maps"], ["fieldkit-btn", "Field kit"],
                     ["theme-btn", "Themes"], ["sound", "Sound"], ["lock", "Lock"]];
   const panel = $("#settings");
   let pullTimer = 0;
@@ -148,6 +148,8 @@
         [/name|profile|password|picture|avatar|callsign|units|metric|imperial|health|achiev|badge|rank/, "That's in your Profile (Ctrl+P): name, callsign, units, health notes, password, achievements."],
         [/scenario|personality|loadout|voice of|character/, "Scenarios and personalities are in the Loadout (Ctrl+O)."],
         [/map|waypoint|region|gps|mgrs|coordinate/, "Maps have their own panel: the map button at the top (Ctrl+G)."],
+        [/cpr|first aid|timer|tourniquet|pulse|sun|moon|daylight|supply|supplies|water|food|ration|morse|knot|drill|quiz|card|print/,
+         "That's in the Field Kit (Ctrl+K): CPR metronome, first-aid timers, sun and moon, supplies, training and pocket cards."],
         [/library|collection|zim|download|manual/, "The offline library and the field manual are in the Library (Ctrl+L)."],
         [/history|conversation|export|chat/, "Conversations are in History (Ctrl+H)."],
       ].find(([re]) => re.test(query.toLowerCase()));

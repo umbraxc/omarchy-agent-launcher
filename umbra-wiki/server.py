@@ -216,6 +216,117 @@ def save_waypoints(items):
     return clean
 
 
+# ---------------------------------------------------------------- supplies
+
+# The Field Kit's supply list: who's in the household and what's stored.
+# The calculation happens in the window; this keeps it (and backs it up).
+SUPPLIES_FILE = os.path.join(DATA_DIR, "supplies.json")
+HOUSEHOLD_KEYS = ("adults", "teens", "children", "toddlers", "infants", "elderly", "dogsSmall", "dogsLarge", "cats")
+
+
+def get_supplies():
+    return read_json(SUPPLIES_FILE, {})
+
+
+def save_supplies(data):
+    if not isinstance(data, dict):
+        raise ValueError("bad supplies")
+    num = lambda v, lo, hi: max(lo, min(hi, float(v))) if isinstance(v, (int, float)) and not isinstance(v, bool) else lo
+    hh = data.get("household") if isinstance(data.get("household"), dict) else {}
+    items = []
+    for it in (data.get("items") or [])[:300]:
+        if not isinstance(it, dict):
+            continue
+        items.append({"id": re.sub(r"[^a-z0-9]", "", str(it.get("id", "")))[:24] or f"i{len(items)}",
+                      "kind": re.sub(r"[^a-z0-9_]", "", str(it.get("kind", "custom")))[:24] or "custom",
+                      "name": re.sub(r"\s+", " ", str(it.get("name", "")))[:60],
+                      "qty": num(it.get("qty"), 0, 1e6), "kcal": num(it.get("kcal"), 0, 1e7),
+                      "litres": num(it.get("litres"), 0, 1e6), "expires": str(it.get("expires", ""))[:10]})
+    clean = {"household": {k: int(num(hh.get(k), 0, 99)) for k in HOUSEHOLD_KEYS},
+             "climate": data.get("climate") if data.get("climate") in ("cold", "temperate", "hot") else "temperate",
+             "activity": data.get("activity") if data.get("activity") in ("rest", "moderate", "heavy") else "moderate",
+             "target": int(num(data.get("target"), 1, 365)) or 14, "items": items}
+    write_json(SUPPLIES_FILE, clean)
+    return clean
+
+
+# ------------------------------------------------------------ pocket cards
+
+def _card_html(md):
+    """The field manual's light Markdown as HTML, for printed cards."""
+    out, in_list = [], None
+    for line in str(md).splitlines():
+        t = html.escape(line.strip())
+        t = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", t)
+        m = re.match(r"^(\d+)\.\s+(.*)", t)
+        if t.startswith(("- ", "* ")) or m:
+            kind = "ol" if m else "ul"
+            if in_list != kind:
+                if in_list:
+                    out.append(f"</{in_list}>")
+                out.append(f"<{kind}>")
+                in_list = kind
+            out.append(f"<li>{m.group(2) if m else t[2:]}</li>")
+            continue
+        if in_list:
+            out.append(f"</{in_list}>")
+            in_list = None
+        if t.startswith("#"):
+            out.append(f"<h3>{t.lstrip('#').strip()}</h3>")
+        elif t:
+            out.append(f"<p>{t}</p>")
+    if in_list:
+        out.append(f"</{in_list}>")
+    return "\n".join(out)
+
+
+def pocket_cards(req, folder):
+    """Printable pocket cards (A6, four to an A4 page, with cut lines): field
+    manual pages, waypoints with MGRS, the supply summary and emergency
+    contacts. Written as a web page: open it and print."""
+    cards = []
+    wanted = set(str(x) for x in (req.get("pages") or [])[:40])
+    for page in field_manual():
+        if page.get("id") in wanted:
+            cards.append((page["title"], page.get("category", "Field manual"), _card_html(page.get("body", ""))))
+    wps = [w for w in (req.get("waypoints") or [])[:60] if isinstance(w, dict)]
+    if wps:
+        rows = "".join(f"<tr><td><b>{html.escape(str(w.get('name', ''))[:40])}</b><br><small>{html.escape(str(w.get('note', ''))[:80])}</small></td>"
+                       f"<td>{html.escape(str(w.get('coords', ''))[:40])}<br>{html.escape(str(w.get('mgrs', ''))[:30])}</td></tr>" for w in wps)
+        cards.append(("Waypoints", "Maps", f"<table>{rows}</table>"))
+    for key, title, cat in (("supplies", "Supplies", "Field kit"), ("contacts", "Emergency contacts", "Field kit"),
+                            ("notes", "Notes", "Field kit")):
+        text = str(req.get(key) or "").strip()[:3000]
+        if text:
+            cards.append((title, cat, _card_html(text)))
+    if not cards:
+        raise ValueError("nothing to print")
+    stamp = time.strftime("%Y-%m-%d")
+    body = "".join(f'<section class="card"><header><span>{html.escape(cat).upper()}</span><span>UMBRA</span></header>'
+                   f"<h2>{html.escape(title)}</h2><div>{content}</div>"
+                   f'<footer>Umbra Wiki pocket card · {stamp} · check critical steps; call emergency services when you can</footer></section>'
+                   for title, cat, content in cards)
+    page = f"""<!doctype html><html><head><meta charset="utf-8"><title>Umbra pocket cards {stamp}</title><style>
+@page {{ size: A4; margin: 8mm; }}
+body {{ margin: 0; font: 9pt/1.35 "DejaVu Sans Mono", "JetBrains Mono", monospace; color: #111; background: #fff; }}
+.sheet {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 0; }}
+.card {{ box-sizing: border-box; height: 138mm; padding: 5mm 6mm; border: 0.3mm dashed #999; overflow: hidden; break-inside: avoid; display: flex; flex-direction: column; }}
+.card header {{ display: flex; justify-content: space-between; font-size: 7pt; letter-spacing: .2em; border-bottom: 0.6mm solid #111; padding-bottom: 1.5mm; }}
+.card h2 {{ font-size: 12pt; margin: 2.5mm 0 2mm; letter-spacing: .04em; }}
+.card div {{ flex: 1; font-size: 8.4pt; }}
+.card ul, .card ol {{ margin: 1mm 0; padding-left: 5mm; }} .card li {{ margin: .6mm 0; }}
+.card p {{ margin: 1mm 0; }} .card h3 {{ font-size: 9pt; margin: 2mm 0 1mm; }}
+.card table {{ width: 100%; border-collapse: collapse; font-size: 7.8pt; }} .card td {{ border-bottom: .2mm solid #ccc; padding: 1mm 0; vertical-align: top; }}
+.card footer {{ font-size: 6.2pt; color: #555; border-top: .2mm solid #999; padding-top: 1mm; }}
+.hint {{ padding: 6mm; font-size: 10pt; }} @media print {{ .hint {{ display: none; }} }}
+</style></head><body><p class="hint">Print this page (Ctrl+P), cut along the dashed lines, and keep the cards dry, e.g. in a zip bag.</p>
+<div class="sheet">{body}</div></body></html>"""
+    path = os.path.join(folder, f"Umbra pocket cards {stamp}.html")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(page)
+    return {"path": path.replace(HOME, "~", 1), "count": len(cards)}
+
+
 # ------------------------------------------------------------------ updates
 
 RELEASES_API = "https://api.github.com/repos/umbraxc/omarchy-umbra/releases/latest"
@@ -999,7 +1110,7 @@ def _stat(st, stat):
     if stat == "streak":
         return max(_streak(st["days"]), counts.get("bestStreak", 0))
     if stat in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
-                "mapPacks", "mapRegions", "waypoints", "mapSearches"):
+                "mapPacks", "waypoints", "mapSearches"):
         return len(sets.get(stat, []))
     if stat == "profileName":
         return 1 if get_profile().get("name") else 0
@@ -1053,10 +1164,11 @@ def record(event, value=None, **info):
                 if info.get(flag):
                     counts[key] = counts.get(key, 0) + 1
             counts["longestConversation"] = max(counts.get("longestConversation", 0), int(info.get("turn") or 1))
-        elif event in ("suggestions", "sources", "stops", "voice", "backups", "usbExports", "tour", "password"):
+        elif event in ("suggestions", "sources", "stops", "voice", "backups", "usbExports", "tour", "password",
+                       "cprMinutes", "morseLetters", "drills", "timers", "sunChecks", "cards", "quartermaster"):
             counts[event] = counts.get(event, 0) + 1
         elif event in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
-                       "mapPacks", "mapRegions", "waypoints", "mapSearches"):
+                       "mapPacks", "waypoints", "mapSearches"):
             item = str(value or "")[:60]
             if item and item not in sets.get(event, []):
                 sets[event] = sets.get(event, []) + [item]
@@ -1109,7 +1221,7 @@ def restore_achievements(data):
                     st[key][k] = max(v, st[key].get(k, 0))
         for k, v in (data.get("sets") or {}).items():
             if k in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
-                     "mapPacks", "mapRegions", "waypoints", "mapSearches") and isinstance(v, list):
+                     "mapPacks", "waypoints", "mapSearches") and isinstance(v, list):
                 st["sets"][k] = sorted(set(st["sets"].get(k, [])) | {str(x)[:60] for x in v[:200]})
         st["days"] = sorted(set(st["days"]) | {d for d in (data.get("days") or [])[:400]
                                                if isinstance(d, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", d)})[-400:]
@@ -1495,7 +1607,7 @@ def reset_umbra():
     are deleted (downloaded maps stay, like the library). The AI model,
     the library and config.json (model, library folder) are kept."""
     for path in (SETTINGS_FILE, PROFILE_FILE, CUSTOM_THEMES_FILE, PERSONALITIES_FILE, SCENARIOS_FILE, LOCK_FILE, ACH_FILE,
-                 WAYPOINTS_FILE):
+                 WAYPOINTS_FILE, SUPPLIES_FILE):
         try:
             os.remove(path)
         except OSError:
@@ -1655,7 +1767,7 @@ def apply_settings(update):
             if isinstance(update.get(key), bool):
                 settings[key] = update[key]
         if isinstance(update.get("hiddenControls"), list):
-            allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "theme-btn", "sound", "lock"}
+            allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "fieldkit-btn", "theme-btn", "sound", "lock"}
             settings["hiddenControls"] = [c for c in update["hiddenControls"] if c in allowed]
         if update.get("background") in ("rain", "rise", "rings", "stars", "forest", "snow", "aurora",
                                          "embers", "radar", "none"):
@@ -1810,8 +1922,10 @@ def conversation_markdown(conv):
     return "\n".join(lines)
 
 
-def export(what, conv_id="", target=""):
+def export(what, conv_id="", target="", req=None):
     folder = target_dir(target)
+    if what == "cards":
+        return pocket_cards(req or {}, folder)
     stamp = time.strftime("%Y-%m-%d")
     if what == "conversation":
         conv = read_json(history_path(conv_id), {})
@@ -1852,7 +1966,7 @@ def backup(include_history, target=""):
         "umbraBackup": 1, "created": int(time.time() * 1000),
         "settings": read_json(SETTINGS_FILE, {}), "profile": get_profile(),
         "themes": custom_themes(), "personalities": custom_personalities(), "scenarios": custom_scenarios(),
-        "achievements": read_json(ACH_FILE, {}), "waypoints": get_waypoints(),
+        "achievements": read_json(ACH_FILE, {}), "waypoints": get_waypoints(), "supplies": get_supplies(),
         "history": [read_json(history_path(i["id"]), {}) for i in history_list()["items"]] if include_history else [],
     }
     path = os.path.join(folder, f"umbra-backup-{time.strftime('%Y-%m-%d-%H%M')}.json")
@@ -1870,6 +1984,11 @@ def restore(data):
     if isinstance(data.get("profile"), dict):
         save_profile(data["profile"])
     restore_achievements(data.get("achievements"))
+    if isinstance(data.get("supplies"), dict) and data["supplies"]:
+        try:
+            save_supplies(data["supplies"])
+        except (ValueError, TypeError):
+            pass
     if isinstance(data.get("waypoints"), list):
         mine = {w["id"]: w for w in get_waypoints()}
         mine.update({w.get("id"): w for w in data["waypoints"] if isinstance(w, dict)})
@@ -2219,19 +2338,36 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(st)
         if path == "/api/waypoints":
             return self.send_json(get_waypoints())
+        if path == "/api/supplies":
+            return self.send_json(get_supplies())
         if path == "/api/mapsearch":
-            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("q", [""])[0]
-            return self.send_json(MAPS.search(q[:60]))
-        if path.startswith("/api/mapdata/"):
-            pid = path.rsplit("/", 1)[1]
-            file = MAPS.path(pid) if pid in [p["id"] for p in maps.catalog()] else ""
-            if not file or not os.path.isfile(file):
-                return self.send_json({"error": "not installed"}, 404)
-            with open(file, "rb") as f:
-                body = f.read()
+            qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            try:
+                near = (float(qs["lat"][0]), float(qs["lon"][0]))
+            except (KeyError, ValueError):
+                near = None
+            return self.send_json(MAPS.search(qs.get("q", [""])[0][:60], near=near))
+        if path == "/api/maps/countries":
+            return self.send_json(MAPS.countries())
+        # Map tiles: /api/tile/z/x/y (roads, places...), /api/points/15/x/y
+        # (essential points), /api/terrain/z/x/y (elevation, PNG).
+        m = re.fullmatch(r"/api/(tile|points|terrain)/(\d{1,2})/(\d{1,6})/(\d{1,6})", path)
+        if m:
+            kind, z, x, y = m.group(1), int(m.group(2)), int(m.group(3)), int(m.group(4))
+            body = getattr(MAPS, kind)(z, x, y)
+            if not body:
+                self.send_response(204)
+                self.end_headers()
+                return
             self.send_response(200)
-            self.send_header("Content-Type", "application/json")
+            if kind == "terrain":
+                self.send_header("Content-Type", "image/png")
+            else:
+                self.send_header("Content-Type", "application/x-protobuf")
+                if body[:2] == b"\x1f\x8b":
+                    self.send_header("Content-Encoding", "gzip")
             self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "max-age=3600")
             self.end_headers()
             self.wfile.write(body)
             return
@@ -2320,7 +2456,7 @@ class Handler(BaseHTTPRequestHandler):
             req = self.read_json()
             try:
                 if self.path == "/api/export":
-                    out = export(str(req.get("what", "")), str(req.get("id", "")), str(req.get("target", "")))
+                    out = export(str(req.get("what", "")), str(req.get("id", "")), str(req.get("target", "")), req)
                 elif self.path == "/api/backup":
                     out = backup(bool(req.get("history")), str(req.get("target", "")))
                     record("backups")
@@ -2328,6 +2464,8 @@ class Handler(BaseHTTPRequestHandler):
                     return self.send_json(restore(req.get("backup")))
                 if str(req.get("target", "")) not in ("", "documents"):
                     record("usbExports")
+                if req.get("what") == "cards":
+                    record("cards")
             except (ValueError, OSError) as e:
                 return self.send_json({"error": str(e)}, 400)
             if req.get("open"):
@@ -2400,22 +2538,32 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/themes/delete":
             return self.send_json(delete_custom_theme(str(self.read_json().get("id", ""))))
-        if self.path == "/api/maps/download":
-            wanted = [str(x) for x in (self.read_json().get("packs") or [])][:40]
-
-            def done(ids):
-                for pid in ids:
-                    record("mapPacks", pid)
-                    if pid.startswith("terrain-"):
-                        record("mapRegions", pid[8:])
+        if self.path == "/api/maps/plan":
+            req = self.read_json()
             try:
-                return self.send_json(MAPS.start(wanted, done))
-            except ValueError as e:
+                return self.send_json(MAPS.plan(str(req.get("name", "")), list(req.get("bbox") or [])[:4]))
+            except (ValueError, TypeError, IndexError) as e:
+                return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/maps/download":
+            req = self.read_json()
+            try:
+                return self.send_json(MAPS.download(str(req.get("plan", "")), int(req.get("zoom", 0)),
+                                                    int(req.get("terrain", 0)), bool(req.get("essentials")),
+                                                    on_done=lambda aid: record("mapPacks", aid)))
+            except (ValueError, TypeError) as e:
                 return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/maps/delete":
             try:
                 return self.send_json(MAPS.delete(str(self.read_json().get("id", ""))))
             except ValueError as e:
+                return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/supplies":
+            try:
+                out = save_supplies(self.read_json())
+                if out["items"]:
+                    record("quartermaster")
+                return self.send_json(out)
+            except (ValueError, TypeError) as e:
                 return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/waypoints":
             try:
@@ -2430,7 +2578,8 @@ class Handler(BaseHTTPRequestHandler):
                     return self.send_json({"error": "unknown page"}, 400)
             elif event == "mapSearches":
                 value = str(value or "")[:60].lower()
-            elif event not in ("suggestions", "sources", "stops", "voice"):
+            elif event not in ("suggestions", "sources", "stops", "voice", "cprMinutes", "morseLetters", "drills",
+                               "timers", "sunChecks", "cards"):
                 return self.send_json({"error": "unknown event"}, 400)
             record(event, value)
             return self.send_json({"ok": True})

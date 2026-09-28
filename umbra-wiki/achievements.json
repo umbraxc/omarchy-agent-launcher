@@ -29,6 +29,10 @@
    "MAPS"
   ],
   [
+   "fieldkit",
+   "FIELD KIT"
+  ],
+  [
    "style",
    "STYLE"
   ],
@@ -520,7 +524,7 @@
   {
    "id": "cartographer",
    "name": "Cartographer",
-   "description": "Download your first map pack.",
+   "description": "Download the map of an area.",
    "icon": "󰍍",
    "tier": "bronze",
    "points": 10,
@@ -553,13 +557,90 @@
   {
    "id": "world-traveller",
    "name": "World Traveller",
-   "description": "Download the detailed maps of every region.",
+   "description": "Download maps of 5 different areas.",
    "icon": "󰇧",
    "tier": "gold",
    "points": 50,
-   "stat": "mapRegions",
-   "goal": 8,
+   "stat": "mapPacks",
+   "goal": 5,
    "category": "maps"
+  },
+  {
+   "id": "stayin-alive",
+   "name": "Stayin' Alive",
+   "description": "Run the CPR metronome for 2 minutes of practice.",
+   "icon": "󰗶",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "cprMinutes",
+   "goal": 2,
+   "category": "fieldkit"
+  },
+  {
+   "id": "lifeline",
+   "name": "Lifeline",
+   "description": "Start a first-aid timer.",
+   "icon": "󰔛",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "timers",
+   "goal": 1,
+   "category": "fieldkit"
+  },
+  {
+   "id": "quartermaster",
+   "name": "Quartermaster",
+   "description": "Record your supplies.",
+   "icon": "󰏖",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "quartermaster",
+   "goal": 1,
+   "category": "fieldkit"
+  },
+  {
+   "id": "signalman",
+   "name": "Signalman",
+   "description": "Read 25 Morse letters correctly.",
+   "icon": "󰀃",
+   "tier": "silver",
+   "points": 25,
+   "stat": "morseLetters",
+   "goal": 25,
+   "category": "fieldkit"
+  },
+  {
+   "id": "drill-sergeant",
+   "name": "Drill Sergeant",
+   "description": "Finish 7 daily drills.",
+   "icon": "󰦇",
+   "tier": "silver",
+   "points": 25,
+   "stat": "drills",
+   "goal": 7,
+   "category": "fieldkit"
+  },
+  {
+   "id": "sun-reader",
+   "name": "Sun Reader",
+   "description": "Check the sun and moon for your location.",
+   "icon": "󰖚",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "sunChecks",
+   "goal": 1,
+   "category": "fieldkit"
+  },
+  {
+   "id": "pocket-guide",
+   "name": "Pocket Guide",
+   "description": "Print your pocket cards.",
+   "icon": "󰭸",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "cards",
+   "goal": 1,
+   "category": "fieldkit"
   },
   {
    "id": "wardrobe-change",
@@ -635,7 +716,7 @@
    "tier": "legendary",
    "points": 100,
    "stat": "allOthers",
-   "goal": 50,
+   "goal": 57,
    "category": "legend"
   }
  ]
