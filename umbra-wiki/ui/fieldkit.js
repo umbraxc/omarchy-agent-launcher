@@ -980,5 +980,7 @@
   ensureTick();   // timers from before a restart keep going (and ring)
   window.toggleFieldKit = toggle;
   window.closeFieldKit = () => { if (!$("#fieldkit").hidden) toggle(false, true); };
-  window.UmbraFieldKit = { sunTimes, moonLight, moonTimes, needs: () => sup && needs() };
+  window.UmbraFieldKit = { sunTimes, moonLight, moonTimes, needs: () => sup && needs(),
+    // Opens the kit on a tab (and a training sub-tab), e.g. open("training", "morse").
+    open: (t, st) => { if (t && TABS.some(([id]) => id === t)) tab = t; if (st) sub = st; if ($("#fieldkit").hidden) toggle(true); else render(); } };
 })();

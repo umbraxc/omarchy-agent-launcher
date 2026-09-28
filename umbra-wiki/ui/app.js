@@ -471,8 +471,13 @@ async function renderLibrary(fresh = false) {
   if (manual.length) {
     html += `<div class="lib-section"><div class="lib-head"><span>󰈙 FIELD MANUAL · ${manual.length} PAGES · BUILT IN</span>
       <button class="ghost lib-manual-export" title="Save the whole manual as a file, to print or keep on a USB stick">󰈇 EXPORT</button></div>
-      <div class="manual-grid">${manual.map((p) => `<button class="manual-page" data-page="${p.id}" title="${escapeHtml(p.summary)}">
-        <span class="mcat">${escapeHtml(p.category)}</span>${escapeHtml(p.title)}</button>`).join("")}</div></div>`;
+      ${[...new Set(manual.map((p) => p.category))].map((cat) => {
+        const M = window.UmbraManualArt, color = M ? M.color(cat) : "var(--signal)";
+        const pages = manual.filter((p) => p.category === cat);
+        return `<div class="manual-cat" style="--cat:${color}"><div class="manual-cat-head"><b>${escapeHtml(cat.toUpperCase())}</b><small>${pages.length} ${pages.length === 1 ? "PAGE" : "PAGES"}</small></div>
+          <div class="manual-grid">${pages.map((p) => `<button class="manual-page" data-page="${p.id}" title="${escapeHtml(p.title)}|${escapeHtml(p.summary)}">
+            <pre class="m-art">${escapeHtml(M ? M.art(p.id)[0] : "")}</pre><span class="m-title">${escapeHtml(p.title)}</span></button>`).join("")}</div></div>`;
+      }).join("")}</div>`;
   }
 
   const open = packs.filter((p) => p.missing.length);
@@ -513,6 +518,7 @@ async function renderLibrary(fresh = false) {
   }
   if (!lib.available.length) html += `<p class="lib-note">✓ Every recommended collection is installed.</p>`;
   keepScroll(body, () => { body.innerHTML = html; });
+  startManualArt(body);
   body.querySelectorAll(".manual-page").forEach((b) => {
     b.addEventListener("mouseenter", Sound.hover);
     b.addEventListener("click", () => openManual(b.dataset.page));
@@ -535,6 +541,25 @@ async function renderLibrary(fresh = false) {
   if (dl.library.active) libraryTimer = setTimeout(() => { if (!$("#library").hidden) renderLibrary(); }, 2500);
 }
 let libraryTimer = 0;
+
+// The manual cards' pictures breathe slowly; the one under the mouse faster.
+let manualArtTimer = 0;
+function startManualArt(body) {
+  clearInterval(manualArtTimer);
+  if (!window.UmbraManualArt) return;
+  let t = 0;
+  manualArtTimer = setInterval(() => {
+    if ($("#library").hidden || !body.isConnected) { clearInterval(manualArtTimer); return; }
+    if (document.body.classList.contains("reduce-motion") || window.offgrid) return;
+    t++;
+    body.querySelectorAll(".manual-page").forEach((b, i) => {
+      const hot = b.matches(":hover");
+      if (!hot && (t + i) % 4) return;
+      const frames = UmbraManualArt.art(b.dataset.page);
+      b.querySelector(".m-art").textContent = frames[(hot ? t : Math.floor((t + i) / 4)) % frames.length];
+    });
+  }, 420);
+}
 
 function toggleLibrary(show = $("#library").hidden) {
   if (show && locked) return;
@@ -1628,6 +1653,7 @@ function finishAnswer(msg, rec) {
   msg.querySelector(".label .spin")?.remove();
   renderSources(card, rec.sources);
   if (rec.offer) renderNext(answerEl, rec.offer);
+  if (window.UmbraTools && rec.question) UmbraTools.renderTools(answerEl, rec);
   if (rec.meta) {
     const m = document.createElement("div");
     m.className = "meta";
@@ -1698,7 +1724,7 @@ async function ask(question, shownAs = "") {
     const res = await fetch("/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, history: chat, online, offgrid: !!window.offgrid }),
+      body: JSON.stringify({ question, history: chat, online, offgrid: !!window.offgrid, folder: window.currentFolder || "" }),
       signal: controller.signal,
     });
     const reader = res.body.getReader();
@@ -2144,22 +2170,28 @@ const Undo = (() => {
 // Accepting Umbra's offer this way asks for exactly what it offered.
 const DEFAULT_HINT = input.placeholder;
 let suggestion = null, suggestToken = 0;
-function setSuggestion(text, sendAs = "") {
+function setSuggestion(text, sendAs = "", more = []) {
   suggestion = text ? { text, sendAs } : null;
+  // The Tab menu offers this reply and a couple of others.
+  if (window.UmbraTools) UmbraTools.setReplies(text ? [{ text }, ...more.filter((m) => m !== text).map((m) => ({ text: m }))] : []);
   input.placeholder = text ? `${text}    ⇥ TAB` : DEFAULT_HINT;
   input.classList.toggle("suggest", !!text);
 }
 async function suggestFor(rec) {
   const token = ++suggestToken;
+  if (window.UmbraTools) UmbraTools.setReplies([], rec);
   if ((window.prefs && window.prefs.suggestions === false) || window.offgrid) return setSuggestion("");
-  if (rec.offer) return setSuggestion("Yes, please.", `Yes, please: ${rec.offer}`);
-  setSuggestion("");
+  if (rec.offer) setSuggestion("Yes, please.", `Yes, please: ${rec.offer}`);
+  else setSuggestion("");
   try {
     const r = await (await fetch("/api/suggest", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question: rec.question, answer: rec.answer }),
     })).json();
-    if (token === suggestToken && !controller && r.text) setSuggestion(r.text);
+    if (token !== suggestToken || controller) return;
+    const opts = (r.options || []).filter(Boolean);
+    if (rec.offer) setSuggestion("Yes, please.", `Yes, please: ${rec.offer}`, opts);
+    else if (r.text) setSuggestion(r.text, "", opts);
   } catch {}
 }
 
@@ -2182,7 +2214,7 @@ input.addEventListener("keydown", (e) => {
     if (k === "y" || e.shiftKey) Undo.redo(); else Undo.undo();
     return;
   }
-  if (e.key === "Tab" && !e.shiftKey && suggestion && !input.value) {
+  if (e.key === "Tab" && !e.shiftKey && suggestion && !input.value && !window.UmbraTools) {
     e.preventDefault();
     if (window.track) track("suggestions");
     input.value = suggestion.text;
@@ -2222,7 +2254,7 @@ document.addEventListener("keydown", (e) => {
 
 const SHORTCUTS = [
   ["Enter", "Send your question"], ["Shift + Enter", "New line"], ["Esc", "Stop an answer, or close a panel"],
-  ["Tab", "Use the suggested reply"], ["F9", "Hold to talk (voice input)"], ["Ctrl + Z", "Undo in the prompt"], ["Ctrl + Y", "Redo in the prompt"],
+  ["Tab", "Quick actions: likely replies, fitting tools, questions to start with"], ["F9", "Hold to talk (voice input)"], ["Ctrl + Z", "Undo in the prompt"], ["Ctrl + Y", "Redo in the prompt"],
   ["Ctrl + N", "New conversation"], ["Ctrl + H", "History"], ["Ctrl + F", "Search your conversations"],
   ["Ctrl + E", "Export this conversation"], ["Ctrl + L", "Library and field manual"], ["Ctrl + P", "Your profile"],
   ["Ctrl + O", "Loadout: scenario and personality"], ["Ctrl + G", "Maps"], ["Ctrl + K", "Field kit: CPR, timers, sun & moon, supplies"], ["Ctrl + T", "Themes"], ["Ctrl + M", "Mute or unmute sounds"],
@@ -2279,8 +2311,8 @@ function promptBarState() {
   if (controller) return ["▸ UMBRA IS WORKING", "ESC ABORT", true];
   const n = input.value.length;
   if (n) return [`▸ COMPOSING · ${n} ${n === 1 ? "CHAR" : "CHARS"}`, "⏎ TRANSMIT · ⇧⏎ NEW LINE · CTRL+Z UNDO", false];
-  if (suggestion) return ["▸ SUGGESTION READY", "⇥ ACCEPT · ⏎ TRANSMIT", true];
-  return [`▸ AWAITING INPUT${online ? " · LINK ONLINE" : ""}${window.offgrid ? " · OFF-GRID" : ""}`, "⏎ TRANSMIT · F9 VOICE · F1 KEYS", false];
+  if (suggestion) return ["▸ SUGGESTIONS READY", "⇥ QUICK ACTIONS · ⏎ TRANSMIT", true];
+  return [`▸ AWAITING INPUT${online ? " · LINK ONLINE" : ""}${window.offgrid ? " · OFF-GRID" : ""}`, "⇥ QUICK ACTIONS · ⏎ TRANSMIT · F9 VOICE", false];
 }
 function updatePromptBar() {
   const [left, right, hot] = promptBarState();

@@ -187,19 +187,20 @@
   // ------------------------------------------------------- categories
 
   // The sections are grouped in six categories, each with its own quiet
-  // colour, a header stripe and a chip under the search box to jump there.
+  // colour (six distinct hues, blended with the theme's text colour so they
+  // read well on light and dark themes alike), a header stripe and a chip under the search box to jump there.
   const CATS = [
-    { id: "look", name: "LOOK & FEEL", icon: "󰏘", color: "#b48ae6", line: "Motion, buttons, conversation, text size",
+    { id: "look", name: "LOOK & FEEL", icon: "󰏘", color: "color-mix(in oklab, #a77ce8 78%, var(--fg))", line: "Motion, buttons, conversation, text size",
       sections: ["MOTION", "HEADER BUTTONS", "CONVERSATION"] },
-    { id: "sound", name: "SOUND & VOICE", icon: "󰕾", color: "#5fb8c9", line: "Effects, volume, speakers, microphone, dictation",
+    { id: "sound", name: "SOUND & VOICE", icon: "󰕾", color: "color-mix(in oklab, #36aec8 78%, var(--fg))", line: "Effects, volume, speakers, microphone, dictation",
       sections: ["SOUND", "VOICE"] },
-    { id: "ai", name: "AI & PERFORMANCE", icon: "󰘚", color: "#e68e0d", line: "The model, the processor, battery",
+    { id: "ai", name: "AI & PERFORMANCE", icon: "󰘚", color: "color-mix(in oklab, #e8892a 78%, var(--fg))", line: "The model, the processor, battery",
       sections: ["PERFORMANCE", "AI MODEL", "POWER"] },
-    { id: "data", name: "YOUR DATA", icon: "󰆼", color: "#6fbf5a", line: "Backups, maps and places, where things are kept",
+    { id: "data", name: "YOUR DATA", icon: "󰆼", color: "color-mix(in oklab, #4fb86a 78%, var(--fg))", line: "Backups, maps and places, where things are kept",
       sections: ["BACKUP", "MAPS & PLACES", "STORAGE"] },
-    { id: "help", name: "HELP & UPDATES", icon: "󰘥", color: "#e8c547", line: "Shortcuts, the tour, what's new, updates",
+    { id: "help", name: "HELP & UPDATES", icon: "󰘥", color: "color-mix(in oklab, #d9b235 78%, var(--fg))", line: "Shortcuts, the tour, what's new, updates",
       sections: ["KEYBOARD", "WELCOME TOUR", "UPDATES"] },
-    { id: "danger", name: "DANGER ZONE", icon: "󰀩", color: "var(--red)", line: "Reset or uninstall",
+    { id: "danger", name: "DANGER ZONE", icon: "󰀩", color: "color-mix(in oklab, #e0493f 80%, var(--fg))", line: "Reset or uninstall",
       sections: ["DANGER ZONE"] },
   ];
   const titleOf = (sec) => { const h = sec.querySelector(".lib-head"); return h ? (h.querySelector("span") || h).textContent.trim() : ""; };

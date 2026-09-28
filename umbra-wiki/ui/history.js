@@ -9,9 +9,16 @@
   const panel = $("#history");
   const list = $("#hist-list");
   const filter = $("#hist-filter");
-  let convo = null;     // { id, title, messages } of the conversation on screen
+  let convo = null;     // { id, title, messages, folder } of the conversation on screen
   let items = [];
   let dir = "";
+  let folders = [];     // [{ id, name, color, brief }]
+  let view = "";        // the folder shown ("" = everything)
+  const FCOLORS = { signal: "var(--signal)", accent: "var(--accent)", net: "var(--net)", red: "var(--red)",
+                    green: "color-mix(in oklab, #4fb86a 80%, var(--fg))", violet: "color-mix(in oklab, #a77ce8 80%, var(--fg))", dim: "var(--dim)" };
+  const fcolor = (f) => FCOLORS[(f && f.color) || "signal"];
+  // Umbra reads the folder's brief for the conversation on screen.
+  const syncFolder = () => { window.currentFolder = convo ? convo.folder || "" : view; };
 
   const pad = (n) => String(n).padStart(2, "0");
   const newId = () => {
@@ -25,14 +32,14 @@
 
   // app.js calls this when an answer finishes.
   window.recordTurn = async (rec) => {
-    if (!convo) convo = { id: newId(), title: (rec.shown || rec.question).slice(0, 120), messages: [] };
+    if (!convo) convo = { id: newId(), title: (rec.shown || rec.question).slice(0, 120), messages: [], folder: view };
     convo.messages.push(rec);
     const [scenario = "", personality = ""] = ($("#loadout-chip").textContent || "").split(" · ");
     try {
       await fetch("/api/history", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...convo, scenario, personality }),
+        body: JSON.stringify({ ...convo, scenario, personality, ...(convo.messages.length === 1 ? { folder: convo.folder || "" } : {}) }),
       });
     } catch {}
     if (!panel.hidden) load();
@@ -59,7 +66,107 @@
       items = r.items || [];
       dir = r.dir || "";
     } catch { items = []; }
+    try { folders = (await (await fetch("/api/folders")).json()).folders || []; } catch { folders = []; }
+    if (view && !folders.some((f) => f.id === view)) view = "";
+    renderFolders();
     render();
+  }
+
+  // ---------------------------------------------------------- folders
+
+  const post = (url, data) => fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })
+    .then((r) => r.json()).catch(() => ({ error: "failed" }));
+  function renderFolders() {
+    let bar = panel.querySelector(".hist-folders");
+    if (!bar) {
+      bar = document.createElement("div");
+      bar.className = "hist-folders";
+      panel.insertBefore(bar, list);
+    }
+    const count = (id) => items.filter((c) => (c.folder || "") === id).length;
+    bar.innerHTML = `<button class="hf ${view === "" ? "on" : ""}" data-f=""><span class="hf-dot" style="--fc:var(--fg)"></span>ALL <small>${items.length}</small></button>` +
+      folders.map((f) => `<button class="hf ${view === f.id ? "on" : ""}" data-f="${f.id}" style="--fc:${fcolor(f)}" title="${escapeHtml(f.name)}|${escapeHtml(f.brief || "Click to show it; double-click to edit. Drop a conversation here to move it.")}">
+        <span class="g">\u{F024B}</span><span class="hf-name"></span><small>${count(f.id)}</small></button>`).join("") +
+      `<button class="hf hf-add" title="New folder|Group conversations, and give Umbra a brief for them.">+ FOLDER</button>`;
+    bar.querySelectorAll(".hf[data-f]").forEach((b) => {
+      const f = folders.find((x) => x.id === b.dataset.f);
+      if (f) b.querySelector(".hf-name").textContent = f.name.toUpperCase();
+      b.addEventListener("click", () => { view = b.dataset.f; if (!convo) syncFolder(); renderFolders(); render(); Sound.click(); });
+      if (f) b.addEventListener("dblclick", () => editFolder(f));
+      // Drop a conversation on a folder to move it there.
+      b.addEventListener("dragover", (e) => { e.preventDefault(); b.classList.add("drop"); });
+      b.addEventListener("dragleave", () => b.classList.remove("drop"));
+      b.addEventListener("drop", (e) => { e.preventDefault(); b.classList.remove("drop"); moveTo(e.dataTransfer.getData("text/umbra-conv"), b.dataset.f); });
+    });
+    bar.querySelector(".hf-add").addEventListener("click", () => editFolder(null));
+    const f = folders.find((x) => x.id === view);
+    let brief = panel.querySelector(".hist-brief");
+    if (f) {
+      if (!brief) { brief = document.createElement("div"); brief.className = "hist-brief"; panel.insertBefore(brief, list); }
+      brief.style.setProperty("--fc", fcolor(f));
+      brief.innerHTML = `<span class="g">\u{F024B}</span><div><b></b><small></small></div><button class="ghost hb-edit">✎ EDIT</button>`;
+      brief.querySelector("b").textContent = f.name.toUpperCase();
+      brief.querySelector("small").textContent = f.brief ? "Umbra keeps in mind: " + f.brief : "No brief yet. Add one and Umbra reads it in every conversation of this folder.";
+      brief.querySelector(".hb-edit").addEventListener("click", () => editFolder(f));
+    } else brief?.remove();
+  }
+  async function moveTo(id, folder) {
+    if (!id) return;
+    const r = await post("/api/history/move", { id, folder });
+    if (r.error) { Sound.error(); return; }
+    if (convo && convo.id === id) { convo.folder = folder; syncFolder(); }
+    Sound.found();
+    load();
+  }
+  async function saveFolders(next) {
+    const r = await post("/api/folders", { folders: next });
+    if (r.error) { Sound.error(); return false; }
+    folders = r.folders;
+    return true;
+  }
+  // The folder editor: name, colour and brief, in a small framed card.
+  function editFolder(f) {
+    panel.querySelector(".hist-edit")?.remove();
+    const draft = f ? { ...f } : { id: "f-" + Math.random().toString(36).slice(2, 10), name: "", color: "signal", brief: "" };
+    const box = document.createElement("div");
+    box.className = "hist-edit";
+    box.innerHTML = `<div class="lo-ed-title">${f ? "EDIT FOLDER" : "NEW FOLDER"}</div>
+      <label class="lo-field"><span>NAME</span><input class="he-name" maxlength="32" placeholder="e.g. Cabin trip"></label>
+      <div class="lo-field"><span>COLOUR</span><div class="he-colors">${Object.keys(FCOLORS).map((c) => `<button type="button" data-c="${c}" style="--fc:${FCOLORS[c]}"><i></i></button>`).join("")}</div></div>
+      <label class="lo-field"><span>BRIEF FOR UMBRA (OPTIONAL)</span><textarea class="he-brief" rows="3" maxlength="400"
+        placeholder="e.g. A week at a cabin in the mountains, 4 people, no power, a wood stove."></textarea></label>
+      <div class="lo-actions">${f ? `<button class="ghost he-del">DELETE FOLDER</button>` : ""}<button class="ghost he-cancel">CANCEL</button><button class="solid he-save">SAVE ◆</button></div>`;
+    panel.insertBefore(box, list);
+    const name = box.querySelector(".he-name"), brief = box.querySelector(".he-brief");
+    name.value = draft.name; brief.value = draft.brief;
+    const colors = () => box.querySelectorAll(".he-colors button").forEach((b) => b.classList.toggle("on", b.dataset.c === draft.color));
+    box.querySelectorAll(".he-colors button").forEach((b) => b.addEventListener("click", () => { draft.color = b.dataset.c; colors(); Sound.click(); }));
+    colors();
+    setTimeout(() => name.focus(), 30);
+    box.querySelector(".he-cancel").addEventListener("click", () => { box.remove(); Sound.click(); });
+    box.querySelector(".he-save").addEventListener("click", async () => {
+      draft.name = name.value.trim() || "Folder";
+      draft.brief = brief.value.trim();
+      const next = f ? folders.map((x) => (x.id === f.id ? draft : x)) : [...folders, draft];
+      if (!(await saveFolders(next))) return;
+      box.remove();
+      view = draft.id;
+      if (!convo) syncFolder();
+      Sound.theme();
+      load();
+    });
+    name.addEventListener("keydown", (e) => { if (e.key === "Enter") box.querySelector(".he-save").click(); e.stopPropagation(); });
+    box.querySelector(".he-del")?.addEventListener("click", async () => {
+      const ok = await confirmDialog({ kind: "to-local", tag: "HISTORY", title: `DELETE "${f.name.toUpperCase()}"?`,
+        body: "Only the folder goes: its conversations stay, under ALL.", ok: "DELETE FOLDER", cancel: "KEEP" });
+      if (!ok) return;
+      if (!(await saveFolders(folders.filter((x) => x.id !== f.id)))) return;
+      box.remove();
+      view = "";
+      if (convo && convo.folder === f.id) convo.folder = "";
+      syncFolder();
+      load();
+    });
   }
 
   // The search box looks through everything that was said, not just titles.
@@ -82,13 +189,14 @@
   }
   function fill() {
     const hidden = new Set(pendingDeletes.keys());
-    const shown = (results || items).filter((c) => !hidden.has(c.id));
+    const shown = (results || items).filter((c) => !hidden.has(c.id) && (!view || (c.folder || "") === view))
+      .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
     list.innerHTML = !items.length
       ? `<p class="lib-note">No conversations yet. Everything you ask is saved here automatically.</p>`
-      : !shown.length ? `<p class="lib-note">Nothing was found for that search.</p>` : "";
+      : !shown.length ? `<p class="lib-note">${results ? "Nothing was found for that search." : "No conversations in this folder yet. Drop one on the folder above, or start a new one while the folder is selected."}</p>` : "";
     let day = "";
     shown.forEach((c, i) => {
-      const label = dayLabel(c.updated);
+      const label = c.pinned ? "PINNED" : dayLabel(c.updated);
       if (label !== day) {
         day = label;
         const h = document.createElement("div");
@@ -99,8 +207,16 @@
       const row = document.createElement("div");
       row.className = "hist-row" + (convo && convo.id === c.id ? " current" : "");
       row.style.animationDelay = Math.min(i, 12) * 25 + "ms";
+      const fold = folders.find((f) => f.id === c.folder);
+      row.draggable = true;
+      if (fold) row.style.setProperty("--fc", fcolor(fold));
+      row.classList.toggle("in-folder", !!fold);
+      row.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/umbra-conv", c.id); row.classList.add("dragging"); });
+      row.addEventListener("dragend", () => row.classList.remove("dragging"));
       row.innerHTML = `<button class="hopen"><span class="htitle"></span><span class="hmeta"></span>${c.snippet ? '<span class="hsnip"></span>' : ""}</button>
-        <span class="hactions"><button class="ghost hexp" title="Export this conversation">󰈇</button>
+        <span class="hactions"><button class="ghost hpin ${c.pinned ? "on" : ""}" title="${c.pinned ? "Unpin" : "Pin to the top"}">\u{F0403}</button>
+        <button class="ghost hmove" title="Move to a folder">\u{F024B}</button>
+        <button class="ghost hexp" title="Export this conversation">󰈇</button>
         <button class="ghost hdel" title="Delete (you can undo for a few seconds)">✕</button></span>`;
       row.querySelector(".htitle").textContent = c.title;
       if (c.snippet) row.querySelector(".hsnip").textContent = c.snippet;
@@ -108,7 +224,10 @@
         timeOf(c.updated),
         `${c.count} ${c.count === 1 ? "ANSWER" : "ANSWERS"}`,
         c.scenario && c.personality ? `${c.scenario} · ${c.personality}` : "",
+        fold && !view ? "▣ " + fold.name.toUpperCase() : "",
       ].filter(Boolean).join("  ·  ");
+      row.querySelector(".hpin").addEventListener("click", async () => { await post("/api/history/move", { id: c.id, pinned: !c.pinned }); Sound.click(); load(); });
+      row.querySelector(".hmove").addEventListener("click", (e) => moveMenu(e.currentTarget, c));
       row.querySelector(".hopen").addEventListener("mouseenter", Sound.hover);
       row.querySelector(".hopen").addEventListener("click", () => openConvo(c.id));
       row.querySelector(".hdel").addEventListener("click", () => remove(c));
@@ -117,6 +236,24 @@
     });
     $("#hist-foot").innerHTML = dir ? `Saved on this computer only, in <code></code>` : "";
     if (dir) $("#hist-foot code").textContent = dir;
+  }
+
+  // A small list of folders under the move button.
+  function moveMenu(btn, c) {
+    panel.querySelector(".hist-move")?.remove();
+    const m = document.createElement("div");
+    m.className = "hist-move";
+    m.innerHTML = `<div class="lib-head">MOVE TO</div>` + [{ id: "", name: "No folder" }, ...folders].map((f) =>
+      `<button data-f="${f.id}" class="${(c.folder || "") === f.id ? "on" : ""}" style="--fc:${f.id ? fcolor(f) : "var(--faint)"}"><i></i><span></span></button>`).join("") +
+      (folders.length ? "" : `<p class="lib-note">No folders yet: make one with + FOLDER.</p>`);
+    [{ name: "No folder" }, ...folders].forEach((f, i) => { m.querySelectorAll("button")[i].querySelector("span").textContent = f.name; });
+    const r = btn.getBoundingClientRect(), pr = panel.getBoundingClientRect();
+    m.style.top = r.bottom - pr.top + 4 + "px";
+    m.style.right = pr.right - r.right + "px";
+    panel.appendChild(m);
+    m.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { m.remove(); moveTo(c.id, b.dataset.f); }));
+    setTimeout(() => document.addEventListener("mousedown", function off(e) { if (!m.contains(e.target)) { m.remove(); document.removeEventListener("mousedown", off); } }), 0);
+    Sound.click();
   }
 
   // -------------------------------------------------------- actions
@@ -136,7 +273,8 @@
       if (!r.ok) throw new Error();
       c = await r.json();
     } catch { Sound.error(); load(); return; }
-    convo = { id: c.id, title: c.title, messages: c.messages || [] };
+    convo = { id: c.id, title: c.title, messages: c.messages || [], folder: c.folder || "" };
+    syncFolder();
     showIntro(false, { greet: false });   // the start screen sits above the conversation
     chat.length = 0;
     for (const m of convo.messages) {
@@ -155,6 +293,7 @@
   function newConvo() {
     if (busy()) return;
     convo = null;
+    syncFolder();
     chat.length = 0;
     suggestToken++;
     setSuggestion("");

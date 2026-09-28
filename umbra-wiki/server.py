@@ -119,6 +119,30 @@ RULES = (
 DEFAULT_PERSONA = "Speak as UMBRA: a calm, friendly survival expert, like a knowledgeable friend."
 SYSTEM_PROMPT = DEFAULT_PERSONA + " " + RULES
 
+# What Umbra itself can do, told to the AI when a question is about Umbra or
+# one of its tools, so it can explain its features and point people to them
+# (the window adds a button that opens the tool under the answer).
+UMBRA_GUIDE = (
+    "ABOUT YOURSELF: you are Umbra Wiki, an offline survival assistant app. Besides answering, the app has "
+    "these tools, which you may recommend by name when they help: "
+    "FIELD KIT (Ctrl+K): MEDIC tab with a CPR metronome, first-aid timers (tourniquet, burns cooling, "
+    "medication), a pulse and breathing counter, triage and patient tools; SUN & MOON tab with sunrise, "
+    "sunset, daylight left, moon phase and a live view of Earth, sun and moon; SUPPLIES tab that works out "
+    "how long water and food last for the household; VAULT tab, a password-locked inventory of firearms, "
+    "ammunition and defence gear; TRAINING tab with Morse by ear and by hand, a signal lamp, the phonetic "
+    "alphabet, radio procedure, drills and knots; CARDS tab that prints pocket cards. "
+    "MAPS (Ctrl+G): offline world map, downloadable detailed areas, search, coordinates and MGRS, "
+    "waypoints, measuring, clickable country files with facts, and safety levels per country. "
+    "SIGNALS & RADAR: nearby Wi-Fi and Bluetooth signals placed around you by strength, and the device's "
+    "vitals. LIBRARY (Ctrl+L): offline collections and the built-in Umbra Field Manual. HISTORY (Ctrl+H) "
+    "with folders; PROFILE and LOADOUT (scenarios, personalities, achievements); THEMES (Ctrl+T); "
+    "SETTINGS with search. Everything works offline; only online mode, downloads and the update check use "
+    "the internet. In the prompt, Tab opens quick actions. When you mention a tool, name it exactly as above."
+)
+ABOUT_UMBRA = re.compile(r"\b(umbra|this app|the app|your (features|tools|functions)|what can you do|what are you|who are you|"
+                         r"how do (i|you) use|field kit|medic tab|vault|radar|sun (and|&) moon|pocket cards?|morse trainer|"
+                         r"settings|shortcut|offline map|waypoint|help me with the app)\b", re.I)
+
 STOPWORDS = set("""
 a an the and or but if then so of to in on at by for from with without about into over under
 is are was were be been being am do does did doing have has had having can could should would
@@ -974,6 +998,13 @@ def get_profile():
     return read_json(PROFILE_FILE, {})
 
 
+BLOOD_TYPES = ("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
+SKILLS = {"firstaid": "first aid", "navigation": "map and compass", "radio": "radio", "fire": "fire making",
+          "shelter": "shelter building", "water": "water purification", "foraging": "foraging", "hunting": "hunting",
+          "fishing": "fishing", "cooking": "cooking from scratch", "gardening": "growing food", "mechanics": "mechanics",
+          "electrics": "electrics", "carpentry": "carpentry", "sewing": "sewing and mending", "defence": "self-defence"}
+
+
 def save_profile(p):
     if not isinstance(p, dict):
         raise ValueError("bad profile")
@@ -993,6 +1024,11 @@ def save_profile(p):
         "experience": p.get("experience") if p.get("experience") in ("new", "some", "experienced") else "",
         "household": one_line("household", 160),
         "health": str(p.get("health", "") or "").strip()[:300],
+        "blood": p.get("blood") if p.get("blood") in BLOOD_TYPES else "",
+        "allergies": one_line("allergies", 160),
+        "meds": one_line("meds", 160),
+        "contact": one_line("contact", 80),
+        "skills": [k for k in dict.fromkeys(p.get("skills") or []) if k in SKILLS][:len(SKILLS)],
         "color": p.get("color") if p.get("color") in ("signal", "accent", "net", "red", "fg-bright") else "",
         "badges": [b for b in (p.get("badges") or [])[:5] if isinstance(b, str) and b in known],
         "character": {k: max(0, min(40, int(v))) for k, v in character.items()
@@ -1025,6 +1061,15 @@ def profile_prompt():
         lines.append(f"The user's household: {p['household']}. Plan for them too where it matters.")
     if p.get("health"):
         lines.append(f"Health notes the user shared, to keep in mind for medical and food advice: {p['health']}")
+    if p.get("allergies"):
+        lines.append(f"The user's allergies (never suggest these): {p['allergies']}.")
+    if p.get("meds"):
+        lines.append(f"Medication the user takes (mind interactions): {p['meds']}.")
+    if p.get("blood"):
+        lines.append(f"The user's blood type: {p['blood']}.")
+    skills = [SKILLS[k] for k in p.get("skills") or [] if k in SKILLS]
+    if skills:
+        lines.append("Skills the user already has (build on them, skip the basics there): " + ", ".join(skills) + ".")
     return " ".join(lines)
 
 
@@ -1706,7 +1751,7 @@ def reset_umbra():
     are deleted (downloaded maps stay, like the library). The AI model,
     the library and config.json (model, library folder) are kept."""
     for path in (SETTINGS_FILE, PROFILE_FILE, CUSTOM_THEMES_FILE, PERSONALITIES_FILE, SCENARIOS_FILE, LOCK_FILE, ACH_FILE,
-                 WAYPOINTS_FILE, SUPPLIES_FILE, SAFETY_FILE):
+                 WAYPOINTS_FILE, SUPPLIES_FILE, SAFETY_FILE, FOLDERS_FILE):
         try:
             os.remove(path)
         except OSError:
@@ -2092,7 +2137,7 @@ def backup(include_history, target=""):
         "settings": read_json(SETTINGS_FILE, {}), "profile": get_profile(),
         "themes": custom_themes(), "personalities": custom_personalities(), "scenarios": custom_scenarios(),
         "achievements": read_json(ACH_FILE, {}), "waypoints": get_waypoints(), "supplies": get_supplies(),
-        "safety": get_safety()["levels"],
+        "safety": get_safety()["levels"], "folders": get_folders()["folders"],
         "history": [read_json(history_path(i["id"]), {}) for i in history_list()["items"]] if include_history else [],
     }
     path = os.path.join(folder, f"umbra-backup-{time.strftime('%Y-%m-%d-%H%M')}.json")
@@ -2114,6 +2159,13 @@ def restore(data):
         try:
             save_supplies(data["supplies"])
         except (ValueError, TypeError):
+            pass
+    if isinstance(data.get("folders"), list) and data["folders"]:
+        try:
+            mine = {f["id"]: f for f in get_folders()["folders"]}
+            mine.update({f.get("id"): f for f in data["folders"] if isinstance(f, dict)})
+            save_folders(list(mine.values()))
+        except ValueError:
             pass
     if isinstance(data.get("safety"), dict) and data["safety"]:
         try:
@@ -2210,7 +2262,7 @@ def history_list():
         conv = read_json(path, None)
         if not conv or not HISTORY_ID.fullmatch(str(conv.get("id", ""))):
             continue
-        item = {k: conv.get(k) for k in ("id", "title", "created", "updated", "scenario", "personality")}
+        item = {k: conv.get(k) for k in ("id", "title", "created", "updated", "scenario", "personality", "folder", "pinned")}
         item["count"] = len(conv.get("messages") or [])
         items.append(item)
     items.sort(key=lambda x: x.get("updated") or 0, reverse=True)
@@ -2248,10 +2300,78 @@ def history_save(conv, keep_time=False):
         "updated": now,
         "scenario": str(conv.get("scenario", ""))[:40],
         "personality": str(conv.get("personality", ""))[:40],
+        # The folder and pin are kept unless this save changes them.
+        "folder": _folder_id(conv["folder"]) if "folder" in conv else old.get("folder", ""),
+        "pinned": bool(conv["pinned"]) if "pinned" in conv else bool(old.get("pinned")),
         "messages": messages,
     }
     write_json(path, clean)
     return {"ok": True, "updated": now}
+
+
+# Folders for conversations: a name, a colour and an optional brief that
+# Umbra reads for every conversation in the folder.
+FOLDERS_FILE = os.path.join(DATA_DIR, "folders.json")
+FOLDER_COLORS = ("signal", "accent", "net", "red", "green", "violet", "dim")
+
+
+def _folder_id(v):
+    v = str(v or "")
+    return v if re.fullmatch(r"f-[a-z0-9]{4,16}", v) else ""
+
+
+def get_folders():
+    return {"folders": [f for f in read_json(FOLDERS_FILE, {}).get("folders", []) if isinstance(f, dict)]}
+
+
+def save_folders(folders):
+    if not isinstance(folders, list):
+        raise ValueError("bad folders")
+    clean, seen = [], set()
+    for f in folders[:60]:
+        if not isinstance(f, dict) or not _folder_id(f.get("id")) or f["id"] in seen:
+            continue
+        seen.add(f["id"])
+        clean.append({"id": f["id"], "name": re.sub(r"\s+", " ", str(f.get("name", ""))).strip()[:32] or "Folder",
+                      "color": f.get("color") if f.get("color") in FOLDER_COLORS else "signal",
+                      "brief": str(f.get("brief", "") or "").strip()[:400]})
+    write_json(FOLDERS_FILE, {"folders": clean})
+    # Conversations in a folder that's gone go back to no folder.
+    for path in glob.glob(os.path.join(HISTORY_DIR, "c-*.json")):
+        conv = read_json(path, None)
+        if conv and conv.get("folder") and conv["folder"] not in seen:
+            conv["folder"] = ""
+            write_json(path, conv)
+    return {"folders": clean}
+
+
+def history_move(conv_id, folder=None, pinned=None):
+    """Put a conversation in a folder (or none), or pin/unpin it; the order
+    by date stays as it was."""
+    path = history_path(conv_id)
+    conv = read_json(path, None)
+    if not conv:
+        raise ValueError("unknown conversation")
+    if folder is not None:
+        fid = _folder_id(folder)
+        if fid and fid not in {f["id"] for f in get_folders()["folders"]}:
+            raise ValueError("unknown folder")
+        conv["folder"] = fid
+    if pinned is not None:
+        conv["pinned"] = bool(pinned)
+    write_json(path, conv)
+    return history_list()
+
+
+def folder_prompt(folder):
+    fid = _folder_id(folder)
+    f = next((x for x in get_folders()["folders"] if x["id"] == fid), None)
+    if not f:
+        return ""
+    line = f"This conversation is in the user's folder \"{f['name']}\"."
+    if f.get("brief"):
+        line += f" What the user wrote about it (keep it in mind): {f['brief']}"
+    return line
 
 
 def history_delete(conv_id):
@@ -2495,6 +2615,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.wfile.write(body)
         if path == "/api/safety":
             return self.send_json(get_safety())
+        if path == "/api/folders":
+            return self.send_json(get_folders())
         if path == "/api/whatsnew":
             return self.send_json(whats_new())
         # Map tiles: /api/tile/z/x/y (roads, places...), /api/points/15/x/y
@@ -2650,12 +2772,23 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"ok": True})
         if self.path == "/api/suggest":
             req = self.read_json()
-            return self.send_json({"text": suggest_reply(str(req.get("question", ""))[:1000],
-                                                         str(req.get("answer", ""))[:6000])})
+            options = suggest_replies(str(req.get("question", ""))[:1000], str(req.get("answer", ""))[:6000])
+            return self.send_json({"text": options[0] if options else "", "options": options})
         if self.path == "/api/history":
             try:
                 return self.send_json(history_save(self.read_json()))
             except (ValueError, TypeError, AttributeError) as e:
+                return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/history/move":
+            req = self.read_json()
+            try:
+                return self.send_json(history_move(str(req.get("id", "")), req.get("folder"), req.get("pinned")))
+            except ValueError as e:
+                return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/folders":
+            try:
+                return self.send_json(save_folders(self.read_json().get("folders")))
+            except ValueError as e:
                 return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/history/delete":
             return self.send_json(history_delete(str(self.read_json().get("id", ""))))
@@ -2850,6 +2983,10 @@ def answer(req, emit):
     ]})
 
     system = build_system_prompt(online)
+    if req.get("folder"):
+        system += " " + folder_prompt(req.get("folder"))
+    if ABOUT_UMBRA.search(question):
+        system += " " + UMBRA_GUIDE
     if offgrid:
         system += (" OFF-GRID MODE: the user is saving battery. Keep the answer short: the essential steps "
                    "in their proper order, without long explanations. Never skip the first step or any "
@@ -2947,17 +3084,22 @@ def follow_up(question, answer_text):
     return re.sub(r"(?i)^(next|follow[- ]?up)( question)?\W*:\s*", "", text)
 
 
-def suggest_reply(question, answer_text):
-    """What the user would most likely say next, shown as a hint in the prompt box."""
-    text = quick_generate(
+def suggest_replies(question, answer_text):
+    """What the user would most likely say next: up to three short replies,
+    the first shown as a hint in the prompt box, all in the Tab menu."""
+    lines = quick_generate(
         "A user is talking to a survival assistant.\n"
         f"USER: {question[:300]}\nASSISTANT: {answer_text[-800:]}\n\n"
-        "Write the user's most likely short reply to the assistant's last message, in the user's own "
-        "words: an answer if the assistant asked something, otherwise a natural follow-up question. "
-        "Examples: 'Yes, I have a plastic bottle and some cloth.' or 'How long should I boil it?' "
-        "Under 12 words. Reply with only that reply.", 30)
-    text = re.sub(r"(?i)^(user|reply|me)\s*:\s*", "", text).strip(" \"'")
-    return text[:120]
+        "Write the user's three most likely short replies to the assistant's last message, in the "
+        "user's own words: answers if the assistant asked something, otherwise natural follow-up "
+        "questions, each different. Examples: 'Yes, I have a plastic bottle and some cloth.' or "
+        "'How long should I boil it?' Each under 12 words, one per line, nothing else.", 70, lines=True)
+    out = []
+    for line in lines:
+        text = re.sub(r"(?i)^\s*(?:[-*•]|\d+[.)])?\s*(user|reply|me)?\s*:?\s*", "", line).strip(" \"'*")
+        if 3 <= len(text) <= 120 and text not in out:
+            out.append(text)
+    return out[:3]
 
 
 def warm_model():
