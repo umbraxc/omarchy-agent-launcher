@@ -1353,6 +1353,7 @@
     });
     canvas.addEventListener("pointerleave", () => readout());
     canvas.addEventListener("wheel", (e) => {
+      if (e.ctrlKey) return;   // Ctrl + wheel zooms the whole window (app.js)
       e.preventDefault();
       const r = canvas.getBoundingClientRect();
       const step = e.deltaMode === 1 ? e.deltaY / 3 : e.deltaY / 100;

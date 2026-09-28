@@ -154,7 +154,8 @@ UMBRA_GUIDE = (
     "Arctic Kill, Hazmat, Paper Map, Thermal; SETTINGS in six groups with search, backups and restore. Everything works offline; only online mode, downloads and the update check use "
     "the internet. In the prompt, Tab opens quick actions. When you mention a tool, name it exactly as above. "
     "The only keyboard shortcuts are: Ctrl+K Field Kit, Ctrl+G Maps, Ctrl+J Signals & Radar, Ctrl+L Library, Ctrl+H History, "
-    "Ctrl+P Profile, Ctrl+O Loadout, Ctrl+T Themes, Ctrl+, Settings, F1 all shortcuts; never invent others. The Calendar, Vault, "
+    "Ctrl+P Profile, Ctrl+O Loadout, Ctrl+T Themes, Ctrl+, Settings, F1 all shortcuts, and Ctrl + mouse wheel (or Ctrl + plus / "
+    "minus, Ctrl+0 to reset) to zoom every screen (also Settings, Zoom); never invent others. The Calendar, Vault, "
     "Medic, Supplies and Training are tabs inside the Field Kit; to add a reminder, open the Field Kit, go to CALENDAR and "
     "click a day. MAPS, SIGNALS & RADAR, LIBRARY, HISTORY, THEMES and SETTINGS are their own screens, each opened with its "
     "button in the top bar (not in the Field Kit). You cannot change anything in the app yourself: never say you "
@@ -2355,7 +2356,7 @@ def apply_settings(update):
         if isinstance(update.get("theme"), str) and re.fullmatch(r"[a-z0-9-]{1,40}", update["theme"]):
             settings["theme"] = update["theme"]
         for key in ("muted", "onboarded", "rain", "reduceMotion", "suggestions", "greeting", "barAlert", "hoverSounds",
-                    "confirmExit"):
+                    "confirmExit", "autoUpdate"):
             if isinstance(update.get(key), bool):
                 settings[key] = update[key]
         if isinstance(update.get("hiddenControls"), list):
@@ -2370,6 +2371,8 @@ def apply_settings(update):
             settings["offgrid"] = update["offgrid"]
         if isinstance(update.get("textScale"), (int, float)):
             settings["textScale"] = max(0.8, min(1.4, float(update["textScale"])))
+        if isinstance(update.get("zoom"), (int, float)) and not isinstance(update.get("zoom"), bool):
+            settings["zoom"] = round(max(0.5, min(2.0, float(update["zoom"]))), 2)
         if isinstance(update.get("volume"), (int, float)):
             settings["volume"] = max(0.0, min(1.0, float(update["volume"])))
         if update.get("cpuLimit") in CPU_LIMITS:

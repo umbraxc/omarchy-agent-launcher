@@ -147,6 +147,20 @@ class Bridge:
         elif text in ("fullscreen", "unfullscreen") and (text == "fullscreen") != self._full:
             self._full = not self._full
             self._window.toggle_fullscreen()
+        elif text.startswith("zoom:"):   # Ctrl + wheel in the page (app.js): zoom everything
+            try:
+                self._zoom(max(0.5, min(2.0, float(text[5:]))))
+            except ValueError:
+                pass
+
+    def _zoom(self, level):
+        """WebView2's own zoom, set on the window's thread."""
+        try:
+            from System import Action
+            form = self._window.native
+            form.Invoke(Action(lambda: setattr(form.webview, "ZoomFactor", level)))
+        except Exception as e:
+            print("zoom failed:", e, flush=True)
 
 
 def main():
@@ -224,6 +238,13 @@ def main():
                     t0 = time.time()
                     urllib.request.urlopen(URL + "api/downloads", timeout=30).read()
                     print(f"probe: /api/downloads took {time.time() - t0:.1f}s", flush=True)
+                    before = window.evaluate_js("innerWidth")
+                    window.evaluate_js("document.dispatchEvent(new KeyboardEvent('keydown', {key: '=', ctrlKey: true, bubbles: true, cancelable: true}))")
+                    time.sleep(1.5)
+                    after = window.evaluate_js("JSON.stringify({w: innerWidth, dpr: devicePixelRatio, zoom: window.umbraZoom})")
+                    print(f"probe: zoom in: width {before} -> {after}", flush=True)
+                    window.evaluate_js("document.dispatchEvent(new KeyboardEvent('keydown', {key: '0', ctrlKey: true, bubbles: true, cancelable: true}))")
+                    time.sleep(1)
                 except Exception as e:
                     print("probe failed:", e, flush=True)
         threading.Thread(target=probe, daemon=True).start()

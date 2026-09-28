@@ -65,6 +65,7 @@
     document.body.classList.toggle("offgrid", window.offgrid);
     document.body.classList.toggle("reduce-motion", calm);
     document.documentElement.style.setProperty("--ts", String(prefs.textScale || 1));
+    if (window.applyZoom) applyZoom(prefs.zoom || 1);
     if (calm) stopRain();
     else if (wasCalm && $("#rain")) startRain();
     // Older settings only had the rain switch.
@@ -97,7 +98,7 @@
     "HEADER BUTTONS": "hide show icons toolbar top buttons header",
     "MAPS & PLACES": "maps map downloaded areas countries waypoints places delete remove space disk",
     MOTION: "animation animations background rain transition boot intro outro reduce motion effects",
-    CONVERSATION: "chat text size font bigger smaller greeting suggestions replies alert close exit",
+    CONVERSATION: "zoom scale bigger smaller magnify magnifier size larger readable chat text size font bigger smaller greeting suggestions replies alert close exit",
     POWER: "battery off-grid offgrid power saver laptop unplugged",
     KEYBOARD: "keys shortcuts hotkeys keyboard",
     BACKUP: "backup restore export save usb copy transfer",
@@ -344,6 +345,8 @@
         <label class="set-row"><span class="set-text"><b>Text size</b><small>Answers, your messages, the questions on the start screen and the prompt</small></span>
           <select class="set-textsize"><option value="0.9">Small</option><option value="1">Normal</option>
             <option value="1.12">Large</option><option value="1.25">Extra large</option></select></label>
+        <label class="set-row"><span class="set-text"><b>Zoom</b><small>Everything on every screen, bigger or smaller. Also Ctrl + mouse wheel, or Ctrl + plus / minus; Ctrl + 0 resets</small></span>
+          <select class="set-zoom">${[0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2].map((z) => `<option value="${z}">${Math.round(z * 100)}%</option>`).join("")}</select></label>
       </section>
       <section class="set-section"><div class="lib-head">POWER</div>
         <label class="set-row"><span class="set-text"><b>Off-grid mode</b><small>A battery saver for when power is scarce.
@@ -502,6 +505,9 @@
     ts.value = String(prefs.textScale || 1);
     if (!ts.value) ts.value = "1";
     ts.addEventListener("change", () => { save({ textScale: Number(ts.value) }); Sound.click(); });
+    const zs = body.querySelector(".set-zoom");
+    zs.value = String(prefs.zoom || 1);
+    zs.addEventListener("change", () => { save({ zoom: Number(zs.value) }); window.applyZoom && applyZoom(Number(zs.value), true); Sound.click(); });
     const og = body.querySelector(".set-offgrid");
     og.value = prefs.offgrid || "off";
     const powerLine = () => {

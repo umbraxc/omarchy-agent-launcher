@@ -137,6 +137,11 @@ class UmbraWiki(Gtk.Application):
             win.fullscreen()
         elif text == "unfullscreen":
             win.unfullscreen()
+        elif text.startswith("zoom:"):   # Ctrl + wheel in the page (app.js): zoom everything
+            try:
+                self.view.set_zoom_level(max(0.5, min(2.0, float(text[5:]))))
+            except ValueError:
+                pass
 
 
 

@@ -2355,7 +2355,7 @@ const SHORTCUTS = [
   ["Ctrl + N", "New conversation"], ["Ctrl + H", "History"], ["Ctrl + F", "Search your conversations"],
   ["Ctrl + E", "Export this conversation"], ["Ctrl + L", "Library and field manual"], ["Ctrl + P", "Your profile"],
   ["Ctrl + O", "Loadout: scenario and personality"], ["Ctrl + G", "Maps"], ["Ctrl + K", "Field kit: medic, sun & moon, supplies, vault, training"], ["Ctrl + J", "Signals & radar"], ["Ctrl + T", "Themes"], ["Ctrl + M", "Mute or unmute sounds"],
-  ["Ctrl + ,", "Settings"], ["F1", "This list"],
+  ["Ctrl + ,", "Settings"], ["Ctrl + wheel", "Zoom in or out (also Ctrl + plus / minus; Ctrl + 0 resets)"], ["F1", "This list"],
 ];
 function showShortcuts() {
   if ($(".keys-overlay")) return;
@@ -2396,6 +2396,66 @@ document.addEventListener("keydown", (e) => {
   const act = actions[e.key.toLowerCase()];
   if (act) { e.preventDefault(); act(); }
 });
+
+// ------------------------------------------------------------------ zoom
+
+// Ctrl + mouse wheel (or Ctrl + plus / minus, Ctrl + 0 to reset) zooms every
+// screen. The app window zooms natively (WebKitGTK's zoom level on Linux,
+// WebView2's zoom factor on Windows), so the layout reflows and maps, the
+// radar and every click stay exact. The level is saved with the settings.
+const ZOOM_STEPS = [0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
+let zoomNow = 1, zoomToastTimer = 0;
+function applyZoom(z, announce = false) {
+  z = Math.min(2, Math.max(0.5, Number(z) || 1));
+  if (z !== zoomNow) {
+    zoomNow = window.umbraZoom = z;
+    if (!window.umbraNative("zoom:" + z)) {
+      // The Windows window's bridge arrives a moment after the page: then zoom.
+      if (/Windows/.test(navigator.userAgent)) window.addEventListener("pywebviewready", () => window.umbraNative("zoom:" + zoomNow), { once: true });
+      else document.documentElement.style.zoom = z === 1 ? "" : String(z);   // a plain browser tab
+    }
+  }
+  if (announce) {
+    let t = $(".zoom-toast");
+    if (!t) { t = document.createElement("div"); t.className = "zoom-toast"; document.body.appendChild(t); }
+    t.innerHTML = `ZOOM <b>${Math.round(z * 100)}%</b><small>${z === 1 ? "CTRL + WHEEL" : "CTRL + 0 RESETS"}</small>`;
+    t.classList.add("on");
+    clearTimeout(zoomToastTimer);
+    zoomToastTimer = setTimeout(() => t.classList.remove("on"), 1300);
+  }
+}
+window.applyZoom = applyZoom;
+function stepZoom(dir) {
+  const next = dir === 0 ? 1
+    : dir > 0 ? (ZOOM_STEPS.find((z) => z > zoomNow + 0.001) ?? ZOOM_STEPS[ZOOM_STEPS.length - 1])
+    : ([...ZOOM_STEPS].reverse().find((z) => z < zoomNow - 0.001) ?? ZOOM_STEPS[0]);
+  const changed = next !== zoomNow;
+  applyZoom(next, true);   // at the limit, the note still shows where you are
+  if (!changed) return;
+  if (window.prefs) window.prefs.zoom = next;
+  postSettings({ zoom: next });
+  Sound.key();
+}
+// Wheel steps add up, so a trackpad pinch zooms at a steady pace too.
+let wheelSum = 0, wheelAt = 0;
+window.addEventListener("wheel", (e) => {
+  if (!e.ctrlKey) return;
+  e.preventDefault();
+  const now = performance.now();
+  if (now - wheelAt > 300) wheelSum = 0;
+  wheelAt = now;
+  wheelSum += e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
+  if (Math.abs(wheelSum) < 40) return;
+  stepZoom(wheelSum < 0 ? 1 : -1);
+  wheelSum = 0;
+}, { passive: false, capture: true });
+document.addEventListener("keydown", (e) => {
+  if (!e.ctrlKey || e.altKey) return;
+  const dir = { "=": 1, "+": 1, "-": -1, "_": -1, "0": 0 }[e.key];
+  if (dir === undefined) return;
+  e.preventDefault();
+  stepZoom(dir);
+}, true);
 
 // ------------------------------------------------------------ prompt status
 

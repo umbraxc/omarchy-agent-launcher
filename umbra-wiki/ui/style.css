@@ -2389,3 +2389,14 @@ body.reduce-motion .cal-dots i.imp4 { animation: none; }
 
 .news-btns { display: flex; gap: 8px; }
 .news-btns .ghost { padding: 8px 12px; font-size: 10.5px; }
+
+/* ------------------------------------------------------------------ zoom */
+
+/* The brief note while zooming (Ctrl + wheel). */
+.zoom-toast { position: fixed; top: 84px; left: 50%; z-index: 400; transform: translate(-50%, -6px); opacity: 0; pointer-events: none;
+  display: flex; align-items: baseline; gap: 12px; padding: 8px 16px; background: var(--bg-1); border: 1px solid var(--signal);
+  color: var(--dim); font: 700 11px var(--font); letter-spacing: .24em; transition: opacity .18s, transform .18s; }
+.zoom-toast b { color: var(--signal); font-size: 14px; letter-spacing: .08em; }
+.zoom-toast small { color: var(--faint); font-size: 9.5px; letter-spacing: .2em; }
+.zoom-toast.on { opacity: 1; transform: translate(-50%, 0); }
+body.reduce-motion .zoom-toast { transition: none; }
