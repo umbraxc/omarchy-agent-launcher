@@ -46,8 +46,12 @@ and no subscription. Nothing you ask leaves your machine.
 Ask anything in plain words. Umbra searches its offline library and its field
 manual, then answers in the voice of the personality you picked, with
 numbered citations. Hover a citation for a summary; click it to read the page
-itself. Umbra usually ends with an offer ("If you like, I can…"), and a
-suggested reply is always one **Tab** away.
+itself. Umbra usually ends with an offer ("If you like, I can…"). Under an
+answer, buttons open the tool that fits (the CPR metronome, a field manual
+page, the map…), and Umbra knows its own features, so you can simply ask it
+what it can do. Press **Tab** in the empty prompt for **quick actions**: a
+small menu with likely replies, the fitting tools and, on the start screen,
+questions to start with.
 
 ![An answer with sources](docs/answer.png)
 
@@ -104,14 +108,18 @@ You can create your own of both.
 ### Your profile
 
 Your name and callsign, a few lines about you, a picture and an ASCII
-character you build yourself. Umbra greets you by name, picks up from your
-last conversation, and suggests questions that fit you. To **tailor the
-answers**, tell it where you are (region and climate), your units (metric or
-imperial), your experience (new, some or seasoned), your household and any
-health notes such as allergies. Pick a colour for your name in the chat, and
-see your **service record**: rank, questions asked, best streak, favourite
-topic, and up to five pinned achievement badges. An optional password keeps
-the screen private.
+character you build yourself, in framed sections with small ASCII animations
+and a live **dog tag** that shows what you've filled in, with a completeness
+meter. Umbra greets you by name, picks up from your last conversation, and
+suggests questions that fit you. To **tailor the answers**, tell it where
+you are (region and climate), your units, your experience and the **skills**
+you already have (first aid, radio, fire, mechanics…), your household and
+an **emergency contact**, your **blood type, allergies and medication**
+(Umbra never suggests what you're allergic to, and they go on your printable
+ID card). Pick a colour for your name in the chat, and see your **service
+record**: rank, questions asked, best streak, favourite topic, and up to five
+pinned achievement badges. An optional password keeps the screen (and the
+Vault) private.
 
 ![Profile](docs/profile.png)
 ![The password lock](docs/lock.png)
@@ -186,31 +194,67 @@ tooltip that says what it does.
 
 The tools that can matter between life and death, all offline (Ctrl+K):
 
-- **Medic:** a **CPR metronome** (110 a minute, adult, child and infant
-  guidance, the 30:2 breath count or hands-only, a 2-minute swap reminder),
-  **first-aid timers** that keep running and ring (tourniquet, direct
-  pressure, cooling a burn, seizure, recheck, or any minutes), and a
-  **pulse and breathing counter** with normal ranges.
-- **Sun & moon:** first light, sunrise and its direction, solar noon, sunset,
-  last light, daylight left, and the moon's phase, rise and set, for the map's
+- **Medic**, in five pages:
+  - **Life support:** a **CPR metronome** (110 a minute, adult, child and
+    infant guidance, 30:2 or hands-only, a 2-minute swap reminder),
+    **first-aid timers** that keep running and ring, and a **pulse and
+    breathing counter**.
+  - **Assess:** **START triage** one question at a time with a casualty
+    count, the **Glasgow Coma Scale**, AVPU, and normal vital signs by age.
+  - **Calculate:** burn area by the **rule of nines** (adult and child) with
+    **Parkland** fluids, **child doses** of paracetamol and ibuprofen by
+    weight (or age) in ml of the syrup on your bottle, **drip rate**, an
+    **oral rehydration** recipe, and blood loss signs.
+  - **Patient:** a body chart to mark bleeding, burns, fractures, wounds and
+    pain, a **timed log** of observations and treatment, and handover reports
+    ready to copy: **MIST** and a **9-line MEDEVAC** request.
+  - **Guides:** anaphylaxis and auto-injectors, snakebite, heat and cold
+    stages, splinting, eyes, wounds and teeth.
+- **Sun & moon:** a live ASCII **Earth, Sun and Moon** at the top: day and
+  night placed by the real position of the Sun, the Moon in its real
+  direction and phase, your place marked, stars twinkling, a time-lapse.
+  Then first light, sunrise and its direction, solar noon, sunset, last
+  light, daylight left, and the moon's phase, rise and set, for the map's
   centre, a waypoint or any coordinates. Worked out on the computer.
 - **Supplies:** your household (adults, children, infants, seniors, pets),
   climate and activity, and what you've stored: see how long water and food
   last, what runs out first, and how much more you need for your goal.
-- **Training:** Morse by ear (letters and words, at your speed) and by hand
-  (hold Space to key, Umbra decodes), a **signal lamp** that flashes SOS or a
-  message on the screen, a **daily drill** of five questions, and eight knots
-  step by step.
-- **Pocket cards:** field manual pages, your waypoints with MGRS, your
-  supplies, emergency contacts and notes, printed four to an A4 page to cut
-  out and keep in your kit.
+- **Vault:** a round vault door that opens with your lock password (or a
+  click if you have none) on your arsenal: firearms, ammunition and defence
+  gear, picked from a library of common models (pistols, revolvers, rifles,
+  shotguns, bows, crossbows, knives, sprays) or entered by hand. Each has an
+  **inspect view** with its ASCII drawing, parts called out, specifications,
+  and the rounds you have for it. Stored on your computer only, behind the
+  password (not encrypted).
+- **Training:** Morse by ear and by hand, a **Morse challenge** (key the
+  word or sentence shown, for points and a streak), a **signal lamp**, the
+  **NATO phonetic alphabet**, **radio procedure words**, **grid references**,
+  **compass bearings and pace count**, **SALUTE reports** (with a form to
+  fill in and copy), a daily drill, and eight knots step by step.
+- **Pocket cards:** your **ID & medical card**, field manual pages, your
+  waypoints with MGRS, your supplies, emergency contacts and notes, printed
+  four to an A4 page to cut out; a sketch shows the page before you print.
 
 ![Field Kit](docs/fieldkit.png)
+
+### Signals & Radar
+
+A command-centre screen (Ctrl+J). In the middle, a sonar-style **radar** with
+you at the centre: every Wi-Fi network and Bluetooth device the radios hear
+is a blip, nearer the centre the stronger its signal, lit up as the sweep
+passes. Click one for its file: type, strength and a rough distance,
+channel and band, security, maker, address. Around it, your device's vitals
+(processor, temperature, memory, battery, disk, network traffic) and the
+Wi-Fi channels in use. It needs no internet, only the radios switched on, so
+it works off the grid too. Passive: Umbra connects to nothing and keeps
+nothing.
 
 ### History, export and backup
 
 Every conversation is saved on your computer. Reopen and continue any of
-them, search through everything that was said, export conversations or the
+them, search through everything that was said, sort them into **folders**
+(with a colour and a brief that Umbra keeps in mind for every conversation
+in the folder), pin the ones you need, export conversations or the
 field manual as plain files to your Documents folder or a USB stick, and back
 up your whole Umbra (profile, settings, custom items, conversations) to one
 file.
@@ -431,7 +475,7 @@ Umbra Wiki speaks and understands English.
 | Keys | Action |
 |---|---|
 | Enter / Shift+Enter | send / new line |
-| Tab | use the suggested reply |
+| Tab | quick actions (likely replies, tools, questions) |
 | F9 | hold to talk |
 | Esc | stop an answer, close a panel |
 | Ctrl+Z / Ctrl+Y | undo / redo in the prompt |
@@ -442,6 +486,7 @@ Umbra Wiki speaks and understands English.
 | Ctrl+P / Ctrl+O | profile / loadout |
 | Ctrl+G | maps (inside: / search, W waypoint, M measure, G grid, F full screen, + and − zoom) |
 | Ctrl+K | field kit |
+| Ctrl+J | signals & radar (S scans again) |
 | Ctrl+T | themes |
 | Ctrl+M | mute |
 | Ctrl+, | settings |

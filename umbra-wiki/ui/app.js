@@ -2258,7 +2258,7 @@ const SHORTCUTS = [
   ["Tab", "Quick actions: likely replies, fitting tools, questions to start with"], ["F9", "Hold to talk (voice input)"], ["Ctrl + Z", "Undo in the prompt"], ["Ctrl + Y", "Redo in the prompt"],
   ["Ctrl + N", "New conversation"], ["Ctrl + H", "History"], ["Ctrl + F", "Search your conversations"],
   ["Ctrl + E", "Export this conversation"], ["Ctrl + L", "Library and field manual"], ["Ctrl + P", "Your profile"],
-  ["Ctrl + O", "Loadout: scenario and personality"], ["Ctrl + G", "Maps"], ["Ctrl + K", "Field kit: CPR, timers, sun & moon, supplies"], ["Ctrl + T", "Themes"], ["Ctrl + M", "Mute or unmute sounds"],
+  ["Ctrl + O", "Loadout: scenario and personality"], ["Ctrl + G", "Maps"], ["Ctrl + K", "Field kit: medic, sun & moon, supplies, vault, training"], ["Ctrl + J", "Signals & radar"], ["Ctrl + T", "Themes"], ["Ctrl + M", "Mute or unmute sounds"],
   ["Ctrl + ,", "Settings"], ["F1", "This list"],
 ];
 function showShortcuts() {
@@ -2293,6 +2293,7 @@ document.addEventListener("keydown", (e) => {
     t: () => toggleThemes(),
     g: () => window.toggleMaps && window.toggleMaps(),
     k: () => window.toggleFieldKit && window.toggleFieldKit(),
+    j: () => window.toggleRadar && window.toggleRadar(),
     m: () => setMuted(!Sound.muted),
     ",": () => window.openSettings && window.openSettings(),
   };

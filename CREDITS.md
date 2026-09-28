@@ -46,6 +46,11 @@ before you redistribute anything.
 | Country outlines for choosing an area (`umbra-wiki/maps/countries.json`), and the outlines, label points and main cities in the country files (`umbra-wiki/maps/atlas.json`) | [Natural Earth](https://www.naturalearthdata.com) (1:50m countries, populated places) | public domain |
 | Country facts in the country files (`umbra-wiki/maps/atlas.json`) | [The World Factbook](https://www.cia.gov/the-world-factbook/), Central Intelligence Agency, via the [factbook.json](https://github.com/factbook/factbook.json) project | public domain (US government work); factbook.json CC0 1.0 |
 | Flags (`umbra-wiki/ui/flags/`, rendered to small images) | [flag-icons](https://github.com/lipis/flag-icons) by Panayiotis Lipiridis | MIT |
+| The land map of the live Earth in Sun & Moon (`umbra-wiki/ui/orrery.js`) | [Natural Earth](https://www.naturalearthdata.com) 1:110m countries, reduced to a 2° grid | public domain |
+
+Signals & Radar names the maker of a device from the IEEE list of MAC
+address prefixes that your system already has (`/usr/share/hwdata/oui.txt`,
+from the hwdata package); nothing is bundled or downloaded for it.
 
 Umbra reads the tiles and draws the maps itself; the map styles, symbols and
 the drawing code are umbraxc's (MIT). Umbra shows the OpenStreetMap

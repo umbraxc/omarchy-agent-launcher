@@ -2,6 +2,30 @@
 
 ## 3.1.1
 
+- **Signals & Radar** (Ctrl+J): a command-centre screen with a sonar radar of
+  the Wi-Fi networks and Bluetooth devices around you (click one for its
+  details), your device's vitals and the Wi-Fi channels in use. No internet
+  needed; passive.
+- **Field Kit: Medic** grows to five pages: triage, coma scale and vital
+  signs; burns with Parkland fluids, child doses, drip rate and oral
+  rehydration; a patient chart and timed log with MIST and 9-line reports;
+  quick guides.
+- **Field Kit: the Vault**, a password-locked arsenal with a library of
+  common firearms, ammunition and gear and an inspect view of each.
+- **Sun & Moon** shows a live ASCII Earth, Sun and Moon, placed by their real
+  positions, with a time-lapse.
+- **Training**: a Morse challenge with points and streaks, the phonetic
+  alphabet, radio procedure, grid references, compass and pace count, SALUTE.
+- **Maps**: right-click for waypoints (15 military-style markers in eight
+  colours), measuring, copying, range rings and the bearing from home.
+- **Tab** opens quick actions; answers get buttons to the tool that fits, and
+  Umbra knows its own features.
+- **Profile** redesigned, with a dog tag, skills, blood type, allergies,
+  medication and an emergency contact (also a printable ID card).
+- **History folders** with a brief Umbra keeps in mind; pinning.
+- The **field manual** in the Library has category colours and a small
+  drawing for every page.
+
 - **Country files** on the map: click any country's name and a data window
   glitches in, tied to it by a pointed line: flag, an ASCII drawing, capital
   and main cities with coordinates and MGRS, languages, people, currency,
