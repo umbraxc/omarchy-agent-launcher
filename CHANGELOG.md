@@ -2,6 +2,18 @@
 
 ## 3.1.1
 
+- **Calendar** in the Field Kit: browse months, add reminders in six colours
+  and four levels of importance, once or repeating; Umbra adds when your
+  water and food run out, best-before dates, first-aid timers and the moon's
+  phases, and reminders ring with a note while Umbra is open.
+- **Radar remembers** every device it has heard: a steady DEVICES list,
+  in range or not, with NEW marks on devices first heard in the last day.
+- **First-look guides**: the first time each screen or tab opens, a short
+  note explains it (Settings → Help & updates brings them back).
+- The welcome tour folds long lists of choices behind MORE, and keeps only
+  your pick on screen afterwards.
+- The status line above the prompt no longer retypes itself on every key.
+
 - **Signals & Radar** reworked: a slower cinematic sweep with phosphor
   trails and contact pings, HUD readouts, INTEL (bands, security, makers,
   open networks) and an EVENT LOG of contacts appearing and leaving, full

@@ -103,7 +103,7 @@
     "AI MODEL": "model ai llm gemma llama ollama brain download",
     VOICE: "voice speech dictation talk microphone f9 voxtype",
     STORAGE: "folders files location library history path disk",
-    "WELCOME TOUR": "tour tutorial intro help onboarding",
+    "WELCOME TOUR": "tour tutorial intro help onboarding guide guides tips first look",
     UPDATES: "update updates version upgrade release new check changelog what's whats news patch notes",
     "DANGER ZONE": "reset uninstall delete remove wipe erase",
   };
@@ -383,6 +383,8 @@
             <button class="ghost set-open" data-which="${k}">OPEN</button></div>`).join("")}
       </section>
       <section class="set-section"><div class="lib-head">WELCOME TOUR</div>
+        <div class="set-row"><span class="set-text"><b>Tab guides</b><small>The short notes that appear the first time you open each screen or tab</small></span>
+          <button class="ghost set-guides">SHOW AGAIN</button></div>
         <div class="set-row"><span class="set-text"><b>Replay the tour</b><small>The first-launch walkthrough of everything Umbra can do</small></span>
           <button class="ghost set-tour">REPLAY</button></div>
       </section>
@@ -427,6 +429,7 @@
       <p class="set-about">Umbra Wiki <span class="set-version"></span> · part of Omarchy Umbra · sounds by Kenney (CC0) · MIT license</p>`;
     arrange();
     fillPlaces();
+    body.querySelector(".set-guides").addEventListener("click", (e) => { window.UmbraGuide && UmbraGuide.reset(); e.target.textContent = "DONE ✓"; Sound.found(); });
     body.querySelector(".set-news").addEventListener("click", () => window.UmbraNews && UmbraNews.show());
     fetch("/api/status").then((r) => r.json()).then((s) => {
       if (!s.version) return;
