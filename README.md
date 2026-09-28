@@ -420,6 +420,19 @@ To update a repository install, pull the new version, then reinstall:
 `git -C ~/.local/share/omarchy-umbra pull` and
 `~/.local/share/omarchy-umbra/install-arch.sh --update`.
 
+### On Windows 11
+
+Umbra runs on Windows 11 through WSL, Windows' built-in way to run Linux
+apps in their own windows. Install Arch Linux in WSL, then Umbra from the
+signed [umbra] repository, exactly as on Arch. The step-by-step guide,
+for people new to Linux, is on the
+[Windows 11 page](https://umbraxc.github.io/umbra-repo/#windows).
+
+Everything works, including sounds, with two exceptions: the Signals &
+Radar screen can't reach the Wi-Fi and Bluetooth radios (Windows keeps
+them), and voice input isn't set up. Files, folders and links open in your
+Windows apps, and Umbra Wiki appears in the Start menu.
+
 ### What gets installed
 
 | | |

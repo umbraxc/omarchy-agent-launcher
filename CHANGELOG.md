@@ -11,9 +11,12 @@
 - **Umbra knows you**: your profile, health notes, supplies and plans shape every answer; press **Tab** for quick actions.
 - **A fresher look**: redesigned themes (try Arctic Kill), a new profile page, history folders and first-look guides.
 - **Achievements**, settings in coloured groups, and a note like this one after every update.
+- **Windows 11**: Umbra runs there too, through WSL; see the install guide.
 
 ### All changes
 
+- **Windows 11 (WSL)**: files, folders and links open in the Windows apps,
+  and the radar explains why it can't reach the radios there.
 
 - **Calendar** in the Field Kit: browse months, add reminders in six colours
   and four levels of importance, once or repeating; Umbra adds when your
