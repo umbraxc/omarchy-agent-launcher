@@ -688,7 +688,10 @@ def auto_update_check():
     result = check_update()
     if result.get("error"):
         return {}
-    write_json(UPDATE_FILE, {"checked": time.time(), "result": result})
+    # A brand-new release gets its Windows installer a few minutes after it
+    # appears: until then, ask again next time instead of waiting a day.
+    if not (result.get("newer") and not result.get("installable")):
+        write_json(UPDATE_FILE, {"checked": time.time(), "result": result})
     return result
 
 
