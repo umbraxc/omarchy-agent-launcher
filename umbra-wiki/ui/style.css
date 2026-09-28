@@ -1989,3 +1989,15 @@ body.reduce-motion .pf-scan { display: none; }
 .md-guide ol { margin: 0; padding-left: 18px; font-size: 11.5px; line-height: 1.55; color: var(--fg); }
 .md-guide li { margin: 4px 0; }
 .md-guide b { color: var(--fg-bright); }
+
+/* ------------------------------------------------------------- orrery */
+
+.fk-orrery { padding: 0; overflow: hidden; position: relative; }
+.orr-canvas { display: block; width: 100%; }
+.orr-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 7px 12px; border-top: 1px solid var(--line); font-size: 9.5px; letter-spacing: .14em; color: var(--dim); }
+.orr-when { flex: 1; min-width: 0; color: var(--fg-bright); }
+.orr-legend { display: flex; align-items: center; gap: 6px; }
+.orr-legend i { width: 8px; height: 8px; border-radius: 50%; }
+.orr-l-sun { background: var(--signal); } .orr-l-moon { background: var(--fg); margin-left: 6px; }
+.orr-legend b { color: var(--red); margin-left: 6px; }
+.orr-lapse { padding: 3px 9px; font-size: 9.5px; }

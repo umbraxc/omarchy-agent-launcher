@@ -424,6 +424,7 @@
     if (!skyPlace) skyPlace = saved || (mapView ? { name: "Map centre", ...mapView } : { name: "Map centre", lat: 52.09, lon: 5.12 });
     const today = new Date();
     body.innerHTML = `<div class="fk-sky">
+      <section class="fk-card fk-orrery"></section>
       <section class="fk-card fk-where">
         <div class="fk-h"><span class="g">${I.pin}</span> WHERE AND WHEN</div>
         <div class="fk-row"><select class="fk-place"><option value="map">Map centre${mapView ? ` (${mapView.lat.toFixed(2)}, ${mapView.lon.toFixed(2)})` : ""}</option>
@@ -450,6 +451,11 @@
     for (const s of [".fk-lat", ".fk-lon"]) q(s).addEventListener("change", () => { pick.value = "manual"; apply(); });
     q(".fk-date").addEventListener("change", apply);
     apply();
+    // The live Earth, Sun and Moon: now for today, midday for another date.
+    if (window.UmbraOrrery) UmbraOrrery.start(q(".fk-orrery"), () => skyPlace, () => {
+      const d = new Date(q(".fk-date").value + "T12:00:00");
+      return isNaN(d) || d.toDateString() === new Date().toDateString() ? new Date() : d;
+    });
     if (window.track) track("sunChecks");
   }
   function drawSky(out, day) {
@@ -998,5 +1004,6 @@
   window.closeFieldKit = () => { if (!$("#fieldkit").hidden) toggle(false, true); };
   window.UmbraFieldKit = { sunTimes, moonLight, moonTimes, needs: () => sup && needs(),
     // Opens the kit on a tab (and a training sub-tab), e.g. open("training", "morse").
+    astro: { toDays, sidereal, sunCoords, moonCoords, moonLight },
     open: (t, st) => { if (t && TABS.some(([id]) => id === t)) tab = t; if (st) sub = st; if ($("#fieldkit").hidden) toggle(true); else render(); } };
 })();
