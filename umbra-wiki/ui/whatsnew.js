@@ -16,7 +16,8 @@
       <div class="news-head"><span>UPDATE INSTALLED · v${escapeHtml(info.version)}</span><button class="ghost news-x" title="Close">✕</button></div>
       <div class="news-title">WHAT'S NEW</div>
       <p class="news-lead">Umbra was updated. Everything you had is still here: conversations, maps, waypoints, settings and achievements.</p>
-      <ul class="news-list">${info.items.map((t, i) => `<li style="animation-delay:${120 + i * 45}ms">${fmt(t)}</li>`).join("")}</ul>
+      <ul class="news-list">${info.items.slice(0, 12).map((t, i) => `<li style="animation-delay:${120 + i * 45}ms">${fmt(t)}</li>`).join("")}
+        ${info.items.length > 12 ? `<li class="news-more">…and ${info.items.length - 12} more: see the full list in the changelog.</li>` : ""}</ul>
       <div class="news-foot"><small>The full changelog is on GitHub and in Settings → Help & updates.</small>
         <button class="solid news-ok">GOT IT ▸</button></div></div>`;
     document.body.appendChild(box);

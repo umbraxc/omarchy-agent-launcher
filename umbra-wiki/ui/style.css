@@ -1760,6 +1760,8 @@ body.reduce-motion .news-card { animation: fade .2s ease-out both; }
 .news-list li::before { content: "◆"; position: absolute; left: 0; top: 7px; color: var(--signal); font-size: 9px; }
 .news-list b { color: var(--fg-bright); }
 .news-list code { color: var(--signal); }
+.news-list li.news-more { color: var(--dim); font-style: italic; }
+.news-list li.news-more::before { content: "+"; }
 .news-foot { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 20px; border-top: 1px solid var(--line); }
 .news-foot small { color: var(--faint); font-size: 10px; }
 
