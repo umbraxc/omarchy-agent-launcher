@@ -165,6 +165,7 @@ def reload_library():
 
 
 def stop_kiwix(*_):
+    maps.SHUTDOWN.set()
     if kiwix_proc and kiwix_proc.poll() is None:
         kiwix_proc.terminate()
     sys.exit(0)
@@ -214,6 +215,29 @@ def save_waypoints(items):
     for w in clean:
         record("waypoints", w["id"])
     return clean
+
+
+# ------------------------------------------------------------------ safety
+
+# How safe the user considers each country (their own judgement, shown as a
+# coloured overlay on the map): {"levels": {"NLD": 1, ...}}, 1 safe .. 4 danger.
+SAFETY_FILE = os.path.join(DATA_DIR, "safety.json")
+
+
+def get_safety():
+    levels = read_json(SAFETY_FILE, {}).get("levels", {})
+    return {"levels": {k: v for k, v in levels.items() if isinstance(v, int) and 1 <= v <= 4}}
+
+
+def save_safety(levels):
+    if not isinstance(levels, dict):
+        raise ValueError("bad safety levels")
+    clean = {}
+    for k, v in list(levels.items())[:300]:
+        if re.fullmatch(r"[A-Z0-9]{3}", str(k)) and isinstance(v, int) and not isinstance(v, bool) and 1 <= v <= 4:
+            clean[str(k)] = v
+    write_json(SAFETY_FILE, {"levels": clean})
+    return {"levels": clean}
 
 
 # ---------------------------------------------------------------- supplies
@@ -1517,8 +1541,53 @@ def downloads():
         done += min(got, c["size"])
         items.append({"id": i, "name": c["name"], "size": c["size"], "done": min(got, c["size"]),
                       "installed": os.path.exists(path)})
-    library = {"active": active, "items": items, "percent": round(done * 100 / total) if total else 0}
-    return {"library": library, "model": dict(pull_state)}
+    state = read_json(DOWNLOADS_FILE, {})
+    waiting = not active and any(not i["installed"] for i in items)
+    library = {"active": active, "items": items, "percent": round(done * 100 / total) if total else 0,
+               "paused": waiting and bool(state.get("paused")), "done": done, "total": total}
+    job = MAPS.job
+    maps = {"active": bool(job.get("active")) or bool(job.get("resumable")), "paused": bool(job.get("paused")),
+            "phase": job.get("phase", ""), "name": (job.get("plan") or {}).get("name", ""), "kind": job.get("kind", ""),
+            "received": job.get("received", 0), "total": job.get("total", 0), "done": job.get("done", 0), "count": job.get("count", 0)}
+    return {"library": library, "model": dict(pull_state), "maps": maps}
+
+
+def library_control(action):
+    """Pause (the download stops; the part already fetched is kept), resume
+    (it goes on from there) or cancel (the unfinished files are removed)."""
+    state = read_json(DOWNLOADS_FILE, {})
+    known = {c["id"]: c for c in catalog()}
+    left = [i for i in state.get("ids", []) if i in known and not os.path.exists(os.path.join(LIBRARY_DIR, known[i]["file"]))]
+    if action in ("pause", "cancel"):
+        for unit in _download_units():
+            subprocess.run(["systemctl", "--user", "stop", unit], capture_output=True)
+    if action == "pause":
+        write_json(DOWNLOADS_FILE, {**state, "paused": True})
+    elif action == "resume":
+        if left:
+            start_download(left)
+    elif action == "cancel":
+        for i in left:
+            try:
+                os.remove(os.path.join(LIBRARY_DIR, known[i]["file"]) + ".part")
+            except OSError:
+                pass
+        try:
+            os.remove(DOWNLOADS_FILE)
+        except OSError:
+            pass
+    return downloads()
+
+
+def resume_library():
+    """At start: library downloads cut off by a restart go on (paused ones wait)."""
+    state = read_json(DOWNLOADS_FILE, {})
+    if state.get("paused") or _download_units():
+        return
+    known = {c["id"]: c for c in catalog()}
+    left = [i for i in state.get("ids", []) if i in known and not os.path.exists(os.path.join(LIBRARY_DIR, known[i]["file"]))]
+    if left:
+        start_download(left)
 
 
 def _download_units():
@@ -1540,6 +1609,7 @@ def start_pull(name):
         return pull_state
     write_json(PULL_FILE, {"model": name})
     pull_state.clear()
+    pull_state.update({"paused": False})
     pull_state.update({"model": name, "active": True, "completed": 0, "total": 0, "status": "starting", "error": ""})
     threading.Thread(target=_pull, args=(name,), daemon=True).start()
     return pull_state
@@ -1551,6 +1621,13 @@ def _pull(name):
                                      {"Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=60) as r:
             for line in r:
+                if pull_state.get("stop") == "cancel":
+                    pull_state.clear()
+                    return
+                if pull_state.get("stop"):
+                    # Paused: Ollama keeps what's fetched and goes on from there next time.
+                    pull_state.update({"active": False, "paused": True, "status": "paused", "stop": False})
+                    return
                 e = json.loads(line or b"{}")
                 if e.get("error"):
                     raise RuntimeError(e["error"])
@@ -1569,9 +1646,31 @@ def _pull(name):
 
 
 def resume_pull():
-    pending = read_json(PULL_FILE, {}).get("model")
-    if pending:
-        start_pull(pending)
+    pending = read_json(PULL_FILE, {})
+    if pending.get("paused") and pending.get("model"):
+        pull_state.update({"model": pending["model"], "active": False, "paused": True, "status": "paused",
+                           "completed": pending.get("completed", 0), "total": pending.get("total", 0), "error": ""})
+    elif pending.get("model"):
+        start_pull(pending["model"])
+
+
+def pull_control(action):
+    pending = read_json(PULL_FILE, {})
+    if action == "pause" and pull_state.get("active"):
+        pull_state["stop"] = True
+        write_json(PULL_FILE, {**pending, "paused": True, "completed": pull_state.get("completed", 0), "total": pull_state.get("total", 0)})
+    elif action == "resume" and pending.get("model") and not pull_state.get("active"):
+        start_pull(pending["model"])
+    elif action == "cancel":
+        try:
+            os.remove(PULL_FILE)
+        except OSError:
+            pass
+        if pull_state.get("active"):
+            pull_state["stop"] = "cancel"
+        else:
+            pull_state.clear()
+    return dict(pull_state)
 
 
 # ------------------------------------------------------- settings: model, reset
@@ -1607,7 +1706,7 @@ def reset_umbra():
     are deleted (downloaded maps stay, like the library). The AI model,
     the library and config.json (model, library folder) are kept."""
     for path in (SETTINGS_FILE, PROFILE_FILE, CUSTOM_THEMES_FILE, PERSONALITIES_FILE, SCENARIOS_FILE, LOCK_FILE, ACH_FILE,
-                 WAYPOINTS_FILE, SUPPLIES_FILE):
+                 WAYPOINTS_FILE, SUPPLIES_FILE, SAFETY_FILE):
         try:
             os.remove(path)
         except OSError:
@@ -1755,6 +1854,30 @@ def starters(personal=True):
     return out
 
 
+def whats_new():
+    """This version's notes from the changelog, and whether to show them: once,
+    on the first start after an update (not after a fresh install: the
+    welcome tour covers that)."""
+    items = []
+    for path in (os.path.join(APP_DIR, "CHANGELOG.md"), os.path.join(APP_DIR, "..", "CHANGELOG.md"),
+                 "/usr/share/doc/umbra-wiki/CHANGELOG.md"):
+        try:
+            with open(path, encoding="utf-8") as fh:
+                text = fh.read()
+        except OSError:
+            continue
+        m = re.search(rf"^## {re.escape(VERSION)}\s*\n(.*?)(?=^## |\Z)", text, re.S | re.M)
+        if m:
+            for bullet in re.split(r"\n- ", "\n" + m.group(1).strip()):
+                bullet = " ".join(bullet.split()).lstrip("- ").strip()
+                if bullet:
+                    items.append(bullet)
+            break
+    settings = read_json(SETTINGS_FILE, {})
+    show = bool(items) and bool(settings.get("onboarded")) and settings.get("seenVersion") != VERSION
+    return {"version": VERSION, "items": items, "show": show}
+
+
 def apply_settings(update):
     """Merge a settings change (from the app, the tour or a backup) into
     settings.json, keeping only known keys with sensible values."""
@@ -1785,6 +1908,8 @@ def apply_settings(update):
         for key in ("scenario", "personality"):
             if isinstance(update.get(key), str) and re.fullmatch(r"[a-z0-9-]{1,40}", update[key]):
                 settings[key] = update[key]
+        if isinstance(update.get("seenVersion"), str) and re.fullmatch(r"[0-9][0-9.]{0,15}", update["seenVersion"]):
+            settings["seenVersion"] = update["seenVersion"]
         write_json(SETTINGS_FILE, settings)
     return settings
 
@@ -1967,6 +2092,7 @@ def backup(include_history, target=""):
         "settings": read_json(SETTINGS_FILE, {}), "profile": get_profile(),
         "themes": custom_themes(), "personalities": custom_personalities(), "scenarios": custom_scenarios(),
         "achievements": read_json(ACH_FILE, {}), "waypoints": get_waypoints(), "supplies": get_supplies(),
+        "safety": get_safety()["levels"],
         "history": [read_json(history_path(i["id"]), {}) for i in history_list()["items"]] if include_history else [],
     }
     path = os.path.join(folder, f"umbra-backup-{time.strftime('%Y-%m-%d-%H%M')}.json")
@@ -1988,6 +2114,11 @@ def restore(data):
         try:
             save_supplies(data["supplies"])
         except (ValueError, TypeError):
+            pass
+    if isinstance(data.get("safety"), dict) and data["safety"]:
+        try:
+            save_safety({**get_safety()["levels"], **data["safety"]})
+        except ValueError:
             pass
     if isinstance(data.get("waypoints"), list):
         mine = {w["id"]: w for w in get_waypoints()}
@@ -2349,6 +2480,23 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(MAPS.search(qs.get("q", [""])[0][:60], near=near))
         if path == "/api/maps/countries":
             return self.send_json(MAPS.countries())
+        if path == "/api/maps/atlas":
+            # Every country's outline, main cities and fact sheet (1 MB, bundled).
+            try:
+                with open(os.path.join(APP_DIR, "maps", "atlas.json"), "rb") as fh:
+                    body = fh.read()
+            except OSError:
+                body = b"[]"
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "max-age=86400")
+            self.end_headers()
+            return self.wfile.write(body)
+        if path == "/api/safety":
+            return self.send_json(get_safety())
+        if path == "/api/whatsnew":
+            return self.send_json(whats_new())
         # Map tiles: /api/tile/z/x/y (roads, places...), /api/points/15/x/y
         # (essential points), /api/terrain/z/x/y (elevation, PNG).
         m = re.fullmatch(r"/api/(tile|points|terrain)/(\d{1,2})/(\d{1,6})/(\d{1,6})", path)
@@ -2552,6 +2700,19 @@ class Handler(BaseHTTPRequestHandler):
                                                     on_done=lambda aid: record("mapPacks", aid)))
             except (ValueError, TypeError) as e:
                 return self.send_json({"error": str(e)}, 400)
+        m = re.fullmatch(r"/api/downloads/(maps|library|model)/(pause|resume|cancel)", self.path)
+        if m:
+            kind, action = m.groups()
+            try:
+                if kind == "maps":
+                    getattr(MAPS, action)()
+                elif kind == "library":
+                    library_control(action)
+                else:
+                    pull_control(action)
+            except ValueError as e:
+                return self.send_json({"error": str(e)}, 400)
+            return self.send_json(downloads())
         if self.path == "/api/maps/delete":
             try:
                 return self.send_json(MAPS.delete(str(self.read_json().get("id", ""))))
@@ -2564,6 +2725,11 @@ class Handler(BaseHTTPRequestHandler):
                     record("quartermaster")
                 return self.send_json(out)
             except (ValueError, TypeError) as e:
+                return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/safety":
+            try:
+                return self.send_json(save_safety(self.read_json().get("levels")))
+            except ValueError as e:
                 return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/waypoints":
             try:
@@ -2814,5 +2980,7 @@ if __name__ == "__main__":
     set_attention(False)
     threading.Thread(target=warm_model, daemon=True).start()
     resume_pull()
+    threading.Thread(target=resume_library, daemon=True).start()
+    MAPS.restore(on_done=lambda aid: record("mapPacks", aid))
     print(f"umbra: {n} archives, model {MODEL}, http://{HOST}:{PORT}", flush=True)
     ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()

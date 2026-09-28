@@ -160,7 +160,7 @@
     body.querySelectorAll(".fk-links [data-page]").forEach((b) => b.addEventListener("click", async () => {
       const pages = await loadManual();
       const page = pages.find((p) => p.id === b.dataset.page) || pages.find((p) => p.id.includes(b.dataset.page) || p.title.toLowerCase().includes(b.dataset.page));
-      if (page) { toggle(false, true); openManual(page.id); } else Sound.error();
+      if (page) { toggle(false, true); openedFrom(() => toggle(true)); openManual(page.id); } else Sound.error();
     }));
   }
   function cprCue(text) {
@@ -969,6 +969,8 @@
   $("#fieldkit-btn").addEventListener("click", () => toggle());
   document.addEventListener("keydown", (e) => {
     if ($("#fieldkit").hidden || !$("#modal").hidden) return;
+    // The signal lamp (full screen) handles its own Esc: back to Training.
+    if (e.key === "Escape" && document.querySelector(".fk-lamp")) return;
     if (e.key === "Escape") { e.stopImmediatePropagation(); toggle(false); return; }
     if (keyHandler && tab === "training" && sub === "morse" && keyHandler(e)) e.stopImmediatePropagation();
   }, true);

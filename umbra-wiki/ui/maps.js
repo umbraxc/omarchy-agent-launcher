@@ -247,8 +247,10 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.imageSmoothingEnabled = true;
     pump();
+    drawSafety();
     drawLabels(shown, pal);
     if (showGrid) drawGrid(pal);
+    drawPicked(pal);
     overlay(pal);
     if (moving()) frame();
   }
@@ -270,7 +272,7 @@
     hospital: ["󰋠", "red", 11], clinic: ["󰋠", "red", 13], doctors: ["󰋠", "red", 14], pharmacy: ["󰐂", "red", 13],
     defibrillator: ["󰗶", "red", 14], first_aid: ["󰋠", "red", 14], fire_station: ["󰈸", "red", 13], police: ["󰒃", "text", 13],
     shelter: ["󰔈", "text", 13], alpine_hut: ["󰔈", "text", 12], wilderness_hut: ["󰔈", "text", 12], camp_site: ["󰔈", "text", 12],
-    toilets: ["󰦫", "text", 14], fuel: ["󰊘", "text", 13], supermarket: ["󰒚", "text", 14], peak: ["▲", "brown", 10], volcano: ["▲", "red", 8],
+    toilets: ["󰋨", "text", 14], fuel: ["󰊘", "text", 13], supermarket: ["󰒚", "text", 14], peak: ["▲", "brown", 10], volcano: ["▲", "red", 8],
     cave_entrance: ["󰋵", "brown", 13], aerodrome: ["󰀝", "text", 9], station: ["󰔬", "text", 12], ranger_station: ["󰔈", "text", 13],
   };
   function sprite(key, make) {
@@ -282,8 +284,12 @@
     }
     return s;
   }
+  // Some names in OpenStreetMap carry emoji (a coffee cup, a flag...); they'd
+  // be drawn as colour pictures among the map's own icons, so they're left out.
+  const EMOJI = /[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\uFE0F\u200D]/gu;
   function textSprite(text, font, color, halo, spacing = 0, icon = "", iconColor = "") {
     const f = css("--font") || "monospace";
+    text = text.replace(EMOJI, "").replace(/\s{2,}/g, " ").trim();
     return sprite([text, font, color, halo, spacing, icon, iconColor].join("|"), () => {
       const m = document.createElement("canvas").getContext("2d");
       m.font = `${font} ${f}`;
@@ -323,6 +329,7 @@
     if (layout && !labelsDirty && layout.z === view.z && layout.style === style &&
         Math.hypot((view.x - layout.x) * scale(), (view.y - layout.y) * scale()) < 220) {
       const dx = (layout.x - view.x) * scale(), dy = (layout.y - view.y) * scale();
+      layout.off = [dx, dy];
       for (const d of layout.items) {
         if (d.dot) {
           ctx.fillStyle = d.color;
@@ -334,7 +341,7 @@
       return;
     }
     const items = [];
-    layout = { z: view.z, x: view.x, y: view.y, style, items };
+    layout = { z: view.z, x: view.x, y: view.y, style, items, countries: [], off: [0, 0] };
     const tz = tileZ(), S = scale();
     const boxes = [];
     const fits = (b) => {
@@ -352,6 +359,22 @@
       placed.sort((a, b) => pri(b.l) - pri(a.l));
       labelsDirty = false;
     }
+    // Country names come from the atlas, each from its own zoom level, and
+    // go first; they can be clicked for the country's file.
+    if (atlas && view.z < 9) {
+      for (const c of atlas) {
+        if (view.z < c.minz - 0.7) continue;
+        const cx = (c.lx + Math.round(view.x - c.lx) - view.x) * S + W / 2, cy = (c.ly - view.y) * S + H / 2;
+        if (cx < -120 || cx > W + 120 || cy < -30 || cy > H + 30) continue;
+        const font = c.rank <= 2 ? "700 14px" : c.rank <= 4 ? "700 12.5px" : "700 11px";
+        const s = textSprite(c.name.toUpperCase(), font, c === picked ? pal.ink : pal.border, pal.halo, c.rank <= 4 ? 3 : 1.5);
+        const bx = cx - s.w / 2, by = cy - s.h / 2;
+        if (!fits([bx, by, bx + s.w, by + s.h])) continue;
+        ctx.drawImage(s.c, bx, by, s.w, s.h);
+        items.push({ s, x: bx, y: by });
+        layout.countries.push({ c, x: bx, y: by, w: s.w, h: s.h });
+      }
+    }
     const size = S / 2 ** tz;
     const seen = new Set();
     for (const p of placed) {
@@ -366,7 +389,7 @@
       if (x < -60 || x > W + 60 || y < -30 || y > H + 30) continue;
       if (l.t === "place") {
         const cfg = PLACE[l.cls];
-        if (!cfg || tz < cfg[0] || (l.cls === "country" && tz > 7) || (l.cls === "region" && tz > 10)) continue;
+        if (!cfg || tz < cfg[0] || (l.cls === "country" && atlas) || (l.cls === "country" && tz > 7) || (l.cls === "region" && tz > 10)) continue;
         const dk = l.cls + l.text;
         if (seen.has(dk)) continue;
         const text = cfg[3] ? l.text.toUpperCase() : l.text;
@@ -596,8 +619,16 @@
     const lon = (D - (1 + 2 * T1 + C1) * D ** 3 / 6 + (5 - 2 * C1 + 28 * T1 - 3 * C1 ** 2 + 8 * ep2 + 24 * T1 ** 2) * D ** 5 / 120) / Math.cos(p1);
     return { lat: lat / toRad, lon: ((zone - 1) * 6 - 180 + 3) + lon / toRad };
   }
+  // Coordinates in the forms the map shows (52.0907° N 5.1214° E, with or
+  // without "·" between them), N52.09 E5.12, 52.09, 5.12, degrees-minutes-
+  // seconds, or MGRS (31U FT 50912 81543).
   function parseCoords(text) {
-    const t = text.trim().toUpperCase();
+    const t = text.trim().toUpperCase().replace(/^(CENTRE|CURSOR|MGRS)\s+/, "").replace(/[·;|]/g, " ").replace(/\s+/g, " ").trim();
+    const pre = /^([NS])\s*(\d{1,2}(?:\.\d+)?)\s*°?[,\s]+([EW])\s*(\d{1,3}(?:\.\d+)?)\s*°?$/.exec(t);
+    if (pre) {
+      const lat = +pre[2] * (pre[1] === "S" ? -1 : 1), lon = +pre[4] * (pre[3] === "W" ? -1 : 1);
+      if (Math.abs(lat) <= 90 && Math.abs(lon) <= 180) return { lat, lon };
+    }
     const dms = /^(\d{1,2})[°\s]+(\d{1,2})['′\s]+(\d{1,2}(?:\.\d+)?)?["″]?\s*([NS])[,\s]+(\d{1,3})[°\s]+(\d{1,2})['′\s]+(\d{1,2}(?:\.\d+)?)?["″]?\s*([EW])$/.exec(t);
     if (dms) return { lat: (+dms[1] + dms[2] / 60 + (+dms[3] || 0) / 3600) * (dms[4] === "S" ? -1 : 1), lon: (+dms[5] + dms[6] / 60 + (+dms[7] || 0) / 3600) * (dms[8] === "W" ? -1 : 1) };
     const dec = /^(-?\d{1,2}(?:\.\d+)?)\s*°?\s*([NS])?[,\s]+(-?\d{1,3}(?:\.\d+)?)\s*°?\s*([EW])?$/.exec(t);
@@ -605,7 +636,7 @@
       const lat = +dec[1] * (dec[2] === "S" ? -1 : 1), lon = +dec[3] * (dec[4] === "W" ? -1 : 1);
       if (Math.abs(lat) <= 90 && Math.abs(lon) <= 180) return { lat, lon };
     }
-    return fromMGRS(text);
+    return fromMGRS(t);
   }
 
   // ------------------------------------------------------------- search
@@ -637,6 +668,278 @@
       try { hits.push(...await (await fetch(`/api/mapsearch?q=${encodeURIComponent(q.trim())}&lat=${lat}&lon=${lon}`)).json()); } catch {}
     }
     return hits.slice(0, 14);
+  }
+
+  // ---------------------------------------------------------- countries
+
+  // Every country's outline, label point, main cities and fact sheet (CIA
+  // World Factbook and Natural Earth, public domain; maps/atlas.json). Their
+  // names are drawn by Umbra and can be clicked: the camera centres on the
+  // country, its outline lights up and a country file opens, tied to it by a
+  // pointed line. Countries can also be marked with a safety level of the
+  // user's own choosing, shown as a coloured layer at every zoom.
+  let atlas = null, atlasLoading = null, picked = null, safety = {}, showSafety = true;
+  const SAFETY = [
+    null,
+    { name: "Safe", color: "#3fae5a", line: "No special worries" },
+    { name: "Caution", color: "#e0b83a", line: "Stay alert, check the news" },
+    { name: "Avoid", color: "#e67e22", line: "Only if you must" },
+    { name: "Danger", color: "#d8412f", line: "Stay away" },
+  ];
+  function loadAtlas() {
+    if (atlas || atlasLoading) return atlasLoading;
+    atlasLoading = Promise.all([
+      fetch("/api/maps/atlas").then((r) => r.json()).catch(() => []),
+      fetch("/api/safety").then((r) => r.json()).catch(() => ({ levels: {} })),
+    ]).then(([list, s]) => {
+      safety = s.levels || {};
+      for (const c of list) {
+        // Outlines in map units (0..1), with their boxes, for quick culling.
+        c.rings = c.shapes.map((flat) => {
+          const pts = new Float64Array(flat.length);
+          let x0 = 1, y0 = 1, x1 = 0, y1 = 0;
+          for (let i = 0; i < flat.length; i += 2) {
+            const x = projX(flat[i]), y = projY(flat[i + 1]);
+            pts[i] = x; pts[i + 1] = y;
+            if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+          }
+          return { pts, box: [x0, y0, x1, y1], area: (x1 - x0) * (y1 - y0) };
+        });
+        delete c.shapes;
+        // The main land: the biggest part and what lies near it (not far-off
+        // islands or overseas territories), for framing and the drawing.
+        const big = c.rings.reduce((a, r) => (r.area > (a ? a.area : -1) ? r : a), null);
+        if (big) {
+          const [bx0, by0, bx1, by1] = big.box, mx = (bx1 - bx0) * 0.6 + 1e-4, my = (by1 - by0) * 0.6 + 1e-4;
+          c.main = c.rings.filter((r) => r.box[2] > bx0 - mx && r.box[0] < bx1 + mx && r.box[3] > by0 - my && r.box[1] < by1 + my);
+          c.box = c.main.reduce((b, r) => [Math.min(b[0], r.box[0]), Math.min(b[1], r.box[1]), Math.max(b[2], r.box[2]), Math.max(b[3], r.box[3])], [1, 1, 0, 0]);
+        } else {
+          c.main = [];
+          const x = projX(c.label[0]), y = projY(c.label[1]);
+          c.box = [x - 1e-4, y - 1e-4, x + 1e-4, y + 1e-4];
+        }
+        c.lx = projX(c.label[0]); c.ly = projY(c.label[1]);
+      }
+      atlas = list.sort((a, b) => a.rank - b.rank || a.minz - b.minz);
+      labelsDirty = true;
+      frame();
+    });
+    return atlasLoading;
+  }
+
+  // Draws rings (in map units) at the current view, every copy of the world
+  // that shows, skipping what's off screen.
+  function traceRings(g, rings) {
+    const S = scale(), ox = W / 2 - view.x * S, oy = H / 2 - view.y * S;
+    const [vx0, vy0] = toWorld(-40, -40), [vx1, vy1] = toWorld(W + 40, H + 40);
+    const lim = 60000;
+    g.beginPath();
+    for (let k = Math.floor(vx0) - 1; k <= Math.floor(vx1); k++) {
+      for (const r of rings) {
+        const b = r.box;
+        if (b[2] + k < vx0 || b[0] + k > vx1 || b[3] < vy0 || b[1] > vy1) continue;
+        const p = r.pts;
+        for (let i = 0; i < p.length; i += 2) {
+          const x = Math.max(-lim, Math.min(lim, (p[i] + k) * S + ox)), y = Math.max(-lim, Math.min(lim, p[i + 1] * S + oy));
+          i ? g.lineTo(x, y) : g.moveTo(x, y);
+        }
+        g.closePath();
+      }
+    }
+  }
+  function drawSafety() {
+    if (!atlas || !showSafety) return;
+    const g = ctx;
+    for (const c of atlas) {
+      const lvl = safety[c.a3];
+      if (!lvl || !c.rings.length) continue;
+      const col = SAFETY[lvl].color;
+      traceRings(g, c.rings);
+      // Strong enough to read from afar, light over streets up close.
+      g.globalAlpha = (style === "topo" ? 0.2 : 0.24) * (view.z >= 12 ? 0.4 : view.z >= 9 ? 0.7 : 1);
+      g.fillStyle = col; g.fill("evenodd");
+      g.globalAlpha = 0.75; g.strokeStyle = col; g.lineWidth = 1.4; g.stroke();
+      g.globalAlpha = 1;
+    }
+  }
+  function drawPicked(pal) {
+    if (!picked) return;
+    const g = ctx, ink = style === "topo" ? pal.ink : css("--signal") || pal.ink;
+    traceRings(g, picked.rings);
+    g.globalAlpha = 0.1; g.fillStyle = ink; g.fill("evenodd");
+    g.globalAlpha = 1; g.strokeStyle = ink; g.lineWidth = 2.6; g.setLineDash([]); g.stroke();
+    // The pointed line from the country to its file.
+    const win = $("#maps .mp-cfile");
+    if (!win || win.hidden) return;
+    const body = $("#maps .mp-body").getBoundingClientRect(), r = win.getBoundingClientRect();
+    let ax = (picked.lx + Math.round(view.x - picked.lx) - view.x) * scale() + W / 2, ay = (picked.ly - view.y) * scale() + H / 2;
+    // From the end of its name when the name shows, so the name stays readable.
+    const nb = layout && layout.countries && layout.countries.find((b) => b.c === picked);
+    if (nb) { ax = nb.x + layout.off[0] + nb.w + 5; ay = nb.y + layout.off[1] + nb.h / 2; }
+    const ex = r.left - body.left, ey = Math.max(r.top - body.top + 26, Math.min(r.bottom - body.top - 26, ay));
+    if (ax > ex - 20) return;
+    const dx = ex - ax, dy = ey - ay, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
+    g.fillStyle = ink;
+    g.beginPath(); g.moveTo(ax, ay); g.lineTo(ex + nx * 7, ey + ny * 7); g.lineTo(ex - nx * 7, ey - ny * 7); g.closePath(); g.fill();
+    g.fillRect(ex - 2, r.top - body.top, 3, r.height);
+    g.lineWidth = 2; g.strokeStyle = ink;
+    g.beginPath(); g.arc(ax, ay, 6, 0, TAU); g.stroke();
+    g.beginPath(); g.arc(ax, ay, 2.2, 0, TAU); g.fill();
+  }
+  // A country whose name is under a point of the map, if any.
+  function countryAt(sx, sy) {
+    if (!layout || !layout.countries) return null;
+    const [dx, dy] = layout.off || [0, 0];
+    const hit = layout.countries.find((b) => sx >= b.x + dx - 4 && sx <= b.x + dx + b.w + 4 && sy >= b.y + dy - 3 && sy <= b.y + dy + b.h + 3);
+    return hit ? hit.c : null;
+  }
+
+  // The country as characters: its main land sampled on a grid, denser
+  // characters where more of a cell is land, the capital marked.
+  function silhouette(c) {
+    const [x0, y0, x1, y1] = c.box, wpx = x1 - x0, hpx = y1 - y0;
+    let cols = 38, rows = Math.round(cols * (hpx / wpx) * 0.5);
+    if (rows > 17) { rows = 17; cols = Math.max(12, Math.round((rows / 0.5) * (wpx / hpx))); }
+    rows = Math.max(4, rows);
+    const inside = (x, y) => {
+      let n = 0;
+      for (const r of c.main) {
+        const b = r.box;
+        if (x < b[0] || x > b[2] || y < b[1] || y > b[3]) continue;
+        const p = r.pts;
+        for (let i = 0, j = p.length - 2; i < p.length; j = i, i += 2) {
+          if ((p[i + 1] > y) !== (p[j + 1] > y) && x < ((p[j] - p[i]) * (y - p[i + 1])) / (p[j + 1] - p[i + 1]) + p[i]) n++;
+        }
+      }
+      return n % 2 === 1;
+    };
+    const ramp = " .:-=+*#%@";
+    const cap = c.facts && c.facts.capitalAt ? [projX(c.facts.capitalAt[1]), projY(c.facts.capitalAt[0])] : null;
+    const capCell = cap ? [Math.floor(((cap[0] - x0) / wpx) * cols), Math.floor(((cap[1] - y0) / hpx) * rows)] : null;
+    const out = [];
+    for (let j = 0; j < rows; j++) {
+      let line = "";
+      for (let i = 0; i < cols; i++) {
+        if (capCell && capCell[0] === i && capCell[1] === j) { line += "\u0001"; continue; }
+        let hits = 0;
+        for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) {
+          if (inside(x0 + ((i + (a + 0.5) / 3) / cols) * wpx, y0 + ((j + (b + 0.5) / 3) / rows) * hpx)) hits++;
+        }
+        line += ramp[hits];
+      }
+      out.push(line.replace(/\s+$/, ""));
+    }
+    return escapeHtml(out.join("\n")).replace("\u0001", '<b class="mp-cf-cap">◆</b>');
+  }
+
+  async function openCountry(c, fly = true) {
+    await loadAtlas();
+    if (typeof c === "string") {
+      const n = norm(c);
+      c = atlas.find((x) => norm(x.name) === n) || atlas.find((x) => x.facts && norm(x.facts.long || "") === n);
+      if (!c) return false;
+    }
+    picked = c;
+    $("#maps .mp-card").hidden = true;
+    target = null;
+    if (fly) {
+      // Frame the main land in the part of the map left of the file.
+      const win = Math.min(400, W * 0.45) + 60, room = Math.max(200, W - win - 60);
+      const [x0, y0, x1, y1] = c.box;
+      const z = Math.max(minZ(), Math.min(10, Math.log2(Math.min(room / Math.max(1e-6, x1 - x0), (H - 120) / Math.max(1e-6, y1 - y0)) / 256)));
+      const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, S = 256 * 2 ** whole(z - 0.49);
+      const vx = cx + (W / 2 - (room / 2 + 30)) / S;
+      flyTo(unY(cy), unX(vx), z - 0.49);
+    }
+    renderCountry(c);
+    Sound.glitch();
+    frame();
+    return true;
+  }
+  function closeCountry() {
+    const win = $("#maps .mp-cfile");
+    if (win.hidden) return;
+    win.hidden = true; picked = null; frame(); Sound.click();
+  }
+
+  function renderCountry(c) {
+    const win = $("#maps .mp-cfile");
+    const f = c.facts || {};
+    const ll = (lat, lon) => `${fmtLat(lat)} ${fmtLon(lon)}`;
+    const row = (k, v, cls = "") => (v ? `<div class="mp-cf-row ${cls}"><span>${k}</span><p>${escapeHtml(v)}</p></div>` : "");
+    const cities = c.cities.map((ct) => `<button class="mp-cf-city" data-lat="${ct[1]}" data-lon="${ct[2]}" title="Fly there">
+        <b>${ct[4] ? "◆ " : ""}${escapeHtml(ct[0])}</b><small>${ll(ct[1], ct[2])} · ${toMGRS(ct[1], ct[2], 3)}</small>
+        <em>${ct[3] ? (ct[3] >= 1e6 ? (ct[3] / 1e6).toFixed(1) + " M" : Math.round(ct[3] / 1000) + " K") : ""}</em></button>`).join("");
+    const lvl = safety[c.a3] || 0;
+    win.innerHTML = `
+      <div class="mp-cf-head"><span class="mp-cf-tag">COUNTRY FILE · ${escapeHtml(c.a3)}</span>
+        <button class="ghost mp-cf-x" title="Close · Esc">✕</button></div>
+      <div class="mp-cf-id">
+        ${c.flag ? `<img class="mp-cf-flag" src="flags/${escapeHtml(c.iso)}.png" alt="">` : `<span class="mp-cf-flag none">?</span>`}
+        <div><div class="mp-cf-name" data-text="${escapeHtml(c.name.toUpperCase())}">${escapeHtml(c.name.toUpperCase())}</div>
+          ${f.long && !/^none$/i.test(f.long) && f.long.toLowerCase() !== c.name.toLowerCase() ? `<small>${escapeHtml(f.long)}</small>` : ""}
+          ${f.location ? `<small>${escapeHtml(f.location)}</small>` : ""}</div>
+      </div>
+      ${c.main.length ? `<pre class="mp-cf-art">${silhouette(c)}</pre>` : ""}
+      ${f.note ? `<p class="mp-cf-note">${escapeHtml(f.note)}</p>` : ""}
+      <div class="mp-cf-sec">SAFETY · YOUR CALL</div>
+      <div class="mp-cf-safety">${SAFETY.map((s, i) => `<button class="mp-cf-lvl ${i === lvl ? "on" : ""}" data-l="${i}" style="--lvl:${s ? s.color : "var(--faint)"}"
+        title="${s ? `${s.name}|${s.line}. Colours ${escapeHtml(c.name)} on the map.` : "No level|Leave this country uncoloured."}"><i></i>${s ? s.name.toUpperCase() : "NONE"}</button>`).join("")}</div>
+      <div class="mp-cf-sec">KEY FACTS</div>
+      ${f.capital ? `<div class="mp-cf-row"><span>CAPITAL</span><p>${escapeHtml(f.capital)}${f.capitalAt ? `<small>${ll(f.capitalAt[0], f.capitalAt[1])}<br>MGRS ${toMGRS(f.capitalAt[0], f.capitalAt[1])}</small>` : ""}</p></div>` : ""}
+      ${row("PEOPLE", f.population)}${row("LANGUAGES", f.languages)}${row("CURRENCY", f.currency)}${row("AREA", f.area)}
+      ${row("TIME", f.utc)}${row("GOVERNMENT", f.government)}${row("RELIGION", f.religions)}
+      ${cities ? `<div class="mp-cf-sec">MAIN CITIES</div><div class="mp-cf-cities">${cities}</div>` : ""}
+      ${f.climate || f.terrain ? `<div class="mp-cf-sec">THE LAND</div>` : ""}
+      ${row("CLIMATE", f.climate)}${row("TERRAIN", f.terrain)}${row("HIGHEST", f.highest)}${row("LOWEST", f.lowest)}
+      ${row("RESOURCES", f.resources)}${row("HAZARDS", f.hazards, "warn")}${row("BORDERS", f.neighbours)}${row("COAST", f.coastline)}
+      ${f.water || f.doctors ? `<div class="mp-cf-sec">HEALTH & WATER</div>` : ""}
+      ${row("SAFE WATER", f.water)}${row("DOCTORS", f.doctors)}${row("HOSPITAL", f.beds)}${row("LIFESPAN", f.life)}
+      <div class="mp-card-actions">
+        <button class="ghost mp-cf-dl" title="Download this country|Opens the download panel with ${escapeHtml(c.name)} chosen: check the size first.">󰇚 GET MAP</button>
+        <button class="solid mp-cf-ask">ASK UMBRA ▸</button></div>
+      <p class="mp-cf-src">CIA World Factbook (public domain) · Natural Earth · cities: Natural Earth</p>`;
+    win.hidden = false;
+    win.scrollTop = 0;
+    win.classList.remove("glitch"); void win.offsetWidth; win.classList.add("glitch");
+    win.querySelector(".mp-cf-x").addEventListener("click", closeCountry);
+    win.querySelectorAll(".mp-cf-city").forEach((b) => b.addEventListener("click", () => {
+      const lat = +b.dataset.lat, lon = +b.dataset.lon;
+      closeCountry();
+      target = { lat, lon, name: b.querySelector("b").textContent.replace("◆ ", ""), kind: "city", label: "CITY" };
+      flyTo(lat, lon, Math.max(view.z, 11));
+      showCard(target);
+    }));
+    win.querySelectorAll(".mp-cf-lvl").forEach((b) => b.addEventListener("click", async () => {
+      const l = +b.dataset.l;
+      if (l) safety[c.a3] = l; else delete safety[c.a3];
+      win.querySelectorAll(".mp-cf-lvl").forEach((x) => x.classList.toggle("on", x === b));
+      showSafety = true; showLegend();
+      $("#maps .mp-t[data-t=safety]").classList.add("on");
+      frame();
+      l >= 3 ? Sound.error() : Sound.click();
+      try { await post("/api/safety", { levels: safety }); } catch {}
+    }));
+    win.querySelector(".mp-cf-ask").addEventListener("click", () => {
+      toggle(false, true);
+      const box = $("#q");
+      box.value = `I may have to go to ${c.name}. What should I know to stay safe there: the climate, water, health risks, dangers and what to prepare?`;
+      box.dispatchEvent(new Event("input"));
+      box.focus();
+    });
+    win.querySelector(".mp-cf-dl").addEventListener("click", async () => {
+      if (!countries.length) try { countries = await (await fetch("/api/maps/countries")).json(); } catch {}
+      const i = countries.findIndex((x) => norm(x.name) === norm(c.name));
+      closeCountry();
+      if (panel !== "packs") togglePanel("packs");
+      if (i >= 0) { chosen = { name: countries[i].name, bbox: countries[i].bbox, i }; chosenBox = countries[i].bbox; renderPanel(); frame(); }
+    });
+  }
+  // The colour key, while any country has a level.
+  function showLegend() {
+    const el = $("#maps .mp-legend"), used = new Set(Object.values(safety));
+    el.hidden = !showSafety || !used.size;
+    el.innerHTML = `<b>SAFETY</b>` + SAFETY.map((s, i) => (s && used.has(i) ? `<span><i style="background:${s.color}"></i>${s.name.toUpperCase()}</span>` : "")).join("");
   }
 
   // ------------------------------------------------------------- motion
@@ -714,17 +1017,18 @@
       <div class="mp-head">
         <span class="lo-title"><span class="spin" data-spin>✻</span> MAPS</span>
         <div class="mp-search"><span class="g">󰍉</span>
-          <input placeholder="Search towns, streets, water, coordinates or MGRS…" spellcheck="false" autocomplete="off">
+          <input placeholder="Search towns, streets, water, coordinates (52.09° N 5.12° E) or MGRS…" spellcheck="false" autocomplete="off">
           <div class="mp-results" hidden></div></div>
         <div class="mp-tools">
-          <div class="pf-choice mp-style"><button data-s="topo">TOPO</button><button data-s="tactical">TACTICAL</button></div>
-          <button class="ctl mp-t" data-t="grid" title="Grid lines and MGRS zones (G)"><span class="g">󰋁</span></button>
-          <button class="ctl mp-t" data-t="waypoint" title="Drop a waypoint (W)"><span class="g">󰍎</span></button>
-          <button class="ctl mp-t" data-t="measure" title="Measure a distance (M); right-click ends"><span class="g">󰑭</span></button>
-          <button class="ctl mp-t" data-t="points" title="Your waypoints"><span class="g">󰈻</span></button>
-          <button class="ctl mp-t" data-t="packs" title="Download maps"><span class="g">󰇚</span></button>
-          <button class="ctl mp-t" data-t="full" title="Full screen (F)"><span class="g">󰊓</span></button>
-          <button class="ghost mp-close" title="Close (Esc)">CLOSE ✕</button>
+          <div class="pf-choice mp-style"><button data-s="topo" title="Topographic|A paper military map: green woods, blue water, brown relief.">TOPO</button><button data-s="tactical" title="Tactical|A dark map in the colours of your Umbra theme.">TACTICAL</button></div>
+          <button class="ctl mp-t" data-t="grid" title="Grid · G|Latitude and longitude lines, with the military (MGRS) grid zones and their names."><span class="g">󰋁</span></button>
+          <button class="ctl mp-t" data-t="waypoint" title="Waypoint tool · W|Click the map to mark a spot: a camp, water, a danger, a rally point or a cache. Saved on this computer."><span class="g">󰍎</span></button>
+          <button class="ctl mp-t" data-t="measure" title="Measuring tool · M|Click points on the map to measure a distance along them. Right-click or Enter to finish, Esc to clear."><span class="g">󰑭</span></button>
+          <button class="ctl mp-t on" data-t="safety" title="Safety layer|Colours the countries you marked safe, caution, avoid or danger. Click a country's name to mark it."><span class="g">󰞀</span></button>
+          <button class="ctl mp-t" data-t="points" title="Your waypoints|Every waypoint you saved: fly to one, or remove it."><span class="g">󰈻</span></button>
+          <button class="ctl mp-t mp-dl-btn" data-t="packs" title="Download maps|Get detailed offline maps of a country or of the area on screen: streets, paths, water points, shelters and relief. Also lists and removes the maps you have."><span class="g">󰇚</span><i class="mp-dot" hidden></i></button>
+          <button class="ctl mp-t" data-t="full" title="Full screen · F|Use the whole screen for the map. Press F or Esc to go back."><span class="g">󰊓</span></button>
+          <button class="ghost mp-close" title="Close the map · Esc|Back to where you were. The map remembers where you left it.">CLOSE ✕</button>
         </div>
       </div>
       <div class="mp-body">
@@ -732,14 +1036,19 @@
         <div class="mp-cross" aria-hidden="true"></div>
         <div class="mp-rail">
           <div class="mp-compass" aria-hidden="true"><i></i><span>N</span></div>
-          <button class="mp-ctl" data-z="1" title="Zoom in (+)"><span class="g">󰐕</span></button>
-          <button class="mp-ctl" data-z="-1" title="Zoom out (−)"><span class="g">󰍴</span></button>
-          <button class="mp-ctl" data-z="0" title="Whole world"><span class="g">󰇧</span></button>
+          <button class="mp-ctl" data-z="1" title="Zoom in · +|Or scroll, or double-click the map."><span class="g">󰐕</span></button>
+          <button class="mp-ctl" data-z="-1" title="Zoom out · −|Or scroll the other way."><span class="g">󰍴</span></button>
+          <button class="mp-ctl" data-z="0" title="Whole world|Fly back out to see the whole world."><span class="g">󰇧</span></button>
         </div>
         <div class="mp-scale"><i></i><span></span></div>
         <div class="mp-card" hidden></div>
+        <div class="mp-cfile" hidden></div>
+        <div class="mp-legend" hidden></div>
         <aside class="mp-panel" hidden></aside>
         <div class="mp-hint" hidden></div>
+        <div class="mp-first" hidden><b>󰇚 GET A DETAILED MAP</b>This is the built-in world map. For streets, paths, water points,
+          shelters and relief, download a country or an area here: it then works with no internet.
+          <div class="mp-card-actions"><button class="ghost mp-first-x">LATER</button><button class="solid mp-first-go">SHOW ME ▸</button></div></div>
       </div>
       <div class="mp-foot"><span class="mp-coord"></span><span class="mp-mgrs"></span><span class="mp-zl"></span>
         <span class="mp-credit">© OPENSTREETMAP CONTRIBUTORS · PROTOMAPS · TERRAIN TILES</span></div>`;
@@ -780,6 +1089,15 @@
   }
   const fmtScale = (v) => (v > 1e6 ? (v / 1e6).toFixed(v > 1e7 ? 0 : 1) + "M" : v > 1e3 ? Math.round(v / 1e3) + "K" : Math.round(v) + "");
 
+  // A short note at the top of the map for a few seconds.
+  let hintTimer = 0;
+  function hint(text) {
+    const el = $("#maps .mp-hint");
+    if (tool) return;
+    el.textContent = text; el.hidden = false;
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(() => { if (!tool) el.hidden = true; }, 3200);
+  }
   function setTool(t) {
     tool = tool === t ? "" : t;
     const el = $("#maps");
@@ -813,6 +1131,11 @@
       input.blur();
       const k = kindOf(h);
       target = { lat: h.lat, lon: h.lon, name: h.name, kind: h.kind, label: k[0], km: h.km };
+      if (h.kind === "country") {
+        target = null;
+        openCountry(h.name).then((ok) => { if (!ok) { target = { lat: h.lat, lon: h.lon, name: h.name, kind: h.kind, label: k[0] }; flyTo(h.lat, h.lon, Math.max(view.z, k[2])); showCard(target); } });
+        return;
+      }
       flyTo(h.lat, h.lon, Math.max(view.z, k[2]));
       showCard(target);
       Sound.found();
@@ -838,6 +1161,10 @@
       else if (t === "waypoint" || t === "measure") setTool(t);
       else if (t === "packs" || t === "points") togglePanel(t);
       else if (t === "full") fullscreen();
+      else if (t === "safety") {
+        showSafety = !showSafety; b.classList.toggle("on", showSafety); showLegend(); save(); frame(); Sound.click();
+        if (showSafety && !Object.keys(safety).length) hint("CLICK A COUNTRY'S NAME TO GIVE IT A SAFETY LEVEL");
+      }
     }));
     el.querySelector(".mp-close").addEventListener("click", () => toggle(false));
     el.querySelectorAll(".mp-ctl").forEach((b) => b.addEventListener("click", () => {
@@ -858,7 +1185,7 @@
     canvas.addEventListener("pointermove", (e) => {
       const r = canvas.getBoundingClientRect();
       readout(e.clientX - r.left, e.clientY - r.top);
-      if (!drag) return;
+      if (!drag) { canvas.classList.toggle("over-name", !tool && !!countryAt(e.clientX - r.left, e.clientY - r.top)); return; }
       const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
       if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
       if (!drag.moved) return;
@@ -901,6 +1228,8 @@
     const lat = unY(y), lon = wrapLon(unX(x));
     if (tool === "measure") { measure.push({ lat, lon }); frame(); Sound.key(); return; }
     if (tool === "waypoint") { editWaypoint({ lat, lon, name: "", icon: "pin", note: "" }); return; }
+    const land = countryAt(sx, sy);
+    if (land) { openCountry(land); return; }
     const hit = waypoints.find((w) => { const [wx, wy] = toScreen(projX(w.lon), projY(w.lat)); return Math.hypot(wx - sx, wy - sy + 8) < 16; });
     if (hit) { showCard({ ...hit, kind: "waypoint", wp: hit, label: "WAYPOINT" }); return; }
     target = { lat, lon, name: "", kind: "spot", label: "LOCATION" };
@@ -929,6 +1258,7 @@
       ${t.wp && t.wp.note ? `<p class="mp-card-note"></p>` : ""}
       <div class="mp-card-coords">${fmtLat(t.lat)} · ${fmtLon(t.lon)}<br>MGRS ${toMGRS(t.lat, t.lon)}</div>
       <div class="mp-card-actions">
+        <button class="ghost mp-c-copy" title="Copy the coordinates|Both forms, ready to paste in a message, a note or the search box.">⧉ COPY</button>
         ${t.kind === "measure" ? `<button class="ghost mp-c-clear">CLEAR</button>` : ""}
         ${t.wp ? `<button class="ghost mp-c-edit">✎ EDIT</button><button class="ghost mp-c-del">✕ DELETE</button>`
           : t.kind !== "measure" ? `<button class="ghost mp-c-pin">󰍎 WAYPOINT</button>` : ""}
@@ -936,10 +1266,17 @@
         <button class="ghost mp-c-x" title="Close">✕</button>
       </div>`;
     if (t.name) card.querySelector(".mp-card-name").textContent = t.name;
+    card.dataset.wp = t.wp ? t.wp.id : "";
     if (t.wp && t.wp.note) card.querySelector(".mp-card-note").textContent = t.wp.note;
     card.hidden = false;
     const q = (s) => card.querySelector(s);
-    q(".mp-c-x").addEventListener("click", () => { card.hidden = true; target = null; frame(); });
+    q(".mp-c-x").addEventListener("click", () => { card.hidden = true; target = null; frame(); Sound.click(); });
+    q(".mp-c-copy").addEventListener("click", async (e) => {
+      const ok = await copyText(`${fmtLat(t.lat)} ${fmtLon(t.lon)} · MGRS ${toMGRS(t.lat, t.lon)}`);
+      e.target.textContent = ok ? "✓ COPIED" : "COULDN'T COPY";
+      ok ? Sound.found() : Sound.error();
+      setTimeout(() => { if (e.target.isConnected) e.target.textContent = "⧉ COPY"; }, 1600);
+    });
     q(".mp-c-clear")?.addEventListener("click", () => { measure = []; card.hidden = true; frame(); });
     q(".mp-c-pin")?.addEventListener("click", () => editWaypoint({ lat: t.lat, lon: t.lon, name: t.name || "", icon: /water/i.test(t.label || "") ? "water" : "pin", note: "" }));
     q(".mp-c-edit")?.addEventListener("click", () => editWaypoint(t.wp));
@@ -948,7 +1285,7 @@
       await saveWaypoints(); card.hidden = true; frame(); Sound.click();
     });
     q(".mp-c-ask")?.addEventListener("click", () => {
-      toggle(false);
+      toggle(false, true);
       const box = $("#q");
       box.value = `What should I know to stay safe around ${t.name}: the climate, water, dangers and what to prepare?`;
       box.dispatchEvent(new Event("input"));
@@ -1003,6 +1340,7 @@
   const pick = { zoom: 14, terrain: 11, essentials: true };
   function togglePanel(which) {
     panel = panel === which ? "" : which;
+    if (panel === "packs") { $("#maps .mp-first").hidden = true; try { localStorage.setItem("umbra-maps-hint", "1"); } catch {} }
     $("#maps").querySelectorAll(".mp-t[data-t=packs], .mp-t[data-t=points]").forEach((b) => b.classList.toggle("on", b.dataset.t === panel));
     if (panel !== "packs") chosenBox = null;
     frame();
@@ -1019,12 +1357,21 @@
     const top = box.scrollTop;
     if (panel === "points") {
       box.innerHTML = `<div class="lib-head"><span>WAYPOINTS · ${waypoints.length}</span></div>` + (waypoints.length
-        ? waypoints.map((w) => `<button class="mp-pt" data-id="${w.id}"><span class="g">${ICON[w.icon]}</span><span><b></b><small>${fmtLat(w.lat)} ${fmtLon(w.lon)}</small></span></button>`).join("")
+        ? waypoints.map((w) => `<div class="mp-pt" data-id="${w.id}" title="Fly to it"><span class="g">${ICON[w.icon] || ICON.pin}</span><span><b></b><small>${fmtLat(w.lat)} ${fmtLon(w.lon)}</small></span><button class="ghost mp-del" title="Remove this waypoint">✕</button></div>`).join("")
         : `<p class="lib-note">No waypoints yet. Use the pin tool (W) and click the map: camps, water, dangers, rally points, caches…</p>`);
       box.querySelectorAll(".mp-pt").forEach((b) => {
         const w = waypoints.find((x) => x.id === b.dataset.id);
         b.querySelector("b").textContent = w.name;
-        b.addEventListener("click", () => { flyTo(w.lat, w.lon, Math.max(view.z, 15)); showCard({ ...w, kind: "waypoint", wp: w, label: "WAYPOINT" }); });
+        b.addEventListener("click", () => { flyTo(w.lat, w.lon, Math.max(view.z, 15)); showCard({ ...w, kind: "waypoint", wp: w, label: "WAYPOINT" }); Sound.click(); });
+        b.querySelector(".mp-del").addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const ok = await confirmDialog({ kind: "to-local", tag: "WAYPOINTS", title: `REMOVE "${w.name.toUpperCase()}"?`, body: "The waypoint is taken off the map and this computer.", ok: "REMOVE", cancel: "KEEP" });
+          if (!ok) return;
+          waypoints = waypoints.filter((x) => x.id !== w.id);
+          const card = $("#maps .mp-card");
+          if (!card.hidden && card.dataset.wp === w.id) card.hidden = true;
+          await saveWaypoints(); frame(); Sound.click();
+        });
       });
       box.scrollTop = top;
       return;
@@ -1049,7 +1396,7 @@
     if (chosen) {
       html += `<div class="mp-chosen"><b>${escapeHtml(chosen.name)}</b><small>${chosen.bbox.map((v) => v.toFixed(2)).join(" · ")}</small></div>`;
       if (job.active && job.kind === "plan") html += progress(job, "CHECKING THE SIZE");
-      else if (!plan) html += `<div class="mp-dl"><span>First check the size: nothing is downloaded yet.</span><button class="solid mp-plan" ${job.active ? "disabled" : ""}>CHECK SIZE ▸</button></div>`;
+      else if (!plan) html += `<div class="mp-dl"><span>First check the size: nothing is downloaded yet.</span><button class="solid mp-plan" ${job.active || job.resumable ? "disabled" : ""}>CHECK SIZE ▸</button></div>`;
       else {
         html += `<div class="mp-opt-t">DETAIL</div>` + status.detail.map((d) => {
           const size = plan.sizes[String(d.zoom)];
@@ -1069,15 +1416,16 @@
         }
         const zsize = plan.sizes[String(pick.zoom)] || 0, tsize = pick.terrain ? plan.terrain[String(pick.terrain)] || 0 : 0;
         const esize = pick.essentials && pick.zoom < 15 && plan.essentials ? plan.essentials : 0;
-        if (job.active && job.kind === "download") html += progress(job, "DOWNLOADING");
+        if ((job.active || job.resumable) && job.kind === "download") html += progress(job, job.paused ? "PAUSED" : "DOWNLOADING");
         else html += `<div class="mp-dl"><span>About ${fmtBytes(zsize + tsize + esize)} to download</span>
-          <button class="solid mp-go" ${job.active || !zsize ? "disabled" : ""}>DOWNLOAD ▸</button></div>`;
+          <button class="solid mp-go" ${job.active || job.resumable || !zsize ? "disabled" : ""}>DOWNLOAD ▸</button></div>`;
       }
-    } else if (job.active) html += progress(job, job.kind === "plan" ? "CHECKING THE SIZE" : "DOWNLOADING");
+    } else if (job.active || job.resumable) html += progress(job, job.kind === "plan" ? "CHECKING THE SIZE" : job.paused ? "PAUSED" : "DOWNLOADING");
     if (job.phase === "failed") html += `<p class="lib-note mp-err">${escapeHtml(job.error || "Something went wrong.")} Check the connection and try again.</p>`;
     html += `</div><p class="lib-note mp-lic">Map data © OpenStreetMap contributors (ODbL), from the Protomaps daily build.
       Elevation: Terrain Tiles (AWS open data: SRTM, GMTED, ETOPO and others).</p>`;
     box.innerHTML = html;
+    if (window.UmbraDownloads) UmbraDownloads.wire(box, async () => { await refreshStatus(); renderPanel(); pollJob(); });
     const sel = box.querySelector(".mp-country");
     if (chosen && chosen.i != null) sel.value = String(chosen.i);
     sel.addEventListener("change", () => {
@@ -1109,6 +1457,7 @@
       const r = await post("/api/maps/download", { plan: plan.id, zoom: pick.zoom, terrain: pick.terrain, essentials: pick.essentials });
       if (r.error) { Sound.error(); return; }
       status = r; Sound.click(); renderPanel(); pollJob();
+      if (window.UmbraDownloads) UmbraDownloads.refresh();
     });
     box.querySelectorAll(".mp-area").forEach((row) => row.addEventListener("click", (e) => {
       if (e.target.closest(".mp-del")) return;
@@ -1134,8 +1483,26 @@
       : job.total ? Math.min(100, Math.round((job.received / job.total) * 100)) : 0;
     const got = job.phase === "tiles" || job.phase === "points" ? ` · ${fmtBytes(job.received)} of ${fmtBytes(job.total)}`
       : job.phase === "scan" ? ` · ${fmtBytes(job.received)} read` : "";
-    return `<div class="lib-section mp-job"><div class="lib-head"><span><span class="spin" data-spin>✻</span> ${title}</span><b>${job.phase === "scan" ? "" : pct + "%"}</b></div>
-      <div class="dl-bar ${job.phase === "scan" ? "busy" : ""}"><i style="width:${job.phase === "scan" ? 100 : pct}%"></i></div><p class="lib-note">${escapeHtml(phase + got)}</p></div>`;
+    const dl = job.kind === "download" && window.UmbraDownloads;
+    return `<div class="lib-section mp-job"><div class="lib-head"><span>${job.paused ? "󰏤" : `<span class="spin" data-spin>✻</span>`} ${title}${job.plan && job.plan.name ? " · " + escapeHtml(job.plan.name.toUpperCase()) : ""}</span><b>${job.phase === "scan" ? "" : pct + "%"}</b></div>
+      <div class="dl-bar ${job.phase === "scan" ? "busy" : ""}"><i style="width:${job.phase === "scan" ? 100 : pct}%"></i></div><p class="lib-note">${escapeHtml(job.paused ? "Paused: what's downloaded is kept." : phase + got)}</p>
+      ${dl ? `<div class="dl-controls">${UmbraDownloads.controls("maps", { paused: !!job.paused })}</div>${UmbraDownloads.note("the map")}` : ""}</div>`;
+  }
+  // With only the built-in world, the download button pulses; the first
+  // time the map opens, a note points at it.
+  function firstHint() {
+    const el = $("#maps"), none = !!status && !status.areas.length && !(status.job && status.job.active);
+    el.querySelector(".mp-dot").hidden = !none;
+    const note = el.querySelector(".mp-first");
+    let seen = true;
+    try { seen = !!localStorage.getItem("umbra-maps-hint"); } catch {}
+    if (!none || seen) { note.hidden = true; return; }
+    const b = el.querySelector(".mp-dl-btn").getBoundingClientRect(), body = el.querySelector(".mp-body").getBoundingClientRect();
+    note.style.setProperty("--arrow", Math.max(10, body.right - 16 - (b.left + b.width / 2) - 6) + "px");
+    note.hidden = false;
+    const done = () => { note.hidden = true; try { localStorage.setItem("umbra-maps-hint", "1"); } catch {} };
+    note.querySelector(".mp-first-x").onclick = () => { done(); Sound.click(); };
+    note.querySelector(".mp-first-go").onclick = () => { done(); if (panel !== "packs") togglePanel("packs"); };
   }
   function pollJob() {
     clearTimeout(jobTimer);
@@ -1145,7 +1512,8 @@
       if (panel === "packs") renderPanel();
       if (status.job.active) pollJob();
       else if (was === "download" && status.job.phase === "done") {
-        Sound.found();
+        // The chime and the note come from the downloads button.
+        if (window.UmbraDownloads) UmbraDownloads.refresh(); else Sound.found();
         chosen = null; chosenBox = null;
         restyle(true);
         if (window.UmbraAchievements) UmbraAchievements.check();
@@ -1158,6 +1526,7 @@
       const before = status ? status.areas.map((a) => a.id).join() : null;
       status = await (await fetch("/api/maps")).json();
       if (before !== null && before !== status.areas.map((a) => a.id).join()) restyle(true);
+      if (!$("#maps").hidden) $("#maps .mp-dot").hidden = !!status.areas.length || !!(status.job && status.job.active);
     } catch {}
   }
 
@@ -1172,24 +1541,28 @@
     restyle();
     if (click) Sound.theme();
   }
-  function save() { try { localStorage.setItem("umbra-maps", JSON.stringify({ style, showGrid, view })); } catch {} }
+  function save() { try { localStorage.setItem("umbra-maps", JSON.stringify({ style, showGrid, showSafety, view })); } catch {} }
   function restore() {
     try {
       const s = JSON.parse(localStorage.getItem("umbra-maps") || "{}");
       if (s.style) style = s.style;
       if (typeof s.showGrid === "boolean") showGrid = s.showGrid;
+      if (typeof s.showSafety === "boolean") showSafety = s.showSafety;
       if (s.view && isFinite(s.view.z)) view = s.view;
     } catch {}
   }
 
-  async function toggle(show = $("#maps").hidden) {
+  async function toggle(show = $("#maps").hidden, quiet = false) {
     if (show && locked) return;
     const el = $("#maps");
     if (!show) {
+      if (el.hidden) return;
       if (fullOn) fullscreen();
-      el.hidden = true; $("#maps-btn").classList.remove("on"); save(); Sound.click();
+      el.hidden = true; $("#maps-btn").classList.remove("on"); save();
+      if (!quiet) Sound.click();
       document.body.classList.remove("maps-open");
       startRain();
+      if (!quiet && typeof goBack === "function") goBack();
       return;
     }
     if (window.closeSettings) window.closeSettings();
@@ -1206,6 +1579,8 @@
     stopRain();
     startWorkers();
     el.querySelector(".mp-t[data-t=grid]").classList.toggle("on", showGrid);
+    el.querySelector(".mp-t[data-t=safety]").classList.toggle("on", showSafety);
+    loadAtlas().then(showLegend);
     await refreshStatus();
     setStyle(style);
     resize();
@@ -1213,6 +1588,7 @@
     try { waypoints = await (await fetch("/api/waypoints")).json(); } catch {}
     if (!countries.length) try { countries = await (await fetch("/api/maps/countries")).json(); } catch {}
     if (status && status.job && status.job.active) pollJob();
+    firstHint();
     frame();
     setTimeout(() => el.querySelector(".mp-search input").focus(), 50);
   }
@@ -1235,7 +1611,9 @@
     const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
     if (e.key === "Escape") {
       e.stopImmediatePropagation();
-      if (!$("#maps .mp-card").hidden && !tool) { $("#maps .mp-card").hidden = true; target = null; frame(); }
+      if (!$("#maps .mp-first").hidden) { $("#maps .mp-first-x").click(); }
+      else if (!$("#maps .mp-cfile").hidden) closeCountry();
+      else if (!$("#maps .mp-card").hidden && !tool) { $("#maps .mp-card").hidden = true; target = null; frame(); }
       else if (tool) { measure = []; setTool(tool); }
       else if (panel) togglePanel(panel);
       else if (fullOn) fullscreen();
@@ -1258,14 +1636,14 @@
     } else return;
     e.preventDefault();
   }, true);
-  new MutationObserver(() => { if (document.body.classList.contains("locked") && !$("#maps").hidden) toggle(false); })
+  new MutationObserver(() => { if (document.body.classList.contains("locked") && !$("#maps").hidden) toggle(false, true); })
     .observe(document.body, { attributes: true, attributeFilter: ["class"] });
   // The tactical style follows the theme.
   new MutationObserver(() => { if (!$("#maps").hidden && style === "tactical") { sprites.clear(); restyle(); } })
     .observe(document.documentElement, { attributes: true, attributeFilter: ["style", "class", "data-theme"] });
 
   window.toggleMaps = toggle;
-  window.closeMaps = () => { if (!$("#maps").hidden) toggle(false); };
+  window.closeMaps = () => { if (!$("#maps").hidden) toggle(false, true); };
   window.UmbraMaps = { toMGRS, fromMGRS, parseCoords, search: (q) => search(q), get view() { return view; },
-                       go: (lat, lon, z) => flyTo(lat, lon, z), stats: () => ({ cache: cache.size, queued: queued.size, running: running.size }) };
+                       go: (lat, lon, z) => flyTo(lat, lon, z), country: (c) => openCountry(c), countryAt, get atlas() { return atlas; }, stats: () => ({ cache: cache.size, queued: queued.size, running: running.size }) };
 })();

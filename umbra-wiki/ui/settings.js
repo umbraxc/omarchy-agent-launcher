@@ -94,6 +94,7 @@
     PERFORMANCE: "cpu processor performance speed fast slow hot fan heat temperature memory ram cores threads limit battery graph",
     SOUND: "audio volume speaker speakers headphones mute quiet loud output input microphone mic beep",
     "HEADER BUTTONS": "hide show icons toolbar top buttons header",
+    "MAPS & PLACES": "maps map downloaded areas countries waypoints places delete remove space disk",
     MOTION: "animation animations background rain transition boot intro outro reduce motion effects",
     CONVERSATION: "chat text size font bigger smaller greeting suggestions replies alert close exit",
     POWER: "battery off-grid offgrid power saver laptop unplugged",
@@ -103,7 +104,7 @@
     VOICE: "voice speech dictation talk microphone f9 voxtype",
     STORAGE: "folders files location library history path disk",
     "WELCOME TOUR": "tour tutorial intro help onboarding",
-    UPDATES: "update updates version upgrade release new check",
+    UPDATES: "update updates version upgrade release new check changelog what's whats news patch notes",
     "DANGER ZONE": "reset uninstall delete remove wipe erase",
   };
   const search = $("#set-q");
@@ -136,6 +137,7 @@
       sec.classList.toggle("sr-hide", hits === 0);
       shown += hits;
     });
+    body.querySelectorAll(".set-cat").forEach((c) => c.classList.toggle("sr-hide", !!words.length && !c.querySelector(".set-section:not(.sr-hide)")));
     if (highlight && words.length) markWords(words);
     const count = $(".set-search-count");
     count.textContent = words.length ? (shown ? `${shown} ${shown === 1 ? "MATCH" : "MATCHES"}` : "") : "";
@@ -181,6 +183,96 @@
     }
   });
   window.focusSettingsSearch = () => { search.focus(); search.select(); };
+
+  // ------------------------------------------------------- categories
+
+  // The sections are grouped in six categories, each with its own quiet
+  // colour, a header stripe and a chip under the search box to jump there.
+  const CATS = [
+    { id: "look", name: "LOOK & FEEL", icon: "󰏘", color: "#b48ae6", line: "Motion, buttons, conversation, text size",
+      sections: ["MOTION", "HEADER BUTTONS", "CONVERSATION"] },
+    { id: "sound", name: "SOUND & VOICE", icon: "󰕾", color: "#5fb8c9", line: "Effects, volume, speakers, microphone, dictation",
+      sections: ["SOUND", "VOICE"] },
+    { id: "ai", name: "AI & PERFORMANCE", icon: "󰘚", color: "#e68e0d", line: "The model, the processor, battery",
+      sections: ["PERFORMANCE", "AI MODEL", "POWER"] },
+    { id: "data", name: "YOUR DATA", icon: "󰆼", color: "#6fbf5a", line: "Backups, maps and places, where things are kept",
+      sections: ["BACKUP", "MAPS & PLACES", "STORAGE"] },
+    { id: "help", name: "HELP & UPDATES", icon: "󰘥", color: "#e8c547", line: "Shortcuts, the tour, what's new, updates",
+      sections: ["KEYBOARD", "WELCOME TOUR", "UPDATES"] },
+    { id: "danger", name: "DANGER ZONE", icon: "󰀩", color: "var(--red)", line: "Reset or uninstall",
+      sections: ["DANGER ZONE"] },
+  ];
+  const titleOf = (sec) => { const h = sec.querySelector(".lib-head"); return h ? (h.querySelector("span") || h).textContent.trim() : ""; };
+  function arrange() {
+    const secs = [...body.querySelectorAll(".set-section")];
+    const about = body.querySelector(".set-about");
+    for (const c of CATS) {
+      const box = document.createElement("div");
+      box.className = "set-cat";
+      box.dataset.cat = c.id;
+      box.style.setProperty("--cat", c.color);
+      box.innerHTML = `<div class="set-cat-head"><span class="g">${c.icon}</span><b>${c.name}</b><small>${c.line}</small></div>`;
+      for (const name of c.sections) { const sec = secs.find((x) => titleOf(x) === name); if (sec) box.appendChild(sec); }
+      body.insertBefore(box, about);
+    }
+    // Anything not listed stays visible, at the end of "your data".
+    secs.filter((x) => !x.closest(".set-cat")).forEach((x) => body.querySelector('.set-cat[data-cat="data"]').appendChild(x));
+    const chips = $("#set-chips");
+    chips.innerHTML = CATS.map((c) => `<button class="set-chip" data-cat="${c.id}" style="--cat:${c.color}" title="${c.name.charAt(0) + c.name.slice(1).toLowerCase()}|${c.line}"><span class="g">${c.icon}</span>${c.name}</button>`).join("");
+    chips.querySelectorAll(".set-chip").forEach((b) => b.addEventListener("click", () => {
+      if (query) { search.value = query = ""; applySearch(); }
+      const cat = body.querySelector(`.set-cat[data-cat="${b.dataset.cat}"]`);
+      body.scrollTo({ top: cat.offsetTop - body.offsetTop - 4, behavior: document.body.classList.contains("reduce-motion") ? "auto" : "smooth" });
+      Sound.click();
+    }));
+    chips.querySelectorAll(".set-chip").forEach((b) => b.addEventListener("mouseenter", Sound.hover));
+    markChip();
+  }
+  // The chip of the category in view is lit.
+  function markChip() {
+    const cats = [...body.querySelectorAll(".set-cat:not(.sr-hide)")];
+    const top = body.scrollTop + 40;
+    let cur = cats[0];
+    for (const c of cats) if (c.offsetTop - body.offsetTop <= top) cur = c;
+    if (body.scrollTop + body.clientHeight >= body.scrollHeight - 4) cur = cats[cats.length - 1];
+    $("#set-chips").querySelectorAll(".set-chip").forEach((b) => b.classList.toggle("on", !!cur && b.dataset.cat === cur.dataset.cat));
+  }
+  body.addEventListener("scroll", markChip, { passive: true });
+
+  // Downloaded map areas and saved waypoints, each removable.
+  async function fillPlaces() {
+    const box = body.querySelector(".set-places-list");
+    if (!box) return;
+    const [maps, wps] = await Promise.all([
+      fetch("/api/maps").then((r) => r.json()).catch(() => ({ areas: [] })),
+      fetch("/api/waypoints").then((r) => r.json()).catch(() => []),
+    ]);
+    const size = maps.areas.reduce((n, a) => n + (a.bytes || 0), 0);
+    body.querySelector(".set-places-size").textContent = size ? fmtSize(size) : "";
+    box.innerHTML = `<div class="set-row"><span class="set-text"><b>World map</b><small>Built in: countries, big cities and coasts. Always there.</small></span><span class="set-tag">BUILT IN</span></div>` +
+      maps.areas.map((a) => `<div class="set-row"><span class="set-text"><b>${escapeHtml(a.name)}</b><small>Downloaded map · ${fmtSize(a.bytes || 0)}</small></span>
+        <button class="ghost set-map-del" data-id="${escapeHtml(a.id)}" data-name="${escapeHtml(a.name)}">REMOVE</button></div>`).join("") +
+      `<div class="set-row"><span class="set-text"><b>Waypoints</b><small>${wps.length ? `${wps.length} saved: ${escapeHtml(wps.slice(0, 6).map((w) => w.name).join(", "))}${wps.length > 6 ? "…" : ""}` : "None saved yet"}</small></span>
+        <span class="set-previews">${wps.length ? `<button class="ghost set-wp-open">MANAGE</button><button class="ghost set-wp-clear">REMOVE ALL</button>` : ""}</span></div>
+      <p class="lib-note">Maps are stored in <code>${escapeHtml(maps.dir || "")}</code>. They're yours only: an update or a new install never ships them.</p>`;
+    box.querySelectorAll(".set-map-del").forEach((b) => b.addEventListener("click", async () => {
+      const ok = await confirmDialog({ kind: "to-local", tag: "MAPS", title: `REMOVE ${b.dataset.name.toUpperCase()}?`, body: "The downloaded map is deleted from this computer. You can download it again any time.", ok: "REMOVE", cancel: "KEEP" });
+      if (!ok) return;
+      await fetch("/api/maps/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: b.dataset.id }) });
+      Sound.click(); fillPlaces();
+    }));
+    box.querySelector(".set-wp-open")?.addEventListener("click", () => {
+      open(false, true);
+      openedFrom(() => open(true));
+      if (window.toggleMaps) toggleMaps(true).then(() => $("#maps .mp-t[data-t=points]").click());
+    });
+    box.querySelector(".set-wp-clear")?.addEventListener("click", async () => {
+      const ok = await confirmDialog({ kind: "to-local", tag: "WAYPOINTS", title: "REMOVE EVERY WAYPOINT?", body: `All ${wps.length} waypoints are deleted. This can't be undone (unless they're in a backup).`, ok: "REMOVE ALL", cancel: "KEEP" });
+      if (!ok) return;
+      await fetch("/api/waypoints", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ waypoints: [] }) });
+      Sound.click(); fillPlaces();
+    });
+  }
 
   // ----------------------------------------------------------- panel
 
@@ -280,6 +372,9 @@
       <section class="set-section"><div class="lib-head">VOICE</div>
         <p class="lib-note set-voice"></p>
       </section>
+      <section class="set-section set-places"><div class="lib-head"><span>MAPS & PLACES</span><b class="set-places-size"></b></div>
+        <div class="set-places-list"><p class="lib-note">Reading…</p></div>
+      </section>
       <section class="set-section"><div class="lib-head">STORAGE</div>
         ${["library", "history", "config"].map((k) => `
           <div class="set-row"><span class="set-text"><b>${{ library: "Library", history: "History", config: "Settings and profile" }[k]}</b>
@@ -291,6 +386,8 @@
           <button class="ghost set-tour">REPLAY</button></div>
       </section>
       <section class="set-section set-updates"><div class="lib-head"><span>UPDATES</span><b class="set-version-now"></b></div>
+        <div class="set-row"><span class="set-text"><b>What's new</b><small>What this version brought, from the changelog</small></span>
+          <button class="ghost set-news">SHOW</button></div>
         <div class="set-row"><span class="set-text"><b>Check for updates</b><small class="set-update-note">Asks GitHub for the newest
           release. Only this check goes online, and nothing about you is sent.</small></span>
           <button class="ghost set-update">CHECK NOW</button></div>
@@ -327,6 +424,9 @@
         </div>
       </section>
       <p class="set-about">Umbra Wiki <span class="set-version"></span> · part of Omarchy Umbra · sounds by Kenney (CC0) · MIT license</p>`;
+    arrange();
+    fillPlaces();
+    body.querySelector(".set-news").addEventListener("click", () => window.UmbraNews && UmbraNews.show());
     fetch("/api/status").then((r) => r.json()).then((s) => {
       if (!s.version) return;
       body.querySelector(".set-version").textContent = s.version;
@@ -525,16 +625,20 @@
     select.value = select.dataset.current = models.current;
     const pull = models.pull || {};
     const installedIds = (models.installed || []).map((m) => m.id);
+    const busy = pull.active || pull.paused;
     pulls.innerHTML = (models.choices || []).filter((c) => !installedIds.includes(c.id)).map((c) => {
-      const active = pull.active && pull.model === c.id;
-      const pct = active && pull.total ? Math.round((pull.completed * 100) / pull.total) : 0;
+      const mine = busy && pull.model === c.id;
+      const pct = mine && pull.total ? Math.round((pull.completed * 100) / pull.total) : 0;
       return `<div class="set-row"><span class="set-text"><b>${escapeHtml(c.name)}</b><small>${c.size} GB · ${escapeHtml(c.line)}</small></span>
-        <button class="ghost set-pull" data-model="${escapeHtml(c.id)}" ${pull.active ? "disabled" : ""}>${active ? `↓ ${pct}%` : "DOWNLOAD"}</button></div>`;
+        <button class="ghost set-pull" data-model="${escapeHtml(c.id)}" ${busy ? "disabled" : ""}>${mine ? (pull.paused ? `PAUSED ${pct}%` : `↓ ${pct}%`) : "DOWNLOAD"}</button></div>
+        ${mine && window.UmbraDownloads ? `<div class="dl-controls">${UmbraDownloads.controls("model", { paused: !!pull.paused })}</div>${UmbraDownloads.note("the model")}` : ""}`;
     }).join("") + (pull.status === "failed" ? `<p class="lib-note">Download failed: ${escapeHtml(pull.error || "")}</p>` : "");
+    if (window.UmbraDownloads) UmbraDownloads.wire(pulls, refreshModels);
     pulls.querySelectorAll(".set-pull").forEach((b) => b.addEventListener("click", async () => {
       await fetch("/api/model/pull", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: b.dataset.model }) });
       Sound.click();
       refreshModels();
+      if (window.UmbraDownloads) UmbraDownloads.refresh();
     }));
     clearTimeout(pullTimer);
     if (pull.active) pullTimer = setTimeout(refreshModels, 2500);

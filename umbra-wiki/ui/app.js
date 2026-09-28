@@ -127,15 +127,18 @@ async function postSettings(update) {
 // Short bundled sounds (Kenney, CC0), played by the backend through PipeWire
 // so they work regardless of the web view's audio support.
 const Sound = (() => {
-  let muted = false;
+  let muted = false, last = 0;
   const play = (name) => {
+    last = performance.now();
     if (muted) return;
     fetch("/api/sound", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) })
       .catch(() => {});
   };
   const names = ["launch", "key", "hover", "click", "send", "searchstart", "found", "done",
-                 "lock", "unlock", "online", "local", "theme", "error", "beep", "boot", "glitch", "shutdown", "achieve"];
+                 "lock", "unlock", "online", "local", "theme", "error", "beep", "boot", "glitch", "shutdown", "achieve", "complete"];
   const api = { get muted() { return muted; }, set muted(v) { muted = v; if (v) api.hum(false); } };
+  // A click for controls that had no sound of their own just now.
+  api.tap = () => { if (performance.now() - last > 120) play("click"); };
   names.forEach((n) => (api[n] = () => play(n)));
   api.hover = () => { if ((!window.prefs || window.prefs.hoverSounds !== false) && !window.offgrid) play("hover"); };
   // The quiet background hum while Umbra searches and thinks.
@@ -146,6 +149,16 @@ const Sound = (() => {
   };
   return api;
 })();
+
+// Every button in the tools (maps, field kit, downloads, settings) answers
+// with a click, unless it just made a sound of its own or plays a tone
+// (Morse keys, the metronome's tap).
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("button, .mp-pt, label.mp-opt, .set-chip");
+  if (!b || b.disabled || !b.closest("#maps, #fieldkit, #dl-pop, #settings, .news, .dl-toast")) return;
+  if (b.closest("[data-quiet], .fk-chart, .fk-key, .fk-tap")) return;
+  setTimeout(Sound.tap, 30);
+});
 
 // Nerd Font icons are drawn wider than the space the font gives them, so on
 // their own (in a button) they sit a little right of centre. Each icon is
@@ -442,13 +455,15 @@ async function renderLibrary(fresh = false) {
   let html = `<p class="lib-note">Collections are stored in <code>${escapeHtml(lib.dir)}</code> and work fully offline.
     Downloads run in the background, are checked for damage, and join the library as soon as they finish.</p>`;
 
-  if (dl.library.active) {
-    html += `<div class="lib-section"><div class="lib-head"><span><span class="spin" data-spin>✻</span> DOWNLOADING</span><b>${dl.library.percent}%</b></div>
+  if (dl.library.active || dl.library.paused) {
+    const paused = !!dl.library.paused;
+    html += `<div class="lib-section"><div class="lib-head"><span>${paused ? "󰏤 PAUSED" : `<span class="spin" data-spin>✻</span> DOWNLOADING`}</span><b>${dl.library.percent}%</b></div>
       <div class="dl-bar"><i style="width:${dl.library.percent}%"></i></div>`;
     dl.library.items.forEach((x) => {
       const pct = x.size ? Math.round((x.done * 100) / x.size) : 0;
       html += `<div class="dl-row"><span>${x.installed ? "✓" : pct ? "↓" : "·"} ${escapeHtml(x.name)}</span><span>${x.installed ? "DONE" : pct + "%"}</span></div>`;
     });
+    if (window.UmbraDownloads) html += `<div class="dl-controls">${UmbraDownloads.controls("library", { paused })}</div>${UmbraDownloads.note("the library download")}`;
     html += `</div>`;
   }
 
@@ -502,6 +517,7 @@ async function renderLibrary(fresh = false) {
     b.addEventListener("mouseenter", Sound.hover);
     b.addEventListener("click", () => openManual(b.dataset.page));
   });
+  if (window.UmbraDownloads) UmbraDownloads.wire(body, () => renderLibrary());
   body.querySelector(".lib-manual-export")?.addEventListener("click", () => exportTo({ what: "manual" }, "the field manual"));
   body.querySelectorAll("[data-ids]").forEach((b) => b.addEventListener("click", async () => {
     b.disabled = true;
@@ -512,6 +528,7 @@ async function renderLibrary(fresh = false) {
       body: JSON.stringify({ ids: b.dataset.ids.split(" ") }),
     });
     renderLibrary();
+    if (window.UmbraDownloads) UmbraDownloads.refresh();
   }));
   // Keep the progress moving while the panel is open.
   clearTimeout(libraryTimer);
@@ -538,6 +555,8 @@ $("#library-close").addEventListener("click", () => toggleLibrary(false));
 // conversation on the start screen.
 function goHome() {
   if (locked || document.body.classList.contains("touring") || !window.newConversation) return;
+  backTo = null;
+  if (!$("#reader").hidden) { $("#reader").hidden = true; $("#reader-frame").src = "about:blank"; }
   if (window.closeSettings) window.closeSettings();
   if (window.closeLoadout) window.closeLoadout(true);
   if (window.closeMaps) window.closeMaps();
@@ -1279,6 +1298,18 @@ document.addEventListener("keydown", (e) => {
 
 // ---------------------------------------------------------------- markdown
 
+// Puts text on the clipboard (true when it worked).
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch {}
+  const t = document.createElement("textarea");
+  t.value = text; t.style.cssText = "position:fixed;opacity:0;left:-99px";
+  document.body.appendChild(t); t.select();
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch {}
+  t.remove();
+  return ok;
+}
+
 function escapeHtml(s) {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
@@ -1439,9 +1470,18 @@ let tipTimer = 0, tipFor = null;
 function tipify(el) {
   if (el.tagName === "IFRAME" || !el.hasAttribute("title")) return;
   el.dataset.tip = el.getAttribute("title");
-  if (!el.hasAttribute("aria-label")) el.setAttribute("aria-label", el.dataset.tip);
+  if (!el.hasAttribute("aria-label")) el.setAttribute("aria-label", el.dataset.tip.replace("|", ": "));
   el.removeAttribute("title");
-  if (el === tipFor && !tip.hidden) tip.textContent = el.dataset.tip;
+  if (el === tipFor && !tip.hidden) setTip(el.dataset.tip);
+}
+// "Name|explanation" shows the name, then a line explaining it.
+function setTip(text) {
+  const [name, more] = text.split("|");
+  tip.classList.toggle("rich", !!more);
+  if (!more) { tip.textContent = text; return; }
+  tip.innerHTML = "<b></b><span></span>";
+  tip.firstChild.textContent = name;
+  tip.lastChild.textContent = more;
 }
 document.querySelectorAll("[title]").forEach(tipify);
 new MutationObserver((changes) => changes.forEach((c) => {
@@ -1462,7 +1502,7 @@ document.addEventListener("mouseover", (e) => {
   tipFor = el;
   tipTimer = setTimeout(() => {
     if (!el.isConnected || !el.dataset.tip) return;
-    tip.textContent = el.dataset.tip;
+    setTip(el.dataset.tip);
     tip.hidden = false;
     const r = el.getBoundingClientRect();
     const w = tip.offsetWidth, h = tip.offsetHeight;
@@ -1970,8 +2010,16 @@ function openReader(s) {
   $("#reader-frame").src = s.url;
   $("#reader").hidden = false;
 }
+// Going back: a panel opened from another one (a manual page from the Field
+// Kit, the map from Settings) returns there when it's closed with Esc or ✕.
+let backTo = null;
+function openedFrom(fn) { backTo = fn; }
+function goBack() { const fn = backTo; backTo = null; if (fn) setTimeout(fn, 0); }
+
 function closeReader() {
+  if ($("#reader").hidden) return;
   $("#reader").hidden = true;
+  goBack();
   $("#reader-frame").src = "about:blank";
   input.focus();
 }
@@ -2162,9 +2210,10 @@ input.addEventListener("input", () => { autosize(); Undo.snap(true); });
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape" || !$("#modal").hidden) return;
-  if (!$("#themes").hidden) toggleThemes(false);
+  // The one on top closes first: the reader opens over the library.
+  if (!$("#reader").hidden) closeReader();
+  else if (!$("#themes").hidden) toggleThemes(false);
   else if (!$("#library").hidden) toggleLibrary(false);
-  else if (!$("#reader").hidden) closeReader();
   else if (controller) { controller.abort(); if (window.track) track("stops"); }
 });
 

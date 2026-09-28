@@ -154,14 +154,30 @@ slid and scaled.
   small on disk. A city takes a few megabytes; the Netherlands with every
   street is about 0.8 GB.
 - **Search** towns, streets, water and places across every downloaded map,
-  nearest first (try "drinking water"), or type coordinates
-  (`52.09, 5.12`, `52°5'26"N 5°7'17"E`) or an MGRS reference
-  (`31U FT 45332 73249`).
+  nearest first (try "drinking water"), or type coordinates the way the map
+  shows them (`52.0907° N 5.1214° E`, `N52.09 E5.12`, `52.09, 5.12`,
+  `52°5'26"N 5°7'17"E`) or an MGRS reference (`31U FT 45332 73249`). Every
+  place card has a **COPY** button for its coordinates.
+- **Country files:** every country's name can be clicked. The camera centres
+  on it, its outline lights up and a dark data window glitches in, tied to
+  the country by a pointed line: the flag, an ASCII drawing of the country,
+  the capital and main cities with coordinates and MGRS, languages,
+  population, currency, time zone, climate, terrain, resources, hazards,
+  neighbours, drinking water and doctors (from the CIA World Factbook).
+- **Safety levels of your own:** mark countries safe, caution, avoid or
+  danger in their file, and the map colours them at every zoom, with a key
+  (the shield button turns the layer on and off).
+- **Pause and resume** a download any time, even across a restart; it goes
+  on from where it stopped. Downloaded areas and waypoints are listed (in the
+  map and in Settings → Your data) and removable one by one.
 - A lat/long grid, the **MGRS grid zones**, a live readout in degrees and
   MGRS, a scale bar and compass; **waypoints** with notes, **distance
   measuring**, **ASK UMBRA** about a place, and **full screen** (F).
 
-A small world map is built in, so the tab works before any download.
+A small world map is built in, so the tab works before any download. Maps
+you download are yours only: they're stored in your own data folder and
+never part of an update or of someone else's install. Every button has a
+tooltip that says what it does.
 
 ![Maps, topographic style with relief and contours](docs/maps-topo.png)
 ![Maps, tactical style](docs/maps-tactical.png)
@@ -223,7 +239,11 @@ transition styles to choose from, with previews in Settings.
 
 ### Settings for how you use it
 
-A **search box** at the top finds any setting as you type (Ctrl+F while
+Settings are grouped in six categories, each with its own colour and a chip
+under the search box to jump there: **Look & feel**, **Sound & voice**, **AI &
+performance**, **Your data** (backups, downloaded maps and waypoints, where
+things are kept), **Help & updates** (shortcuts, the tour, what's new,
+updates) and the **Danger zone**. A **search box** at the top finds any setting as you type (Ctrl+F while
 Settings is open), and points you to the right panel for things that live
 elsewhere, like themes or your profile.
 
@@ -432,6 +452,14 @@ Umbra Wiki speaks and understands English.
 ---
 
 ## Update, reset, uninstall
+
+- **Downloads** (map areas, library collections, the AI model) show in a
+  button at the top while they run: pause, resume or cancel each from there,
+  or where you started it. They keep going in the background, carry on after
+  a restart, and end with a chime and a note.
+- **What's new**: the first time Umbra starts after an update, once it has
+  booted and you've unlocked it, a short note shows what the update brought
+  (once per version; again any time from Settings → Help & updates).
 
 - **Check for updates**: Settings → Updates shows your version and asks
   GitHub for the newest release when you press CHECK NOW (the only time it

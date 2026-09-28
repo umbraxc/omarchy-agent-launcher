@@ -13,7 +13,7 @@ under which terms.
 | Field notes (`umbra-wiki/facts.json`) | umbraxc | MIT |
 | Sounds: interface, sci-fi and UI audio packs (`umbra-wiki/sounds/`) | [Kenney](https://kenney.nl) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) (public domain); see `sounds/LICENSE-kenney.txt` |
 | `boot.ogg`, `shutdown.ogg` | umbraxc, mixed from the Kenney sounds above | CC0 1.0 |
-| `beep.ogg`, `glitch.ogg`, `achieve.ogg` | umbraxc, synthesized | CC0 1.0 |
+| `beep.ogg`, `glitch.ogg`, `achieve.ogg`, `complete.ogg` | umbraxc, synthesized | CC0 1.0 |
 
 ## Offline library (downloaded on request, not included)
 
@@ -43,7 +43,9 @@ before you redistribute anything.
 |---|---|---|
 | Map data (the built-in world map, and areas downloaded on request) | © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, as vector tiles from the [Protomaps](https://protomaps.com) daily build | [ODbL 1.0](https://opendatacommons.org/licenses/odbl/); Protomaps basemap BSD / ODbL |
 | Elevation, for relief and contour lines (downloaded on request) | [Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) on AWS Open Data (Mapzen): SRTM, GMTED2010, ETOPO1, NED and other public sources | see the dataset's [attribution](https://github.com/tilezen/joerd/blob/master/docs/attribution.md) |
-| Country outlines for choosing an area (`umbra-wiki/maps/countries.json`) | [Natural Earth](https://www.naturalearthdata.com) | public domain |
+| Country outlines for choosing an area (`umbra-wiki/maps/countries.json`), and the outlines, label points and main cities in the country files (`umbra-wiki/maps/atlas.json`) | [Natural Earth](https://www.naturalearthdata.com) (1:50m countries, populated places) | public domain |
+| Country facts in the country files (`umbra-wiki/maps/atlas.json`) | [The World Factbook](https://www.cia.gov/the-world-factbook/), Central Intelligence Agency, via the [factbook.json](https://github.com/factbook/factbook.json) project | public domain (US government work); factbook.json CC0 1.0 |
+| Flags (`umbra-wiki/ui/flags/`, rendered to small images) | [flag-icons](https://github.com/lipis/flag-icons) by Panayiotis Lipiridis | MIT |
 
 Umbra reads the tiles and draws the maps itself; the map styles, symbols and
 the drawing code are umbraxc's (MIT). Umbra shows the OpenStreetMap

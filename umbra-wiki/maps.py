@@ -25,6 +25,7 @@ import threading
 import time
 import unicodedata
 import urllib.request
+import zlib
 
 import pmtiles
 
@@ -103,6 +104,7 @@ CREATE TABLE IF NOT EXISTS points(z INTEGER, x INTEGER, y INTEGER, data BLOB, PR
 CREATE TABLE IF NOT EXISTS terrain(z INTEGER, x INTEGER, y INTEGER, data BLOB, PRIMARY KEY(z, x, y)) WITHOUT ROWID;
 CREATE TABLE IF NOT EXISTS places(name TEXT, key TEXT, kind TEXT, detail TEXT, lat REAL, lon REAL, rank INTEGER, ctx TEXT);
 CREATE INDEX IF NOT EXISTS places_key ON places(key);
+CREATE TABLE IF NOT EXISTS pending(key TEXT PRIMARY KEY, value BLOB);
 """
 
 # How important each kind of place is in search.
@@ -115,6 +117,29 @@ WATER_NAMES = {"drinking_water": "Drinking water", "water_point": "Water point",
                "water_well": "Water well"}
 
 
+class Stopped(Exception):
+    """A download was cancelled."""
+
+
+class Interrupted(Exception):
+    """Umbra is stopping: the download goes on at the next start."""
+
+
+# Set when the backend stops, so paused or running downloads let it go.
+SHUTDOWN = threading.Event()
+
+
+def hold(job):
+    """Waits while a download is paused; stops it when it's cancelled or
+    when Umbra stops."""
+    while job.get("paused") and not job.get("cancel") and not SHUTDOWN.is_set():
+        time.sleep(0.4)
+    if SHUTDOWN.is_set():
+        raise Interrupted()
+    if job.get("cancel"):
+        raise Stopped()
+
+
 class Maps:
     def __init__(self, data_dir, app_dir):
         self.dir = os.path.join(data_dir, "maps")
@@ -125,6 +150,8 @@ class Maps:
         self.lock = threading.Lock()
         self._areas = None
         self._local = threading.local()
+        self.pending_file = os.path.join(self.dir, "pending.json")
+        self.on_done = None
 
     # ------------------------------------------------------------ areas
 
@@ -263,11 +290,13 @@ class Maps:
 
     # ------------------------------------------------------------- jobs
 
-    def _start(self, kind, target, *args):
+    def _start(self, kind, target, *args, keep_plan=None):
         with self.lock:
             if self.job.get("active"):
                 raise ValueError("a map job is already running")
-            keep = self.job.get("plan") if kind == "download" else None
+            if kind == "plan" and self.job.get("resumable"):
+                raise ValueError("finish or cancel the paused map download first")
+            keep = keep_plan or (self.job.get("plan") if kind == "download" else None)
             self.job = {"active": True, "kind": kind, "phase": "start", "received": 0, "total": 0,
                         "done": 0, "count": 0, "error": "", "started": int(time.time())}
             if keep:
@@ -278,11 +307,104 @@ class Maps:
     def _guard(self, target, *args):
         try:
             target(*args)
+        except Stopped:
+            self._forget(remove_part=True)
+            self.job["phase"] = "cancelled"
+        except Interrupted:
+            pass
         except Exception as e:   # shown in the Maps panel
             self.job["error"] = str(e)[:200]
             self.job["phase"] = "failed"
+            # A download that failed half-way can be tried again: it goes on
+            # from where it stopped.
+            if self.job.get("kind") == "download" and os.path.exists(self.pending_file):
+                self._mark(paused=True)
+                self.job.update(paused=True, resumable=True)
         finally:
             self.job["active"] = False
+
+    # ------------------------------------------ pause, resume, restarts
+
+    def _mark(self, **info):
+        try:
+            with open(self.pending_file, encoding="utf-8") as fh:
+                data = json.load(fh)
+        except (OSError, ValueError):
+            data = {}
+        data.update(info)
+        with open(self.pending_file, "w", encoding="utf-8") as fh:
+            json.dump(data, fh)
+
+    def _forget(self, remove_part=False):
+        try:
+            with open(self.pending_file, encoding="utf-8") as fh:
+                aid = json.load(fh).get("aid", "")
+        except (OSError, ValueError):
+            aid = ""
+        for path in ([self.pending_file] + ([os.path.join(self.dir, aid + ".mbtiles.part")] if remove_part and aid else [])):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+
+    def pause(self):
+        if self.job.get("kind") != "download" or not self.job.get("active"):
+            raise ValueError("no map download running")
+        self.job["paused"] = True
+        self._mark(paused=True, received=self.job.get("received", 0), total=self.job.get("total", 0))
+        return self.status()
+
+    def resume(self):
+        """Goes on with a paused download, or one interrupted by a restart."""
+        if self.job.get("active") and self.job.get("paused"):
+            self.job["paused"] = False
+            self._mark(paused=False)
+            return self.status()
+        if self.job.get("active"):
+            return self.status()
+        try:
+            with open(self.pending_file, encoding="utf-8") as fh:
+                pend = json.load(fh)
+            part = os.path.join(self.dir, pend["aid"] + ".mbtiles.part")
+            con = sqlite3.connect(part)
+            req = json.loads(zlib.decompress(con.execute("SELECT value FROM pending WHERE key='request'").fetchone()[0]))
+            con.close()
+        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error):
+            self._forget()
+            raise ValueError("nothing to resume")
+        self._mark(paused=False)
+        return self._start("download", self._download, req["plan"], req["maxzoom"], req["terrain"], req["essentials"],
+                           self.on_done, keep_plan={"name": req["plan"]["name"], "bbox": req["plan"]["bbox"]})
+
+    def cancel(self):
+        if self.job.get("active") and self.job.get("kind") == "download":
+            self.job["cancel"] = True
+        else:
+            self._forget(remove_part=True)
+            self.job = {"active": False, "phase": "cancelled"}
+        return self.status()
+
+    def restore(self, on_done=None):
+        """At start: a download that was going when Umbra stopped carries on;
+        a paused one waits for the resume button."""
+        self.on_done = on_done
+        try:
+            with open(self.pending_file, encoding="utf-8") as fh:
+                pend = json.load(fh)
+        except (OSError, ValueError):
+            return
+        if not os.path.exists(os.path.join(self.dir, pend.get("aid", "") + ".mbtiles.part")):
+            self._forget()
+            return
+        if pend.get("paused"):
+            self.job = {"active": False, "kind": "download", "phase": "paused", "paused": True, "resumable": True,
+                        "received": pend.get("received", 0), "total": pend.get("total", 0), "done": 0, "count": 0,
+                        "error": "", "plan": {"name": pend.get("name", "Map"), "bbox": pend.get("bbox")}}
+        else:
+            try:
+                self.resume()
+            except ValueError:
+                pass
 
     def _fetched(self, n):
         self.job["received"] += n
@@ -344,24 +466,45 @@ class Maps:
         if not plan["wanted"] or pmtiles.id_to_zxy(plan["wanted"][-1])[0] < maxzoom:
             raise ValueError("that level of detail is too big for this area")
         essentials = bool(essentials) and maxzoom < 15 and pmtiles.id_to_zxy(plan["wanted"][-1])[0] >= 15
-        return self._start("download", self._download, plan, maxzoom, terrain_zoom, essentials, on_done)
+        if self.job.get("resumable"):
+            raise ValueError("finish or cancel the paused map download first")
+        return self._start("download", self._download, plan, maxzoom, terrain_zoom, essentials, on_done or self.on_done)
 
     def _download(self, plan, maxzoom, terrain_zoom, essentials, on_done):
         os.makedirs(self.dir, exist_ok=True)
         aid = (re.sub(r"[^a-z0-9]+", "-", _norm(plan["name"])).strip("-")[:40] or "area") + f"-z{maxzoom}"
         path = os.path.join(self.dir, aid + ".mbtiles")
         part = path + ".part"
-        if os.path.exists(part):
+        # What's asked is kept in the unfinished file itself: after a pause or
+        # a restart the download goes on and fetches only what's missing.
+        try:
+            with open(self.pending_file, encoding="utf-8") as fh:
+                same = json.load(fh).get("aid") == aid
+        except (OSError, ValueError):
+            same = False
+        if os.path.exists(part) and not same:
             os.remove(part)
         con = sqlite3.connect(part)
         con.executescript(SCHEMA)
+        req = {"plan": {k: plan[k] for k in ("name", "bbox", "build", "wanted", "entries")}, "maxzoom": maxzoom,
+               "terrain": terrain_zoom, "essentials": essentials}
+        con.execute("INSERT OR REPLACE INTO pending VALUES ('request', ?)", (zlib.compress(json.dumps(req).encode(), 6),))
+        con.commit()
+        self._mark(aid=aid, name=plan["name"], bbox=plan["bbox"], paused=bool(self.job.get("paused")))
+        done = dict(con.execute("SELECT key, value FROM meta WHERE key LIKE 'done-%'").fetchall())
         build_zooms(con, plan, maxzoom, self.job)
-        if essentials:
+        if essentials and "done-points" not in done:
             build_zooms(con, plan, 15, self.job, only=15)
+            con.execute("INSERT OR REPLACE INTO meta VALUES ('done-points', '1')")
+            con.commit()
         if terrain_zoom:
             fetch_terrain(con, plan["bbox"], terrain_zoom, self.job)
+        hold(self.job)
         self.job.update(phase="index", done=0, count=con.execute("SELECT COUNT(*) FROM tiles").fetchone()[0])
+        con.execute("DELETE FROM places")
         index(con, maxzoom, self.job)
+        con.execute("DELETE FROM pending")
+        con.execute("DELETE FROM meta WHERE key LIKE 'done-%'")
         meta = {"name": plan["name"], "bbox": json.dumps(plan["bbox"]), "maxzoom": maxzoom, "terrain": terrain_zoom,
                 "points": int(essentials), "build": plan["build"], "created": int(time.time())}
         con.executemany("INSERT OR REPLACE INTO meta VALUES (?,?)", [(k, str(v)) for k, v in meta.items()])
@@ -372,6 +515,7 @@ class Maps:
         if path in conns:
             conns.pop(path).close()
         os.replace(part, path)
+        self._forget()
         self._areas = None
         self.job["phase"] = "done"
         self.job["area"] = aid
@@ -399,7 +543,9 @@ def build_zooms(con, plan, maxzoom, job, only=None):
         rows += [(*pmtiles.id_to_zxy(t), d) for t in wanted[lo:hi]]
     if not only:
         con.executemany("INSERT OR REPLACE INTO tiles VALUES (?,?,?,?)", rows)
-    spans = sorted((off, length, d) for off, (d, length) in contents.items())
+    have = set() if only else {r[0] for r in con.execute("SELECT d FROM blobs")}
+    spans = sorted((off, length, d) for off, (d, length) in contents.items() if d not in have)
+    already = sum(length for off, (d, length) in contents.items() if d in have)
     groups, cur = [], []
     for s in spans:
         if cur and (s[0] - (cur[-1][0] + cur[-1][1]) > 65536 or s[0] + s[1] - cur[0][0] > 4 << 20):
@@ -408,9 +554,11 @@ def build_zooms(con, plan, maxzoom, job, only=None):
         cur.append(s)
     if cur:
         groups.append(cur)
-    job.update(phase="points" if only else "tiles", total=sum(s[1] for s in spans), received=0, count=len(spans), done=0)
+    job.update(phase="points" if only else "tiles", total=sum(s[1] for s in spans) + already, received=already,
+               count=len(spans), done=0)
 
     def fetch(group):
+        hold(job)
         start, end = group[0][0], group[-1][0] + group[-1][1]
         for attempt in range(4):
             try:
@@ -434,6 +582,8 @@ def build_zooms(con, plan, maxzoom, job, only=None):
                         kept[d] = small
             else:
                 con.executemany("INSERT OR REPLACE INTO blobs VALUES (?,?)", result)
+                if job["done"] % 40 == 0:
+                    con.commit()
     if only:
         con.executemany("INSERT OR REPLACE INTO points VALUES (?,?,?,?)",
                         [(z, x, y, kept[d]) for z, x, y, d in rows if d in kept])
@@ -447,9 +597,12 @@ def fetch_terrain(con, bbox, terrain_zoom, job):
     for z in range(max(0, terrain_zoom - 3), terrain_zoom + 1):
         x0, y0, x1, y1 = tiles_in(bbox, z)
         todo += [(z, x, y) for x in range(x0, x1 + 1) for y in range(y0, y1 + 1)]
-    job.update(phase="terrain", total=len(todo), count=len(todo), done=0, received=0)
+    have = {tuple(r) for r in con.execute("SELECT z, x, y FROM terrain")}
+    todo = [t for t in todo if t not in have]
+    job.update(phase="terrain", total=len(todo) + len(have), count=len(todo) + len(have), done=len(have), received=0)
 
     def get(t):
+        hold(job)
         req = urllib.request.Request(TERRAIN.format(z=t[0], x=t[1], y=t[2]), headers=UA)
         for attempt in range(3):
             try:
@@ -464,6 +617,8 @@ def fetch_terrain(con, bbox, terrain_zoom, job):
                 con.execute("INSERT OR REPLACE INTO terrain VALUES (?,?,?,?)", (z, x, y, data))
                 job["received"] += len(data)
             job["done"] += 1
+            if job["done"] % 200 == 0:
+                con.commit()
     con.commit()
 
 

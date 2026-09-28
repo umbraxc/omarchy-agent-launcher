@@ -328,7 +328,9 @@
       await say(`**${model}** it is. I'm ready to think.`);
     } else {
       await post("/api/model/pull", { model });
-      await say(`Downloading **${model}** in the background. We can carry on meanwhile; you'll see the progress under **STATUS** at the top.`);
+      if (window.UmbraDownloads) UmbraDownloads.refresh();
+      await say(`Downloading **${model}** in the background. We can carry on meanwhile: the **downloads button** at the top shows the progress, ` +
+        "and pauses or resumes it any time. It goes on after a restart, and a chime tells you when it's done. Only the model is fetched; nothing of yours leaves this computer.");
     }
 
     // The library: packs of offline collections.
@@ -355,7 +357,9 @@
     if (chosen && chosen.missing.length) {
       await post("/api/library/download", { ids: chosen.missing });
       await say(`Downloading **${chosen.name}** (${fmtSize(chosen.missingSize)}) in the background. Depending on your connection this can take a while; ` +
-        "I'm usable right away, and each collection joins my library as soon as it arrives. Progress shows under **STATUS** and in the **Library**.");
+        "I'm usable right away, and each collection joins my library as soon as it arrives. Progress shows in the **downloads button** at the top and in the **Library**; " +
+        "you can pause it and pick it up later, even after a restart.");
+      if (window.UmbraDownloads) UmbraDownloads.refresh();
     } else if (chosen) {
       await say(`**${chosen.name}** is already on this computer. Well stocked.`);
     } else {
@@ -458,7 +462,9 @@
     skip.remove();
     document.querySelector(".spot-shade")?.remove();
     document.body.classList.remove("touring");
-    await postSettings({ onboarded: true });
+    // The tour covers what's new, so the "what's new" note waits for the next update.
+    const version = (await fetch("/api/whatsnew").then((r) => r.json()).catch(() => ({}))).version;
+    await postSettings({ onboarded: true, ...(version ? { seenVersion: version } : {}) });
     if (window.reloadPrefs) await window.reloadPrefs();
     if (window.prefs) window.prefs.onboarded = true;
     // From the tour to the home screen through an ASCII transition.

@@ -2,6 +2,25 @@
 
 ## 3.1.1
 
+- **Country files** on the map: click any country's name and a data window
+  glitches in, tied to it by a pointed line: flag, an ASCII drawing, capital
+  and main cities with coordinates and MGRS, languages, people, currency,
+  climate, terrain, resources, hazards, neighbours, water and doctors (CIA
+  World Factbook). Every country is named as you zoom in.
+- **Safety levels**: mark countries safe, caution, avoid or danger; the map
+  colours them at every zoom, with a key.
+- **Pause and resume downloads** (maps, library, AI model), even after a
+  restart, from a new downloads button at the top or where you started them;
+  a chime and a note when one finishes.
+- **What's new**: after an update, a note like this one, once.
+- **Settings in six coloured categories** with jump chips; downloaded maps
+  and waypoints are listed and removable in Your data.
+- **Esc goes back where you came from**: the signal lamp to Training, a
+  manual page opened from the Field Kit back to the Field Kit.
+- Maps: tooltips on every button, a nudge towards downloading a detailed
+  map, coordinate search in the forms the map shows, COPY on place cards,
+  remove single waypoints, clearer icons, sounds on every control.
+
 - **Maps** (Ctrl+G): OpenStreetMap, offline, from the whole world down to
   single streets, in a military Topographic style (relief shading and contour
   lines) and a dark Tactical one; smooth panning and zooming (tiles drawn in
