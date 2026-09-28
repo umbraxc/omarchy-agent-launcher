@@ -75,7 +75,7 @@ MODEL = os.environ.get("UMBRA_MODEL") or CONFIG.get("model") or "gemma3:4b"
 
 WIKI_API = "https://en.wikipedia.org/w/api.php"
 # Wikimedia asks API clients to name themselves with a contact URL.
-VERSION = "3.1.0"
+VERSION = "3.1.1"
 WEB_HEADERS = {"User-Agent": f"UmbraWiki/{VERSION} (https://github.com/umbraxc/omarchy-umbra; offline survival assistant)"}
 
 # Gemma reads context at ~25 tokens/s on this CPU, so the prompt budget is
@@ -171,6 +171,34 @@ def fetch(url, timeout=30, headers=None):
     req = urllib.request.Request(url, headers=headers or {})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read().decode("utf-8", "replace")
+
+
+# ------------------------------------------------------------------ updates
+
+RELEASES_API = "https://api.github.com/repos/umbraxc/omarchy-umbra/releases/latest"
+
+
+def install_kind():
+    """How this copy was installed, which decides how it's updated."""
+    if PACKAGED:
+        return "package"
+    return "omarchy" if "/omarchy/plugins/" in APP_DIR else "clone"
+
+
+def check_update():
+    """Only when asked (Settings → Check for updates): the newest release on
+    GitHub. Nothing about the user is sent; offline, it just says so."""
+    kind = install_kind()
+    try:
+        release = json.loads(fetch(RELEASES_API, timeout=8, headers={
+            "Accept": "application/vnd.github+json", "User-Agent": "umbra-wiki/" + VERSION}))
+    except Exception:
+        return {"current": VERSION, "kind": kind, "error": "offline"}
+    latest = str(release.get("tag_name", "")).lstrip("v")
+    as_tuple = lambda v: tuple(int(x) for x in re.findall(r"\d+", v)[:3])
+    return {"current": VERSION, "kind": kind, "latest": latest,
+            "newer": bool(latest) and as_tuple(latest) > as_tuple(VERSION),
+            "url": str(release.get("html_url", ""))[:200], "published": str(release.get("published_at", ""))[:10]}
 
 
 # ------------------------------------------------------------------ retrieval
@@ -776,12 +804,23 @@ def save_profile(p):
                     or len(picture) > 600_000):
         raise ValueError("bad picture")
     character = p.get("character") if isinstance(p.get("character"), dict) else {}
+    one_line = lambda key, n: re.sub(r"\s+", " ", str(p.get(key, "") or "")).strip()[:n]
+    known = {a["id"] for a in achievement_catalog()["achievements"]}
     clean = {
-        "name": re.sub(r"\s+", " ", str(p.get("name", ""))).strip()[:32],
+        "name": one_line("name", 32),
+        "callsign": one_line("callsign", 24),
         "about": str(p.get("about", "")).strip()[:500],
+        "location": one_line("location", 80),
+        "units": p.get("units") if p.get("units") in ("metric", "imperial") else "",
+        "experience": p.get("experience") if p.get("experience") in ("new", "some", "experienced") else "",
+        "household": one_line("household", 160),
+        "health": str(p.get("health", "") or "").strip()[:300],
+        "color": p.get("color") if p.get("color") in ("signal", "accent", "net", "red", "fg-bright") else "",
+        "badges": [b for b in (p.get("badges") or [])[:5] if isinstance(b, str) and b in known],
         "character": {k: max(0, min(40, int(v))) for k, v in character.items()
                       if re.fullmatch(r"[a-z]{1,12}", str(k)) and str(v).isdigit()},
         "picture": picture,
+        "since": p.get("since") if isinstance(p.get("since"), int) else get_profile().get("since") or int(time.time() * 1000),
     }
     write_json(PROFILE_FILE, clean)
     return clean
@@ -794,7 +833,241 @@ def profile_prompt():
         lines.append(f"The user's name is {p['name']}; address them by name now and then, naturally.")
     if p.get("about"):
         lines.append(f"What the user says about themselves: {p['about']}")
+    if p.get("location"):
+        lines.append(f"Where the user lives (climate and region matter for advice): {p['location']}.")
+    if p.get("units") == "imperial":
+        lines.append("Give measurements in US units (°F, miles, feet, pounds, gallons), with metric in brackets where useful.")
+    elif p.get("units") == "metric":
+        lines.append("Give measurements in metric units (°C, km, metres, kg, litres).")
+    if p.get("experience") == "new":
+        lines.append("The user is new to survival and preparedness: explain terms and basics simply, step by step.")
+    elif p.get("experience") == "experienced":
+        lines.append("The user is experienced: skip the basics and be concise and technical.")
+    if p.get("household"):
+        lines.append(f"The user's household: {p['household']}. Plan for them too where it matters.")
+    if p.get("health"):
+        lines.append(f"Health notes the user shared, to keep in mind for medical and food advice: {p['health']}")
     return " ".join(lines)
+
+
+# ------------------------------------------------------------- achievements
+
+# Achievements: progress is counted as Umbra is used; once earned, an
+# achievement is kept for good (deleting conversations doesn't take it away),
+# is included in backups, and shows on the profile. Only Reset and Uninstall
+# remove them. The catalog is achievements.json next to this file.
+ACH_FILE = os.path.join(DATA_DIR, "achievements.json")
+ACH_LOCK = threading.Lock()
+_catalog = None
+TOPICS = {
+    "water": r"water|purif|filter|boil|dehydrat|well\b|thirst",
+    "fire": r"fire|flame|tinder|kindling|ember|lighter|spark|matches",
+    "shelter": r"shelter|tent|tarp|lean-to|insulat|hut\b|bivouac|sleeping bag",
+    "medical": r"bleed|wound|burn|cpr|fractur|first aid|infect|bandage|tourniquet|fever|poison|sprain|hypotherm|"
+               r"heat ?stroke|medic|injur|pain|allerg|choking|snake ?bite|sting|diarrh",
+    "food": r"food|cook|forag|edible|preserv|canning|ferment|garden|plant|hunt|fish|trap|ration|meal|mushroom|berr",
+    "navigation": r"navigat|compass|\bmap|north|lost\b|direction|gps|landmark|orient",
+    "power": r"power|solar|batter|generator|electric|charg|grid|volt|inverter",
+    "comms": r"radio|ham\b|signal|morse|frequen|antenna|communicat|walkie|sos\b|whistle|mirror",
+    "repair": r"repair|fix|broken|tool|engine|patch|sew|mend|leak",
+    "weather": r"storm|flood|hurricane|tornado|earthquake|wildfire|blizzard|snow|winter|heat ?wave|drought|lightning|evacuat",
+}
+
+
+def achievement_catalog():
+    global _catalog
+    if _catalog is None:
+        try:
+            _catalog = json.load(open(os.path.join(APP_DIR, "achievements.json")))
+        except (OSError, ValueError):
+            _catalog = {"achievements": [], "categories": [], "tiers": {}, "ranks": [[0, "Recruit"]]}
+    return _catalog
+
+
+def _ach_state():
+    if not os.path.exists(ACH_FILE):
+        return _ach_backfill()
+    st = read_json(ACH_FILE, {})
+    st.setdefault("earned", {})
+    st.setdefault("unseen", [])
+    st.setdefault("counts", {})
+    st.setdefault("topics", {})
+    st.setdefault("sets", {})
+    st.setdefault("days", [])
+    return st
+
+
+def _ach_backfill():
+    """The first time (e.g. right after updating): count the questions,
+    topics, longest conversation and days already in the saved history, so
+    earlier use counts. What that unlocks is awarded quietly, without pop-ups."""
+    st = {"earned": {}, "unseen": [], "counts": {}, "topics": {}, "sets": {}, "days": []}
+    counts = st["counts"]
+    for item in history_list()["items"]:
+        conv = read_json(history_path(item["id"]), {})
+        messages = conv.get("messages") or []
+        counts["questions"] = counts.get("questions", 0) + len(messages)
+        counts["longestConversation"] = max(counts.get("longestConversation", 0), len(messages))
+        counts["onlineQuestions"] = counts.get("onlineQuestions", 0) + sum(1 for m in messages if m.get("online"))
+        for m in messages:
+            text = str(m.get("question", "")).lower()
+            for topic, pattern in TOPICS.items():
+                if re.search(pattern, text):
+                    st["topics"][topic] = st["topics"].get(topic, 0) + 1
+        for stamp in (conv.get("created"), conv.get("updated")):
+            if isinstance(stamp, (int, float)) and stamp > 0:
+                day = time.strftime("%Y-%m-%d", time.localtime(stamp / 1000))
+                if day not in st["days"]:
+                    st["days"].append(day)
+    st["days"] = sorted(st["days"])[-400:]
+    # What the settings show was already done: the tour, the current look and loadout.
+    settings = read_json(SETTINGS_FILE, {})
+    if settings.get("onboarded"):
+        counts["tour"] = 1
+    for key, stat in (("theme", "themes"), ("background", "backgrounds"),
+                      ("personality", "personalities"), ("scenario", "scenarios")):
+        if isinstance(settings.get(key), str) and settings[key]:
+            st["sets"][stat] = [settings[key][:60]]
+    _award(st)
+    st["unseen"] = []
+    write_json(ACH_FILE, st)
+    return st
+
+
+def _streak(days):
+    """The longest run of consecutive days in a list of YYYY-MM-DD dates."""
+    import datetime
+    dates = sorted({datetime.date.fromisoformat(d) for d in days if re.fullmatch(r"\d{4}-\d{2}-\d{2}", d)})
+    best = run = 0
+    prev = None
+    for d in dates:
+        run = run + 1 if prev and (d - prev).days == 1 else 1
+        best = max(best, run)
+        prev = d
+    return best
+
+
+def _stat(st, stat):
+    counts, sets = st["counts"], st["sets"]
+    if stat.startswith("topic:"):
+        return st["topics"].get(stat[6:], 0)
+    if stat == "topicsCovered":
+        return sum(1 for t in TOPICS if st["topics"].get(t))
+    if stat == "streak":
+        return max(_streak(st["days"]), counts.get("bestStreak", 0))
+    if stat in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations"):
+        return len(sets.get(stat, []))
+    if stat == "profileName":
+        return 1 if get_profile().get("name") else 0
+    if stat == "profilePicture":
+        return 1 if get_profile().get("picture") else 0
+    if stat == "profileDetails":
+        p = get_profile()
+        return 1 if p.get("location") and p.get("units") and p.get("experience") else 0
+    if stat == "password":
+        return 1 if read_json(LOCK_FILE, {}).get("hash") else counts.get("password", 0)
+    if stat == "collections":
+        return len(glob.glob(os.path.join(LIBRARY_DIR, "*.zim")))
+    if stat == "allOthers":
+        return sum(1 for a in achievement_catalog()["achievements"] if a["stat"] != "allOthers" and a["id"] in st["earned"])
+    return counts.get(stat, 0)
+
+
+def _award(st):
+    """Earn everything whose goal is reached; the legend is checked last."""
+    now, changed = int(time.time() * 1000), False
+    items = achievement_catalog()["achievements"]
+    for a in sorted(items, key=lambda a: a["stat"] == "allOthers"):
+        if a["id"] not in st["earned"] and _stat(st, a["stat"]) >= a["goal"]:
+            st["earned"][a["id"]] = now
+            st["unseen"].append(a["id"])
+            changed = True
+    return changed
+
+
+def record(event, value=None, **info):
+    """Count something the user did and award what it unlocks."""
+    with ACH_LOCK:
+        st = _ach_state()
+        counts, sets = st["counts"], st["sets"]
+        today = time.strftime("%Y-%m-%d")
+        if today not in st["days"]:
+            st["days"] = (st["days"] + [today])[-400:]
+            counts["bestStreak"] = max(counts.get("bestStreak", 0), _streak(st["days"]))
+        if event == "question":
+            counts["questions"] = counts.get("questions", 0) + 1
+            text = str(value or "").lower()
+            for topic, pattern in TOPICS.items():
+                if re.search(pattern, text):
+                    st["topics"][topic] = st["topics"].get(topic, 0) + 1
+            hour = time.localtime().tm_hour
+            if hour < 4:
+                counts["nightQuestions"] = counts.get("nightQuestions", 0) + 1
+            elif 5 <= hour < 7:
+                counts["dawnQuestions"] = counts.get("dawnQuestions", 0) + 1
+            for flag, key in (("online", "onlineQuestions"), ("offgrid", "offgridQuestions")):
+                if info.get(flag):
+                    counts[key] = counts.get(key, 0) + 1
+            counts["longestConversation"] = max(counts.get("longestConversation", 0), int(info.get("turn") or 1))
+        elif event in ("suggestions", "sources", "stops", "voice", "backups", "usbExports", "tour", "password"):
+            counts[event] = counts.get(event, 0) + 1
+        elif event in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations"):
+            item = str(value or "")[:60]
+            if item and item not in sets.get(event, []):
+                sets[event] = sets.get(event, []) + [item]
+        _award(st)
+        write_json(ACH_FILE, st)
+
+
+def achievements(mark_seen=False):
+    """The catalog with progress, what's earned (and when), points and rank.
+    With mark_seen, also hands over (and clears) the newly earned ones."""
+    with ACH_LOCK:
+        st = _ach_state()
+        changed = _award(st)
+        unseen = list(st["unseen"])
+        if mark_seen and unseen:
+            st["unseen"] = []
+            changed = True
+        if changed:
+            write_json(ACH_FILE, st)
+    cat = achievement_catalog()
+    items = [{**a, "progress": min(a["goal"], _stat(st, a["stat"])), "earned": st["earned"].get(a["id"])}
+             for a in cat["achievements"]]
+    points = sum(a["points"] for a in items if a["earned"])
+    rank = [r for r in cat["ranks"] if points >= r[0]][-1][1]
+    later = [r for r in cat["ranks"] if r[0] > points]
+    counts = st["counts"]
+    favourite = max(TOPICS, key=lambda t: st["topics"].get(t, 0)) if any(st["topics"].values()) else ""
+    return {**{k: cat[k] for k in ("categories", "tiers", "ranks")}, "achievements": items, "points": points,
+            "total": sum(a["points"] for a in items), "rank": rank,
+            "next": {"rank": later[0][1], "points": later[0][0]} if later else None,
+            "unseen": unseen if mark_seen else [],
+            "stats": {"questions": counts.get("questions", 0), "streak": _stat(st, "streak"),
+                      "days": len(st["days"]), "favourite": favourite}}
+
+
+def restore_achievements(data):
+    """Merge achievements from a backup: earned ones are kept (the earliest
+    date wins) and counters take the higher value."""
+    if not isinstance(data, dict):
+        return
+    known = {a["id"] for a in achievement_catalog()["achievements"]}
+    with ACH_LOCK:
+        st = _ach_state()
+        for aid, when in (data.get("earned") or {}).items():
+            if aid in known and isinstance(when, int):
+                st["earned"][aid] = min(when, st["earned"].get(aid, when))
+        for key in ("counts", "topics"):
+            for k, v in (data.get(key) or {}).items():
+                if isinstance(v, int) and re.fullmatch(r"[A-Za-z]{1,30}", str(k)):
+                    st[key][k] = max(v, st[key].get(k, 0))
+        for k, v in (data.get("sets") or {}).items():
+            if k in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations") and isinstance(v, list):
+                st["sets"][k] = sorted(set(st["sets"].get(k, [])) | {str(x)[:60] for x in v[:200]})
+        st["days"] = sorted(set(st["days"]) | {d for d in (data.get("days") or [])[:400]
+                                               if isinstance(d, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", d)})[-400:]
+        write_json(ACH_FILE, st)
 
 
 def greeting():
@@ -1171,10 +1444,10 @@ def set_model(name):
 
 
 def reset_umbra():
-    """Back to a fresh install: settings, profile, custom themes, personalities
-    and scenarios, and all saved conversations are deleted. The AI model,
+    """Back to a fresh install: settings, profile, achievements, custom themes,
+    personalities and scenarios, and all saved conversations are deleted. The AI model,
     the library and config.json (model, library folder) are kept."""
-    for path in (SETTINGS_FILE, PROFILE_FILE, CUSTOM_THEMES_FILE, PERSONALITIES_FILE, SCENARIOS_FILE, LOCK_FILE):
+    for path in (SETTINGS_FILE, PROFILE_FILE, CUSTOM_THEMES_FILE, PERSONALITIES_FILE, SCENARIOS_FILE, LOCK_FILE, ACH_FILE):
         try:
             os.remove(path)
         except OSError:
@@ -1531,6 +1804,7 @@ def backup(include_history, target=""):
         "umbraBackup": 1, "created": int(time.time() * 1000),
         "settings": read_json(SETTINGS_FILE, {}), "profile": get_profile(),
         "themes": custom_themes(), "personalities": custom_personalities(), "scenarios": custom_scenarios(),
+        "achievements": read_json(ACH_FILE, {}),
         "history": [read_json(history_path(i["id"]), {}) for i in history_list()["items"]] if include_history else [],
     }
     path = os.path.join(folder, f"umbra-backup-{time.strftime('%Y-%m-%d-%H%M')}.json")
@@ -1547,6 +1821,7 @@ def restore(data):
         apply_settings(data["settings"])
     if isinstance(data.get("profile"), dict):
         save_profile(data["profile"])
+    restore_achievements(data.get("achievements"))
     counts = {"themes": 0, "personalities": 0, "scenarios": 0, "conversations": 0}
     for key, save in (("themes", save_custom_theme), ("personalities", save_personality),
                       ("scenarios", save_scenario), ("history", lambda c: history_save(c, keep_time=True))):
@@ -1858,7 +2133,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/paths":
             short = lambda x: x.replace(HOME, "~", 1)
             return self.send_json({"library": short(LIBRARY_DIR), "config": short(CONFIG_DIR),
-                                   "history": short(HISTORY_DIR), "packaged": PACKAGED})
+                                   "history": short(HISTORY_DIR), "packaged": PACKAGED, "installKind": install_kind()})
         if path == "/api/profile":
             return self.send_json(get_profile())
         if path == "/api/greeting":
@@ -1879,6 +2154,12 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"battery": on_battery()})
         if path == "/api/cpu":
             return self.send_json(cpu_status())
+        if path == "/api/achievements":
+            return self.send_json(achievements())
+        if path == "/api/update-check":
+            return self.send_json(check_update())
+        if path == "/api/achievements/unseen":
+            return self.send_json(achievements(mark_seen=True))
         if path.startswith("/api/history/"):
             try:
                 conv = read_json(history_path(path.rsplit("/", 1)[1]), None)
@@ -1916,7 +2197,14 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/settings":
             update = self.read_json()
             before = cpu_limit()
+            old = read_json(SETTINGS_FILE, {})
             settings = apply_settings(update)
+            for key, stat in (("theme", "themes"), ("background", "backgrounds"),
+                              ("personality", "personalities"), ("scenario", "scenarios")):
+                if key in update and settings.get(key) and settings.get(key) != old.get(key):
+                    record(stat, settings[key])
+            if update.get("onboarded") is True and not old.get("onboarded"):
+                record("tour")
             if cpu_limit() != before:
                 threading.Thread(target=warm_model, daemon=True).start()   # reload the AI with its new core count now
             return self.send_json(settings)
@@ -1931,7 +2219,10 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/password":
             req = self.read_json()
             try:
-                return self.send_json(set_password(str(req.get("old", "")), str(req.get("new", ""))))
+                out = set_password(str(req.get("old", "")), str(req.get("new", "")))
+                if req.get("new"):
+                    record("password")
+                return self.send_json(out)
             except ValueError as e:
                 return self.send_json({"error": str(e)}, 403)
         if self.path == "/api/unlock":
@@ -1955,8 +2246,11 @@ class Handler(BaseHTTPRequestHandler):
                     out = export(str(req.get("what", "")), str(req.get("id", "")), str(req.get("target", "")))
                 elif self.path == "/api/backup":
                     out = backup(bool(req.get("history")), str(req.get("target", "")))
+                    record("backups")
                 else:
                     return self.send_json(restore(req.get("backup")))
+                if str(req.get("target", "")) not in ("", "documents"):
+                    record("usbExports")
             except (ValueError, OSError) as e:
                 return self.send_json({"error": str(e)}, 400)
             if req.get("open"):
@@ -2004,12 +2298,16 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(history_delete(str(self.read_json().get("id", ""))))
         if self.path == "/api/personalities":
             try:
-                return self.send_json(save_personality(self.read_json().get("personality")))
+                out = save_personality(self.read_json().get("personality"))
+                record("creations", "personality")
+                return self.send_json(out)
             except (ValueError, TypeError) as e:
                 return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/scenarios":
             try:
-                return self.send_json(save_scenario(self.read_json().get("scenario")))
+                out = save_scenario(self.read_json().get("scenario"))
+                record("creations", "scenario")
+                return self.send_json(out)
             except (ValueError, TypeError) as e:
                 return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/scenarios/delete":
@@ -2018,11 +2316,23 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(delete_personality(str(self.read_json().get("id", ""))))
         if self.path == "/api/themes":
             try:
-                return self.send_json(save_custom_theme(self.read_json().get("theme")))
+                out = save_custom_theme(self.read_json().get("theme"))
+                record("creations", "theme")
+                return self.send_json(out)
             except ValueError as e:
                 return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/themes/delete":
             return self.send_json(delete_custom_theme(str(self.read_json().get("id", ""))))
+        if self.path == "/api/achievements/event":
+            req = self.read_json()
+            event, value = str(req.get("event", "")), req.get("value")
+            if event == "manualPages":
+                if value not in [p.get("id") for p in field_manual()]:
+                    return self.send_json({"error": "unknown page"}, 400)
+            elif event not in ("suggestions", "sources", "stops", "voice"):
+                return self.send_json({"error": "unknown event"}, 400)
+            record(event, value)
+            return self.send_json({"ok": True})
         if self.path == "/api/sound":
             req = self.read_json()
             name = str(req.get("name", ""))
@@ -2157,6 +2467,7 @@ def answer(req, emit):
         follow = match.group(1).strip(" *_\"'") if match else follow_up(question, full)
     if follow:
         emit({"type": "next", "text": follow})
+    record("question", question, online=online, offgrid=offgrid, turn=len(history) // 2 + 1)
     if done_event:
         emit(done_event)
 

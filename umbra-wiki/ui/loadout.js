@@ -89,9 +89,17 @@
   function render() {
     overlay.querySelectorAll(".lo-tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === state.tab));
     overlay.classList.toggle("profile", state.tab === "profile");
+    overlay.classList.toggle("achievements", state.tab === "achievements");
     if (state.tab === "profile") {
       if (state.stopAnim) state.stopAnim();
       state.stopAnim = window.UmbraProfile.render(grid, detail, animate);
+      grid.dataset.tab = "profile";
+      return;
+    }
+    if (state.tab === "achievements") {
+      if (state.stopAnim) state.stopAnim();
+      state.stopAnim = null;
+      window.UmbraAchievements.render(grid, detail);
       return;
     }
     if (!state.selected || !find(state.selected)) state.selected = current();
@@ -367,7 +375,7 @@
 
   // The header's person button opens your profile; the chip opens the loadout.
   $("#loadout-btn").addEventListener("click", () => (overlay.hidden ? open("profile") : close()));
-  $("#loadout-chip").addEventListener("click", () => open(state.tab === "profile" ? "personality" : null));
+  $("#loadout-chip").addEventListener("click", () => open(["scenario", "personality"].includes(state.tab) ? null : "personality"));
   overlay.querySelector(".lo-close").addEventListener("click", close);
   overlay.querySelectorAll(".lo-tabs button").forEach((b) => b.addEventListener("click", () => {
     if (state.tab === b.dataset.tab) return;
@@ -398,6 +406,8 @@
 
   window.openLoadout = open;
   window.closeLoadout = close;
+  // Newly earned achievements show at once when their tab is open.
+  window.refreshLoadoutTab = (tab) => { if (!overlay.hidden && state.tab === tab) render(); };
   window.reloadLoadout = load;
   load().then(() => {
     const view = new URLSearchParams(location.search).get("view");

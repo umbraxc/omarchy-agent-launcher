@@ -194,9 +194,27 @@
         <div class="set-row"><span class="set-text"><b>Replay the tour</b><small>The first-launch walkthrough of everything Umbra can do</small></span>
           <button class="ghost set-tour">REPLAY</button></div>
       </section>
+      <section class="set-section set-updates"><div class="lib-head"><span>UPDATES</span><b class="set-version-now"></b></div>
+        <div class="set-row"><span class="set-text"><b>Check for updates</b><small class="set-update-note">Asks GitHub for the newest
+          release. Only this check goes online, and nothing about you is sent.</small></span>
+          <button class="ghost set-update">CHECK NOW</button></div>
+        <details class="set-manual"><summary>How to update by hand</summary>
+          <div class="set-howto" data-kind="package"><b>Installed with pacman</b> (the [umbra] repository)
+            <code>sudo pacman -Syu</code></div>
+          <div class="set-howto" data-kind="omarchy"><b>Omarchy plugin</b>: updates to <i>Omarchy Umbra</i> arrive through Omarchy's
+            plugin marketplace; Umbra runs the new version after the restart below.</div>
+          <div class="set-howto" data-kind="clone"><b>From a downloaded copy</b>: in its folder,
+            <code>git pull && ./install-arch.sh --update</code></div>
+          <p>Then restart Umbra's background service and reopen this window:
+            <code>systemctl --user restart umbra-wiki</code></p>
+          <p>Your settings, profile, achievements, conversations and library are never touched by an update.
+            Every release, with what changed, is listed on GitHub:
+            <code>github.com/umbraxc/omarchy-umbra/releases</code></p>
+        </details>
+      </section>
       <section class="set-section danger"><div class="lib-head">DANGER ZONE</div>
         <div class="set-row"><span class="set-text"><b>Reset Umbra</b><small>Start over as if Umbra was just installed: your profile, settings,
-          custom themes, personalities and scenarios, and every conversation are deleted, then the welcome tour runs again.
+          achievements, custom themes, personalities and scenarios, and every conversation are deleted, then the welcome tour runs again.
           The AI model and the library are kept.</small></span>
           <button class="ghost set-reset">RESET…</button></div>
         <div class="set-row"><span class="set-text"><b>Uninstall Umbra</b><small>Remove Umbra Wiki from this computer: the app, its menu entry
@@ -213,7 +231,36 @@
         </div>
       </section>
       <p class="set-about">Umbra Wiki <span class="set-version"></span> · part of Omarchy Umbra · sounds by Kenney (CC0) · MIT license</p>`;
-    fetch("/api/status").then((r) => r.json()).then((s) => { const v = body.querySelector(".set-version"); if (v && s.version) v.textContent = s.version; }).catch(() => {});
+    fetch("/api/status").then((r) => r.json()).then((s) => {
+      if (!s.version) return;
+      body.querySelector(".set-version").textContent = s.version;
+      body.querySelector(".set-version-now").textContent = "VERSION " + s.version;
+    }).catch(() => {});
+    // The way this copy updates is marked, and listed first.
+    const kind = paths.installKind || (packagedInstall ? "package" : "omarchy");
+    const mine = body.querySelector(`.set-howto[data-kind="${kind}"]`);
+    if (mine) { mine.classList.add("mine"); mine.parentElement.insertBefore(mine, mine.parentElement.querySelector(".set-howto")); }
+    body.querySelector(".set-update").addEventListener("click", async (e) => {
+      const b = e.currentTarget, note = body.querySelector(".set-update-note");
+      b.disabled = true;
+      b.textContent = "CHECKING…";
+      Sound.click();
+      const r = await fetch("/api/update-check").then((x) => x.json()).catch(() => ({ error: "offline" }));
+      b.disabled = false;
+      b.textContent = "CHECK AGAIN";
+      note.classList.toggle("fresh", !!r.newer);
+      if (r.error) {
+        note.textContent = "Couldn't reach GitHub: this computer seems to be offline. Umbra works fine without updates; try again when you're connected.";
+        Sound.error();
+      } else if (r.newer) {
+        note.textContent = `Umbra ${r.latest} is out (you have ${r.current}). Update as shown below, under "How to update by hand".`;
+        body.querySelector(".set-manual").open = true;
+        Sound.found();
+      } else {
+        note.textContent = `You're up to date: ${r.current} is the newest version${r.latest && r.latest !== r.current ? ` (latest release: ${r.latest})` : ""}.`;
+        Sound.theme();
+      }
+    });
 
     body.querySelectorAll(".set-toggle").forEach((box) => {
       const key = box.dataset.key;
@@ -517,7 +564,7 @@
   async function resetUmbra() {
     const first = await confirmDialog({
       kind: "error", tag: "RESET", title: "RESET UMBRA?",
-      body: "This deletes your profile, settings, custom themes, personalities and scenarios, and every saved conversation.\n\nYour AI model and your library downloads are kept.",
+      body: "This deletes your profile, achievements, settings, custom themes, personalities and scenarios, and every saved conversation.\n\nYour AI model and your library downloads are kept.",
       ok: "CONTINUE", cancel: "CANCEL",
     });
     if (!first) return;

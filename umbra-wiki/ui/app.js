@@ -134,7 +134,7 @@ const Sound = (() => {
       .catch(() => {});
   };
   const names = ["launch", "key", "hover", "click", "send", "searchstart", "found", "done",
-                 "lock", "unlock", "online", "local", "theme", "error", "beep", "boot", "glitch", "shutdown"];
+                 "lock", "unlock", "online", "local", "theme", "error", "beep", "boot", "glitch", "shutdown", "achieve"];
   const api = { get muted() { return muted; }, set muted(v) { muted = v; if (v) api.hum(false); } };
   names.forEach((n) => (api[n] = () => play(n)));
   api.hover = () => { if ((!window.prefs || window.prefs.hoverSounds !== false) && !window.offgrid) play("hover"); };
@@ -146,6 +146,47 @@ const Sound = (() => {
   };
   return api;
 })();
+
+// Nerd Font icons are drawn wider than the space the font gives them, so on
+// their own (in a button) they sit a little right of centre. Each icon is
+// measured once in its font and nudged so what's drawn is centred, both ways.
+const iconShift = new Map();
+const ICON_CHARS = /[\uE000-\uF8FF]|[\u{F0000}-\u{FFFFD}]/u;
+function centerIcon(el) {
+  const text = el.textContent.trim();
+  if (!text || !ICON_CHARS.test(text)) { el.style.translate = ""; return; }
+  const cs = getComputedStyle(el);
+  const font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const key = text + "|" + font;
+  let shift = iconShift.get(key);
+  if (!shift) {
+    const c = centerIcon.ctx || (centerIcon.ctx = document.createElement("canvas").getContext("2d"));
+    c.font = font;
+    const m = c.measureText(text);
+    shift = [m.width / 2 - (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2,
+             ((m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) - (m.fontBoundingBoxAscent - m.fontBoundingBoxDescent)) / 2];
+    iconShift.set(key, shift);
+  }
+  el.style.translate = `${shift[0].toFixed(2)}px ${shift[1].toFixed(2)}px`;
+}
+const ICONS = ".g, .lockglyph";
+function centerIcons(root = document) {
+  if (root.matches && root.matches(ICONS)) centerIcon(root);
+  root.querySelectorAll && root.querySelectorAll(ICONS).forEach(centerIcon);
+}
+document.fonts.ready.then(() => {
+  centerIcons();
+  // New icons (panels, badges) and changed ones (mute) are centred as they appear.
+  new MutationObserver((list) => {
+    for (const m of list) {
+      const t = m.target.nodeType === 1 ? m.target : m.target.parentElement;
+      if (!t || t.closest(".answer, .wipe, #rain")) continue;
+      const icon = t.closest(ICONS);
+      if (icon) centerIcon(icon);
+      m.addedNodes.forEach((n) => { if (n.nodeType === 1) centerIcons(n); });
+    }
+  }).observe(document.body, { childList: true, subtree: true, characterData: true });
+});
 
 function setMuted(value, save = true) {
   Sound.muted = value;
@@ -564,7 +605,7 @@ setInterval(refreshStatus, 5000);
 // ---------------------------------------------------------- little motion
 
 // Spinner glyphs, cycled on one shared timer that runs only while needed.
-const SPIN = "·✢✳✶✻✽✻✶✳✢".split("");
+const SPIN = "·✢✣✶✻✽✻✶✣✢".split("");   // no emoji-capable characters (✳ could turn green)
 let spinFrame = 0;
 setInterval(() => {
   const spins = document.querySelectorAll("[data-spin]");
@@ -1439,7 +1480,8 @@ function addUser(text, wasOnline = online) {
   el.className = "msg user";
   const me = (window.UmbraProfile && window.UmbraProfile.data) || {};
   el.innerHTML = `<div class="label">${me.picture ? '<img class="avatar" alt="">' : ""}<span class="who"></span>${wasOnline ? " · ONLINE" : ""}</div><div class="body"></div>`;
-  el.querySelector(".who").textContent = me.name || "YOU";
+  el.querySelector(".who").textContent = (me.name || "YOU") + (me.callsign ? ` · ${me.callsign}` : "");
+  if (me.color) el.querySelector(".who").style.color = `var(--${me.color})`;
   if (me.picture) el.querySelector(".avatar").src = me.picture;
   el.querySelector(".body").textContent = text;
   feed.appendChild(el);
@@ -1475,6 +1517,7 @@ function setWaitingText(answerEl, text) {
 }
 
 function openSource(s) {
+  if (window.track) track("sources");
   if (s.kind === "manual") openManual(String(s.url).replace(/^manual:/, ""));
   else if (s.kind === "local") openReader(s);
   else fetch("/api/open", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: s.url }) });
@@ -1573,6 +1616,7 @@ function stopWorking() {
   phaseBox.hidden = true;
   controller = null;
   startRain();   // if the start screen is in view
+  if (window.UmbraAchievements) UmbraAchievements.check();   // an answer can unlock something
   send.classList.remove("stop");
   send.innerHTML = "TRANSMIT <kbd>⏎</kbd>";
   refreshStatus();
@@ -1904,6 +1948,7 @@ async function openManual(id) {
   const pages = await loadManual();
   const page = pages.find((p) => p.id === id);
   if (!page) return;
+  if (window.track) track("manualPages", id);
   $("#reader-title").textContent = `${page.title} · Umbra Field Manual`;
   $("#reader-frame").hidden = true;
   const doc = $("#reader-doc");
@@ -1941,6 +1986,7 @@ $("#reader-close").addEventListener("click", closeReader);
 const mic = $("#mic");
 let voice = { available: false, daemon: false, state: "idle" };
 function showVoice(v) {
+  if (voice.state === "transcribing" && v.state === "idle" && window.track) track("voice");   // words came in by voice
   voice = { ...voice, ...v };
   mic.classList.toggle("rec", voice.state === "recording");
   mic.classList.toggle("busy", voice.state === "transcribing");
@@ -2069,7 +2115,7 @@ async function suggestFor(rec) {
 
 form.addEventListener("submit", (e) => {
   e.preventDefault();
-  if (controller) { controller.abort(); return; }
+  if (controller) { controller.abort(); if (window.track) track("stops"); return; }
   const q = input.value;
   input.value = "";
   autosize();
@@ -2088,6 +2134,7 @@ input.addEventListener("keydown", (e) => {
   }
   if (e.key === "Tab" && !e.shiftKey && suggestion && !input.value) {
     e.preventDefault();
+    if (window.track) track("suggestions");
     input.value = suggestion.text;
     input.setSelectionRange(input.value.length, input.value.length);
     autosize();
@@ -2116,7 +2163,7 @@ document.addEventListener("keydown", (e) => {
   if (!$("#themes").hidden) toggleThemes(false);
   else if (!$("#library").hidden) toggleLibrary(false);
   else if (!$("#reader").hidden) closeReader();
-  else if (controller) controller.abort();
+  else if (controller) { controller.abort(); if (window.track) track("stops"); }
 });
 
 

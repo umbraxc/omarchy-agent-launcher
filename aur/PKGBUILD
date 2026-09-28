@@ -23,7 +23,7 @@ package() {
 
   install -d "$app"
   cp -r ui sounds "$app/"
-  install -m644 server.py facts.json fieldmanual.json library.json packs.json "$app/"
+  install -m644 server.py facts.json fieldmanual.json library.json packs.json achievements.json "$app/"
   install -m755 fetch-archive.sh uninstall.sh "$app/"
 
   install -Dm755 umbra-wiki "$pkgdir/usr/bin/umbra-wiki"

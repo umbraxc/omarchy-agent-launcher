@@ -1,0 +1,594 @@
+{
+ "categories": [
+  [
+   "journey",
+   "FIRST STEPS"
+  ],
+  [
+   "questions",
+   "QUESTIONS"
+  ],
+  [
+   "topics",
+   "TOPICS"
+  ],
+  [
+   "habits",
+   "HABITS"
+  ],
+  [
+   "knowledge",
+   "KNOWLEDGE"
+  ],
+  [
+   "offgrid",
+   "OFF THE GRID"
+  ],
+  [
+   "style",
+   "STYLE"
+  ],
+  [
+   "legend",
+   "LEGEND"
+  ]
+ ],
+ "tiers": {
+  "bronze": "BRONZE",
+  "silver": "SILVER",
+  "gold": "GOLD",
+  "legendary": "LEGENDARY"
+ },
+ "ranks": [
+  [
+   0,
+   "Recruit"
+  ],
+  [
+   50,
+   "Scout"
+  ],
+  [
+   150,
+   "Ranger"
+  ],
+  [
+   300,
+   "Pathfinder"
+  ],
+  [
+   500,
+   "Survivalist"
+  ],
+  [
+   750,
+   "Veteran"
+  ],
+  [
+   1000,
+   "Legend"
+  ]
+ ],
+ "achievements": [
+  {
+   "id": "first-contact",
+   "name": "First Contact",
+   "description": "Ask Umbra your first question.",
+   "icon": "󰐻",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "questions",
+   "goal": 1,
+   "category": "journey"
+  },
+  {
+   "id": "boot-camp",
+   "name": "Boot Camp",
+   "description": "Finish the welcome tour.",
+   "icon": "󰑴",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "tour",
+   "goal": 1,
+   "category": "journey"
+  },
+  {
+   "id": "dog-tags",
+   "name": "Dog Tags",
+   "description": "Put your name on your profile.",
+   "icon": "󰗒",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "profileName",
+   "goal": 1,
+   "category": "journey"
+  },
+  {
+   "id": "mugshot",
+   "name": "Mugshot",
+   "description": "Give your profile a picture.",
+   "icon": "󰣋",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "profilePicture",
+   "goal": 1,
+   "category": "journey"
+  },
+  {
+   "id": "need-to-know",
+   "name": "Need to Know",
+   "description": "Tell Umbra where you are, your units and your experience.",
+   "icon": "󰦄",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "profileDetails",
+   "goal": 1,
+   "category": "journey"
+  },
+  {
+   "id": "lockdown",
+   "name": "Lockdown",
+   "description": "Protect Umbra with a password.",
+   "icon": "󰦝",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "password",
+   "goal": 1,
+   "category": "journey"
+  },
+  {
+   "id": "curious-mind",
+   "name": "Curious Mind",
+   "description": "Ask 10 questions.",
+   "icon": "󱍊",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "questions",
+   "goal": 10,
+   "category": "questions"
+  },
+  {
+   "id": "seeker",
+   "name": "Seeker",
+   "description": "Ask 50 questions.",
+   "icon": "󱍄",
+   "tier": "silver",
+   "points": 25,
+   "stat": "questions",
+   "goal": 50,
+   "category": "questions"
+  },
+  {
+   "id": "walking-encyclopedia",
+   "name": "Walking Encyclopedia",
+   "description": "Ask 100 questions.",
+   "icon": "󰧑",
+   "tier": "gold",
+   "points": 50,
+   "stat": "questions",
+   "goal": 100,
+   "category": "questions"
+  },
+  {
+   "id": "the-oracle",
+   "name": "The Oracle",
+   "description": "Ask 500 questions. Few ever get here.",
+   "icon": "󰬯",
+   "tier": "legendary",
+   "points": 100,
+   "stat": "questions",
+   "goal": 500,
+   "category": "questions"
+  },
+  {
+   "id": "deep-dive",
+   "name": "Deep Dive",
+   "description": "Keep one conversation going for 10 answers.",
+   "icon": "󰷁",
+   "tier": "silver",
+   "points": 25,
+   "stat": "longestConversation",
+   "goal": 10,
+   "category": "questions"
+  },
+  {
+   "id": "mind-reader",
+   "name": "Mind Reader",
+   "description": "Use 5 suggested replies (Tab).",
+   "icon": "󱐋",
+   "tier": "silver",
+   "points": 25,
+   "stat": "suggestions",
+   "goal": 5,
+   "category": "questions"
+  },
+  {
+   "id": "fact-checker",
+   "name": "Fact Checker",
+   "description": "Open 10 cited sources to check an answer.",
+   "icon": "󱎸",
+   "tier": "silver",
+   "points": 25,
+   "stat": "sources",
+   "goal": 10,
+   "category": "questions"
+  },
+  {
+   "id": "hydrated",
+   "name": "Hydrated",
+   "description": "Ask 5 questions about water.",
+   "icon": "󰖌",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "topic:water",
+   "goal": 5,
+   "category": "topics"
+  },
+  {
+   "id": "firestarter",
+   "name": "Firestarter",
+   "description": "Ask 5 questions about fire.",
+   "icon": "󰈸",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "topic:fire",
+   "goal": 5,
+   "category": "topics"
+  },
+  {
+   "id": "roof-over-your-head",
+   "name": "Roof Over Your Head",
+   "description": "Ask 5 questions about shelter.",
+   "icon": "󰔈",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "topic:shelter",
+   "goal": 5,
+   "category": "topics"
+  },
+  {
+   "id": "field-medic",
+   "name": "Field Medic",
+   "description": "Ask 10 questions about first aid and medicine.",
+   "icon": "󰛯",
+   "tier": "silver",
+   "points": 25,
+   "stat": "topic:medical",
+   "goal": 10,
+   "category": "topics"
+  },
+  {
+   "id": "forager",
+   "name": "Forager",
+   "description": "Ask 5 questions about food.",
+   "icon": "󰟟",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "topic:food",
+   "goal": 5,
+   "category": "topics"
+  },
+  {
+   "id": "true-north",
+   "name": "True North",
+   "description": "Ask 5 questions about finding your way.",
+   "icon": "󰆋",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "topic:navigation",
+   "goal": 5,
+   "category": "topics"
+  },
+  {
+   "id": "power-player",
+   "name": "Power Player",
+   "description": "Ask 5 questions about power and energy.",
+   "icon": "󰩲",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "topic:power",
+   "goal": 5,
+   "category": "topics"
+  },
+  {
+   "id": "signal-received",
+   "name": "Signal Received",
+   "description": "Ask 5 questions about radio and signalling.",
+   "icon": "󰐺",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "topic:comms",
+   "goal": 5,
+   "category": "topics"
+  },
+  {
+   "id": "tinkerer",
+   "name": "Tinkerer",
+   "description": "Ask 5 questions about repairs and tools.",
+   "icon": "󰖷",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "topic:repair",
+   "goal": 5,
+   "category": "topics"
+  },
+  {
+   "id": "storm-chaser",
+   "name": "Storm Chaser",
+   "description": "Ask 5 questions about storms, floods and other disasters.",
+   "icon": "󰖓",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "topic:weather",
+   "goal": 5,
+   "category": "topics"
+  },
+  {
+   "id": "renaissance-survivor",
+   "name": "Renaissance Survivor",
+   "description": "Ask about all 10 survival topics.",
+   "icon": "󰓏",
+   "tier": "gold",
+   "points": 50,
+   "stat": "topicsCovered",
+   "goal": 10,
+   "category": "topics"
+  },
+  {
+   "id": "three-day-rule",
+   "name": "Three-Day Rule",
+   "description": "Use Umbra 3 days in a row.",
+   "icon": "󰃯",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "streak",
+   "goal": 3,
+   "category": "habits"
+  },
+  {
+   "id": "week-in-the-wild",
+   "name": "Week in the Wild",
+   "description": "Use Umbra 7 days in a row.",
+   "icon": "󰨳",
+   "tier": "silver",
+   "points": 25,
+   "stat": "streak",
+   "goal": 7,
+   "category": "habits"
+  },
+  {
+   "id": "always-ready",
+   "name": "Always Ready",
+   "description": "Use Umbra 30 days in a row.",
+   "icon": "󰧓",
+   "tier": "gold",
+   "points": 50,
+   "stat": "streak",
+   "goal": 30,
+   "category": "habits"
+  },
+  {
+   "id": "night-owl",
+   "name": "Night Owl",
+   "description": "Ask a question between midnight and 4 in the morning.",
+   "icon": "󰏒",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "nightQuestions",
+   "goal": 1,
+   "category": "habits",
+   "secret": true
+  },
+  {
+   "id": "early-bird",
+   "name": "Early Bird",
+   "description": "Ask a question between 5 and 7 in the morning.",
+   "icon": "󰖜",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "dawnQuestions",
+   "goal": 1,
+   "category": "habits",
+   "secret": true
+  },
+  {
+   "id": "emergency-brake",
+   "name": "Emergency Brake",
+   "description": "Stop Umbra in the middle of an answer.",
+   "icon": "󰹆",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "stops",
+   "goal": 1,
+   "category": "habits",
+   "secret": true
+  },
+  {
+   "id": "by-the-book",
+   "name": "By the Book",
+   "description": "Read 5 pages of the field manual.",
+   "icon": "󰗚",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "manualPages",
+   "goal": 5,
+   "category": "knowledge"
+  },
+  {
+   "id": "manual-master",
+   "name": "Manual Master",
+   "description": "Read every page of the field manual.",
+   "icon": "󱓳",
+   "tier": "gold",
+   "points": 50,
+   "stat": "manualPages",
+   "goal": 20,
+   "category": "knowledge"
+  },
+  {
+   "id": "librarian",
+   "name": "Librarian",
+   "description": "Have 5 collections in your library.",
+   "icon": "󱉟",
+   "tier": "silver",
+   "points": 25,
+   "stat": "collections",
+   "goal": 5,
+   "category": "knowledge"
+  },
+  {
+   "id": "the-great-library",
+   "name": "The Great Library",
+   "description": "Have 19 collections in your library.",
+   "icon": "󰌱",
+   "tier": "gold",
+   "points": 50,
+   "stat": "collections",
+   "goal": 19,
+   "category": "knowledge"
+  },
+  {
+   "id": "going-online",
+   "name": "Going Online",
+   "description": "Ask a question in online mode.",
+   "icon": "󰖟",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "onlineQuestions",
+   "goal": 1,
+   "category": "knowledge"
+  },
+  {
+   "id": "radio-silence",
+   "name": "Radio Silence",
+   "description": "Get an answer in off-grid mode.",
+   "icon": "󰚦",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "offgridQuestions",
+   "goal": 1,
+   "category": "offgrid"
+  },
+  {
+   "id": "ghost-protocol",
+   "name": "Ghost Protocol",
+   "description": "Get 10 answers in off-grid mode.",
+   "icon": "󰊠",
+   "tier": "silver",
+   "points": 25,
+   "stat": "offgridQuestions",
+   "goal": 10,
+   "category": "offgrid"
+  },
+  {
+   "id": "say-it-out-loud",
+   "name": "Say It Out Loud",
+   "description": "Ask a question with your voice.",
+   "icon": "󰍬",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "voice",
+   "goal": 1,
+   "category": "offgrid"
+  },
+  {
+   "id": "backup-plan",
+   "name": "Backup Plan",
+   "description": "Make a backup of your Umbra.",
+   "icon": "󰆔",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "backups",
+   "goal": 1,
+   "category": "offgrid"
+  },
+  {
+   "id": "sneakernet",
+   "name": "Sneakernet",
+   "description": "Save something to a USB stick.",
+   "icon": "󱊞",
+   "tier": "silver",
+   "points": 25,
+   "stat": "usbExports",
+   "goal": 1,
+   "category": "offgrid"
+  },
+  {
+   "id": "wardrobe-change",
+   "name": "Wardrobe Change",
+   "description": "Try 5 themes.",
+   "icon": "󰏘",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "themes",
+   "goal": 5,
+   "category": "style"
+  },
+  {
+   "id": "chameleon",
+   "name": "Chameleon",
+   "description": "Try 15 themes.",
+   "icon": "󰫢",
+   "tier": "silver",
+   "points": 25,
+   "stat": "themes",
+   "goal": 15,
+   "category": "style"
+  },
+  {
+   "id": "change-of-scenery",
+   "name": "Change of Scenery",
+   "description": "Try 5 start-screen backgrounds.",
+   "icon": "󰋵",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "backgrounds",
+   "goal": 5,
+   "category": "style"
+  },
+  {
+   "id": "many-voices",
+   "name": "Many Voices",
+   "description": "Deploy 5 different personalities.",
+   "icon": "󰡉",
+   "tier": "silver",
+   "points": 25,
+   "stat": "personalities",
+   "goal": 5,
+   "category": "style"
+  },
+  {
+   "id": "ready-for-anything",
+   "name": "Ready for Anything",
+   "description": "Deploy 5 different scenarios.",
+   "icon": "󰴠",
+   "tier": "silver",
+   "points": 25,
+   "stat": "scenarios",
+   "goal": 5,
+   "category": "style"
+  },
+  {
+   "id": "creator",
+   "name": "Creator",
+   "description": "Create your own personality, scenario and theme.",
+   "icon": "󰛓",
+   "tier": "gold",
+   "points": 50,
+   "stat": "creations",
+   "goal": 3,
+   "category": "style"
+  },
+  {
+   "id": "legend",
+   "name": "Legend of the Wasteland",
+   "description": "Earn every other achievement.",
+   "icon": "󰆥",
+   "tier": "legendary",
+   "points": 100,
+   "stat": "allOthers",
+   "goal": 46,
+   "category": "legend"
+  }
+ ]
+}

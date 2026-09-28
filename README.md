@@ -103,13 +103,35 @@ You can create your own of both.
 
 ### Your profile
 
-Your name, a few lines about you, a picture and an ASCII character you build
-yourself. Umbra greets you by name, picks up from your last conversation, and
-suggests questions that fit you. An optional password keeps the screen
-private.
+Your name and callsign, a few lines about you, a picture and an ASCII
+character you build yourself. Umbra greets you by name, picks up from your
+last conversation, and suggests questions that fit you. To **tailor the
+answers**, tell it where you are (region and climate), your units (metric or
+imperial), your experience (new, some or seasoned), your household and any
+health notes such as allergies. Pick a colour for your name in the chat, and
+see your **service record**: rank, questions asked, best streak, favourite
+topic, and up to five pinned achievement badges. An optional password keeps
+the screen private.
 
 ![Profile](docs/profile.png)
 ![The password lock](docs/lock.png)
+
+### Achievements
+
+47 achievements in four tiers (bronze, silver, gold and legendary), each with
+its own badge, in the Loadout's **ACHIEVEMENTS** tab: your first question and
+the welcome tour, 10 to 500 questions, the ten survival topics (water, fire,
+shelter, first aid, food, navigation, power, radio, repairs, disasters),
+reading the whole field manual, a full library, off-grid answers, backups to
+a USB stick, day streaks, trying themes and personalities, creating your own,
+and a few secret ones. Progress bars show how far along you are; a chime and
+a pop-up celebrate each new one. Points raise your rank from Recruit to
+Legend.
+
+Earned achievements are kept for good: deleting conversations doesn't take
+them away, updates keep them, and backups include them. Only Reset and
+Uninstall remove them. After updating from an earlier version, Umbra counts
+your saved conversations once, so earlier use counts too.
 
 ### History, export and backup
 
@@ -344,13 +366,18 @@ Umbra Wiki speaks and understands English.
 
 ## Update, reset, uninstall
 
+- **Check for updates**: Settings → Updates shows your version and asks
+  GitHub for the newest release when you press CHECK NOW (the only time it
+  goes online for this; nothing about you is sent), with the steps to update
+  by hand for how your copy was installed.
 - **Update**: on Omarchy, plugin updates arrive through Omarchy and Umbra
   picks them up; from the [umbra] repository, with `sudo pacman -Syu`; for a
   single package file, install the newest release the same way; for a
   repository clone, `git pull` the folder and run `install-arch.sh --update`. Your settings,
   history and library are never touched by updates.
 - **Reset**: Settings → Danger zone → Reset Umbra starts over as if freshly
-  installed (the tour runs again); the AI model and library are kept.
+  installed (the tour runs again; profile, achievements and conversations are
+  deleted); the AI model and library are kept.
 - **Uninstall**: Settings → Danger zone → Uninstall Umbra removes the app,
   its service, settings and history, and optionally the library and the AI
   model. System packages stay, since other programs may use them. On

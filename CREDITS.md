@@ -13,7 +13,7 @@ under which terms.
 | Field notes (`umbra-wiki/facts.json`) | umbraxc | MIT |
 | Sounds: interface, sci-fi and UI audio packs (`umbra-wiki/sounds/`) | [Kenney](https://kenney.nl) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) (public domain); see `sounds/LICENSE-kenney.txt` |
 | `boot.ogg`, `shutdown.ogg` | umbraxc, mixed from the Kenney sounds above | CC0 1.0 |
-| `beep.ogg`, `glitch.ogg` | umbraxc, synthesized | CC0 1.0 |
+| `beep.ogg`, `glitch.ogg`, `achieve.ogg` | umbraxc, synthesized | CC0 1.0 |
 
 ## Offline library (downloaded on request, not included)
 

@@ -154,7 +154,6 @@ button.cell {
 .ctl.on { color: var(--signal); border-color: var(--signal); }
 .ctl.off { color: var(--faint); }
 /* The history glyph is drawn off-centre in the font; nudge it back. */
-#history-btn .g { display: inline-block; transform: translateX(-1.5px); }
 
 .hazard {
   height: 3px; flex: none;
@@ -671,6 +670,155 @@ kbd { font: inherit; opacity: .7; margin-left: 4px; }
   .loadout.profile .lo-grid { max-height: none; overflow: visible; }
   .loadout.profile .lo-detail { overflow: visible; }
 }
+
+/* Profile: extra fields, choice buttons, name colour, service record. */
+.pf-two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.pf-sub { margin: 18px 0 10px; }
+.pf-choice { display: flex; }
+.pf-choice button {
+  flex: 1; padding: 7px 4px; font: 700 10px var(--font); letter-spacing: .1em; cursor: pointer;
+  color: var(--dim); background: var(--bg-2); border: 1px solid var(--line); margin-left: -1px;
+}
+.pf-choice button:first-child { margin-left: 0; }
+.pf-choice button:hover { color: var(--fg-bright); }
+.pf-choice button.on { color: var(--bg); background: var(--signal); border-color: var(--signal); position: relative; }
+.pf-colors { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pf-color {
+  display: grid; place-items: center; width: 26px; height: 26px; padding: 0; cursor: pointer;
+  background: var(--bg-2); border: 1px solid var(--line);
+}
+.pf-color i { width: 14px; height: 14px; background: var(--c); }
+.pf-color[data-v=""] i { background: linear-gradient(135deg, var(--fg-bright) 50%, var(--faint) 50%); }
+.pf-color.on { border-color: var(--signal); box-shadow: 0 0 0 1px var(--signal); }
+.pf-color-preview { margin-left: 6px; font-size: 10.5px; letter-spacing: .2em; color: var(--fg-bright); }
+
+.pf-record { max-width: 460px; margin: 22px auto 0; padding-top: 16px; border-top: 1px dashed var(--line); }
+.pf-rank { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.pf-rank b { color: var(--fg-bright); font-size: 17px; letter-spacing: .3em; }
+.pf-rank span { color: var(--dim); font-size: 10px; letter-spacing: .2em; }
+.pf-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+.pf-stats span { display: flex; flex-direction: column; gap: 3px; padding: 8px; background: var(--bg-1); border: 1px solid var(--line); min-width: 0; }
+.pf-stats small { font-size: 8.5px; letter-spacing: .22em; color: var(--faint); }
+.pf-stats b { font-size: 11.5px; color: var(--fg-bright); letter-spacing: .06em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-badges { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; min-height: 52px; align-items: center; margin-bottom: 12px; }
+.pf-badges-empty { color: var(--faint); font-size: 11px; text-align: center; }
+.pf-to-ach { display: block; margin: 0 auto; }
+
+/* ------------------------------------------------------------ achievements */
+
+/* Tier metals; legendary takes the theme's own colours and glows. */
+.badge { --metal: #b87333; --metal-2: #6e3f17; --icon: #2a1606; }
+.badge.silver { --metal: #d9dee5; --metal-2: #7d8794; --icon: #1d2329; }
+.badge.gold { --metal: #f1c75b; --metal-2: #9a6a12; --icon: #3a2702; }
+.badge.legendary { --metal: var(--signal); --metal-2: var(--accent); --icon: var(--bg); }
+.badge {
+  position: relative; display: inline-grid; place-items: center; flex: none;
+  width: 44px; height: 44px;
+}
+.badge svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.badge .bd-face { fill: var(--metal); stroke: var(--metal-2); stroke-width: 3; }
+.badge .bd-ring { fill: none; stroke: var(--metal-2); stroke-width: 2; opacity: .7; }
+.badge .bd-icon { position: relative; font-size: 19px; line-height: 1; color: var(--icon); -webkit-text-stroke: 0; }
+.badge.got .bd-face { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--metal) 45%, transparent)); }
+.badge.legendary.got svg { animation: legend-glow 3s ease-in-out infinite; }
+@keyframes legend-glow { 50% { filter: drop-shadow(0 0 9px var(--signal)); } }
+/* Locked: a dark outline with the icon faint, and a ring that fills as you go. */
+.badge.locked .bd-face { fill: var(--bg-2); stroke: var(--muted); }
+.badge.locked .bd-ring { stroke: var(--line); }
+.badge.locked .bd-icon { color: var(--faint); }
+.badge .bd-track, .badge .bd-prog { fill: none; stroke-width: 3; }
+.badge .bd-track { stroke: var(--bg-3); }
+.badge .bd-prog { stroke: var(--signal); transform: rotate(-90deg); transform-origin: 50px 50px; stroke-linecap: round; }
+.badge.big { width: 116px; height: 116px; }
+.badge.big .bd-icon { font-size: 50px; }
+.badge.big.got { animation: badge-in .7s cubic-bezier(.2, 1.4, .4, 1) both; }
+@keyframes badge-in { from { transform: scale(.6) rotate(-12deg); opacity: 0; } }
+/* A slow shine runs over earned big badges. */
+.badge.big.got::after {
+  content: ""; position: absolute; inset: 8%; pointer-events: none; mix-blend-mode: overlay;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, .55) 50%, transparent 65%) -200% 0 / 250% 100% no-repeat;
+  clip-path: circle(46%); animation: shine 3.6s ease-in-out infinite;
+}
+@keyframes shine { 60%, 100% { background-position: 200% 0; } }
+
+.loadout.achievements .lo-grid { display: block; }
+.ac-summary {
+  display: grid; grid-template-columns: repeat(3, auto) 1fr; align-items: end; gap: 10px 26px;
+  padding: 14px 16px; margin-bottom: 12px; background: var(--bg-1); border: 1px solid var(--line);
+}
+.ac-summary > div { display: flex; flex-direction: column; gap: 3px; }
+.ac-summary small { font-size: 9px; letter-spacing: .26em; color: var(--faint); }
+.ac-summary b { color: var(--fg-bright); font-size: 15px; letter-spacing: .14em; }
+.ac-rank b { color: var(--signal); }
+.ac-next { min-width: 160px; }
+.ac-bar { height: 8px; background: var(--bg-3); overflow: hidden; }
+.ac-bar i { display: block; height: 100%; background: var(--signal); transition: width .5s ease-out; }
+.ac-filters { display: flex; gap: 6px; margin-bottom: 8px; }
+.ac-filters .ghost { padding: 5px 12px; font-size: 10px; }
+.ac-filters .ghost.on { color: var(--bg); background: var(--signal); border-color: var(--signal); }
+.ac-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
+.ac-list .lib-head { grid-column: 1 / -1; margin: 14px 0 0; display: flex; justify-content: space-between; }
+.ac-card {
+  position: relative; display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 12px;
+  padding: 10px 12px; cursor: pointer; text-align: left; font: 12px var(--font); color: var(--fg);
+  background: var(--bg-1); border: 1px solid var(--line); animation: rise .3s ease-out both;
+  transition: border-color .15s, transform .15s;
+}
+.ac-card:hover { border-color: var(--muted); transform: translateY(-1px); }
+.ac-card.selected { border-color: var(--signal); }
+.ac-card.got { background: linear-gradient(90deg, var(--signal-soft), var(--bg-1) 60%); }
+.ac-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ac-text b { color: var(--fg-bright); font-size: 12px; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-text small { color: var(--dim); font-size: 10.5px; line-height: 1.35; }
+.ac-mini { height: 3px; background: var(--bg-3); margin-top: 3px; }
+.ac-mini i { display: block; height: 100%; background: var(--signal); }
+.ac-card.got .ac-mini { display: none; }
+.ac-val { color: var(--dim); font-size: 10.5px; letter-spacing: .08em; }
+.ac-card.got .ac-val { color: var(--signal); font-size: 14px; }
+.refreshing .ac-card { animation: none; }
+.ac-stage { display: grid; place-items: center; padding: 26px 0; margin-bottom: 12px; border: 1px solid var(--line); background: var(--bg); }
+.ac-tier { font-size: 10px; letter-spacing: .3em; margin-bottom: 4px; color: #c98a4b; }
+.ac-tier.silver { color: #c7ced6; }
+.ac-tier.gold { color: #f1c75b; }
+.ac-tier.legendary { color: var(--signal); }
+.ac-desc { margin-top: 8px; }
+.ac-progress { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; margin: 4px 0 10px; }
+.ac-progress span { color: var(--fg-bright); font-size: 10.5px; letter-spacing: .14em; }
+.ac-when { color: var(--dim); font-size: 11px; margin: 0 0 14px; }
+
+/* The "unlocked" pop-up, bottom right above the prompt. */
+.ac-toast {
+  position: fixed; right: 22px; bottom: 150px; z-index: 120; display: flex; align-items: center; gap: 14px;
+  width: min(360px, calc(100vw - 44px)); padding: 12px 16px; cursor: pointer;
+  background: var(--bg-1); border: 1px solid var(--signal); box-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+  animation: toast-in .45s cubic-bezier(.2, 1.3, .4, 1) both;
+}
+.ac-toast::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(115deg, transparent 30%, var(--signal-soft) 50%, transparent 70%) -150% 0 / 250% 100% no-repeat;
+  animation: shine 1.6s .3s ease-out 1 both;
+}
+.ac-toast.leaving { animation: toast-out .4s ease-in both; }
+@keyframes toast-in { from { transform: translateX(40px); opacity: 0; } }
+@keyframes toast-out { to { transform: translateX(40px); opacity: 0; } }
+.ac-toast .badge { width: 52px; height: 52px; animation: badge-in .6s .1s cubic-bezier(.2, 1.4, .4, 1) both; }
+.ac-toast .badge .bd-icon { font-size: 23px; }
+.ac-toast-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ac-toast-text small { color: var(--signal); font-size: 9px; letter-spacing: .26em; }
+.ac-toast-text b { color: var(--fg-bright); font-size: 14px; letter-spacing: .06em; }
+.ac-toast-text span { color: var(--dim); font-size: 11px; line-height: 1.35; }
+
+/* Settings → Updates */
+.set-version-now { color: var(--dim); font-weight: 400; letter-spacing: .2em; }
+.set-update-note.fresh { color: var(--signal); }
+.set-manual { margin: 10px 4px 4px; font-size: 11.5px; color: var(--fg); }
+.set-manual summary { cursor: pointer; color: var(--dim); letter-spacing: .08em; }
+.set-manual summary:hover { color: var(--signal); }
+.set-manual p, .set-howto { line-height: 1.55; margin: 8px 0 0; }
+.set-howto { padding: 8px 10px; background: var(--bg); border: 1px solid var(--line); }
+.set-howto.mine { border-color: var(--signal); }
+.set-howto.mine b::after { content: " · THIS COMPUTER"; color: var(--signal); font-size: 9.5px; letter-spacing: .2em; }
+.set-manual code { display: block; margin: 5px 0 0; color: var(--signal); word-break: break-all; }
 
 /* ---------------------------------------------------------------- settings */
 

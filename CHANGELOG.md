@@ -1,7 +1,19 @@
 # Changelog
 
-## 3.2.0
+## 3.1.1
 
+- **Achievements**: 47 of them in four tiers with their own badges, progress
+  bars, secret ones, an unlock chime and pop-up, points and ranks (Recruit to
+  Legend), in the new ACHIEVEMENTS tab of the loadout. Earned ones are kept
+  for good and included in backups; earlier conversations count after
+  updating.
+- **Profile**: callsign, where you are, units, experience, household and
+  health notes (used to tailor answers), a name colour, and a service record
+  with pinned badges.
+- **Updates in Settings**: the current version, CHECK NOW (asks GitHub for
+  the newest release) and how to update by hand.
+- Icons are measured and centred exactly in their buttons; the spinner no
+  longer turns green on some systems.
 - **Performance in Settings**: a live graph of the processor (and Umbra's
   share), a bar per thread, temperature and memory, and an **AI processor
   limit** (25 / 50 / 75 / 100%) that caps the cores the AI uses while it

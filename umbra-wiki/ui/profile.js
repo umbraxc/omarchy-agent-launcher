@@ -1,7 +1,9 @@
-// Umbra Wiki profile: the user's name (Umbra calls them by it), a few lines
-// about them, an ASCII character and an optional picture. Saved locally in
-// ~/.config/umbra-wiki/profile.json. Shown as the PROFILE tab of the
-// loadout (loadout.js calls UmbraProfile.render).
+// Umbra Wiki profile: the user's name (Umbra calls them by it) and callsign,
+// a few lines about them, where they are, their units, experience, household
+// and health notes (all used to tailor answers), a name colour, an ASCII
+// character, an optional picture, and a service record with their rank and
+// pinned achievement badges. Saved locally in ~/.config/umbra-wiki/profile.json.
+// Shown as the PROFILE tab of the loadout (loadout.js calls UmbraProfile.render).
 "use strict";
 
 (() => {
@@ -26,7 +28,11 @@
     return [frame(eyes), frame(/[■0]/.test(eyes) ? eyes : "- -")];
   }
 
-  const profile = { name: "", about: "", character: {}, picture: "" };
+  const profile = { name: "", callsign: "", about: "", location: "", units: "", experience: "", household: "",
+                    health: "", color: "", badges: [], character: {}, picture: "" };
+  const COLORS = [["", "Default"], ["signal", "Signal"], ["accent", "Accent"], ["net", "Network"], ["red", "Red"], ["fg-bright", "White"]];
+  const TOPIC_NAMES = { water: "Water", fire: "Fire", shelter: "Shelter", medical: "First aid", food: "Food",
+                        navigation: "Navigation", power: "Power", comms: "Radio", repair: "Repairs", weather: "Disasters" };
   const listeners = [];
   async function load() {
     try { Object.assign(profile, await (await fetch("/api/profile")).json()); } catch {}
@@ -44,7 +50,9 @@
       <div class="lo-stage pf-stage"><pre class="lo-portrait"></pre></div>
       <div class="pf-parts"></div>
       <button class="ghost pf-random">⚄ RANDOMIZE</button>
-    </div>`;
+    </div>
+    <div class="pf-record"></div>`;
+    renderRecord(grid.querySelector(".pf-record"));
     const showArt = () => {
       if (stop) stop();
       stop = animate(grid.querySelector(".lo-portrait"), art(draft.character), "personality");
@@ -82,14 +90,33 @@
       <div class="pf-pic-row">
         <button class="pf-pic" title="Choose a picture"><img alt="" hidden><span class="pf-pic-empty">+ PICTURE</span></button>
         <div class="pf-pic-side">
-          <p class="lo-desc">Everything here stays on this computer. Umbra uses your name and the lines about you to talk to you more personally.</p>
+          <p class="lo-desc">Everything here stays on this computer. Umbra uses it to talk to you more personally and to fit its answers to you.</p>
           <button class="ghost pf-pic-remove" hidden>✕ REMOVE PICTURE</button>
         </div>
         <input type="file" class="pf-file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
       </div>
-      <label class="lo-field"><span>NAME</span><input class="pf-name" maxlength="32" placeholder="What should Umbra call you?"></label>
-      <label class="lo-field"><span>ABOUT YOU</span><textarea class="pf-about" maxlength="500" rows="4"
+      <div class="pf-two">
+        <label class="lo-field"><span>NAME</span><input class="pf-name" maxlength="32" placeholder="What should Umbra call you?"></label>
+        <label class="lo-field"><span>CALLSIGN</span><input class="pf-callsign" maxlength="24" placeholder="e.g. Nomad-7"></label>
+      </div>
+      <label class="lo-field"><span>ABOUT YOU</span><textarea class="pf-about" maxlength="500" rows="3"
         placeholder="For example: I live in the countryside with my partner and two dogs, and I'm new to camping."></textarea></label>
+      <div class="lo-ed-title pf-sub">TAILOR THE ANSWERS</div>
+      <label class="lo-field"><span>WHERE YOU ARE</span><input class="pf-location" maxlength="80"
+        placeholder="Region and climate, e.g. Northern Europe, wet and cold winters"></label>
+      <div class="pf-two">
+        <div class="lo-field"><span>UNITS</span><div class="pf-choice pf-units">
+          <button type="button" data-v="">AUTO</button><button type="button" data-v="metric">METRIC</button><button type="button" data-v="imperial">IMPERIAL</button></div></div>
+        <div class="lo-field"><span>EXPERIENCE</span><div class="pf-choice pf-exp">
+          <button type="button" data-v="new">NEW</button><button type="button" data-v="some">SOME</button><button type="button" data-v="experienced">SEASONED</button></div></div>
+      </div>
+      <label class="lo-field"><span>HOUSEHOLD</span><input class="pf-household" maxlength="160"
+        placeholder="e.g. 2 adults, a child of 6, a dog"></label>
+      <label class="lo-field"><span>HEALTH NOTES</span><textarea class="pf-health" maxlength="300" rows="2"
+        placeholder="Allergies, conditions or medication Umbra should keep in mind (optional)"></textarea></label>
+      <div class="lo-field"><span>NAME COLOUR</span><div class="pf-colors">${COLORS.map(([v, label]) =>
+        `<button type="button" class="pf-color" data-v="${v}" title="${label}" style="--c: var(--${v || "fg-bright"})"><i></i></button>`).join("")}
+        <span class="pf-color-preview"></span></div></div>
       <div class="lo-actions"><button class="solid pf-save">SAVE PROFILE</button></div>
       <div class="pf-password">
         <div class="lo-ed-title">PASSWORD <span class="pf-pw-state"></span></div>
@@ -101,11 +128,37 @@
         <div class="lo-actions"><small class="pf-pw-msg"></small><button class="ghost pf-pw-remove" hidden>REMOVE PASSWORD</button>
           <button class="solid pf-pw-set">SET PASSWORD</button></div>
       </div>
-      <div class="pf-danger"><span>Start over: delete your profile, settings, custom items and every conversation.</span>
+      <div class="pf-danger"><span>Start over: delete your profile, achievements, settings, custom items and every conversation.</span>
         <button class="ghost pf-reset">RESET UMBRA…</button></div>`;
     const q = (sel) => detail.querySelector(sel);
     q(".pf-name").value = draft.name || "";
+    q(".pf-callsign").value = draft.callsign || "";
     q(".pf-about").value = draft.about || "";
+    q(".pf-location").value = draft.location || "";
+    q(".pf-household").value = draft.household || "";
+    q(".pf-health").value = draft.health || "";
+    // Units, experience and name colour are picked with buttons.
+    const choice = (sel, key) => {
+      const box = q(sel);
+      const show = () => box.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.v === (draft[key] || "")));
+      box.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
+        draft[key] = draft[key] === b.dataset.v && key === "experience" ? "" : b.dataset.v;
+        show(); Sound.click();
+      }));
+      show();
+    };
+    choice(".pf-units", "units");
+    choice(".pf-exp", "experience");
+    const preview = () => {
+      const p = q(".pf-color-preview");
+      p.textContent = ((q(".pf-name").value.trim() || "YOU") + (q(".pf-callsign").value.trim() ? " · " + q(".pf-callsign").value.trim() : "")).toUpperCase();
+      p.style.color = draft.color ? `var(--${draft.color})` : "";
+      detail.querySelectorAll(".pf-color").forEach((b) => b.classList.toggle("on", b.dataset.v === (draft.color || "")));
+    };
+    detail.querySelectorAll(".pf-color").forEach((b) => b.addEventListener("click", () => { draft.color = b.dataset.v; preview(); Sound.click(); }));
+    q(".pf-name").addEventListener("input", preview);
+    q(".pf-callsign").addEventListener("input", preview);
+    preview();
     const img = q(".pf-pic img");
     const showPic = () => {
       img.hidden = !draft.picture;
@@ -153,14 +206,9 @@
     });
     q(".pf-pw-remove").addEventListener("click", () => sendPw(""));
     q(".pf-save").addEventListener("click", async () => {
-      draft.name = q(".pf-name").value.trim();
-      draft.about = q(".pf-about").value.trim();
-      const res = await fetch("/api/profile", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(draft),
-      }).catch(() => null);
-      if (!res || !res.ok) { Sound.error(); return; }
-      Object.assign(profile, await res.json());
-      listeners.forEach((f) => f(profile));
+      for (const key of ["name", "callsign", "about", "location", "household", "health"]) draft[key] = q(".pf-" + key).value.trim();
+      draft.badges = profile.badges || [];   // pinned in the achievements tab meanwhile
+      if (!(await save(draft))) { Sound.error(); return; }
       Sound.theme();
       const b = q(".pf-save");
       b.textContent = "SAVED ✓";
@@ -168,6 +216,44 @@
     });
     return () => { if (stop) stop(); };
   }
+
+  async function save(next) {
+    const res = await fetch("/api/profile", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(next),
+    }).catch(() => null);
+    if (!res || !res.ok) return false;
+    Object.assign(profile, await res.json());
+    listeners.forEach((f) => f(profile));
+    if (window.UmbraAchievements) UmbraAchievements.check();
+    return true;
+  }
+  // Change a few fields (e.g. the pinned badges) and save.
+  const update = (fields) => save({ ...profile, ...fields });
+
+  // The service record: rank and points, a few numbers, and the badges
+  // pinned from the ACHIEVEMENTS tab.
+  async function renderRecord(box) {
+    if (!box) return;
+    const A = window.UmbraAchievements;
+    const data = (A && (A.data || await A.load())) || null;
+    if (!data || !box.isConnected) return;
+    const earned = data.achievements.filter((a) => a.earned);
+    const pinned = (profile.badges || []).map((id) => earned.find((a) => a.id === id)).filter(Boolean);
+    const since = profile.since ? new Date(profile.since).toLocaleDateString(undefined, { month: "short", year: "numeric" }) : "today";
+    box.innerHTML = `<div class="lo-ed-title">SERVICE RECORD</div>
+      <div class="pf-rank"><b>${escapeHtml(data.rank.toUpperCase())}</b><span>${data.points} PTS · ${earned.length}/${data.achievements.length} EARNED</span></div>
+      <div class="pf-stats">
+        <span><small>QUESTIONS</small><b>${data.stats.questions}</b></span>
+        <span><small>BEST STREAK</small><b>${data.stats.streak} ${data.stats.streak === 1 ? "DAY" : "DAYS"}</b></span>
+        <span><small>FAVOURITE</small><b>${escapeHtml((TOPIC_NAMES[data.stats.favourite] || "—").toUpperCase())}</b></span>
+        <span><small>SINCE</small><b>${escapeHtml(since.toUpperCase())}</b></span>
+      </div>
+      <div class="pf-badges">${pinned.length ? pinned.map((a) => `<span class="pf-badge" title="${escapeHtml(a.name)}">${A.badge(a)}</span>`).join("")
+        : `<span class="pf-badges-empty">Pin up to 5 earned badges here from ACHIEVEMENTS.</span>`}</div>
+      <button class="ghost pf-to-ach">◆ ACHIEVEMENTS</button>`;
+    box.querySelector(".pf-to-ach").addEventListener("click", () => window.openLoadout && window.openLoadout("achievements"));
+  }
+  const refreshRecord = () => renderRecord(document.querySelector("#loadout .pf-record"));
 
   // The picture is cropped to a square and shrunk, so it stays small.
   function squarePicture(file) {
@@ -188,7 +274,7 @@
   }
 
   window.UmbraProfile = {
-    data: profile, art, render,
+    data: profile, art, render, update, refreshRecord,
     onChange: (f) => { listeners.push(f); f(profile); },
   };
   load();
