@@ -221,12 +221,14 @@ The tools that can matter between life and death, all offline (Ctrl+K):
   last, what runs out first, and how much more you need for your goal.
 - **Vault:** a round vault door that opens with your lock password (or a
   click if you have none) on your arsenal: firearms, ammunition and defence
-  gear, picked from a library of common models (pistols, revolvers, rifles,
+  gear, **valuables** and **data** (drives, backups, document copies), picked from a library of common models (pistols, revolvers, rifles,
   shotguns, bows, crossbows, knives, sprays) or entered by hand. Each has an
   **inspect view** with its ASCII drawing, parts called out, specifications,
   and the rounds you have for it. Stored on your computer only, behind the
   password (not encrypted).
-- **Training:** Morse by ear and by hand, a **Morse challenge** (key the
+- **Training:** **field manuals** to download and read (nine US Army field
+  manuals, Sweden's civil-defence brochure, FEMA's preparedness guide),
+  Morse by ear and by hand, a **Morse challenge** (key the
   word or sentence shown, for points and a streak), a **signal lamp**, the
   **NATO phonetic alphabet**, **radio procedure words**, **grid references**,
   **compass bearings and pace count**, **SALUTE reports** (with a form to
@@ -247,7 +249,10 @@ channel and band, security, maker, address. Around it, your device's vitals
 (processor, temperature, memory, battery, disk, network traffic) and the
 Wi-Fi channels in use. It needs no internet, only the radios switched on, so
 it works off the grid too. Passive: Umbra connects to nothing and keeps
-nothing.
+nothing. INTEL sums up bands, security, makers and open networks, the EVENT
+LOG records contacts appearing, leaving, closing in or fading, and the **kill
+switch** turns Wi-Fi, mobile data and Bluetooth off at once (and back on).
+Full screen with F.
 
 ### History, export and backup
 

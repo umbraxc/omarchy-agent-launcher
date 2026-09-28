@@ -2,6 +2,27 @@
 
 ## 3.1.1
 
+- **Signals & Radar** reworked: a slower cinematic sweep with phosphor
+  trails and contact pings, HUD readouts, INTEL (bands, security, makers,
+  open networks) and an EVENT LOG of contacts appearing and leaving, full
+  screen, and a **kill switch** that turns all radios off at once.
+- **Field manuals** to download and read in Training: nine US Army field
+  manuals, Sweden's *In Case of Crisis or War* and FEMA's *Are You Ready?*
+- **Vault** also holds **valuables** (gold, silver, cash, jewellery) and
+  **data** (drives, backups, document copies).
+- **Maps**: 65 waypoint symbols from game-icons.net, a quiet ambient life on
+  the map, a short tune of its own for every country, resource icons, water
+  with a flowing river, and **armed forces** in the country files.
+- **Themes** redesigned to really differ: Arctic Kill, Hazmat, Sahara Noon,
+  Paper Map, Rose Quartz, Blueprint, Thermal, Graphite, Cobalt Strike,
+  Monsoon, Tyrian, Lapis, Burgundy, Jade and more.
+- **Umbra knows you better**: its answers take into account your record,
+  supplies, waypoints, safety levels, manuals, training, a patient you're
+  caring for and running first-aid timers (and your Vault, when you ask).
+- The prompt stays still while you type, with the real cursor; suggested
+  replies keep typing themselves in; a Tab hint; the start-screen questions
+  can be hidden. History shows a small picture for each conversation.
+
 - **Signals & Radar** (Ctrl+J): a command-centre screen with a sonar radar of
   the Wi-Fi networks and Bluetooth devices around you (click one for its
   details), your device's vitals and the Wi-Fi channels in use. No internet

@@ -15,6 +15,23 @@ under which terms.
 | `boot.ogg`, `shutdown.ogg` | umbraxc, mixed from the Kenney sounds above | CC0 1.0 |
 | `beep.ogg`, `glitch.ogg`, `achieve.ogg`, `complete.ogg` | umbraxc, synthesized | CC0 1.0 |
 
+## Map symbols
+
+| Part | By | License |
+|---|---|---|
+| Waypoint symbols (`umbra-wiki/ui/mapicons.js`) | [game-icons.net](https://game-icons.net): icons made by Lorc, Delapouite, John Colburn, Sbed, Skoll and Willdabeast | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+
+## Field manuals (downloaded on request, not included)
+
+The Training → Manuals page lists public manuals that are downloaded only
+when you ask, from their sources (`umbra-wiki/manuals.json`):
+
+| Manual | Publisher | Source | Terms |
+|---|---|---|---|
+| FM 21-76 Survival, FM 3-05.70 Survival, FM 4-25.11 First Aid, FM 3-25.26 Map Reading and Land Navigation, TC 21-3 Cold-Weather Areas, FM 90-3 Desert Operations, FM 3-97.61 Military Mountaineering, FM 5-125 Rigging Techniques, FM 21-18 Foot Marches | US Department of the Army | [Internet Archive](https://archive.org) | public domain (US government works) |
+| In Case of Crisis or War | Swedish Civil Contingencies Agency (MSB) | [msb.se](https://www.msb.se) | as published by MSB |
+| Are You Ready? | FEMA | [ready.gov](https://www.ready.gov) | public domain (US government work) |
+
 ## Offline library (downloaded on request, not included)
 
 Umbra does not ship any library content. When you choose a pack or a
