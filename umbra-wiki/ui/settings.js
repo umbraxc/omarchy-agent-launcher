@@ -863,6 +863,7 @@
     panel.hidden = !show;
     $("#settings-btn").classList.toggle("on", show);
     if (show) {
+      if (window.closeCore) window.closeCore();
       toggleThemes(false, true);
       $("#library").hidden = true;
       $("#library-btn").classList.remove("on");

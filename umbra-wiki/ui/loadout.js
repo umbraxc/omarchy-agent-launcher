@@ -409,6 +409,12 @@
   // Newly earned achievements show at once when their tab is open.
   window.refreshLoadoutTab = (tab) => { if (!overlay.hidden && state.tab === tab) render(); };
   window.reloadLoadout = load;
+  // For the conversation's dossiers (dossiers.js): who Umbra is right now.
+  window.UmbraLoadout = {
+    persona: () => find(state.personality, "personality"),
+    scenario: () => find(state.scenario, "scenario"),
+    artOf, animate,
+  };
   load().then(() => {
     const view = new URLSearchParams(location.search).get("view");
     if (view === "loadout") open();

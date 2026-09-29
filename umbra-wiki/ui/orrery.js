@@ -169,5 +169,5 @@ window.UmbraOrrery = (() => {
     return stop;
   }
 
-  return { start, sky };
+  return { start, sky, isLand };
 })();

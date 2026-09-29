@@ -916,14 +916,14 @@
    "id": "globe",
    "kind": "orb",
    "name": "Globe",
-   "description": "The classic: a spinning, lit globe.",
+   "description": "The Earth, turning: real continents, day and night, a glowing atmosphere.",
    "unlock": {}
   },
   {
    "id": "radar",
    "kind": "orb",
    "name": "Radar Dish",
-   "description": "Rings and a sweeping beam.",
+   "description": "A radar scope: bearing marks, a fading sweep, and contacts that flare as it passes.",
    "unlock": {
     "rank": "Scout"
    }
@@ -932,7 +932,7 @@
    "id": "compass",
    "kind": "orb",
    "name": "Compass Rose",
-   "description": "A needle that settles north.",
+   "description": "A compass bezel with a needle that swings and settles north.",
    "unlock": {
     "achievement": "true-north"
    }
@@ -941,7 +941,7 @@
    "id": "moon",
    "kind": "orb",
    "name": "Phases",
-   "description": "The moon, waxing and waning.",
+   "description": "The Moon through its phases, with craters, seas and earthshine.",
    "unlock": {
     "achievement": "sun-reader"
    }
@@ -950,7 +950,7 @@
    "id": "reactor",
    "kind": "orb",
    "name": "Reactor Core",
-   "description": "A pulsing core with turning spokes.",
+   "description": "A glowing core inside three turning rings.",
    "unlock": {
     "achievement": "under-the-hood"
    }
@@ -959,7 +959,7 @@
    "id": "ringworld",
    "kind": "orb",
    "name": "Ringed World",
-   "description": "A planet inside a tilted ring.",
+   "description": "A banded gas giant, its ring with a gap and its shadow, and a moon going round.",
    "unlock": {
     "rank": "Ranger"
    }
@@ -968,7 +968,7 @@
    "id": "watcher",
    "kind": "orb",
    "name": "The Watcher",
-   "description": "An eye that looks around.",
+   "description": "An eye with a detailed iris that looks around, and blinks.",
    "unlock": {
     "achievement": "signal-hunter"
    }
@@ -977,7 +977,7 @@
    "id": "blacksun",
    "kind": "orb",
    "name": "Black Sun",
-   "description": "A dark sphere with a burning corona.",
+   "description": "A dark sphere inside a flaring corona.",
    "unlock": {
     "rank": "Survivalist"
    }
@@ -986,9 +986,54 @@
    "id": "gold",
    "kind": "orb",
    "name": "Golden Globe",
-   "description": "The globe, in gold. For legends only.",
+   "description": "The Earth in gold, with a sparkle. For legends only.",
    "unlock": {
     "rank": "Legend"
+   }
+  },
+  {
+   "id": "galaxy",
+   "kind": "orb",
+   "name": "Galaxy",
+   "description": "A spiral galaxy, turning slowly, with a bright core.",
+   "unlock": {
+    "rank": "Veteran"
+   }
+  },
+  {
+   "id": "aurora",
+   "kind": "orb",
+   "name": "Aurora",
+   "description": "The night side of the Earth: city lights below, curtains of light over the pole.",
+   "unlock": {
+    "achievement": "always-ready"
+   }
+  },
+  {
+   "id": "atom",
+   "kind": "orb",
+   "name": "Atom",
+   "description": "A nucleus with three electrons racing round it.",
+   "unlock": {
+    "achievement": "globetrotter"
+   }
+  },
+  {
+   "id": "blackhole",
+   "kind": "orb",
+   "name": "Black Hole",
+   "description": "An accretion disc bent round a black hole by its gravity, with a photon ring.",
+   "unlock": {
+    "achievement": "the-oracle"
+   }
+  },
+  {
+   "id": "supernova",
+   "kind": "orb",
+   "name": "Supernova",
+   "description": "A star exploding, over and over. The rarest of all.",
+   "unlock": {
+    "achievement": "legend"
    }
   },
   {

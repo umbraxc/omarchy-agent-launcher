@@ -98,7 +98,7 @@ local.
 
 ### The Core panel: your AI, and how everything is doing
 
-Click **STATUS** at the top. An animated core shows Umbra's state, with every
+Click **STATUS** at the top and the Core panel slides in from the side. A live orb shows Umbra's state, with every
 system listed (AI engine, model, library, maps, network, downloads, power,
 voice, processor) and what to do when one isn't right. Below it are eight
 local AI models, each with a callsign so none look alike: **SPARK** (Gemma 3
@@ -107,6 +107,14 @@ local AI models, each with a callsign so none look alike: **SPARK** (Gemma 3
 E4B), **VANGUARD** (Qwen 3.5 9B) and **COMMAND** (Gemma 4 12B). Each shows what
 it's good at, its limits, an example answer, and whether it fits your computer.
 Download, switch or remove them there.
+
+### A conversation between two
+
+Umbra's card stands on one side of the conversation and yours on the other:
+its personality's portrait and what it's doing (standing by, thinking,
+transmitting), your character, title and rank (typing, sent). Your messages
+sit on the right. On a narrower window the cards fold into slim bars at the
+edges that open when you hover over them.
 
 ### An Umbra that adapts to you
 
@@ -166,8 +174,10 @@ your saved conversations once, so earlier use counts too.
 
 ![Achievements](docs/achievements.png)
 
-**The Locker** (Profile → LOCKER) turns them into rewards: 9 orbs for the start
-screen (radar dish, compass rose, ringed world, the watcher, black sun…), 12
+**The Locker** (Profile → LOCKER) turns them into rewards: 14 orbs for the start
+screen, drawn in colour (radar scope, compass, moon phases, ringed world, the
+watcher, black sun, and for the hardest achievements a galaxy, an aurora, an
+atom, a black hole and a supernova), 12
 titles shown with your name, and 5 name effects. Ranks and particular
 achievements unlock them; a note tells you when one does. Achievements start
 counting once the welcome tour is done.

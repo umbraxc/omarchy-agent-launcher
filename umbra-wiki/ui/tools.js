@@ -197,9 +197,21 @@
   // (replies in the reply colour, everything else faint), so it never jumps.
   const DEFAULT_HINT = input.placeholder;
   let ex = 0, typing = 0, cycleTimer = 0;
+  // The hint always fits on one line: a long one is shortened with "…".
+  const measure = document.createElement("canvas").getContext("2d");
+  function fitLine(text, tail) {
+    const cs = getComputedStyle(input);
+    measure.font = `italic 600 ${cs.fontSize} ${cs.fontFamily}`;
+    const room = input.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0) - 14;
+    if (room <= 0 || measure.measureText(text + tail).width <= room) return text;
+    let t = text;
+    while (t.length > 8 && measure.measureText(t + "…" + tail).width > room) t = t.slice(0, -1);
+    return t.replace(/[\s,.;:]+$/, "") + "…";
+  }
   function typeHint(text, reply) {
     clearTimeout(typing);
-    const tail = reply ? "    ⇥ TAB" : "";
+    const tail = reply ? "  ⇥ TAB" : "";
+    text = fitLine(text, tail);
     const target = text + tail;
     const finish = () => {   // typing started, or no motion: show it whole, at once
       input.classList.remove("typing-hint");

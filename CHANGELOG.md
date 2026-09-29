@@ -1,12 +1,14 @@
 # Changelog
 
-## 3.2.0
+## 3.1.3
 
 ### Highlights
 
+- **A real conversation**: Umbra's card on one side and yours on the other, with your characters, what each of you is doing (thinking, transmitting, typing) and a little glitch as Umbra starts to talk. Your messages sit on the right.
+- **New orbs, rebuilt**: every start-screen orb redrawn in colour and finer detail, plus five new ones for the hardest achievements (Galaxy, Aurora, Atom, Black Hole, Supernova).
 - **The Core panel**: click STATUS at the top. Every system's condition at a glance, and eight AI models to choose from (SPARK, SCOUT, RANGER, SENTINEL, WARDEN, ORACLE, VANGUARD, COMMAND), each with what it's good at, how it answers and how well it suits your computer.
 - **An Umbra that adapts to you**: it matches how you write, formal or casual, remembers what you ask for (shorter answers, no lists), and stops repeating itself. Its personality always comes first.
-- **The Locker**: achievements now earn rewards: new orbs for the start screen, titles and name effects. 17 new achievements cover every tool.
+- **The Locker**: achievements now earn rewards: 14 orbs for the start screen, titles and name effects. 17 new achievements cover every tool.
 - **A shorter welcome**: a quick ASCII introduction, then choose a one-minute quick start, the full briefing, or skip. A skip link is always one click away.
 - **A bigger library**: eight new collections, including a prepper encyclopedia, the CIA World Factbook, Wikipedia's essentials, vehicle repair, money, parenting and pets.
 - **Calmer notifications**: their own, quieter volume, and achievements only count once the tour is done.
@@ -18,13 +20,18 @@
   download, switch and remove models. Models that "think" first (Gemma 4, Qwen 3.5) answer straight away.
 - Adaptive style: learned from your messages on this computer only; Settings → Conversation shows what's been learned,
   switches it off, or forgets it. Umbra now remembers a little more of the conversation.
-- Locker (Profile → LOCKER): 9 orbs, 12 titles and 5 name effects, unlocked by rank or by achievements, with a note
+- Locker (Profile → LOCKER): 14 orbs, 12 titles and 5 name effects, unlocked by rank or by achievements, with a note
   when one unlocks. New achievements for the Core panel, AI models, radar, kill switch, vault, calendar, medic tools,
   field manuals, country files, measuring, folders, exports and Tab quick actions.
 - Welcome tour: QUICK START (name, AI, library, theme, a short look at the screen) or FULL BRIEFING (everything, as
   before); finishing a tour earns the first achievement, skipping doesn't. First-look notes have "hide all".
 - Library: 27 collections (13 GB in all); two new sections, Everyday Life and Knowledge & the World.
-- The prompt's hints keep one colour, the same as "PRESS TAB FOR QUICK ACTIONS".
+- The prompt's hints keep one colour, the same as "PRESS TAB FOR QUICK ACTIONS": the theme's accent, a little bolder;
+  long ones are shortened to fit one line, and "⇥ TAB" sits right after the text.
+- Conversation cards: beside the conversation on wide windows; on narrower ones, slim bars at the edges that open
+  on hover and push the conversation aside.
+- The Core panel opens as a side panel, like Settings: the AI first, then what's local, with a live orb for the status.
+- The Locker uses the whole window: pick a reward to see it on you, then equip it.
 - Settings → Sound: a separate volume for notification sounds (pop-ups, achievements, finished downloads).
 
 ## 3.1.2
