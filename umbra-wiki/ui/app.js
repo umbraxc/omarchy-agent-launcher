@@ -140,12 +140,15 @@ const Sound = (() => {
   const inPage = /Windows/.test(navigator.userAgent);
   const cache = {};
   const volume = () => (window.prefs && typeof prefs.volume === "number" ? prefs.volume : 0.9);
+  const notifyVolume = () => (window.prefs && typeof prefs.notifyVolume === "number" ? prefs.notifyVolume : 0.5);
   const playHere = (name) => {
     const a = cache[name] || (cache[name] = new Audio(`/sounds/${name}.ogg`));
     // Short interface sounds cut their previous one (no tail of clicks).
     const s = ["key", "hover", "click"].includes(name) ? a : a.cloneNode();
     if (s === a) { a.pause(); a.currentTime = 0; }
-    s.volume = volume();
+    const notify = ["achieve", "glitch", "complete"].includes(name) ? notifyVolume() : 1;   // as NOTIFY_SOUNDS in server.py
+    if (notify <= 0) return;
+    s.volume = volume() * notify;
     s.play().catch(() => {});
   };
   let humAudio = null;
@@ -461,7 +464,7 @@ $("#themes-close").addEventListener("click", () => toggleThemes(false));
 
 // ---------------------------------------------------------------- library
 
-const CATEGORY = { survival: "SURVIVAL", medical: "MEDICAL", practical: "PRACTICAL SKILLS" };
+const CATEGORY = { survival: "SURVIVAL", medical: "MEDICAL", practical: "PRACTICAL SKILLS", everyday: "EVERYDAY LIFE", knowledge: "KNOWLEDGE & THE WORLD" };
 const fmtSize = (b) => (b >= 1e9 ? (b / 1e9).toFixed(1) + " GB" : Math.max(1, Math.round(b / 1e6)) + " MB");
 
 // Rebuilds a scrolling panel in place: the reader stays where they scrolled
@@ -701,27 +704,91 @@ setInterval(() => {
   spins.forEach((el) => { if (el.offsetParent !== null) el.textContent = SPIN[spinFrame]; });
 }, 110);
 
-// A shaded ASCII globe spinning on its axis: latitude and longitude lines
-// over a lit sphere. Draws ~12 frames a second into a small <pre>.
-function orb(el, w, h) {
+// The start screen's ASCII orb, in the style equipped in the Locker (a
+// reward): a spinning globe by default. Each style returns how bright a
+// point is (0-1) for a point (nx, ny) of the disc at time t; ~12 frames a second.
+const ORB_STYLES = {
+  globe(nx, ny, r2, t) {
+    const nz = Math.sqrt(1 - r2);
+    const lon = Math.atan2(nx, nz) + t, lat = Math.asin(ny);
+    const grid = Math.abs(Math.sin(lon * 3)) < 0.16 || Math.abs(Math.sin(lat * 4)) < 0.14;
+    const light = 0.25 + 0.75 * Math.max(0, -0.45 * nx - 0.4 * ny + 0.8 * nz);
+    return Math.min(1, light * 0.6 + (grid ? 0.4 : 0));
+  },
+  radar(nx, ny, r2, t) {
+    const r = Math.sqrt(r2), th = Math.atan2(ny, nx);
+    const d = ((t * 1.6 - th) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+    const sweep = d < 1.1 ? 1 - d / 1.1 : 0;
+    const ring = [0.34, 0.67, 0.96].some((x) => Math.abs(r - x) < 0.05) || Math.abs(nx) < 0.04 || Math.abs(ny) < 0.06;
+    const blip = Math.abs(nx - 0.35) < 0.08 && Math.abs(ny + 0.3) < 0.1 && d < 2.5 ? 1 - d / 2.5 : 0;
+    return Math.max(ring ? 0.35 : 0.06, sweep * 0.95, blip);
+  },
+  compass(nx, ny, r2, t) {
+    const r = Math.sqrt(r2), rot = Math.sin(t * 0.8) * Math.exp(-((t % 12) / 4)) * 0.9;
+    const th = Math.atan2(nx, -ny) - rot;
+    const star = r < 0.18 + 0.78 * Math.pow(Math.abs(Math.cos(2 * th)), 14) || r < 0.1 + 0.4 * Math.pow(Math.abs(Math.cos(2 * th + Math.PI / 4 * 2)), 18);
+    const north = Math.abs(th) < 0.2 && r < 0.95 ? 1 : 0;
+    const ring = r > 0.9 ? 0.4 : 0;
+    return Math.max(ring, star ? 0.6 : 0.05, north);
+  },
+  moon(nx, ny, r2, t) {
+    const nz = Math.sqrt(1 - r2), a = t * 0.35;
+    const lit = nx * Math.sin(a) + nz * Math.cos(a);
+    const crater = (Math.sin(nx * 9 + 1) * Math.sin(ny * 8 + 2) + Math.sin(nx * 17) * Math.sin(ny * 13)) * 0.12;
+    return Math.max(0.04, Math.min(1, lit * 0.9 + crater + 0.1));
+  },
+  reactor(nx, ny, r2, t) {
+    const r = Math.sqrt(r2), th = Math.atan2(ny, nx);
+    const spoke = Math.abs(Math.sin(3 * (th - t * 0.9))) < 0.13 && r > 0.3 && r < 0.9;
+    const ring = Math.abs(r - 0.93) < 0.06 || Math.abs(r - (0.3 + (t * 0.25 % 0.6))) < 0.04;
+    const core = r < 0.26 ? 0.6 + 0.4 * Math.sin(t * 5) : 0;
+    return Math.max(spoke ? 0.8 : 0.08, ring ? 0.55 : 0, core);
+  },
+  ringworld(nx, ny, r2, t) {
+    const pr = nx * nx / 0.36 + ny * ny / 0.36;
+    const rx = nx * Math.cos(0.35) + ny * Math.sin(0.35), ry = (-nx * Math.sin(0.35) + ny * Math.cos(0.35)) / 0.3;
+    const re = rx * rx + ry * ry, onRing = re > 0.62 && re < 0.95;
+    const band = Math.abs(Math.sin((re + t * 0.05) * 30)) > 0.4;
+    if (onRing && (ry > 0 || pr > 1)) return band ? 0.8 : 0.45;
+    if (pr <= 1) { const nz = Math.sqrt(1 - pr); return Math.min(1, 0.2 + 0.7 * Math.max(0, -0.5 * nx / 0.6 - 0.3 * ny / 0.6 + 0.8 * nz) + (Math.abs(Math.sin(ny * 12 + t)) < 0.2 ? 0.2 : 0)); }
+    return 0;
+  },
+  watcher(nx, ny, r2, t) {
+    const blink = (t % 9) > 8.6 ? 0.1 : 1;
+    const lid = 0.62 * (1 - nx * nx) * blink;
+    if (Math.abs(ny) > lid) return Math.abs(Math.abs(ny) - lid) < 0.08 ? 0.5 : 0;
+    const px = Math.sin(t * 0.45) * 0.35, py = Math.sin(t * 0.8) * 0.1;
+    const d = Math.hypot(nx - px, ny - py);
+    if (d < 0.13) return 0.05;
+    if (d < 0.36) return 0.95 - Math.abs(Math.sin(Math.atan2(ny - py, nx - px) * 8)) * 0.25;
+    return 0.2;
+  },
+  blacksun(nx, ny, r2, t) {
+    const r = Math.sqrt(r2), th = Math.atan2(ny, nx);
+    if (r < 0.58) return r > 0.53 ? 0.9 : 0;
+    const flare = 0.5 + 0.5 * Math.sin(th * 7 + t * 2) * Math.sin(th * 3 - t);
+    return Math.max(0, (1 - (r - 0.58) / 0.42) * (0.55 + 0.45 * flare));
+  },
+};
+ORB_STYLES.gold = ORB_STYLES.globe;
+
+function orb(el, w, h, style) {
   const ramp = " .·:-=+*#%@";
   let t = Math.random() * 6, last = 0, raf = 0, alive = true;
+  const pick = () => style || (window.prefs && window.prefs.orb) || "globe";
   const frame = (ts) => {
     if (!alive) return;
     if (ts - last > 80 && el.isConnected) {
       last = ts; t += 0.07;
+      const name = pick(), shade = ORB_STYLES[name] || ORB_STYLES.globe;
+      el.dataset.orb = name;
       let out = "";
       for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
           const nx = (x - w / 2 + 0.5) / (w / 2), ny = (y - h / 2 + 0.5) / (h / 2);
           const r2 = nx * nx + ny * ny;
           if (r2 > 1) { out += " "; continue; }
-          const nz = Math.sqrt(1 - r2);
-          const lon = Math.atan2(nx, nz) + t, lat = Math.asin(ny);
-          const grid = Math.abs(Math.sin(lon * 3)) < 0.16 || Math.abs(Math.sin(lat * 4)) < 0.14;
-          const light = 0.25 + 0.75 * Math.max(0, -0.45 * nx - 0.4 * ny + 0.8 * nz);
-          const v = Math.min(1, light * 0.6 + (grid ? 0.4 : 0));
-          out += ramp[Math.round(v * (ramp.length - 1))];
+          out += ramp[Math.round(Math.max(0, Math.min(1, shade(nx, ny, r2, t))) * (ramp.length - 1))];
         }
         out += "\n";
       }
@@ -733,6 +800,7 @@ function orb(el, w, h) {
   raf = requestAnimationFrame(frame);
   return () => { alive = false; cancelAnimationFrame(raf); };
 }
+window.umbraOrb = orb;
 
 // Digital rain: columns of random characters falling behind the intro,
 // fading as they go. ~16 frames a second on a small canvas.
@@ -1608,6 +1676,12 @@ function addUser(text, wasOnline = online) {
   el.innerHTML = `<div class="label">${me.picture ? '<img class="avatar" alt="">' : ""}<span class="who"></span>${wasOnline ? " · ONLINE" : ""}</div><div class="body"></div>`;
   el.querySelector(".who").textContent = (me.name || "YOU") + (me.callsign ? ` · ${me.callsign}` : "");
   if (me.color) el.querySelector(".who").style.color = `var(--${me.color})`;
+  // Rewards from the Locker: a name effect and a title.
+  const fx = (window.prefs && window.prefs.nameFx) || "plain";
+  el.querySelector(".who").classList.add("fx-" + fx);
+  const title = window.prefs && window.prefs.title;
+  const titled = title && title !== "none" && window.UmbraAchievements && UmbraAchievements.data && (UmbraAchievements.data.rewards || []).find((r) => r.id === title);
+  if (titled) el.querySelector(".who").insertAdjacentHTML("afterend", `<span class="title-tag">${escapeHtml(titled.name.toUpperCase())}</span>`);
   if (me.picture) el.querySelector(".avatar").src = me.picture;
   el.querySelector(".body").textContent = text;
   feed.appendChild(el);

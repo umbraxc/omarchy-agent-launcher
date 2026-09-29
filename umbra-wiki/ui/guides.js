@@ -6,6 +6,8 @@
 window.UmbraGuide = (() => {
   const G = {
     maps: ["MAPS", ["Drag to move, scroll to zoom; click a country's name for its file.", "Right-click anywhere for waypoints, measuring, coordinates and range rings.", "The download button (top right) gets detailed maps that work offline."]],
+    core: ["CORE", ["Every system's condition at a glance, and what to do when one isn't right.", "The AI models: what each is good at, how it answers, and how well it suits this computer. Download, switch or remove them here."]],
+    "lo-locker": ["LOCKER", ["Rewards for your achievements: orbs for the start screen, titles and name effects.", "Earn points to rank up; ranks and certain achievements unlock more. Click one to equip it."]],
     radar: ["SIGNALS & RADAR", ["The Wi-Fi and Bluetooth signals around you: nearer the centre means stronger.", "Click a blip or a row for its details. DEVICES remembers what the radar has heard and marks new ones.", "The KILL SWITCH turns all radios off at once. F for full screen."]],
     library: ["LIBRARY", ["The offline collections Umbra reads from, and its built-in Field Manual.", "Download more here; downloads can be paused and go on after a restart."]],
     history: ["HISTORY", ["Every conversation, saved on this computer. Search everything that was said.", "Make folders with a brief Umbra keeps in mind; drag conversations onto them, or pin them."]],
@@ -34,7 +36,7 @@ window.UmbraGuide = (() => {
     const el = document.createElement("div");
     el.className = "tabguide";
     el.innerHTML = `<div class="tg-head"><span>◆ ${title} · FIRST LOOK</span></div><ul>${lines.map((l) => `<li></li>`).join("")}</ul>
-      <div class="tg-foot"><button class="solid tg-ok">GOT IT</button></div>`;
+      <div class="tg-foot"><button type="button" class="tour-skipline tg-none">hide all first-look notes</button><button class="solid tg-ok">GOT IT</button></div>`;
     el.querySelectorAll("li").forEach((li, i) => (li.textContent = lines[i]));
     host.appendChild(el);
     current = el;
@@ -47,6 +49,12 @@ window.UmbraGuide = (() => {
       Sound.click();
     };
     el.querySelector(".tg-ok").addEventListener("click", done);
+    // Never show another one (Settings → Help & updates brings them back).
+    el.querySelector(".tg-none").addEventListener("click", () => {
+      const s = seen(); Object.keys(G).forEach((k) => (s[k] = 1));
+      try { localStorage.setItem(seenKey, JSON.stringify(s)); } catch {}
+      done();
+    });
   }
 
   // Watches which screen and tab are open.
@@ -57,6 +65,7 @@ window.UmbraGuide = (() => {
     let key = "", host = null, e;
     if ((e = vis("#maps"))) { key = "maps"; host = e.querySelector(".mp-body"); }
     else if ((e = vis("#radar"))) { key = "radar"; host = e.querySelector(".rd-center"); }
+    else if ((e = vis("#core"))) { key = "core"; host = e; }
     else if ((e = vis("#fieldkit"))) { const t = e.querySelector(".lo-tabs button.on"); key = t ? "fk-" + t.dataset.tab : ""; host = e; }
     else if ((e = vis("#loadout"))) { const t = e.querySelector(".lo-tabs button.on"); key = t ? "lo-" + t.dataset.tab : ""; host = e; }
     else if ((e = vis("#settings"))) { key = "settings"; host = e; }

@@ -207,5 +207,93 @@
     "size": 141408256,
     "url": "https://lb.download.kiwix.org/zim/stack_exchange/outdoors.stackexchange.com_en_all_2026-08.zim",
     "sha256": "78dccd2b5f784b17d1a22b1f65e64a74c53fa473e08f995440ff38bd8417cf1b"
+  },
+  {
+    "id": "trueprepper.com_en_all",
+    "name": "TruePrepper",
+    "description": "Preparedness guides: stockpiles, bug-out bags, home defence, grid-down living",
+    "category": "survival",
+    "essential": false,
+    "file": "trueprepper.com_en_all_2026-05.zim",
+    "size": 1423584895,
+    "url": "https://lb.download.kiwix.org/zim/other/trueprepper.com_en_all_2026-05.zim",
+    "sha256": "64ddae8ca29ca24db23fae403f12af510f3f3119e09933974e91c899b41be940"
+  },
+  {
+    "id": "theworldfactbook_en_all",
+    "name": "CIA World Factbook",
+    "description": "Every country: geography, people, government, economy, military and security",
+    "category": "knowledge",
+    "essential": false,
+    "file": "theworldfactbook_en_all_2026-02.zim",
+    "size": 407350139,
+    "url": "https://lb.download.kiwix.org/zim/other/theworldfactbook_en_all_2026-02.zim",
+    "sha256": "61d559d4e4e62f667697f38223f38e1e6a58a881c824733f71e924233d7ce76f"
+  },
+  {
+    "id": "wikipedia_en_top_mini",
+    "name": "Wikipedia Essentials",
+    "description": "The most read Wikipedia articles, in short: general knowledge on everything",
+    "category": "knowledge",
+    "essential": false,
+    "file": "wikipedia_en_top_mini_2026-09.zim",
+    "size": 296858160,
+    "url": "https://lb.download.kiwix.org/zim/wikipedia/wikipedia_en_top_mini_2026-09.zim",
+    "sha256": "9e75b5f03b4ff61864772d811bd9715c9cdc27a429229abb779aaa3cc3aa8e05"
+  },
+  {
+    "id": "mechanics.stackexchange.com",
+    "name": "Vehicle Repair Q&A",
+    "description": "Keeping cars, trucks and motorbikes running",
+    "category": "practical",
+    "essential": false,
+    "file": "mechanics.stackexchange.com_en_all_2026-08.zim",
+    "size": 339833641,
+    "url": "https://lb.download.kiwix.org/zim/stack_exchange/mechanics.stackexchange.com_en_all_2026-08.zim",
+    "sha256": "20f1547c29c621b3d44ccdc46ac9047cfa99df75227cc68c5284ce7850eac864"
+  },
+  {
+    "id": "money.stackexchange.com",
+    "name": "Personal Finance Q&A",
+    "description": "Budgets, savings, debt and money in hard times",
+    "category": "everyday",
+    "essential": false,
+    "file": "money.stackexchange.com_en_all_2026-08.zim",
+    "size": 253520328,
+    "url": "https://lb.download.kiwix.org/zim/stack_exchange/money.stackexchange.com_en_all_2026-08.zim",
+    "sha256": "5d894b0eeb87ecb2fe6e539ea00502a20f9d1e4275c5f3738597ba70abe2b734"
+  },
+  {
+    "id": "woodworking.stackexchange.com",
+    "name": "Woodworking Q&A",
+    "description": "Tools, joints and building with wood",
+    "category": "practical",
+    "essential": false,
+    "file": "woodworking.stackexchange.com_en_all_2026-08.zim",
+    "size": 105570459,
+    "url": "https://lb.download.kiwix.org/zim/stack_exchange/woodworking.stackexchange.com_en_all_2026-08.zim",
+    "sha256": "a41140515d25c9906ceed8a818dd4a0645b7c040a9dc4a8419a2d729af7c3ccb"
+  },
+  {
+    "id": "pets.stackexchange.com",
+    "name": "Pets Q&A",
+    "description": "Caring for dogs, cats and other animals",
+    "category": "everyday",
+    "essential": false,
+    "file": "pets.stackexchange.com_en_all_2026-08.zim",
+    "size": 86638517,
+    "url": "https://lb.download.kiwix.org/zim/stack_exchange/pets.stackexchange.com_en_all_2026-08.zim",
+    "sha256": "e8e691ac930f168e4ff237e59ba2545b43d5e83a568256ba7bf6ff6605f657cc"
+  },
+  {
+    "id": "parenting.stackexchange.com",
+    "name": "Parenting Q&A",
+    "description": "Children's health, sleep, safety and calm in a crisis",
+    "category": "everyday",
+    "essential": false,
+    "file": "parenting.stackexchange.com_en_all_2026-08.zim",
+    "size": 59780413,
+    "url": "https://lb.download.kiwix.org/zim/stack_exchange/parenting.stackexchange.com_en_all_2026-08.zim",
+    "sha256": "836e3e215c4c6352af63450c652ee3f594903964723a8986d530e168a6359039"
   }
 ]

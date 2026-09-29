@@ -87,7 +87,7 @@ MODEL = os.environ.get("UMBRA_MODEL") or CONFIG.get("model") or "gemma3:4b"
 
 WIKI_API = "https://en.wikipedia.org/w/api.php"
 # Wikimedia asks API clients to name themselves with a contact URL.
-VERSION = "3.1.2"
+VERSION = "3.2.0"
 WEB_HEADERS = {"User-Agent": f"UmbraWiki/{VERSION} (https://github.com/umbraxc/omarchy-umbra; offline survival assistant)"}
 
 # Gemma reads context at ~25 tokens/s on this CPU, so the prompt budget is
@@ -100,7 +100,7 @@ WIKI_SOURCES = 3
 SNIPPET_CHARS = 800
 WIKI_SNIPPET_CHARS = 1300   # online: Wikipedia excerpts are longer and richer
 SUMMARY_CHARS = 150
-HISTORY_TURNS = 2
+HISTORY_TURNS = 3
 
 # How Umbra answers, whatever the loadout. The personality supplies the
 # voice and the scenario the situation; these rules always apply.
@@ -151,7 +151,11 @@ UMBRA_GUIDE = (
     "Every screen shows a short first-look guide the first time; the welcome tour can be replayed from Settings. LIBRARY (Ctrl+L): offline collections and the built-in Umbra Field Manual. HISTORY (Ctrl+H) "
     "with folders (each with a brief you keep in mind); PROFILE (name, callsign, skills, health, blood type, allergies, "
     "medication, emergency contact, household) and LOADOUT (scenarios, personalities, achievements); THEMES (Ctrl+T), e.g. "
-    "Arctic Kill, Hazmat, Paper Map, Thermal; SETTINGS in six groups with search, backups and restore. Everything works offline; only online mode, downloads and the update check use "
+    "Arctic Kill, Hazmat, Paper Map, Thermal; SETTINGS in six groups with search, backups and restore; the CORE panel "
+    "(click STATUS in the top bar): every system's condition and the AI models (SPARK, SCOUT, RANGER, SENTINEL, WARDEN, "
+    "ORACLE, VANGUARD, COMMAND), what each is good at and which suits this computer; the LOCKER (Profile, LOCKER tab): "
+    "rewards unlocked by rank and achievements, such as start-screen orbs, titles and name effects. The welcome tour "
+    "can be replayed from Settings as a quick start or a full briefing. Everything works offline; only online mode, downloads and the update check use "
     "the internet. In the prompt, Tab opens quick actions. When you mention a tool, name it exactly as above. "
     "The only keyboard shortcuts are: Ctrl+K Field Kit, Ctrl+G Maps, Ctrl+J Signals & Radar, Ctrl+L Library, Ctrl+H History, "
     "Ctrl+P Profile, Ctrl+O Loadout, Ctrl+T Themes, Ctrl+, Settings, F1 all shortcuts, and Ctrl + mouse wheel (or Ctrl + plus / "
@@ -1095,7 +1099,19 @@ def set_audio(out=None, source=None):
     return audio_devices()
 
 
-def player(path):
+# Pop-ups, first-look notes, achievements and finished downloads: their own,
+# quieter volume (Settings → Sound → Notification sounds).
+NOTIFY_SOUNDS = ("achieve", "glitch", "complete")
+
+
+def notify_volume():
+    try:
+        return max(0.0, min(1.0, float(read_json(SETTINGS_FILE, {}).get("notifyVolume", 0.5))))
+    except (TypeError, ValueError):
+        return 0.5
+
+
+def player(path, factor=1.0):
     """The command that plays a sound: PipeWire's pw-play (to the chosen
     output), or PulseAudio's paplay on systems that don't run PipeWire.
     On Windows the window plays them itself (see Sound in app.js)."""
@@ -1103,10 +1119,10 @@ def player(path):
         return None
     runtime = os.environ.get("XDG_RUNTIME_DIR") or "/tmp"
     if shutil.which("pw-play") and os.path.exists(os.path.join(runtime, "pipewire-0")):
-        return ["pw-play", *audio_target("audioOut"), "--volume", sound_volume(),
+        return ["pw-play", *audio_target("audioOut"), "--volume", f"{float(sound_volume()) * factor:.2f}",
                 "-P", "{ application.name = \"Umbra Wiki\" media.role = \"Notification\" }", path]
     if shutil.which("paplay"):
-        return ["paplay", f"--volume={int(float(sound_volume()) * 65536)}", path]
+        return ["paplay", f"--volume={int(float(sound_volume()) * factor * 65536)}", path]
     return None
 
 
@@ -1169,7 +1185,8 @@ def open_path(target):
 def play_sound(name):
     """Play a bundled sound through PipeWire (independent of the web view)."""
     path = os.path.join(SOUNDS_DIR, name + ".ogg")
-    if not re.fullmatch(r"[a-z]{1,16}", name) or not os.path.isfile(path) or not player(path):
+    factor = notify_volume() if name in NOTIFY_SOUNDS else 1.0
+    if not re.fullmatch(r"[a-z]{1,16}", name) or not os.path.isfile(path) or not player(path) or factor <= 0:
         return False
     now = time.monotonic()
     gap = 0.07 if name in ("key", "hover") else 0.04
@@ -1184,7 +1201,7 @@ def play_sound(name):
             prev.terminate()
         except OSError:
             pass
-    _sound_procs[name] = subprocess.Popen(player(path), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    _sound_procs[name] = subprocess.Popen(player(path, factor), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return True
 
 
@@ -1482,7 +1499,42 @@ def _ach_state():
     st.setdefault("topics", {})
     st.setdefault("sets", {})
     st.setdefault("days", [])
+    st.setdefault("rewardsSeen", None)   # None: not tracked yet (what's unlocked then isn't "new")
     return st
+
+
+# ------------------------------------------------------------------ rewards
+
+REWARD_SLOTS = {"orb": "orb", "title": "title", "name": "nameFx"}   # kind → the setting that equips it
+
+
+def reward_status(st=None):
+    """Every reward with whether it's unlocked, how to unlock it, and what's
+    equipped. Rewards come from a rank or from one achievement."""
+    cat = achievement_catalog()
+    st = st or _ach_state()
+    ranks = cat["ranks"]
+    points = sum(a["points"] for a in cat["achievements"] if a["id"] in st["earned"])
+    reached = {name for need, name in ranks if points >= need}
+    names = {a["id"]: a["name"] for a in cat["achievements"]}
+    settings = read_json(SETTINGS_FILE, {})
+    out = []
+    for r in cat.get("rewards", []):
+        u = r.get("unlock") or {}
+        if "rank" in u:
+            ok = u["rank"] in reached
+            need = next((n for n, name in ranks if name == u["rank"]), 0)
+            how = f"Reach the rank of {u['rank']} ({need} points)"
+        elif "achievement" in u:
+            ok = u["achievement"] in st["earned"]
+            how = f"Earn “{names.get(u['achievement'], u['achievement'])}”"
+        else:
+            ok, how = True, "Yours from the start"
+        out.append({**r, "unlocked": ok, "how": how})
+    defaults = {k: next((r["id"] for r in out if r["kind"] == k), "") for k in REWARD_SLOTS}
+    equipped = {k: settings.get(slot) if any(r["id"] == settings.get(slot) and r["unlocked"] for r in out) else defaults[k]
+                for k, slot in REWARD_SLOTS.items()}
+    return out, equipped
 
 
 def _ach_backfill():
@@ -1544,8 +1596,17 @@ def _stat(st, stat):
     if stat == "streak":
         return max(_streak(st["days"]), counts.get("bestStreak", 0))
     if stat in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
-                "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries"):
+                "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries", "modelsTried", "medicTools"):
         return len(sets.get(stat, []))
+    if stat == "radarDevices":
+        try:
+            return len(radar.known_devices())
+        except Exception:
+            return 0
+    if stat == "reminders":
+        return len(get_calendar()["events"])
+    if stat == "folders":
+        return len(read_json(FOLDERS_FILE, {}).get("folders", []))
     if stat == "profileName":
         return 1 if get_profile().get("name") else 0
     if stat == "profilePicture":
@@ -1575,7 +1636,11 @@ def _award(st):
 
 
 def record(event, value=None, **info):
-    """Count something the user did and award what it unlocks."""
+    """Count something the user did and award what it unlocks. Nothing counts
+    until the welcome tour is over (finished or skipped): setting Umbra up
+    isn't an achievement, and badges popping up would only distract."""
+    if not read_json(SETTINGS_FILE, {}).get("onboarded"):
+        return
     with ACH_LOCK:
         st = _ach_state()
         counts, sets = st["counts"], st["sets"]
@@ -1599,10 +1664,11 @@ def record(event, value=None, **info):
                     counts[key] = counts.get(key, 0) + 1
             counts["longestConversation"] = max(counts.get("longestConversation", 0), int(info.get("turn") or 1))
         elif event in ("suggestions", "sources", "stops", "voice", "backups", "usbExports", "tour", "password",
-                       "cprMinutes", "morseLetters", "drills", "timers", "sunChecks", "cards", "quartermaster"):
+                       "cprMinutes", "morseLetters", "drills", "timers", "sunChecks", "cards", "quartermaster",
+                       "coreOpened", "radarOpened", "killSwitch", "vault", "quickActions", "measures", "exports"):
             counts[event] = counts.get(event, 0) + 1
         elif event in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
-                       "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries"):
+                       "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries", "modelsTried", "medicTools"):
             item = str(value or "")[:60]
             if item and item not in sets.get(event, []):
                 sets[event] = sets.get(event, []) + [item]
@@ -1620,6 +1686,12 @@ def achievements(mark_seen=False):
         if mark_seen and unseen:
             st["unseen"] = []
             changed = True
+        rewards, equipped = reward_status(st)
+        unlocked = [r["id"] for r in rewards if r["unlocked"]]
+        new_rewards = [] if st["rewardsSeen"] is None else [i for i in unlocked if i not in st["rewardsSeen"]]
+        if mark_seen and (new_rewards or st["rewardsSeen"] is None):
+            st["rewardsSeen"] = unlocked
+            changed = True
         if changed:
             write_json(ACH_FILE, st)
     cat = achievement_catalog()
@@ -1634,6 +1706,7 @@ def achievements(mark_seen=False):
             "total": sum(a["points"] for a in items), "rank": rank,
             "next": {"rank": later[0][1], "points": later[0][0]} if later else None,
             "unseen": unseen if mark_seen else [],
+            "rewards": rewards, "equipped": equipped, "newRewards": new_rewards if mark_seen else [],
             "stats": {"questions": counts.get("questions", 0), "streak": _stat(st, "streak"),
                       "days": len(st["days"]), "favourite": favourite}}
 
@@ -1695,14 +1768,86 @@ def greeting():
 # ------------------------------------------------- setup: hardware, models, packs
 
 # The AI models offered at setup, smallest to largest.
+# The local AI models Umbra offers, each with its own callsign so none look
+# alike. Sizes are Ollama's downloads; "ram" is the memory a computer should
+# have; "speed" a rough guide on a laptop processor (a graphics card is much
+# faster). Models that "think" first have thinking switched off (see think_off),
+# which keeps answers quick on a processor.
 MODEL_CHOICES = [
-    {"id": "gemma3:1b", "name": "Gemma 3 · 1B", "size": 0.8, "ram": 4,
-     "line": "Fastest, basic answers. Runs on any computer."},
-    {"id": "gemma3:4b", "name": "Gemma 3 · 4B", "size": 3.3, "ram": 8,
-     "line": "The recommended balance of speed and quality. Needs 8 GB of memory."},
-    {"id": "llama3.1:8b", "name": "Llama 3.1 · 8B", "size": 4.9, "ram": 16,
-     "line": "Most capable and detailed. Needs 16 GB of memory; slow without a graphics card."},
+    {"id": "gemma3:1b", "callsign": "SPARK", "name": "SPARK · Gemma 3 1B", "family": "Gemma 3", "maker": "Google", "year": 2025,
+     "params": "1 billion", "size": 0.8, "ram": 4, "speed": "fast", "tier": 1,
+     "line": "Fastest, with short and simple answers. Runs on any computer.",
+     "about": "A tiny model for old or low-power machines. Quick to answer and light on the battery, but it knows less and makes more mistakes.",
+     "good": ["Very quick, even on old laptops", "Light on memory and battery", "Fine for short, simple questions"],
+     "limits": ["Shallow knowledge", "Can get details wrong", "Short, plain answers"],
+     "example": "Boil water for 1 minute at a rolling boil. Let it cool, keep it covered.",
+     "logo": ["    .    ", "  \\ | /  ", " -- * -- ", "  / | \\  ", "    '    "]},
+    {"id": "llama3.2:3b", "callsign": "SCOUT", "name": "SCOUT · Llama 3.2 3B", "family": "Llama 3.2", "maker": "Meta", "year": 2024,
+     "params": "3 billion", "size": 2.0, "ram": 6, "speed": "fast", "tier": 2,
+     "line": "Quick and friendly, good for everyday questions on a modest computer.",
+     "about": "A small, lively all-rounder: quick replies with a friendly tone. A good pick when speed matters more than depth.",
+     "good": ["Quick on most laptops", "Friendly, conversational tone", "Good at everyday questions"],
+     "limits": ["Less depth on specialist topics", "Weaker at long, multi-step plans"],
+     "example": "Good call checking first. Boil it hard for a full minute, then let it cool with a lid on so nothing gets back in.",
+     "logo": ["  _____  ", " (o) (o) ", "  \\_|_/  ", "   |=|   ", "  /___\\  "]},
+    {"id": "gemma3:4b", "callsign": "RANGER", "name": "RANGER · Gemma 3 4B", "family": "Gemma 3", "maker": "Google", "year": 2025,
+     "params": "4 billion", "size": 3.3, "ram": 8, "speed": "steady", "tier": 3, "recommended": True,
+     "line": "The recommended balance of speed and quality. Needs 8 GB of memory.",
+     "about": "Umbra's standard: clear, well-organised answers with sensible steps, fast enough on a normal laptop. Reads the library well.",
+     "good": ["Clear step-by-step answers", "Uses the library's sources well", "Runs on a normal laptop"],
+     "limits": ["A minute or so per answer on a processor", "Can be cautious and a bit formal"],
+     "example": "**Boil** it at a rolling boil for **1 minute** (3 above 2,000 m). **Cool** it covered, and **store** it in a clean, closed container.",
+     "logo": ["    N    ", "  \\ | /  ", " W -+- E ", "  / | \\  ", "    S    "]},
+    {"id": "ministral-3:8b", "callsign": "SENTINEL", "name": "SENTINEL · Ministral 3 8B", "family": "Ministral 3", "maker": "Mistral AI", "year": 2025,
+     "params": "8 billion", "size": 6.0, "ram": 12, "speed": "slow", "tier": 4,
+     "line": "Precise and dependable; follows instructions closely. Strong in many languages.",
+     "about": "A careful, disciplined model from Mistral: sticks to what you ask, keeps to the point, and is at home in French, German, Spanish, Italian and more.",
+     "good": ["Follows your profile and scenario closely", "Strong in many European languages", "Concise and to the point"],
+     "limits": ["Needs 12 GB of memory", "Slow without a graphics card"],
+     "example": "Bring the water to a rolling boil and keep it there for one minute. Cover it while it cools. If it was cloudy, filter it through cloth first.",
+     "logo": ["  [___]  ", "  |[ ]|  ", "  |   |  ", "  |[ ]|  ", " /_____\\ "]},
+    {"id": "llama3.1:8b", "callsign": "WARDEN", "name": "WARDEN · Llama 3.1 8B", "family": "Llama 3.1", "maker": "Meta", "year": 2024,
+     "params": "8 billion", "size": 4.9, "ram": 16, "speed": "slow", "tier": 4,
+     "line": "Detailed and thorough, with a lot of general knowledge. Needs 16 GB of memory.",
+     "about": "A proven, well-read model that gives long, thorough answers and explains the why behind each step.",
+     "good": ["Broad general knowledge", "Thorough explanations", "Tried and tested"],
+     "limits": ["Needs 16 GB of memory", "Slow without a graphics card", "Can be long-winded"],
+     "example": "Boiling is the most reliable way to kill germs. Bring it to a full rolling boil for one minute: that's enough for bacteria, viruses and parasites...",
+     "logo": ["  _____  ", " |  |  | ", " |--+--| ", "  \\ | /  ", "   \\|/   "]},
+    {"id": "gemma4:e4b-it-qat", "callsign": "ORACLE", "name": "ORACLE · Gemma 4 E4B", "family": "Gemma 4", "maker": "Google", "year": 2026,
+     "params": "4 billion effective (8 in total)", "size": 6.1, "ram": 12, "speed": "steady", "tier": 4, "thinks": True,
+     "line": "Google's newest compact model: smarter answers at a laptop-friendly pace.",
+     "about": "The new generation of Gemma, built for laptops and phones: noticeably sharper reasoning and writing than Gemma 3, at a similar speed.",
+     "good": ["Sharper reasoning than Gemma 3", "Natural, varied writing", "Still quick enough on a laptop"],
+     "limits": ["A 6 GB download", "Needs 12 GB of memory"],
+     "example": "Boil it for a full minute. If it's murky, let it settle and pour it through a cloth first: boiling kills germs but doesn't remove dirt.",
+     "logo": ["  .---.  ", " / (o) \\ ", "|  ---  |", " \\     / ", "  '---'  "]},
+    {"id": "qwen3.5:9b", "callsign": "VANGUARD", "name": "VANGUARD · Qwen 3.5 9B", "family": "Qwen 3.5", "maker": "Alibaba Qwen", "year": 2026,
+     "params": "9 billion", "size": 6.6, "ram": 16, "speed": "slow", "tier": 5, "thinks": True,
+     "line": "The strongest reasoner here: planning, maths, calculations and many languages.",
+     "about": "A top open model for reasoning: good at planning rations, working out quantities and doses from the sources, and at languages from Chinese to Arabic.",
+     "good": ["Best at planning and calculations", "Over 100 languages", "Handles long, complex conversations"],
+     "limits": ["Needs 16 GB of memory", "Slow without a graphics card"],
+     "example": "For 4 people over 3 days you need about 12 × 3 = 36 litres. Boil it in batches: 1 minute at a rolling boil each...",
+     "logo": ["    ^    ", "   / \\   ", "  / | \\  ", " /__|__\\ ", "    |    "]},
+    {"id": "gemma4:12b-it-qat", "callsign": "COMMAND", "name": "COMMAND · Gemma 4 12B", "family": "Gemma 4", "maker": "Google", "year": 2026,
+     "params": "12 billion", "size": 7.2, "ram": 16, "speed": "slow", "tier": 5, "thinks": True, "gpu": True,
+     "line": "The most capable: rich, nuanced answers. Best with a graphics card.",
+     "about": "The biggest model Umbra offers: the most knowledge, the most natural conversation and the best judgement. Made for computers with a graphics card.",
+     "good": ["The most knowledge and nuance", "Best at long conversations", "Most natural, human writing"],
+     "limits": ["Needs 16 GB of memory", "Very slow without a graphics card", "A 7 GB download"],
+     "example": "Boil it for a minute, but think about where it came from: runoff from farmland can carry chemicals boiling won't touch. Take it upstream...",
+     "logo": ["  \\ | /  ", " --(*)-- ", "  / | \\  ", "  |||||  ", "  ^^^^^  "]},
 ]
+MODEL_INFO = {m["id"]: m for m in MODEL_CHOICES}
+
+
+def think_off(payload):
+    """Models that reason before answering would spend minutes thinking on a
+    processor: Umbra asks them to answer straight away."""
+    if MODEL_INFO.get(payload.get("model"), {}).get("thinks"):
+        payload["think"] = False
+    return payload
 
 
 # ------------------------------------------------------------------ CPU
@@ -2129,6 +2274,80 @@ def list_models():
             "choices": MODEL_CHOICES, "pull": dict(pull_state)}
 
 
+def model_fit(m, sysinfo):
+    """How well a model suits this computer: good, slow, tight or too big,
+    with a plain reason."""
+    ram, accel, free = sysinfo.get("ramGB") or 0, sysinfo.get("accel"), sysinfo.get("freeGB")
+    if free is not None and m["size"] > free - 1:
+        return "too big", f"Needs {m['size']} GB of disk space; {free} GB is free."
+    if ram and ram < m["ram"] - 4:
+        return "too big", f"Needs {m['ram']} GB of memory; this computer has {ram} GB."
+    if ram and ram < m["ram"]:
+        return "tight", f"Wants {m['ram']} GB of memory; with {ram} GB it may be slow or fail."
+    if not accel and (m.get("gpu") or m["speed"] == "slow"):
+        return "slow", "Fits, but without a graphics card each answer takes a few minutes."
+    return "good", "A good fit for this computer." + (" Your graphics card speeds it up." if accel else "")
+
+
+def core_status():
+    """Everything the Core panel shows: each system's condition, the AI
+    models (installed and on offer, with how well they suit this computer),
+    and this computer's specs."""
+    st = status()
+    sysinfo = system_info()
+    engine = {"running": st["ollama"], "version": "", "loaded": []}
+    if st["ollama"]:
+        try:
+            engine["version"] = json.loads(fetch(OLLAMA + "/api/version", timeout=3)).get("version", "")
+            engine["loaded"] = [m.get("name") for m in json.loads(fetch(OLLAMA + "/api/ps", timeout=3)).get("models", [])]
+        except Exception:
+            pass
+    models = list_models()
+    installed = {m["id"]: m for m in models["installed"]}
+
+    def card(m_id, size=None):
+        info = dict(MODEL_INFO.get(m_id) or {
+            "id": m_id, "callsign": m_id.split(":")[0].upper()[:10], "name": m_id, "family": m_id.split(":")[0],
+            "maker": "", "params": "", "ram": 8, "speed": "steady", "tier": 3, "line": "A model you installed yourself with Ollama.",
+            "about": "Installed on this computer outside Umbra's list, so Umbra knows little about it.", "good": [], "limits": [],
+            "example": "", "logo": ["  .---.  ", " | ? ? | ", " |  ?  | ", " | ? ? | ", "  '---'  "]})
+        info["size"] = size if size is not None else info.get("size", 0)
+        info["installed"] = m_id in installed
+        info["active"] = m_id == MODEL
+        info["loaded"] = m_id in engine["loaded"]
+        info["fit"], info["fitWhy"] = model_fit(info, sysinfo) if not info["installed"] else ("good", "")
+        return info
+    lib = library()
+    lib_size = sum(x["size"] for x in lib["installed"])
+    dl = downloads()
+    settings = read_json(SETTINGS_FILE, {})
+    return {
+        "status": st, "engine": engine, "system": sysinfo,
+        "installed": [card(i, m["size"]) for i, m in installed.items()],
+        "catalog": [card(m["id"]) for m in MODEL_CHOICES if m["id"] not in installed],
+        "pull": models["pull"],
+        "library": {"archives": st["archives"], "size": lib_size, "running": bool(kiwix_proc and kiwix_proc.poll() is None),
+                    "available": len(lib["available"])},
+        "maps": {"areas": len(MAPS.status()["areas"])},
+        "downloads": {"library": dl["library"]["active"], "model": bool(dl["model"].get("active")),
+                      "maps": dl["maps"]["active"], "docs": dl["docs"]["active"]},
+        "power": {"battery": on_battery(), "offgrid": settings.get("offgrid", "auto")},
+        "voice": voice_status().get("available", False),
+    }
+
+
+def delete_model(name):
+    """Remove an installed model to free its disk space (never the one in use)."""
+    if name == MODEL:
+        raise ValueError("that's the model in use: switch to another first")
+    if name not in list_models()["models"]:
+        raise ValueError("not installed")
+    req = urllib.request.Request(OLLAMA + "/api/delete", json.dumps({"model": name}).encode(),
+                                 {"Content-Type": "application/json"}, method="DELETE")
+    urllib.request.urlopen(req, timeout=30).read()
+    return list_models()
+
+
 def set_model(name):
     """Switch the local AI to another installed Ollama model."""
     global MODEL
@@ -2169,7 +2388,7 @@ def reset_umbra():
     are deleted (downloaded maps stay, like the library). The AI model,
     the library and config.json (model, library folder) are kept."""
     for path in (SETTINGS_FILE, PROFILE_FILE, CUSTOM_THEMES_FILE, PERSONALITIES_FILE, SCENARIOS_FILE, LOCK_FILE, ACH_FILE,
-                 WAYPOINTS_FILE, SUPPLIES_FILE, SAFETY_FILE, FOLDERS_FILE, VAULT_FILE, radar.KNOWN_FILE, CALENDAR_FILE, MANUALS_STATE):
+                 WAYPOINTS_FILE, SUPPLIES_FILE, SAFETY_FILE, FOLDERS_FILE, VAULT_FILE, radar.KNOWN_FILE, CALENDAR_FILE, MANUALS_STATE, STYLE_FILE):
         try:
             os.remove(path)
         except OSError:
@@ -2356,7 +2575,7 @@ def apply_settings(update):
         if isinstance(update.get("theme"), str) and re.fullmatch(r"[a-z0-9-]{1,40}", update["theme"]):
             settings["theme"] = update["theme"]
         for key in ("muted", "onboarded", "rain", "reduceMotion", "suggestions", "greeting", "barAlert", "hoverSounds",
-                    "confirmExit", "autoUpdate"):
+                    "confirmExit", "autoUpdate", "adaptive"):
             if isinstance(update.get(key), bool):
                 settings[key] = update[key]
         if isinstance(update.get("hiddenControls"), list):
@@ -2373,6 +2592,13 @@ def apply_settings(update):
             settings["textScale"] = max(0.8, min(1.4, float(update["textScale"])))
         if isinstance(update.get("zoom"), (int, float)) and not isinstance(update.get("zoom"), bool):
             settings["zoom"] = round(max(0.5, min(2.0, float(update["zoom"]))), 2)
+        for kind, slot in REWARD_SLOTS.items():
+            if slot in update:
+                rewards, _ = reward_status()
+                if any(r["id"] == update[slot] and r["kind"] == kind and r["unlocked"] for r in rewards):
+                    settings[slot] = update[slot]
+        if isinstance(update.get("notifyVolume"), (int, float)) and not isinstance(update.get("notifyVolume"), bool):
+            settings["notifyVolume"] = max(0.0, min(1.0, float(update["notifyVolume"])))
         if isinstance(update.get("volume"), (int, float)):
             settings["volume"] = max(0.0, min(1.0, float(update["volume"])))
         if update.get("cpuLimit") in CPU_LIMITS:
@@ -3054,6 +3280,10 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"password": has_password()})
         if path == "/api/models":
             return self.send_json(list_models())
+        if path == "/api/style":
+            return self.send_json(style_summary())
+        if path == "/api/core":
+            return self.send_json(core_status())
         if path == "/api/system":
             return self.send_json(system_info())
         if path == "/api/packs":
@@ -3208,7 +3438,7 @@ class Handler(BaseHTTPRequestHandler):
                               ("personality", "personalities"), ("scenario", "scenarios")):
                 if key in update and settings.get(key) and settings.get(key) != old.get(key):
                     record(stat, settings[key])
-            if update.get("onboarded") is True and not old.get("onboarded"):
+            if update.get("tourDone") is True:   # finished to the end, not skipped
                 record("tour")
             if cpu_limit() != before:
                 threading.Thread(target=warm_model, daemon=True).start()   # reload the AI with its new core count now
@@ -3235,6 +3465,18 @@ class Handler(BaseHTTPRequestHandler):
             if not ok:
                 time.sleep(0.6)   # slows down guessing
             return self.send_json({"ok": ok})
+        if self.path == "/api/style/forget":
+            with STYLE_LOCK:
+                try:
+                    os.remove(STYLE_FILE)
+                except OSError:
+                    pass
+            return self.send_json(style_summary())
+        if self.path == "/api/model/delete":
+            try:
+                return self.send_json(delete_model(str(self.read_json().get("model", ""))))
+            except (ValueError, OSError) as e:
+                return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/model":
             try:
                 return self.send_json(set_model(str(self.read_json().get("model", ""))))
@@ -3249,6 +3491,7 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 if self.path == "/api/export":
                     out = export(str(req.get("what", "")), str(req.get("id", "")), str(req.get("target", "")), req)
+                    record("exports")
                 elif self.path == "/api/backup":
                     out = backup(bool(req.get("history")), str(req.get("target", "")))
                     record("backups")
@@ -3396,7 +3639,10 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/vault/open":
                 return self.send_json({"items": get_vault(), "password": has_password()})
             try:
-                return self.send_json({"items": save_vault(req.get("items"))})
+                items = save_vault(req.get("items"))
+                if items:
+                    record("vault")
+                return self.send_json({"items": items})
             except ValueError as e:
                 return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/calendar":
@@ -3409,7 +3655,10 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"known": radar.forget(key or None)})
         if self.path == "/api/radios":
             # The radar's kill switch: all radios off, or back on.
-            return self.send_json(radar.radios(bool(self.read_json().get("off"))))
+            off = bool(self.read_json().get("off"))
+            if off:
+                record("killSwitch")
+            return self.send_json(radar.radios(off))
         if self.path.startswith("/api/manuals/"):
             req = self.read_json()
             try:
@@ -3441,8 +3690,12 @@ class Handler(BaseHTTPRequestHandler):
                 value = str(value or "")[:60].lower()
             elif event == "countries":
                 value = re.sub(r"[^A-Z]", "", str(value or ""))[:3]
+            elif event == "medicTools":
+                value = re.sub(r"[^a-z-]", "", str(value or ""))[:20]
+                if not value:
+                    return self.send_json({"error": "unknown tool"}, 400)
             elif event not in ("suggestions", "sources", "stops", "voice", "cprMinutes", "morseLetters", "drills",
-                               "timers", "sunChecks", "cards"):
+                               "timers", "sunChecks", "cards", "coreOpened", "radarOpened", "quickActions", "measures"):
                 return self.send_json({"error": "unknown event"}, 400)
             record(event, value)
             return self.send_json({"ok": True})
@@ -3525,6 +3778,119 @@ def status():
     }
 
 
+# ------------------------------------------------------------------ style
+
+# Umbra adapts to the way the user writes (formal or casual, brief or
+# chatty), remembers what they've asked for ("shorter please", "no lists"),
+# and avoids repeating its own openings and stock phrases. Learned on this
+# computer only; Settings → Conversation shows it and can forget it.
+STYLE_FILE = os.path.join(DATA_DIR, "style.json")
+STYLE_LOCK = threading.Lock()
+FORMAL = re.compile(r"\b(please|kindly|would you|could you|thank you|regards|dear|sir|madam|shall|however|therefore|furthermore|moreover|appreciate)\b", re.I)
+CASUAL = re.compile(r"\b(hey|yo|gonna|wanna|gotta|lol|lmao|ok|okay|thx|pls|plz|u|ur|ya|yeah|yep|nah|dude|bro|kinda|sorta|btw|idk|tbh|cuz)\b", re.I)
+PREFERENCES = [
+    (r"\b(shorter|too long|less detail|keep it (short|brief)|brief(er)?|tl;?dr|in short|summari[sz]e)\b", "length", "short", "short, compact answers"),
+    (r"\b(more detail|longer|explain more|go deeper|elaborate|in (more )?depth|tell me more)\b", "length", "long", "fuller, detailed answers"),
+    (r"\b(simpler|simple words|plain (english|language)|too technical|eli5|like i'?m (five|5)|for a beginner)\b", "level", "simple", "plain, simple language"),
+    (r"\b(more technical|technical details|be precise|exact (numbers|figures))\b", "level", "technical", "technical precision"),
+    (r"\b(no (bullet|bullets|lists?)|without (bullets|lists?)|in prose|as (a )?paragraphs?)\b", "format", "prose", "flowing prose, not lists"),
+    (r"\b(bullet points|as a list|numbered steps|step[- ]by[- ]step)\b", "format", "lists", "clear step lists"),
+]
+
+
+def _style_state():
+    st = read_json(STYLE_FILE, {})
+    st.setdefault("n", 0)
+    st.setdefault("words", 12.0)
+    st.setdefault("formality", 0.0)
+    st.setdefault("prefs", {})
+    return st
+
+
+def text_style(text):
+    """-1 (casual) to 1 (formal), from word choice, capitals and punctuation."""
+    t = text.strip()
+    score = 0.35 * len(FORMAL.findall(t)) - 0.35 * len(CASUAL.findall(t))
+    if t[:1].isupper() and re.search(r"[.?!]$", t) and len(t.split()) > 4:
+        score += 0.25
+    if t == t.lower() and re.search(r"[a-z]", t):
+        score -= 0.25
+    if re.search(r"[\U0001F300-\U0001FAFF]|!!|\?\?|:\)|;\)|:D", t):
+        score -= 0.25
+    return max(-1.0, min(1.0, score)), len(t.split())
+
+
+def learn_style(question):
+    """Fold one message into what Umbra knows of the user's style."""
+    if read_json(SETTINGS_FILE, {}).get("adaptive") is False:
+        return
+    formality, words = text_style(question)
+    with STYLE_LOCK:
+        st = _style_state()
+        k = 0.25 if st["n"] >= 3 else 0.5   # quick to settle, then steady
+        st["formality"] = round((1 - k) * st["formality"] + k * formality, 3)
+        st["words"] = round((1 - k) * st["words"] + k * min(words, 80), 1)
+        st["n"] += 1
+        said = set()   # "no bullet points" is about lists too: the first match wins
+        for pattern, key, value, _ in PREFERENCES:
+            if key not in said and re.search(pattern, question, re.I):
+                st["prefs"][key] = {"value": value, "at": int(time.time())}
+                said.add(key)
+        write_json(STYLE_FILE, st)
+
+
+def style_summary():
+    """What's been learned, in words (for Settings and the prompt)."""
+    st = _style_state()
+    out = []
+    if st["n"] >= 2:
+        f = st["formality"]
+        out.append("writes formally, in full sentences" if f > 0.25 else "writes casually and relaxed" if f < -0.25 else "writes in a natural, neutral tone")
+        out.append("usually in short messages" if st["words"] < 8 else "often in long, detailed messages" if st["words"] > 30 else "")
+    for key, p in st["prefs"].items():
+        label = next((l for _, k, v, l in PREFERENCES if k == key and v == p.get("value")), "")
+        if label:
+            out.append("asked for " + label)
+    return {"learned": [x for x in out if x], "messages": st["n"], "on": read_json(SETTINGS_FILE, {}).get("adaptive") is not False}
+
+
+def style_prompt(question, history):
+    """Instructions that fit the answer to this user and keep it fresh."""
+    if read_json(SETTINGS_FILE, {}).get("adaptive") is False:
+        return ""
+    st = _style_state()
+    now, _ = text_style(question)
+    f = 0.6 * now + 0.4 * st["formality"] if st["n"] >= 2 else now
+    parts = []
+    if f > 0.3:
+        parts.append("The user writes formally: answer in a polished, courteous register.")
+    elif f < -0.3:
+        parts.append("The user writes casually: answer in a relaxed, plain, conversational way (contractions are fine), without stiffness.")
+    if st["n"] >= 3 and st["words"] < 8 and not re.search(r"\b(how|explain|steps|why|what should)\b", question, re.I):
+        parts.append("They write short messages: keep your reply compact unless the question needs steps.")
+    prefs = [l for key, p in st["prefs"].items() for _, k, v, l in PREFERENCES if k == key and v == p.get("value")]
+    if prefs:
+        parts.append("They have told you they prefer " + "; ".join(prefs) + ".")
+    # Don't sound like a template: vary openings and drop repeated phrases.
+    mine = [str(t.get("content", "")) for t in history if t.get("role") == "assistant"][-3:]
+    openings = [re.sub(r"[*_#>`]", "", m).strip().split("\n")[0] for m in mine]
+    openings = [" ".join(o.split()[:5]) for o in openings if o]
+    if openings:
+        parts.append("Your last replies began: " + "; ".join(f"'{o}'" for o in openings) + ". Open this one differently.")
+    grams = {}
+    for m in mine:
+        words = re.findall(r"[a-z']+", m.lower())
+        for g in {" ".join(words[i:i + 3]) for i in range(len(words) - 2)}:
+            grams[g] = grams.get(g, 0) + 1
+    stock = [g for g, c in grams.items() if c >= 2 and not re.fullmatch(r"(the|a|an|of|to|and|in|it|is|you|your|for|on|with|that|this|be) .*|.* (the|a|an|of|to|and)", g)][:5]
+    if stock:
+        parts.append("Avoid repeating these phrases from your earlier replies: " + ", ".join(f"'{g}'" for g in stock) + ".")
+    parts.append("Vary your sentence length and structure, and never begin with filler like 'Okay', 'Alright' or 'Great question'. "
+                 "Always answer in the language the user writes in. Adapt your register and length to them, but your "
+                 "personality always comes first: never drop your character to match theirs.")
+    return "STYLE: " + " ".join(parts)
+
+
 def answer(req, emit):
     question = str(req.get("question", "")).strip()
     history = req.get("history") or []
@@ -3567,14 +3933,19 @@ def answer(req, emit):
         system += " " + folder_prompt(req.get("folder"))
     if ABOUT_UMBRA.search(question):
         system += " " + UMBRA_GUIDE
+    learn_style(question)
+    record("modelsTried", MODEL)
+    system += " " + style_prompt(question, history)
     if offgrid:
         system += (" OFF-GRID MODE: the user is saving battery. Keep the answer short: the essential steps "
                    "in their proper order, without long explanations. Never skip the first step or any "
                    "safety-critical step to save words (for bleeding, firm direct pressure always comes first).")
     messages = [{"role": "system", "content": system}]
-    for turn in history[-HISTORY_TURNS * 2:]:
+    recent = history[-HISTORY_TURNS * 2:]
+    for i, turn in enumerate(recent):
         role = "assistant" if turn.get("role") == "assistant" else "user"
-        messages.append({"role": role, "content": str(turn.get("content", ""))[:600]})
+        keep = 600 if i >= len(recent) - 2 else 350   # the last exchange in full, older ones shortened
+        messages.append({"role": role, "content": str(turn.get("content", ""))[:keep]})
     if chatting:
         messages.append({"role": "user", "content": question})
     else:
@@ -3606,12 +3977,13 @@ def answer(req, emit):
 
 
 def stream_chat(messages, emit, limit=None):
-    options = ai_options(temperature=0.4)
+    # A little more variety in wording; the repeat penalty discourages loops.
+    options = ai_options(temperature=0.55, top_p=0.9, repeat_penalty=1.1, repeat_last_n=256)
     if limit:
         options["num_predict"] = limit
-    body = json.dumps({
+    body = json.dumps(think_off({
         "model": MODEL, "messages": messages, "stream": True, "keep_alive": "30m", "options": options,
-    }).encode()
+    })).encode()
     request = urllib.request.Request(OLLAMA + "/api/chat", body, {"Content-Type": "application/json"})
     full, done_event, first = "", None, True
     with urllib.request.urlopen(request, timeout=600) as r:
@@ -3641,7 +4013,7 @@ def quick_generate(prompt, num_predict, system=None, lines=False):
            "options": ai_options(temperature=0.4, num_predict=num_predict)}
     if system:
         req["system"] = system
-    body = json.dumps(req).encode()
+    body = json.dumps(think_off(req)).encode()
     try:
         r = json.loads(urllib.request.urlopen(urllib.request.Request(
             OLLAMA + "/api/generate", body, {"Content-Type": "application/json"}), timeout=120).read())

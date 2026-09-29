@@ -1387,6 +1387,7 @@
     for (let i = 1; i < measure.length; i++) km += distance(measure[i - 1], measure[i]);
     const last = measure[measure.length - 1];
     showCard({ kind: "measure", label: "MEASUREMENT", name: `DISTANCE ${fmtDist(km)}`, lat: last.lat, lon: last.lon });
+    if (window.track) track("measures");
     tool = "";
     $("#maps").querySelectorAll(".mp-t[data-t=measure]").forEach((b) => b.classList.remove("on"));
     $("#maps .mp-hint").hidden = true;

@@ -7,6 +7,10 @@
 // Loaded after app.js (uses $, Sound, escapeHtml, copyText).
 "use strict";
 
+// The Combat Medic achievement counts the different tools used (once each per session).
+const usedMedic = new Set();
+const medicUsed = (id) => { if (!usedMedic.has(id)) { usedMedic.add(id); if (window.track) track("medicTools", id); } };
+
 window.UmbraMedic = (() => {
   const store = {
     get(k, d) { try { const v = localStorage.getItem("umbra-medic-" + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
@@ -98,7 +102,7 @@ window.UmbraMedic = (() => {
         const k = step.slice(5);
         q.innerHTML = `<div class="md-tag md-${k}"><b>${TAG[k][0]}</b><p>${TAG[k][1]}</p></div>
           <div class="fk-row"><button class="solid md-count">COUNT + NEXT CASUALTY ▸</button><button class="ghost md-again">START OVER</button></div>`;
-        q.querySelector(".md-count").addEventListener("click", () => { tally[k]++; store.set("tally", tally); showTally(); step = "walk"; ask(); Sound.found(); });
+        q.querySelector(".md-count").addEventListener("click", () => { medicUsed("triage"); tally[k]++; store.set("tally", tally); showTally(); step = "walk"; ask(); Sound.found(); });
         q.querySelector(".md-again").addEventListener("click", () => { step = "walk"; ask(); Sound.click(); });
         k === "red" || k === "black" ? Sound.error() : Sound.found();
         return;
@@ -120,7 +124,7 @@ window.UmbraMedic = (() => {
       box.querySelector(".md-gcs-say").textContent = t <= 8 ? "SEVERE · protect the airway, urgent help" : t <= 12 ? "MODERATE · watch closely, get help" : "MILD · keep checking every 15 minutes";
       box.querySelector(".md-score").className = "md-score " + (t <= 8 ? "bad" : t <= 12 ? "mid" : "");
     };
-    box.querySelectorAll(".md-opts button").forEach((b) => b.addEventListener("click", () => { gcs[b.closest(".md-opts").dataset.k] = +b.dataset.v; showGcs(); Sound.click(); }));
+    box.querySelectorAll(".md-opts button").forEach((b) => b.addEventListener("click", () => { medicUsed("gcs"); gcs[b.closest(".md-opts").dataset.k] = +b.dataset.v; showGcs(); Sound.click(); }));
     showGcs();
   }
 
@@ -177,7 +181,7 @@ window.UmbraMedic = (() => {
     const q = (x) => box.querySelector(x);
     const seg = (sel, key, attr, after) => {
       const show = () => box.querySelectorAll(sel + " button").forEach((b) => b.classList.toggle("on", String(s[key]) === b.dataset[attr]));
-      box.querySelectorAll(sel + " button").forEach((b) => b.addEventListener("click", () => { s[key] = isNaN(+b.dataset[attr]) ? b.dataset[attr] : +b.dataset[attr]; show(); after(); save(); Sound.click(); }));
+      box.querySelectorAll(sel + " button").forEach((b) => b.addEventListener("click", () => { medicUsed("calculator"); s[key] = isNaN(+b.dataset[attr]) ? b.dataset[attr] : +b.dataset[attr]; show(); after(); save(); Sound.click(); }));
       show();
     };
     // Burns.
@@ -205,7 +209,7 @@ window.UmbraMedic = (() => {
     const liquids = () => {
       const d = DRUGS[s.drug];
       q(".md-liquids").innerHTML = `<div class="md-in"><span>LIQUID ON THE BOTTLE</span><div class="fk-seg pf-choice">${d.liquids.map(([n], i) => `<button data-l="${i}" class="${i === s.liquid ? "on" : ""}">${n}</button>`).join("")}</div></div>`;
-      q(".md-liquids").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { s.liquid = +b.dataset.l; liquids(); save(); Sound.click(); }));
+      q(".md-liquids").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { medicUsed("fluids"); s.liquid = +b.dataset.l; liquids(); save(); Sound.click(); }));
       dose();
     };
     const dose = () => {
@@ -299,6 +303,7 @@ window.UmbraMedic = (() => {
           return `<path d="${d}" data-k="${key}" style="${mark ? `fill:${HURT[mark][1]}` : ""}"><title>${name} (${side})${mark ? " · " + HURT[mark][0] : ""}</title></path>`;
         }).join("") + "</g>";
         svg.querySelectorAll("path").forEach((el) => el.addEventListener("click", () => {
+          medicUsed("burns");
           if (brush) p.marks[el.dataset.k] = brush; else delete p.marks[el.dataset.k];
           save(); bodies(); report(); Sound.click();
         }));
@@ -319,6 +324,7 @@ window.UmbraMedic = (() => {
       Sound.found();
     });
     q(".md-new").addEventListener("click", async () => {
+      medicUsed("patient");
       const ok = await confirmDialog({ kind: "to-local", tag: "PATIENT", title: "START A NEW PATIENT?", body: "The chart and log on screen are cleared. Copy the report first if you need it.", ok: "NEW PATIENT", cancel: "KEEP" });
       if (!ok) return;
       Object.assign(p, { name: "", age: "", sex: "", mech: "", marks: {}, log: [], nine: {} }); save(); patient(box);

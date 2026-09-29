@@ -142,10 +142,12 @@
     if (!a) { showing = false; return; }
     showing = true;
     const el = document.createElement("div");
-    el.className = `ac-toast ${a.tier}`;
-    el.innerHTML = `${badge(a)}<span class="ac-toast-text"><small>ACHIEVEMENT UNLOCKED · +${a.points}</small><b></b><span></span></span>`;
+    el.className = `ac-toast ${a.reward ? "legendary reward" : a.tier}`;
+    el.innerHTML = a.reward
+      ? `<span class="ac-badge lk-toast-icon">✦</span><span class="ac-toast-text"><small>REWARD UNLOCKED · ${({ orb: "ORB", title: "TITLE", name: "NAME EFFECT" })[a.kind] || "REWARD"}</small><b></b><span></span></span>`
+      : `${badge(a)}<span class="ac-toast-text"><small>ACHIEVEMENT UNLOCKED · +${a.points}</small><b></b><span></span></span>`;
     el.querySelector("b").textContent = a.name;
-    el.querySelector(".ac-toast-text > span").textContent = a.description;
+    el.querySelector(".ac-toast-text > span").textContent = a.reward ? "Equip it in your Locker (Profile → LOCKER)." : a.description;
     el.addEventListener("click", () => { el.remove(); window.openLoadout && window.openLoadout("achievements"); selected = a.id; });
     document.body.appendChild(el);
     Sound.achieve();
@@ -153,14 +155,76 @@
     setTimeout(() => { el.remove(); nextToast(); }, 5300);
   }
 
+  // ------------------------------------------------------------ locker
+
+  // Rewards for playing: orbs for the start screen, titles and name effects,
+  // unlocked by rank or by particular achievements, and equipped here.
+  const SLOT = { orb: "orb", title: "title", name: "nameFx" };
+  const KIND = [["orb", "START-SCREEN ORBS", "The sphere on the start screen (and while I think)."],
+    ["title", "TITLES", "Shown after your name in conversations and on your profile."],
+    ["name", "NAME EFFECTS", "How your name looks in conversations."]];
+  let lockerStops = [];
+  function youLine(eq) {
+    const me = (window.UmbraProfile && window.UmbraProfile.data) || {};
+    const title = data.rewards.find((r) => r.id === eq.title && r.kind === "title");
+    return `<span class="who fx-${escapeHtml(eq.name)}"${me.color ? ` style="color:var(--${me.color})"` : ""}>${escapeHtml((me.name || "YOU").toUpperCase())}</span>` +
+      (title && title.id !== "none" ? `<span class="title-tag">${escapeHtml(title.name.toUpperCase())}</span>` : "");
+  }
+  async function renderLocker(grid, detail) {
+    await load();
+    lockerStops.forEach((f) => f()); lockerStops = [];
+    if (!data || !data.rewards) { grid.innerHTML = `<p class="lib-note">The locker is unavailable.</p>`; detail.innerHTML = ""; return; }
+    const eq = data.equipped;
+    const got = data.rewards.filter((r) => r.unlocked).length;
+    const nextRank = data.rewards.filter((r) => !r.unlocked && r.unlock.rank)[0];
+    const top = grid.scrollTop, again = grid.dataset.tab === "locker" && grid.childElementCount > 0;
+    grid.dataset.tab = "locker";
+    grid.classList.toggle("refreshing", again);
+    grid.innerHTML = `<div class="ac-summary">
+        <div class="ac-rank"><small>RANK</small><b>${escapeHtml(data.rank.toUpperCase())}</b></div>
+        <div class="ac-count"><small>UNLOCKED</small><b>${got} / ${data.rewards.length}</b></div>
+        <div class="ac-points"><small>POINTS</small><b>${data.points}</b></div>
+        <div class="ac-next"><small>${nextRank ? `NEXT: ${escapeHtml(nextRank.name.toUpperCase())} · ${escapeHtml(nextRank.how.toUpperCase())}` : "EVERY RANK REWARD UNLOCKED"}</small></div></div>
+      <div class="lk-you"><pre class="orb lk-big"></pre><div><small>HOW YOU LOOK</small><div class="lk-name">${youLine(eq)}</div>
+        <p class="lib-note">Earn achievements for points: points raise your rank, and ranks and certain achievements unlock what's here.</p></div></div>
+      ${KIND.map(([k, label, line]) => `<div class="lib-head"><span>${label}</span><b>${data.rewards.filter((r) => r.kind === k && r.unlocked).length}/${data.rewards.filter((r) => r.kind === k).length}</b></div>
+        <p class="lib-note">${line}</p><div class="lk-grid lk-kind-${k}">${data.rewards.filter((r) => r.kind === k).map((r) => `
+          <button class="lk-card${r.unlocked ? "" : " locked"}${eq[k] === r.id ? " on" : ""}" data-id="${escapeHtml(r.id)}" data-kind="${k}" title="${escapeHtml(r.name)}|${escapeHtml((r.description ? r.description + " " : "") + (r.unlocked ? "" : "Locked. " + r.how + "."))}">
+            ${k === "orb" ? `<pre class="orb lk-orb" data-style="${escapeHtml(r.id)}"></pre>` : k === "name"
+              ? `<span class="lk-sample"><span class="who fx-${escapeHtml(r.id)}">${escapeHtml(((window.UmbraProfile && window.UmbraProfile.data.name) || "YOU").toUpperCase())}</span></span>`
+              : `<span class="lk-sample"><span class="title-tag">${escapeHtml(r.id === "none" ? "—" : r.name.toUpperCase())}</span></span>`}
+            <b>${escapeHtml(r.name)}</b><small>${r.unlocked ? (eq[k] === r.id ? "EQUIPPED" : "EQUIP") : "\u{F033E} " + escapeHtml(r.how)}</small></button>`).join("")}</div>`).join("")}`;
+    grid.classList.remove("refreshing");
+    if (again) grid.scrollTop = top;
+    detail.innerHTML = "";
+    const big = grid.querySelector(".lk-big");
+    if (window.umbraOrb) {
+      lockerStops.push(window.umbraOrb(big, 19, 13, eq.orb));
+      grid.querySelectorAll(".lk-orb").forEach((el) => lockerStops.push(window.umbraOrb(el, 13, 9, el.dataset.style)));
+    }
+    grid.querySelectorAll(".lk-card").forEach((c) => {
+      c.addEventListener("mouseenter", Sound.hover);
+      c.addEventListener("click", async () => {
+        if (c.classList.contains("locked")) { Sound.error(); return; }
+        const slot = SLOT[c.dataset.kind];
+        await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [slot]: c.dataset.id }) });
+        if (window.prefs) window.prefs[slot] = c.dataset.id;
+        Sound.theme();
+        data = null;
+        renderLocker(grid, detail);
+      });
+    });
+  }
+
   let checking = false;
   async function check() {
-    if (checking || document.body.classList.contains("booting")) return;
+    if (checking || document.body.classList.contains("booting") || document.body.classList.contains("touring")) return;   // badges wait for the tour to end
     checking = true;
     try {
       const r = await (await fetch("/api/achievements/unseen")).json();
       data = r;
       r.unseen.forEach((id) => { const a = r.achievements.find((x) => x.id === id); if (a) toast(a); });
+      (r.newRewards || []).forEach((id) => { const w = r.rewards.find((x) => x.id === id); if (w) toast({ reward: true, ...w }); });
       if (r.unseen.length && window.refreshLoadoutTab) window.refreshLoadoutTab("achievements");
       if (r.unseen.length && window.UmbraProfile) window.UmbraProfile.refreshRecord?.();
     } catch {}
@@ -175,5 +239,5 @@
     }).then(check).catch(() => {});
   };
 
-  window.UmbraAchievements = { render, badge, load, check, get data() { return data; } };
+  window.UmbraAchievements = { render, renderLocker, badge, load, check, get data() { return data; } };
 })();

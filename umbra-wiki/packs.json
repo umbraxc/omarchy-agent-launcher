@@ -8,15 +8,31 @@
   {
     "id": "prepared",
     "name": "Prepared",
-    "tagline": "Essentials plus emergency medicine, medicines, animal health, radio, low-tech builds, cooking, gardening, wilderness skills and off-grid power.",
-    "ids": ["essential", "nhs.uk_en_medicines", "wikem_en_all", "wikivet.net_en_all", "ham.stackexchange.com",
-            "appropedia_en_all", "cooking.stackexchange.com", "gardenology.org", "sustainability.stackexchange.com",
-            "outdoors.stackexchange.com", "energypedia_en_all"]
+    "tagline": "Essentials plus a prepper encyclopedia, emergency medicine, medicines, animal health, radio, low-tech builds, cooking, gardening, wilderness skills, off-grid power, vehicle repair, money, parenting and every country's facts.",
+    "ids": [
+      "essential",
+      "nhs.uk_en_medicines",
+      "wikem_en_all",
+      "wikivet.net_en_all",
+      "ham.stackexchange.com",
+      "appropedia_en_all",
+      "cooking.stackexchange.com",
+      "gardenology.org",
+      "sustainability.stackexchange.com",
+      "outdoors.stackexchange.com",
+      "energypedia_en_all",
+      "trueprepper.com_en_all",
+      "theworldfactbook_en_all",
+      "mechanics.stackexchange.com",
+      "money.stackexchange.com",
+      "parenting.stackexchange.com",
+      "pets.stackexchange.com"
+    ]
   },
   {
     "id": "complete",
     "name": "Complete",
-    "tagline": "All 19 collections, including the full medical encyclopedia and every iFixit repair guide. The full Umbra experience.",
+    "tagline": "All 27 collections, including the full medical encyclopedia, Wikipedia's essentials and every iFixit repair guide. The full Umbra experience.",
     "ids": "all",
     "recommended": true
   }

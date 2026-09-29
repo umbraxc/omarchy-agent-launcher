@@ -37,6 +37,10 @@
    "STYLE"
   ],
   [
+   "tools",
+   "TOOLS & GEAR"
+  ],
+  [
    "legend",
    "LEGEND"
   ]
@@ -82,7 +86,7 @@
    "id": "first-contact",
    "name": "First Contact",
    "description": "Ask Umbra your first question.",
-   "icon": "󰐻",
+   "icon": "\udb81\udc3b",
    "tier": "bronze",
    "points": 10,
    "stat": "questions",
@@ -93,7 +97,7 @@
    "id": "boot-camp",
    "name": "Boot Camp",
    "description": "Finish the welcome tour.",
-   "icon": "󰑴",
+   "icon": "\udb81\udc74",
    "tier": "bronze",
    "points": 10,
    "stat": "tour",
@@ -104,7 +108,7 @@
    "id": "dog-tags",
    "name": "Dog Tags",
    "description": "Put your name on your profile.",
-   "icon": "󰗒",
+   "icon": "\udb81\uddd2",
    "tier": "bronze",
    "points": 10,
    "stat": "profileName",
@@ -115,7 +119,7 @@
    "id": "mugshot",
    "name": "Mugshot",
    "description": "Give your profile a picture.",
-   "icon": "󰣋",
+   "icon": "\udb82\udccb",
    "tier": "bronze",
    "points": 10,
    "stat": "profilePicture",
@@ -126,7 +130,7 @@
    "id": "need-to-know",
    "name": "Need to Know",
    "description": "Tell Umbra where you are, your units and your experience.",
-   "icon": "󰦄",
+   "icon": "\udb82\udd84",
    "tier": "bronze",
    "points": 10,
    "stat": "profileDetails",
@@ -137,7 +141,7 @@
    "id": "lockdown",
    "name": "Lockdown",
    "description": "Protect Umbra with a password.",
-   "icon": "󰦝",
+   "icon": "\udb82\udd9d",
    "tier": "bronze",
    "points": 10,
    "stat": "password",
@@ -148,7 +152,7 @@
    "id": "curious-mind",
    "name": "Curious Mind",
    "description": "Ask 10 questions.",
-   "icon": "󱍊",
+   "icon": "\udb84\udf4a",
    "tier": "bronze",
    "points": 10,
    "stat": "questions",
@@ -159,7 +163,7 @@
    "id": "seeker",
    "name": "Seeker",
    "description": "Ask 50 questions.",
-   "icon": "󱍄",
+   "icon": "\udb84\udf44",
    "tier": "silver",
    "points": 25,
    "stat": "questions",
@@ -170,7 +174,7 @@
    "id": "walking-encyclopedia",
    "name": "Walking Encyclopedia",
    "description": "Ask 100 questions.",
-   "icon": "󰧑",
+   "icon": "\udb82\uddd1",
    "tier": "gold",
    "points": 50,
    "stat": "questions",
@@ -181,7 +185,7 @@
    "id": "the-oracle",
    "name": "The Oracle",
    "description": "Ask 500 questions. Few ever get here.",
-   "icon": "󰬯",
+   "icon": "\udb82\udf2f",
    "tier": "legendary",
    "points": 100,
    "stat": "questions",
@@ -192,7 +196,7 @@
    "id": "deep-dive",
    "name": "Deep Dive",
    "description": "Keep one conversation going for 10 answers.",
-   "icon": "󰷁",
+   "icon": "\udb83\uddc1",
    "tier": "silver",
    "points": 25,
    "stat": "longestConversation",
@@ -203,7 +207,7 @@
    "id": "mind-reader",
    "name": "Mind Reader",
    "description": "Use 5 suggested replies (Tab).",
-   "icon": "󱐋",
+   "icon": "\udb85\udc0b",
    "tier": "silver",
    "points": 25,
    "stat": "suggestions",
@@ -214,7 +218,7 @@
    "id": "fact-checker",
    "name": "Fact Checker",
    "description": "Open 10 cited sources to check an answer.",
-   "icon": "󱎸",
+   "icon": "\udb84\udfb8",
    "tier": "silver",
    "points": 25,
    "stat": "sources",
@@ -225,7 +229,7 @@
    "id": "hydrated",
    "name": "Hydrated",
    "description": "Ask 5 questions about water.",
-   "icon": "󰖌",
+   "icon": "\udb81\udd8c",
    "tier": "bronze",
    "points": 10,
    "stat": "topic:water",
@@ -236,7 +240,7 @@
    "id": "firestarter",
    "name": "Firestarter",
    "description": "Ask 5 questions about fire.",
-   "icon": "󰈸",
+   "icon": "\udb80\ude38",
    "tier": "bronze",
    "points": 10,
    "stat": "topic:fire",
@@ -247,7 +251,7 @@
    "id": "roof-over-your-head",
    "name": "Roof Over Your Head",
    "description": "Ask 5 questions about shelter.",
-   "icon": "󰔈",
+   "icon": "\udb81\udd08",
    "tier": "bronze",
    "points": 10,
    "stat": "topic:shelter",
@@ -258,7 +262,7 @@
    "id": "field-medic",
    "name": "Field Medic",
    "description": "Ask 10 questions about first aid and medicine.",
-   "icon": "󰛯",
+   "icon": "\udb81\udeef",
    "tier": "silver",
    "points": 25,
    "stat": "topic:medical",
@@ -269,7 +273,7 @@
    "id": "forager",
    "name": "Forager",
    "description": "Ask 5 questions about food.",
-   "icon": "󰟟",
+   "icon": "\udb81\udfdf",
    "tier": "bronze",
    "points": 10,
    "stat": "topic:food",
@@ -280,7 +284,7 @@
    "id": "true-north",
    "name": "True North",
    "description": "Ask 5 questions about finding your way.",
-   "icon": "󰆋",
+   "icon": "\udb80\udd8b",
    "tier": "bronze",
    "points": 10,
    "stat": "topic:navigation",
@@ -291,7 +295,7 @@
    "id": "power-player",
    "name": "Power Player",
    "description": "Ask 5 questions about power and energy.",
-   "icon": "󰩲",
+   "icon": "\udb82\ude72",
    "tier": "bronze",
    "points": 10,
    "stat": "topic:power",
@@ -302,7 +306,7 @@
    "id": "signal-received",
    "name": "Signal Received",
    "description": "Ask 5 questions about radio and signalling.",
-   "icon": "󰐺",
+   "icon": "\udb81\udc3a",
    "tier": "bronze",
    "points": 10,
    "stat": "topic:comms",
@@ -313,7 +317,7 @@
    "id": "tinkerer",
    "name": "Tinkerer",
    "description": "Ask 5 questions about repairs and tools.",
-   "icon": "󰖷",
+   "icon": "\udb81\uddb7",
    "tier": "bronze",
    "points": 10,
    "stat": "topic:repair",
@@ -324,7 +328,7 @@
    "id": "storm-chaser",
    "name": "Storm Chaser",
    "description": "Ask 5 questions about storms, floods and other disasters.",
-   "icon": "󰖓",
+   "icon": "\udb81\udd93",
    "tier": "bronze",
    "points": 10,
    "stat": "topic:weather",
@@ -335,7 +339,7 @@
    "id": "renaissance-survivor",
    "name": "Renaissance Survivor",
    "description": "Ask about all 10 survival topics.",
-   "icon": "󰓏",
+   "icon": "\udb81\udccf",
    "tier": "gold",
    "points": 50,
    "stat": "topicsCovered",
@@ -346,7 +350,7 @@
    "id": "three-day-rule",
    "name": "Three-Day Rule",
    "description": "Use Umbra 3 days in a row.",
-   "icon": "󰃯",
+   "icon": "\udb80\udcef",
    "tier": "bronze",
    "points": 10,
    "stat": "streak",
@@ -357,7 +361,7 @@
    "id": "week-in-the-wild",
    "name": "Week in the Wild",
    "description": "Use Umbra 7 days in a row.",
-   "icon": "󰨳",
+   "icon": "\udb82\ude33",
    "tier": "silver",
    "points": 25,
    "stat": "streak",
@@ -368,7 +372,7 @@
    "id": "always-ready",
    "name": "Always Ready",
    "description": "Use Umbra 30 days in a row.",
-   "icon": "󰧓",
+   "icon": "\udb82\uddd3",
    "tier": "gold",
    "points": 50,
    "stat": "streak",
@@ -379,7 +383,7 @@
    "id": "night-owl",
    "name": "Night Owl",
    "description": "Ask a question between midnight and 4 in the morning.",
-   "icon": "󰏒",
+   "icon": "\udb80\udfd2",
    "tier": "bronze",
    "points": 10,
    "stat": "nightQuestions",
@@ -391,7 +395,7 @@
    "id": "early-bird",
    "name": "Early Bird",
    "description": "Ask a question between 5 and 7 in the morning.",
-   "icon": "󰖜",
+   "icon": "\udb81\udd9c",
    "tier": "bronze",
    "points": 10,
    "stat": "dawnQuestions",
@@ -403,7 +407,7 @@
    "id": "emergency-brake",
    "name": "Emergency Brake",
    "description": "Stop Umbra in the middle of an answer.",
-   "icon": "󰹆",
+   "icon": "\udb83\ude46",
    "tier": "bronze",
    "points": 10,
    "stat": "stops",
@@ -415,7 +419,7 @@
    "id": "by-the-book",
    "name": "By the Book",
    "description": "Read 5 pages of the field manual.",
-   "icon": "󰗚",
+   "icon": "\udb81\uddda",
    "tier": "bronze",
    "points": 10,
    "stat": "manualPages",
@@ -426,7 +430,7 @@
    "id": "manual-master",
    "name": "Manual Master",
    "description": "Read every page of the field manual.",
-   "icon": "󱓳",
+   "icon": "\udb85\udcf3",
    "tier": "gold",
    "points": 50,
    "stat": "manualPages",
@@ -437,7 +441,7 @@
    "id": "librarian",
    "name": "Librarian",
    "description": "Have 5 collections in your library.",
-   "icon": "󱉟",
+   "icon": "\udb84\ude5f",
    "tier": "silver",
    "points": 25,
    "stat": "collections",
@@ -447,19 +451,19 @@
   {
    "id": "the-great-library",
    "name": "The Great Library",
-   "description": "Have 19 collections in your library.",
-   "icon": "󰌱",
+   "description": "Have all 27 collections in your library.",
+   "icon": "\udb80\udf31",
    "tier": "gold",
    "points": 50,
    "stat": "collections",
-   "goal": 19,
+   "goal": 27,
    "category": "knowledge"
   },
   {
    "id": "going-online",
    "name": "Going Online",
    "description": "Ask a question in online mode.",
-   "icon": "󰖟",
+   "icon": "\udb81\udd9f",
    "tier": "bronze",
    "points": 10,
    "stat": "onlineQuestions",
@@ -470,7 +474,7 @@
    "id": "radio-silence",
    "name": "Radio Silence",
    "description": "Get an answer in off-grid mode.",
-   "icon": "󰚦",
+   "icon": "\udb81\udea6",
    "tier": "bronze",
    "points": 10,
    "stat": "offgridQuestions",
@@ -481,7 +485,7 @@
    "id": "ghost-protocol",
    "name": "Ghost Protocol",
    "description": "Get 10 answers in off-grid mode.",
-   "icon": "󰊠",
+   "icon": "\udb80\udea0",
    "tier": "silver",
    "points": 25,
    "stat": "offgridQuestions",
@@ -492,7 +496,7 @@
    "id": "say-it-out-loud",
    "name": "Say It Out Loud",
    "description": "Ask a question with your voice.",
-   "icon": "󰍬",
+   "icon": "\udb80\udf6c",
    "tier": "bronze",
    "points": 10,
    "stat": "voice",
@@ -503,7 +507,7 @@
    "id": "backup-plan",
    "name": "Backup Plan",
    "description": "Make a backup of your Umbra.",
-   "icon": "󰆔",
+   "icon": "\udb80\udd94",
    "tier": "bronze",
    "points": 10,
    "stat": "backups",
@@ -514,7 +518,7 @@
    "id": "sneakernet",
    "name": "Sneakernet",
    "description": "Save something to a USB stick.",
-   "icon": "󱊞",
+   "icon": "\udb84\ude9e",
    "tier": "silver",
    "points": 25,
    "stat": "usbExports",
@@ -525,7 +529,7 @@
    "id": "cartographer",
    "name": "Cartographer",
    "description": "Download the map of an area.",
-   "icon": "󰍍",
+   "icon": "\udb80\udf4d",
    "tier": "bronze",
    "points": 10,
    "stat": "mapPacks",
@@ -536,7 +540,7 @@
    "id": "trailblazer",
    "name": "Trailblazer",
    "description": "Drop 5 waypoints on the map.",
-   "icon": "󰉀",
+   "icon": "\udb80\ude40",
    "tier": "silver",
    "points": 25,
    "stat": "waypoints",
@@ -547,7 +551,7 @@
    "id": "navigator",
    "name": "Navigator",
    "description": "Search the map for 10 different places.",
-   "icon": "󱎂",
+   "icon": "\udb84\udf82",
    "tier": "silver",
    "points": 25,
    "stat": "mapSearches",
@@ -558,7 +562,7 @@
    "id": "world-traveller",
    "name": "World Traveller",
    "description": "Download maps of 5 different areas.",
-   "icon": "󰇧",
+   "icon": "\udb80\udde7",
    "tier": "gold",
    "points": 50,
    "stat": "mapPacks",
@@ -569,7 +573,7 @@
    "id": "stayin-alive",
    "name": "Stayin' Alive",
    "description": "Run the CPR metronome for 2 minutes of practice.",
-   "icon": "󰗶",
+   "icon": "\udb81\uddf6",
    "tier": "bronze",
    "points": 10,
    "stat": "cprMinutes",
@@ -580,7 +584,7 @@
    "id": "lifeline",
    "name": "Lifeline",
    "description": "Start a first-aid timer.",
-   "icon": "󰔛",
+   "icon": "\udb81\udd1b",
    "tier": "bronze",
    "points": 10,
    "stat": "timers",
@@ -591,7 +595,7 @@
    "id": "quartermaster",
    "name": "Quartermaster",
    "description": "Record your supplies.",
-   "icon": "󰏖",
+   "icon": "\udb80\udfd6",
    "tier": "bronze",
    "points": 10,
    "stat": "quartermaster",
@@ -602,7 +606,7 @@
    "id": "signalman",
    "name": "Signalman",
    "description": "Read 25 Morse letters correctly.",
-   "icon": "󰀃",
+   "icon": "\udb80\udc03",
    "tier": "silver",
    "points": 25,
    "stat": "morseLetters",
@@ -613,7 +617,7 @@
    "id": "drill-sergeant",
    "name": "Drill Sergeant",
    "description": "Finish 7 daily drills.",
-   "icon": "󰦇",
+   "icon": "\udb82\udd87",
    "tier": "silver",
    "points": 25,
    "stat": "drills",
@@ -624,7 +628,7 @@
    "id": "sun-reader",
    "name": "Sun Reader",
    "description": "Check the sun and moon for your location.",
-   "icon": "󰖚",
+   "icon": "\udb81\udd9a",
    "tier": "bronze",
    "points": 10,
    "stat": "sunChecks",
@@ -635,7 +639,7 @@
    "id": "pocket-guide",
    "name": "Pocket Guide",
    "description": "Print your pocket cards.",
-   "icon": "󰭸",
+   "icon": "\udb82\udf78",
    "tier": "bronze",
    "points": 10,
    "stat": "cards",
@@ -646,7 +650,7 @@
    "id": "wardrobe-change",
    "name": "Wardrobe Change",
    "description": "Try 5 themes.",
-   "icon": "󰏘",
+   "icon": "\udb80\udfd8",
    "tier": "bronze",
    "points": 10,
    "stat": "themes",
@@ -657,7 +661,7 @@
    "id": "chameleon",
    "name": "Chameleon",
    "description": "Try 15 themes.",
-   "icon": "󰫢",
+   "icon": "\udb82\udee2",
    "tier": "silver",
    "points": 25,
    "stat": "themes",
@@ -668,7 +672,7 @@
    "id": "change-of-scenery",
    "name": "Change of Scenery",
    "description": "Try 5 start-screen backgrounds.",
-   "icon": "󰋵",
+   "icon": "\udb80\udef5",
    "tier": "bronze",
    "points": 10,
    "stat": "backgrounds",
@@ -679,7 +683,7 @@
    "id": "many-voices",
    "name": "Many Voices",
    "description": "Deploy 5 different personalities.",
-   "icon": "󰡉",
+   "icon": "\udb82\udc49",
    "tier": "silver",
    "points": 25,
    "stat": "personalities",
@@ -690,7 +694,7 @@
    "id": "ready-for-anything",
    "name": "Ready for Anything",
    "description": "Deploy 5 different scenarios.",
-   "icon": "󰴠",
+   "icon": "\udb83\udd20",
    "tier": "silver",
    "points": 25,
    "stat": "scenarios",
@@ -701,7 +705,7 @@
    "id": "creator",
    "name": "Creator",
    "description": "Create your own personality, scenario and theme.",
-   "icon": "󰛓",
+   "icon": "\udb81\uded3",
    "tier": "gold",
    "points": 50,
    "stat": "creations",
@@ -709,15 +713,432 @@
    "category": "style"
   },
   {
+   "id": "under-the-hood",
+   "name": "Under the Hood",
+   "description": "Open the Core panel (click STATUS at the top).",
+   "icon": "\udb81\ude1a",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "coreOpened",
+   "goal": 1,
+   "category": "tools"
+  },
+  {
+   "id": "second-opinion",
+   "name": "Second Opinion",
+   "description": "Think with two different AI models.",
+   "icon": "\udb82\uddd1",
+   "tier": "silver",
+   "points": 25,
+   "stat": "modelsTried",
+   "goal": 2,
+   "category": "tools"
+  },
+  {
+   "id": "eyes-open",
+   "name": "Eyes Open",
+   "description": "Open Signals & Radar.",
+   "icon": "\udb81\udc37",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "radarOpened",
+   "goal": 1,
+   "category": "tools"
+  },
+  {
+   "id": "signal-hunter",
+   "name": "Signal Hunter",
+   "description": "Hear 25 different devices on the radar.",
+   "icon": "\udb82\udf94",
+   "tier": "silver",
+   "points": 25,
+   "stat": "radarDevices",
+   "goal": 25,
+   "category": "tools"
+  },
+  {
+   "id": "go-dark",
+   "name": "Go Dark",
+   "description": "Use the radar's kill switch.",
+   "icon": "\udb81\udc25",
+   "tier": "silver",
+   "points": 25,
+   "stat": "killSwitch",
+   "goal": 1,
+   "category": "tools"
+  },
+  {
+   "id": "locked-and-loaded",
+   "name": "Locked and Loaded",
+   "description": "Save something in the Vault.",
+   "icon": "\udb82\ude70",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "vault",
+   "goal": 1,
+   "category": "tools"
+  },
+  {
+   "id": "planner",
+   "name": "Planner",
+   "description": "Add a reminder to the Calendar.",
+   "icon": "\udb80\udced",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "reminders",
+   "goal": 1,
+   "category": "tools"
+  },
+  {
+   "id": "clockwork",
+   "name": "Clockwork",
+   "description": "Keep 10 reminders in the Calendar.",
+   "icon": "\udb80\udcf0",
+   "tier": "silver",
+   "points": 25,
+   "stat": "reminders",
+   "goal": 10,
+   "category": "tools"
+  },
+  {
+   "id": "combat-medic",
+   "name": "Combat Medic",
+   "description": "Use four different Medic tools.",
+   "icon": "\udb81\udcf9",
+   "tier": "silver",
+   "points": 25,
+   "stat": "medicTools",
+   "goal": 4,
+   "category": "fieldkit"
+  },
+  {
+   "id": "field-library",
+   "name": "Field Library",
+   "description": "Download three field manuals.",
+   "icon": "\udb80\ude8b",
+   "tier": "silver",
+   "points": 25,
+   "stat": "manuals",
+   "goal": 3,
+   "category": "knowledge"
+  },
+  {
+   "id": "study-hall",
+   "name": "Study Hall",
+   "description": "Open five field manuals to read.",
+   "icon": "\udb82\udf63",
+   "tier": "silver",
+   "points": 25,
+   "stat": "manualsRead",
+   "goal": 5,
+   "category": "knowledge"
+  },
+  {
+   "id": "intel-officer",
+   "name": "Intel Officer",
+   "description": "Open ten country files on the map.",
+   "icon": "\udb80\udde7",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "countries",
+   "goal": 10,
+   "category": "maps"
+  },
+  {
+   "id": "globetrotter",
+   "name": "Globetrotter",
+   "description": "Open fifty country files on the map.",
+   "icon": "\udb80\udc18",
+   "tier": "gold",
+   "points": 50,
+   "stat": "countries",
+   "goal": 50,
+   "category": "maps"
+  },
+  {
+   "id": "surveyor",
+   "name": "Surveyor",
+   "description": "Measure five distances on the map.",
+   "icon": "\udb81\udc6d",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "measures",
+   "goal": 5,
+   "category": "maps"
+  },
+  {
+   "id": "organised",
+   "name": "Organised",
+   "description": "Make a folder in History.",
+   "icon": "\udb80\ude4b",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "folders",
+   "goal": 1,
+   "category": "habits"
+  },
+  {
+   "id": "paper-trail",
+   "name": "Paper Trail",
+   "description": "Export three times: conversations, the manual or cards.",
+   "icon": "\udb80\ude07",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "exports",
+   "goal": 3,
+   "category": "offgrid"
+  },
+  {
+   "id": "quick-draw",
+   "name": "Quick Draw",
+   "description": "Use the Tab quick actions ten times.",
+   "icon": "\udb80\udf12",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "quickActions",
+   "goal": 10,
+   "category": "questions"
+  },
+  {
    "id": "legend",
    "name": "Legend of the Wasteland",
    "description": "Earn every other achievement.",
-   "icon": "󰆥",
+   "icon": "\udb80\udda5",
    "tier": "legendary",
    "points": 100,
    "stat": "allOthers",
-   "goal": 57,
+   "goal": 74,
    "category": "legend"
+  }
+ ],
+ "rewards": [
+  {
+   "id": "globe",
+   "kind": "orb",
+   "name": "Globe",
+   "description": "The classic: a spinning, lit globe.",
+   "unlock": {}
+  },
+  {
+   "id": "radar",
+   "kind": "orb",
+   "name": "Radar Dish",
+   "description": "Rings and a sweeping beam.",
+   "unlock": {
+    "rank": "Scout"
+   }
+  },
+  {
+   "id": "compass",
+   "kind": "orb",
+   "name": "Compass Rose",
+   "description": "A needle that settles north.",
+   "unlock": {
+    "achievement": "true-north"
+   }
+  },
+  {
+   "id": "moon",
+   "kind": "orb",
+   "name": "Phases",
+   "description": "The moon, waxing and waning.",
+   "unlock": {
+    "achievement": "sun-reader"
+   }
+  },
+  {
+   "id": "reactor",
+   "kind": "orb",
+   "name": "Reactor Core",
+   "description": "A pulsing core with turning spokes.",
+   "unlock": {
+    "achievement": "under-the-hood"
+   }
+  },
+  {
+   "id": "ringworld",
+   "kind": "orb",
+   "name": "Ringed World",
+   "description": "A planet inside a tilted ring.",
+   "unlock": {
+    "rank": "Ranger"
+   }
+  },
+  {
+   "id": "watcher",
+   "kind": "orb",
+   "name": "The Watcher",
+   "description": "An eye that looks around.",
+   "unlock": {
+    "achievement": "signal-hunter"
+   }
+  },
+  {
+   "id": "blacksun",
+   "kind": "orb",
+   "name": "Black Sun",
+   "description": "A dark sphere with a burning corona.",
+   "unlock": {
+    "rank": "Survivalist"
+   }
+  },
+  {
+   "id": "gold",
+   "kind": "orb",
+   "name": "Golden Globe",
+   "description": "The globe, in gold. For legends only.",
+   "unlock": {
+    "rank": "Legend"
+   }
+  },
+  {
+   "id": "none",
+   "kind": "title",
+   "name": "No title",
+   "description": "Just your name.",
+   "unlock": {}
+  },
+  {
+   "id": "scout",
+   "kind": "title",
+   "name": "Scout",
+   "description": "",
+   "unlock": {
+    "rank": "Scout"
+   }
+  },
+  {
+   "id": "night-watch",
+   "kind": "title",
+   "name": "Night Watch",
+   "description": "",
+   "unlock": {
+    "achievement": "night-owl"
+   }
+  },
+  {
+   "id": "field-medic",
+   "kind": "title",
+   "name": "Field Medic",
+   "description": "",
+   "unlock": {
+    "achievement": "field-medic"
+   }
+  },
+  {
+   "id": "signal-keeper",
+   "kind": "title",
+   "name": "Signal Keeper",
+   "description": "",
+   "unlock": {
+    "achievement": "signalman"
+   }
+  },
+  {
+   "id": "quartermaster",
+   "kind": "title",
+   "name": "Quartermaster",
+   "description": "",
+   "unlock": {
+    "achievement": "quartermaster"
+   }
+  },
+  {
+   "id": "ghost",
+   "kind": "title",
+   "name": "Ghost",
+   "description": "",
+   "unlock": {
+    "achievement": "ghost-protocol"
+   }
+  },
+  {
+   "id": "cartographer",
+   "kind": "title",
+   "name": "Cartographer",
+   "description": "",
+   "unlock": {
+    "achievement": "world-traveller"
+   }
+  },
+  {
+   "id": "pathfinder",
+   "kind": "title",
+   "name": "Pathfinder",
+   "description": "",
+   "unlock": {
+    "rank": "Pathfinder"
+   }
+  },
+  {
+   "id": "oracle",
+   "kind": "title",
+   "name": "The Oracle",
+   "description": "",
+   "unlock": {
+    "achievement": "the-oracle"
+   }
+  },
+  {
+   "id": "veteran",
+   "kind": "title",
+   "name": "Veteran",
+   "description": "",
+   "unlock": {
+    "rank": "Veteran"
+   }
+  },
+  {
+   "id": "legend",
+   "kind": "title",
+   "name": "Legend of the Wasteland",
+   "description": "",
+   "unlock": {
+    "achievement": "legend"
+   }
+  },
+  {
+   "id": "plain",
+   "kind": "name",
+   "name": "Steady",
+   "description": "Your name as it is.",
+   "unlock": {}
+  },
+  {
+   "id": "glow",
+   "kind": "name",
+   "name": "Glow",
+   "description": "Your name glows softly.",
+   "unlock": {
+    "rank": "Ranger"
+   }
+  },
+  {
+   "id": "static",
+   "kind": "name",
+   "name": "Static",
+   "description": "Your name flickers now and then, like a bad signal.",
+   "unlock": {
+    "achievement": "go-dark"
+   }
+  },
+  {
+   "id": "scan",
+   "kind": "name",
+   "name": "Scanline",
+   "description": "A light sweeps across your name.",
+   "unlock": {
+    "rank": "Pathfinder"
+   }
+  },
+  {
+   "id": "gold-name",
+   "kind": "name",
+   "name": "Gold",
+   "description": "Your name in gold.",
+   "unlock": {
+    "rank": "Legend"
+   }
   }
  ]
 }

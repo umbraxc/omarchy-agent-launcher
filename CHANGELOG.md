@@ -1,5 +1,32 @@
 # Changelog
 
+## 3.2.0
+
+### Highlights
+
+- **The Core panel**: click STATUS at the top. Every system's condition at a glance, and eight AI models to choose from (SPARK, SCOUT, RANGER, SENTINEL, WARDEN, ORACLE, VANGUARD, COMMAND), each with what it's good at, how it answers and how well it suits your computer.
+- **An Umbra that adapts to you**: it matches how you write, formal or casual, remembers what you ask for (shorter answers, no lists), and stops repeating itself. Its personality always comes first.
+- **The Locker**: achievements now earn rewards: new orbs for the start screen, titles and name effects. 17 new achievements cover every tool.
+- **A shorter welcome**: a quick ASCII introduction, then choose a one-minute quick start, the full briefing, or skip. A skip link is always one click away.
+- **A bigger library**: eight new collections, including a prepper encyclopedia, the CIA World Factbook, Wikipedia's essentials, vehicle repair, money, parenting and pets.
+- **Calmer notifications**: their own, quieter volume, and achievements only count once the tour is done.
+
+### All changes
+
+- Core panel: an animated ASCII core in the colour of the current state; AI engine, model, library, maps, network,
+  downloads, power, voice and processor, each with what to do when it isn't right; what every status word means;
+  download, switch and remove models. Models that "think" first (Gemma 4, Qwen 3.5) answer straight away.
+- Adaptive style: learned from your messages on this computer only; Settings → Conversation shows what's been learned,
+  switches it off, or forgets it. Umbra now remembers a little more of the conversation.
+- Locker (Profile → LOCKER): 9 orbs, 12 titles and 5 name effects, unlocked by rank or by achievements, with a note
+  when one unlocks. New achievements for the Core panel, AI models, radar, kill switch, vault, calendar, medic tools,
+  field manuals, country files, measuring, folders, exports and Tab quick actions.
+- Welcome tour: QUICK START (name, AI, library, theme, a short look at the screen) or FULL BRIEFING (everything, as
+  before); finishing a tour earns the first achievement, skipping doesn't. First-look notes have "hide all".
+- Library: 27 collections (13 GB in all); two new sections, Everyday Life and Knowledge & the World.
+- The prompt's hints keep one colour, the same as "PRESS TAB FOR QUICK ACTIONS".
+- Settings → Sound: a separate volume for notification sounds (pop-ups, achievements, finished downloads).
+
 ## 3.1.2
 
 ### Highlights

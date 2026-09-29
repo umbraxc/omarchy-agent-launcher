@@ -80,9 +80,11 @@ keep it on a USB stick.
 ### A library you can grow
 
 Pick a pack in the welcome tour or the Library panel (Survival Essentials
-0.9 GB, Prepared 3.4 GB, or Complete 10.1 GB with all 19 collections), or
+0.9 GB, Prepared 5.9 GB, or Complete 13 GB with all 27 collections), or
 choose collections one by one: medicine, repair guides, gardening, off-grid
-power, amateur radio, wilderness skills and more. Downloads run in the
+power, amateur radio, wilderness skills, a prepper encyclopedia, the CIA World
+Factbook (every country, its military included), Wikipedia's essentials,
+vehicle repair, money, parenting, pets and more. Downloads run in the
 background, are checked for damage, and join the library as they arrive.
 
 ![The library](docs/library.png)
@@ -93,6 +95,26 @@ Umbra is fully offline by default. When you have internet, switch **LINK** to
 **ONLINE** and it adds Wikipedia for fuller, more current answers, and tells
 you which facts came from where. It always asks first, and every launch starts
 local.
+
+### The Core panel: your AI, and how everything is doing
+
+Click **STATUS** at the top. An animated core shows Umbra's state, with every
+system listed (AI engine, model, library, maps, network, downloads, power,
+voice, processor) and what to do when one isn't right. Below it are eight
+local AI models, each with a callsign so none look alike: **SPARK** (Gemma 3
+1B), **SCOUT** (Llama 3.2 3B), **RANGER** (Gemma 3 4B, the default),
+**SENTINEL** (Ministral 3 8B), **WARDEN** (Llama 3.1 8B), **ORACLE** (Gemma 4
+E4B), **VANGUARD** (Qwen 3.5 9B) and **COMMAND** (Gemma 4 12B). Each shows what
+it's good at, its limits, an example answer, and whether it fits your computer.
+Download, switch or remove them there.
+
+### An Umbra that adapts to you
+
+Umbra matches the way you write, formal or casual, short or detailed, and
+remembers what you ask for ("shorter please", "no lists", "simpler") from one
+conversation to the next. It also avoids repeating its own openings and stock
+phrases. Its personality always comes first. What it has learned stays on
+your computer; Settings → Conversation shows it, switches it off or forgets it.
 
 ### Loadout: scenarios and personalities
 
@@ -127,13 +149,13 @@ Vault) private.
 
 ### Achievements
 
-58 achievements in four tiers (bronze, silver, gold and legendary), each with
+75 achievements in four tiers (bronze, silver, gold and legendary), each with
 its own badge, in the Loadout's **ACHIEVEMENTS** tab: your first question and
 the welcome tour, 10 to 500 questions, the ten survival topics (water, fire,
 shelter, first aid, food, navigation, power, radio, repairs, disasters),
 reading the whole field manual, a full library, off-grid answers, backups to
-a USB stick, day streaks, maps and waypoints, the Field Kit, trying themes and personalities, creating your own,
-and a few secret ones. Progress bars show how far along you are; a chime and
+a USB stick, day streaks, maps and waypoints, the Field Kit, the radar, the vault, the calendar, the Core panel,
+trying themes and personalities, creating your own, and a few secret ones. Progress bars show how far along you are; a chime and
 a pop-up celebrate each new one. Points raise your rank from Recruit to
 Legend.
 
@@ -143,6 +165,12 @@ Uninstall remove them. After updating from an earlier version, Umbra counts
 your saved conversations once, so earlier use counts too.
 
 ![Achievements](docs/achievements.png)
+
+**The Locker** (Profile → LOCKER) turns them into rewards: 9 orbs for the start
+screen (radar dish, compass rose, ringed world, the watcher, black sun…), 12
+titles shown with your name, and 5 name effects. Ranks and particular
+achievements unlock them; a note tells you when one does. Achievements start
+counting once the welcome tour is done.
 
 ### Maps
 
@@ -453,19 +481,26 @@ the [repository page](https://umbraxc.github.io/umbra-repo/#windows).
 |---|---|
 | System packages | `ollama`, `python-gobject`, `webkit2gtk-4.1`, `gst-plugins-good`, `kiwix-tools`, `jq`, `curl`, `pciutils`, `pipewire-audio`, `xdg-utils`, `libnotify`, `gtk-update-icon-cache`, `ttf-jetbrains-mono-nerd` (only if missing), `ollama-cuda` or `ollama-rocm` for supported cards |
 | The app | a launcher (`~/.local/bin/umbra-wiki`), an app-menu entry and icon, and a background service (`umbra-wiki.service`, per user) |
-| Chosen in the tour | an AI model (0.8 to 4.9 GB) and library packs (0.9 to 10.1 GB) |
+| Chosen in the tour | an AI model (0.8 to 7.2 GB) and library packs (0.9 to 13 GB) |
 | Optional | voice input: voxtype and its English speech model (about 0.2 GB) |
 
 ---
 
 ## First launch: the welcome tour
 
-Umbra introduces itself and sets itself up with you, one step at a time: your
-name and an optional password, what Umbra is for, the AI model (it looks at
-your processor, memory and graphics card and recommends one), the library
-packs, a theme, a scenario and a personality, text size, background and
-off-grid mode, then a spotlight tour of every control. It runs once; replay
-it any time from Settings.
+Umbra introduces itself in a short ASCII frame and asks how you'd like to
+start:
+
+- **Quick start** (about a minute): your name, the AI model (it looks at your
+  processor, memory and graphics card and recommends one), a library pack, a
+  theme, and a short look at the screen.
+- **Full briefing** (about five minutes): everything, including your profile
+  and health notes for the ID card, a password, scenario and personality,
+  text size, background, off-grid mode, and a spotlight tour of every control.
+- **Skip**: straight in; each screen explains itself the first time.
+
+A "skip the rest of the tour" link sits under every question. Replay either
+tour any time from Settings.
 
 ![The welcome tour](docs/tour.png)
 

@@ -89,17 +89,17 @@
   function render() {
     overlay.querySelectorAll(".lo-tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === state.tab));
     overlay.classList.toggle("profile", state.tab === "profile");
-    overlay.classList.toggle("achievements", state.tab === "achievements");
+    overlay.classList.toggle("achievements", state.tab === "achievements" || state.tab === "locker");
     if (state.tab === "profile") {
       if (state.stopAnim) state.stopAnim();
       state.stopAnim = window.UmbraProfile.render(grid, detail, animate);
       grid.dataset.tab = "profile";
       return;
     }
-    if (state.tab === "achievements") {
+    if (state.tab === "achievements" || state.tab === "locker") {
       if (state.stopAnim) state.stopAnim();
       state.stopAnim = null;
-      window.UmbraAchievements.render(grid, detail);
+      window.UmbraAchievements[state.tab === "locker" ? "renderLocker" : "render"](grid, detail);
       return;
     }
     if (!state.selected || !find(state.selected)) state.selected = current();

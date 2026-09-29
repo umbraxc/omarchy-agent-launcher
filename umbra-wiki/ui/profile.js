@@ -207,6 +207,11 @@
       const p = q(".pf-color-preview");
       p.textContent = ((q(".pf-name").value.trim() || "YOU") + (q(".pf-callsign").value.trim() ? " · " + q(".pf-callsign").value.trim() : "")).toUpperCase();
       p.style.color = draft.color ? `var(--${draft.color})` : "";
+      // The name effect and title equipped in the Locker.
+      p.className = p.className.replace(/\bfx-\S+/g, "").trim() + " fx-" + ((window.prefs && window.prefs.nameFx) || "plain");
+      const t = window.prefs && window.prefs.title, A = window.UmbraAchievements && UmbraAchievements.data;
+      const r = t && t !== "none" && A && (A.rewards || []).find((x) => x.id === t);
+      if (r) p.insertAdjacentHTML("beforeend", ` <span class="title-tag">${escapeHtml(r.name.toUpperCase())}</span>`);
       detail.querySelectorAll(".pf-color").forEach((b) => b.classList.toggle("on", b.dataset.v === (draft.color || "")));
     };
     detail.querySelectorAll(".pf-color").forEach((b) => b.addEventListener("click", () => { draft.color = b.dataset.v; preview(); changed(); Sound.click(); }));

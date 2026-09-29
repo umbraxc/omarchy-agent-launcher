@@ -160,7 +160,7 @@
     setTimeout(() => { if (menu.classList.contains("out")) menu.hidden = true; }, 160);
   }
   function mark() { menu.querySelectorAll(".tm-item").forEach((b, i) => b.classList.toggle("on", i === sel)); }
-  function pick(i) { const it = items[i]; hide(); if (it) { if (window.track) track("suggestions"); it.run(); } }
+  function pick(i) { const it = items[i]; hide(); if (it) { if (window.track) { track("suggestions"); track("quickActions"); } it.run(); } }
 
   input.addEventListener("keydown", (e) => {
     if (isOpen()) {

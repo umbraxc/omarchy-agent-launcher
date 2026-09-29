@@ -481,6 +481,7 @@
     ro.observe(el.querySelector(".rd-center"));
     resize();
     list(); scan(true); vitals();
+    if (window.track) track("radarOpened");
     if (!raf) raf = requestAnimationFrame(draw);
     Sound.searchstart();
   }

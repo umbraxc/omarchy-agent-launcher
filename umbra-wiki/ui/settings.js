@@ -85,7 +85,7 @@
   function save(update) {
     Object.assign(prefs, update);
     applyPrefs();
-    postSettings(update);
+    return postSettings(update);
   }
 
   // ---------------------------------------------------------- search
@@ -94,11 +94,11 @@
   // "cpu", "mic" or "dark" still find the right place.
   const KEYWORDS = {
     PERFORMANCE: "cpu processor performance speed fast slow hot fan heat temperature memory ram cores threads limit battery graph",
-    SOUND: "audio volume speaker speakers headphones mute quiet loud output input microphone mic beep",
+    SOUND: "notification notifications popup pop-up alert achievement ding audio volume speaker speakers headphones mute quiet loud output input microphone mic beep",
     "HEADER BUTTONS": "hide show icons toolbar top buttons header",
     "MAPS & PLACES": "maps map downloaded areas countries waypoints places delete remove space disk",
     MOTION: "animation animations background rain transition boot intro outro reduce motion effects",
-    CONVERSATION: "zoom scale bigger smaller magnify magnifier size larger readable chat text size font bigger smaller greeting suggestions replies alert close exit",
+    CONVERSATION: "adapt adaptive learn learning style tone formal casual forget zoom scale bigger smaller magnify magnifier size larger readable chat text size font bigger smaller greeting suggestions replies alert close exit",
     POWER: "battery off-grid offgrid power saver laptop unplugged",
     KEYBOARD: "keys shortcuts hotkeys keyboard",
     BACKUP: "backup restore export save usb copy transfer",
@@ -315,6 +315,8 @@
         ${toggle("sound", "Sound effects", "Startup, clicks, search and answer sounds")}
         <label class="set-row"><span class="set-text"><b>Volume</b><small>How loud Umbra's sounds are</small></span>
           <input type="range" class="set-volume" min="0" max="1" step="0.05"></label>
+        <label class="set-row"><span class="set-text"><b>Notification sounds</b><small>Pop-ups, first-look notes, achievements and finished downloads. All the way left turns them off</small></span>
+          <input type="range" class="set-notify-volume" min="0" max="1" step="0.05"></label>
         ${toggle("hoverSounds", "Hover sounds", "Soft blips when the mouse moves over buttons")}
         <label class="set-row"><span class="set-text"><b>Sound output</b><small>Where Umbra's sounds play</small></span>
           <span class="set-previews"><select class="set-audio-out"></select><button class="ghost set-audio-test">▶ TEST</button></span></label>
@@ -340,6 +342,9 @@
       <section class="set-section"><div class="lib-head">CONVERSATION</div>
         ${toggle("greeting", "Personal greeting", "Welcome you on the start screen, picking up from last time")}
         ${toggle("suggestions", "Suggested replies", "Offer a likely reply after each answer (Tab to use it)")}
+        ${toggle("adaptive", "Adapt to how I write", "Umbra matches your tone (formal or casual), remembers what you ask for, like shorter answers or no lists, and keeps its wording fresh. Its personality stays")}
+        <div class="set-row"><span class="set-text"><b>What Umbra has learned</b><small class="set-style">Reading…</small></span>
+          <button class="ghost set-style-forget">FORGET</button></div>
         ${toggle("barAlert", "Bar alert", "Light up the bar icon when an answer arrives in the background")}
         ${toggle("confirmExit", "Ask before closing", "A short confirmation (and the goodbye animation) when you close Umbra")}
         <label class="set-row"><span class="set-text"><b>Text size</b><small>Answers, your messages, the questions on the start screen and the prompt</small></span>
@@ -371,9 +376,11 @@
         <input type="file" class="set-restore-file" accept=".json,application/json" hidden>
       </section>
       <section class="set-section"><div class="lib-head">AI MODEL</div>
-        <label class="set-row"><span class="set-text"><b>Local model</b><small>Bigger models are smarter but slower. Add more with <code>ollama pull &lt;name&gt;</code></small></span>
+        <label class="set-row"><span class="set-text"><b>Local model</b><small>The AI Umbra thinks with. Bigger models are smarter but slower</small></span>
           <select class="set-model"></select></label>
-        <div class="set-pulls"></div>
+        <div class="set-row"><span class="set-text"><b>Compare and download models</b><small>What each model is good at, how it answers, and how well it suits this computer: in the Core panel (or click STATUS at the top)</small></span>
+          <button class="ghost set-core">OPEN CORE ▸</button></div>
+        <div class="set-pulls" hidden></div>
       </section>
       <section class="set-section"><div class="lib-head">VOICE</div>
         <p class="lib-note set-voice"></p>
@@ -587,6 +594,9 @@
     const bgSelect = body.querySelector(".set-background");
     bgSelect.value = prefs.background || "rain";
     bgSelect.addEventListener("change", () => { save({ background: bgSelect.value }); Sound.theme(); });
+    const nv = body.querySelector(".set-notify-volume");
+    nv.value = typeof prefs.notifyVolume === "number" ? prefs.notifyVolume : 0.5;
+    nv.addEventListener("change", async () => { await save({ notifyVolume: Number(nv.value) }); Sound.achieve(); });
     const vol = body.querySelector(".set-volume");
     vol.value = prefs.volume;
     vol.addEventListener("change", () => { save({ volume: Number(vol.value) }); Sound.click(); });
@@ -620,6 +630,16 @@
       window.startTour && window.startTour();
     });
     body.querySelector(".set-reset").addEventListener("click", resetUmbra);
+    const showStyle = (st) => {
+      body.querySelector(".set-style").textContent = !st.on ? "Switched off: Umbra answers everyone the same way."
+        : st.learned.length ? "You " + st.learned.join("; ") + "." : "Nothing yet. It learns as you talk; only on this computer.";
+    };
+    fetch("/api/style").then((r) => r.json()).then(showStyle).catch(() => {});
+    body.querySelector(".set-style-forget").addEventListener("click", async () => {
+      showStyle(await (await fetch("/api/style/forget", { method: "POST" })).json());
+      Sound.click();
+    });
+    body.querySelector(".set-core").addEventListener("click", () => { open(false, true); window.toggleCore && window.toggleCore(true); });
     body.querySelector(".set-uninstall").addEventListener("click", async () => {
       const box = body.querySelector(".set-uninstall-box");
       box.hidden = !box.hidden;
@@ -645,7 +665,8 @@
     if (!select || !pulls) return;
     const names = models.models.length ? models.models : [models.current];
     if (select.dataset.names !== names.join("|")) {
-      select.innerHTML = names.map((n) => `<option>${escapeHtml(n)}</option>`).join("");
+      const label = (n) => ((models.choices || []).find((c) => c.id === n) || {}).name || n;   // "RANGER · Gemma 3 4B"
+      select.innerHTML = names.map((n) => `<option value="${escapeHtml(n)}">${escapeHtml(label(n))}</option>`).join("");
       select.dataset.names = names.join("|");
     }
     select.value = select.dataset.current = models.current;

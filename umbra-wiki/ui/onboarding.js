@@ -1,10 +1,14 @@
 // Umbra Wiki welcome tour: on the very first launch (and after a reset, or
-// from Settings) Umbra walks the user through everything in the chat: who
-// it is, their profile (name, callsign, about, where they are, units,
-// experience, household, health notes, name colour), a password, what it's
-// for, the AI model and library, theme, scenario and personality, comfort
-// and power (text size, background, processor limit, off-grid), a spotlight
-// tour of the screen, and the extras. Scripted, so it's instant.
+// from Settings). A short ASCII introduction, then the user picks how much
+// of a tour they want:
+//   QUICK START    their name, the AI, the library, a theme and a short look
+//                  at the screen (about a minute);
+//   FULL BRIEFING  everything: the whole profile with health notes and ID
+//                  card, a password, scenario and personality, comfort and
+//                  power, the full screen tour and the extras;
+//   SKIP           straight in (the Core panel and Settings set up the rest).
+// Scripted, so it's instant. Finishing a tour (not skipping) earns the first
+// achievement; achievements only count from then on.
 "use strict";
 
 (() => {
@@ -39,6 +43,18 @@
     return answer;
   }
 
+  // A quiet "skip the tour" line under whatever the tour is asking now, so
+  // the way out is always right where the eyes are.
+  function skipLine(parent) {
+    document.querySelectorAll(".tour-skipline").forEach((x) => x.remove());
+    const line = document.createElement("button");
+    line.type = "button";
+    line.className = "tour-skipline";
+    line.textContent = "skip the rest of the tour ▸";
+    line.addEventListener("click", () => { Sound.click(); skipTour(); });
+    parent.appendChild(line);
+  }
+
   // Buttons under the last message; resolves with the chosen value.
   function choose(answer, options) {
     return new Promise((resolve, reject) => {
@@ -53,6 +69,7 @@
         row.appendChild(b);
       });
       answer.appendChild(row);
+      skipLine(answer);
       skipHooks.push(() => reject(SKIP));
       wake();
       autoClick(row.querySelector("button"));
@@ -75,6 +92,7 @@
       box.querySelector(".ghost").addEventListener("click", () => done(""));
       inp.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); done(inp.value.trim()); } });
       answer.appendChild(box);
+      skipLine(answer);
       skipHooks.push(() => reject(SKIP));
       wake();
       setTimeout(() => inp.focus(), 50);
@@ -125,6 +143,7 @@
       next.querySelector("button").addEventListener("click", () => { grid.classList.add("done", "unfolded"); grid.nextElementSibling?.classList.contains("tour-more") && grid.nextElementSibling.remove(); next.remove(); Sound.click(); resolve(chosen); });
       answer.append(grid, next);
       foldCards(grid, 8);
+      skipLine(answer);
       skipHooks.push(() => reject(SKIP));
       wake();
       autoClick(next.querySelector("button"));
@@ -164,6 +183,7 @@
       });
       answer.append(grid, next);
       foldCards(grid, 6);
+      skipLine(answer);
       skipHooks.push(() => reject(SKIP));
       wake();
       autoClick(next.querySelector("button"));
@@ -175,7 +195,7 @@
   const SPOTS = [
     [".brand", "UMBRA // WIKI", "Click the emblem or the name to go back to the start screen with a new conversation. Your loadout is shown under the name: click it to switch scenario or personality."],
     ["#link", "LINK", "LOCAL means fully offline (the default). Switch to ONLINE when you have internet and I add Wikipedia for fuller, more current answers. I always ask first."],
-    [".cell.status", "STATUS", "Shows when I'm ready, working, or can't reach my AI."],
+    [".cell.status", "CORE", "Shows when I'm ready, working, or can't reach my AI. Click it for the Core panel: every system's condition, and the AI models, what each can do and which suits this computer."],
     ["#loadout-btn", "PROFILE & LOADOUT", "Your profile (name, callsign, character, what I should know about you), your Achievements and rank, plus scenarios and personalities. You can create your own of both."],
     ["#history-btn", "HISTORY", "Every conversation is saved on this computer. Reopen and continue any of them, search through everything, sort them into folders (each with a brief I keep in mind), pin them, and export them."],
     ["#library-btn", "LIBRARY", "The offline collections I read from, and my built-in Field Manual: the critical basics, always available. Download more collections here."],
@@ -192,9 +212,12 @@
     ["#send", "TRANSMIT", "Sends your question. While I'm answering it becomes STOP (or press Esc)."],
   ];
 
-  function spotlight() {
+  // The quick start shows the essentials only.
+  const QUICK_SPOTS = [".cell.status", "#loadout-btn", "#history-btn", "#library-btn", "#maps-btn", "#fieldkit-btn", "#settings-btn", "#q"];
+
+  function spotlight(quick = false) {
     return new Promise((resolve, reject) => {
-      const steps = SPOTS.filter(([sel]) => {
+      const steps = SPOTS.filter(([sel]) => !quick || QUICK_SPOTS.includes(sel)).filter(([sel]) => {
         const el = $(sel);
         return el && el.getClientRects().length && el.getBoundingClientRect().width > 0;
       });
@@ -202,7 +225,8 @@
       shade.className = "spot-shade";
       shade.innerHTML = `<div class="spot"></div><div class="spot-card"><div class="spot-n"></div>
         <div class="spot-title"></div><p class="spot-text"></p>
-        <div class="spot-actions"><button class="ghost spot-back">◂ BACK</button><button class="solid spot-next">NEXT ▸</button></div></div>`;
+        <div class="spot-actions"><button class="ghost spot-back">◂ BACK</button><button class="solid spot-next">NEXT ▸</button></div>
+        <button type="button" class="tour-skipline spot-skip">skip the rest of the tour ▸</button></div>`;
       document.body.appendChild(shade);
       const spot = shade.querySelector(".spot"), card = shade.querySelector(".spot-card");
       let i = 0;
@@ -228,6 +252,7 @@
         if (i === steps.length - 1) finish(true); else { i++; show(); }
       });
       shade.querySelector(".spot-back").addEventListener("click", () => { if (i > 0) { i--; show(); Sound.click(); } });
+      shade.querySelector(".spot-skip").addEventListener("click", () => { Sound.click(); skipTour(); });
       addEventListener("resize", show);
       skipHooks.push(() => finish(false));
       show();
@@ -238,129 +263,13 @@
     });
   }
 
-  // ------------------------------------------------------------- tour
+  // ------------------------------------------------ shared tour steps
 
-  let skipHooks = [];
-
-  async function script() {
-    const [themeList, loadout, profile] = await Promise.all([
-      Promise.resolve(themes),
-      fetch("loadout.json").then((r) => r.json()),
-      fetch("/api/profile").then((r) => r.json()).catch(() => ({})),
-    ]);
-    const settings = await fetch("/api/settings").then((r) => r.json()).catch(() => ({}));
-
-    let a = await say("Hello, and welcome. I'm **Umbra**, your offline survival assistant.\n\n" +
-      "I run entirely on this computer. A local AI reads from a library of survival, medical and practical guides stored right here, " +
-      "so I keep working with **no internet**, no accounts and no subscriptions, and nothing you ask ever leaves this machine.");
-    a = await say("Let me show you around. It takes about two minutes, and you can skip it at any time with **SKIP TOUR** at the top.");
-    if (await choose(a, [["SHOW ME AROUND ▸", "go", true], ["SKIP THE TOUR", "skip"]]) === "skip") throw SKIP;
-
-    // The profile, step by step; every step can be skipped. It's saved as
-    // it grows, so skipping the rest of the tour keeps what's there.
-    const me = { ...profile };
-    const saveMe = async () => {
-      const r = await post("/api/profile", me).then((x) => x.json()).catch(() => null);
-      if (r && !r.error && window.UmbraProfile) Object.assign(window.UmbraProfile.data, r);
-    };
-    a = await say("First things first: **what should I call you?**");
-    const name = await field(a, "Your name, any way you like to write it", 32);
-    let who = name;
-    if (name) {
-      addUser(name);
-      me.name = name;
-      a = await say(`Nice to meet you, **${name}**. Every good survivor has a **callsign**, too. Want one? I'll show it next to your name.`);
-      const callsign = await field(a, "e.g. Nomad-7, Fox, Northstar", 24, false, false, "");
-      if (callsign) { addUser(callsign); me.callsign = callsign; }
-      a = await say("Want to tell me a little about yourself? What you're into, what you'd like to be ready for. It helps me give advice that fits you. This stays on this computer.");
-      const about = await field(a, "For example: I'm new to camping and I'd like to be ready for power cuts.", 500, true);
-      if (about) { addUser(about); me.about = about; }
-      await saveMe();
-    } else {
-      who = "friend";
-    }
-
-    // Tailoring: where they are, units, experience, household, health.
-    a = await say("A few details make my answers fit **your** situation: plants, weather and gear differ a lot from place to place. " +
-      "**Where are you?** A region and climate is plenty.");
-    const where = await field(a, "e.g. Northern Europe, wet and cold winters", 80, false, false, "");
-    if (where) { addUser(where); me.location = where; }
-    // The time zone says more than the language (plenty of people outside the
-    // US use US English): the US, Liberia and Myanmar use imperial units.
-    const zone = (Intl.DateTimeFormat().resolvedOptions().timeZone || "");
-    const guessUnits = /^(America\/(New_York|Detroit|Chicago|Denver|Phoenix|Los_Angeles|Anchorage|Juneau|Sitka|Nome|Adak|Boise|Menominee|Metlakatla|Yakutat|Indiana\/.*|Kentucky\/.*|North_Dakota\/.*)|US\/.*|Pacific\/Honolulu|Africa\/Monrovia|Asia\/(Yangon|Rangoon))$/.test(zone) ? "imperial" : "metric";
-    a = await say("**Which units** should I use for temperatures, distances and weights?");
-    me.units = me.units || guessUnits;
-    await cards(a, [
-      { id: "metric", name: "Metric" + (guessUnits === "metric" ? "  ★" : ""), line: "°C, kilometres, metres, kilograms, litres" },
-      { id: "imperial", name: "Imperial" + (guessUnits === "imperial" ? "  ★" : ""), line: "°F, miles, feet, pounds, gallons" },
-    ], me.units, (id) => { me.units = id; Sound.click(); });
-    a = await say("And **how much experience** do you have with survival and preparedness? I'll explain more, or less.");
-    me.experience = me.experience || "some";
-    await cards(a, [
-      { id: "new", name: "New to this", line: "Explain the basics, step by step" },
-      { id: "some", name: "Some experience", line: "A good balance" },
-      { id: "experienced", name: "Seasoned", line: "Skip the basics, be concise and technical" },
-    ], me.experience, (id) => { me.experience = id; Sound.click(); });
-    a = await say("**What can you already do?** Pick the skills you have: I'll build on them and skip the basics there.");
-    const skills = await multi(a, [["firstaid", "First aid"], ["navigation", "Map & compass"], ["radio", "Radio"], ["fire", "Fire"],
-      ["shelter", "Shelter"], ["water", "Water"], ["foraging", "Foraging"], ["hunting", "Hunting"], ["fishing", "Fishing"],
-      ["cooking", "Cooking"], ["gardening", "Growing food"], ["mechanics", "Mechanics"], ["electrics", "Electrics"],
-      ["carpentry", "Carpentry"], ["sewing", "Sewing"], ["defence", "Self-defence"]].map(([id, name]) => ({ id, name })), new Set(me.skills || []));
-    me.skills = [...skills];
-    a = await say("**Who do you look after?** Kids, older family, pets: I'll plan for them too when it matters.");
-    const household = await field(a, "e.g. 2 adults, a child of 6, a dog", 160, false, false, "");
-    if (household) { addUser(household); me.household = household; }
-    a = await say("An **emergency contact**, for your ID card: who should a helper call? Name and phone. Optional.");
-    const contact = await field(a, "e.g. Sam (partner) +31 6 1234 5678", 80, false, false, "");
-    if (contact) { addUser(contact); me.contact = contact; }
-    a = await say("Now your **health**, for first aid and food advice, and your pocket ID card. All optional; it never leaves this computer. " +
-      "First, **your blood type**, if you know it.");
-    await cards(a, ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((b) => ({ id: b, name: b || "Don't know", line: "" })),
-      me.blood || "", (id) => { me.blood = id; Sound.click(); });
-    a = await say("Any **allergies**? I'll never suggest them.");
-    const allergies = await field(a, "e.g. penicillin, peanuts, bee stings", 160, false, false, "");
-    if (allergies) { addUser(allergies); me.allergies = allergies; }
-    a = await say("Any **medication** you take regularly, or a condition I should keep in mind?");
-    const health = await field(a, "e.g. inhaler for asthma", 300, true);
-    if (health) { addUser("(health notes saved)"); me.health = health; }
-    a = await say("Last touch: **the colour of your name** in our conversations.");
-    const colours = [["", "Default"], ["signal", "Signal"], ["accent", "Accent"], ["net", "Network"], ["red", "Red"], ["fg-bright", "White"]];
-    await cards(a, colours.map(([id, label]) => ({
-      id, name: label, line: "",
-      swatch: `<span class="tour-sw"><i style="background:var(--${id || "fg"})"></i></span>`,
-    })), me.color || "", (id) => { me.color = id; Sound.click(); });
-    await saveMe();
-    await say("Saved to your **Profile**, where you can change any of it, and where your **dog tag** shows it at a glance. " +
-      "You'll also find your **Achievements** there: badges you earn as you learn and prepare. You may have just earned your first ones.");
-
-    // An optional password: typed as dots, asked twice.
-    a = await say("Would you like a **password** on Umbra? It's optional. I'll ask for it when I start and when you lock the screen, " +
-      "so nobody else can read your conversations here. (It keeps the screen private; it doesn't encrypt your files.)");
-    if (await choose(a, [["SET A PASSWORD", "yes", true], ["NO THANKS", "no"]]) === "yes") {
-      a = await say("Type your password.");
-      const first = await field(a, "Password", 200, false, true);
-      if (first) {
-        a = await say("And once more, to be sure.");
-        const second = await field(a, "Repeat the password", 200, false, true);
-        if (first === second) {
-          await post("/api/password", { new: first });
-          if (window.refreshPasswordLock) window.refreshPasswordLock();
-          await say("Done. Your Umbra is locked with a password. You can change or remove it any time in your **Profile**.");
-        } else {
-          await say("Those didn't match, so I haven't set a password. You can set one any time in your **Profile**.");
-        }
-      }
-    }
-
-    await say("Here's what I'm for. Out of the box I'm built for **survival and off-grid life**: water, fire, shelter, first aid, food, " +
-      "power, repairs and radio, for when the grid, the phone network or the internet is gone. And for everyday preparation long before that.");
-    a = await say("But I'm not limited to that. I can also be your **programming tutor**, help you **study** any subject, run a **homestead**, " +
-      "**fix things** in the workshop, or just trade stories by the fire. You can even **create your own scenarios** for anything you like. " +
-      "Your Umbra is yours to shape.");
-    await choose(a, [["GOT IT ▸", "ok", true]]);
-
-    // The AI model: what's already on this computer, or one of three sizes.
+  // The AI model (what's on this computer, or one to download) and the
+  // library pack. Both tours have these.
+  async function stepBrainAndLibrary() {
+    let a;
+    // The AI model: what's already on this computer, or one to download.
     // A fresh install may not have started Ollama yet (packages can't start
     // services themselves): explain how, and check again.
     let core = await fetch("/api/status").then((r) => r.json()).catch(() => ({}));
@@ -448,13 +357,227 @@
     } else {
       await say("No problem. You can stock the library any time from the **Library** button.");
     }
+  }
 
-    // Theme.
+  // A colour theme, applied at once.
+  async function stepTheme(themeList) {
+    let a;
     a = await say("Let's make this place yours. **Pick a theme.** It applies right away, and you can change it any time from the palette button, follow your Omarchy theme, or design your own.");
     await cards(a, themeList.map((t) => ({
       id: t.id, name: t.name, line: t.tagline || "",
       swatch: `<span class="tour-sw">${["bg", "signal", "accent", "net"].map((k) => `<i style="background:${t[k] || t.vars?.[k] || "#888"}"></i>`).join("")}</span>`,
     })), currentTheme, (id) => { applyTheme(id); postSettings({ theme: id }); Sound.theme(); });
+  }
+
+  // The quick start after the name: the AI, the library, a theme, a short
+  // look at the screen, and in.
+  async function quickRest() {
+    await stepBrainAndLibrary();
+    await stepTheme(themes);
+    let a = await say("Now a quick look at the screen: the parts you'll use most.");
+    await choose(a, [["SHOW ME ▸", "go", true]]);
+    await spotlight(true);
+    a = await say("That's the essentials. Everything else (your full profile and health card, a password, scenarios and personalities, " +
+      "maps, the Field Kit, the radar) waits in the menus, each with a short note the first time you open it. " +
+      "Press **F1** for shortcuts, or replay the **full briefing** any time from Settings.");
+    await choose(a, [["START USING UMBRA ▸", "go", true]]);
+    completed = true;
+  }
+
+  // ------------------------------------------------------------- tour
+
+  let skipHooks = [];
+  let mode = "", completed = false;
+  function skipTour() { skipped = true; skipHooks.forEach((f) => f()); }
+
+  // Who Umbra is, in one ASCII frame, drawn line by line.
+  const EMBLEM = [
+    "            ▲",
+    "           ╱ ╲            U M B R A  //  W I K I",
+    "          ╱ ✦ ╲           offline survival intelligence",
+    "         ╱  │  ╲",
+    "        ◄───┼───►         ▸ a local AI, on this computer",
+    "         ╲  │  ╱          ▸ a library of field manuals",
+    "          ╲   ╱           ▸ maps, medic tools, radar",
+    "           ╲ ╱            ▸ no internet, no accounts",
+    "            ▼",
+  ];
+  async function introCard() {
+    const msg = addBot("");
+    const answer = msg.querySelector(".answer");
+    msg.querySelector(".label .spin")?.remove();
+    const pre = document.createElement("pre");
+    pre.className = "tour-emblem";
+    answer.appendChild(pre);
+    Sound.glitch();
+    const calm = document.body.classList.contains("reduce-motion");
+    for (let i = 1; i <= EMBLEM.length; i++) {
+      if (skipped) throw SKIP;
+      pre.textContent = EMBLEM.slice(0, i).join("\n");
+      wake();
+      if (!calm) await wait(70);
+    }
+    await wait(300);
+    return say("Hello, and welcome. I'm **Umbra**. I keep working when the grid, the phone network or the internet is gone, " +
+      "and nothing you ask ever leaves this machine.\n\n**How would you like to start?**");
+  }
+
+  // Three ways in, as cards: pick one and it starts.
+  function pickMode(answer) {
+    const MODES = [
+      ["quick", "QUICK START", "About a minute", "Your name, my AI, the library and a look. The basics, then straight in.", true],
+      ["full", "FULL BRIEFING", "About five minutes", "Everything: your profile, health notes and ID card, a password, scenarios, personalities, comfort and power, and every tool on screen."],
+      ["skip", "SKIP", "Straight in", "Set things up later from Settings and the Core panel (click STATUS). Each screen explains itself the first time."],
+    ];
+    return new Promise((resolve, reject) => {
+      const grid = document.createElement("div");
+      grid.className = "tour-modes";
+      MODES.forEach(([id, title, time, line, star]) => {
+        const b = document.createElement("button");
+        b.className = "tour-mode" + (star ? " star" : "");
+        b.innerHTML = `<b></b><em></em><small></small>`;
+        b.querySelector("b").textContent = title + (star ? "  ★" : "");
+        b.querySelector("em").textContent = time;
+        b.querySelector("small").textContent = line;
+        b.addEventListener("mouseenter", Sound.hover);
+        b.addEventListener("click", () => { grid.remove(); Sound.click(); resolve(id); });
+        grid.appendChild(b);
+      });
+      answer.appendChild(grid);
+      skipHooks.push(() => reject(SKIP));
+      wake();
+      // ?autotour=full plays the full briefing; plain ?autotour the quick start.
+      const want = new URLSearchParams(location.search).get("autotour");
+      autoClick(grid.querySelectorAll(".tour-mode")[want === "full" ? 1 : 0]);
+    });
+  }
+
+  async function script() {
+    const [themeList, loadout, profile] = await Promise.all([
+      Promise.resolve(themes),
+      fetch("loadout.json").then((r) => r.json()),
+      fetch("/api/profile").then((r) => r.json()).catch(() => ({})),
+    ]);
+    const settings = await fetch("/api/settings").then((r) => r.json()).catch(() => ({}));
+
+    // A short introduction, then the choice of tour.
+    let a = await introCard();
+    mode = await pickMode(a);
+    if (mode === "skip") throw SKIP;
+    const full = mode === "full";
+
+    // The profile, step by step; every step can be skipped. It's saved as
+    // it grows, so skipping the rest of the tour keeps what's there.
+    const me = { ...profile };
+    const saveMe = async () => {
+      const r = await post("/api/profile", me).then((x) => x.json()).catch(() => null);
+      if (r && !r.error && window.UmbraProfile) Object.assign(window.UmbraProfile.data, r);
+    };
+    a = await say("First things first: **what should I call you?**");
+    const name = await field(a, "Your name, any way you like to write it", 32);
+    let who = name;
+    if (name) {
+      addUser(name);
+      me.name = name;
+      if (full) {
+        a = await say(`Nice to meet you, **${name}**. Every good survivor has a **callsign**, too. Want one? I'll show it next to your name.`);
+        const callsign = await field(a, "e.g. Nomad-7, Fox, Northstar", 24, false, false, "");
+        if (callsign) { addUser(callsign); me.callsign = callsign; }
+        a = await say("Want to tell me a little about yourself? What you're into, what you'd like to be ready for. It helps me give advice that fits you. This stays on this computer.");
+        const about = await field(a, "For example: I'm new to camping and I'd like to be ready for power cuts.", 500, true);
+        if (about) { addUser(about); me.about = about; }
+      } else {
+        await say(`Nice to meet you, **${name}**.`);
+      }
+      await saveMe();
+    } else {
+      who = "friend";
+    }
+
+    // The time zone says more than the language (plenty of people outside the
+    // US use US English): the US, Liberia and Myanmar use imperial units.
+    const zone = (Intl.DateTimeFormat().resolvedOptions().timeZone || "");
+    const guessUnits = /^(America\/(New_York|Detroit|Chicago|Denver|Phoenix|Los_Angeles|Anchorage|Juneau|Sitka|Nome|Adak|Boise|Menominee|Metlakatla|Yakutat|Indiana\/.*|Kentucky\/.*|North_Dakota\/.*)|US\/.*|Pacific\/Honolulu|Africa\/Monrovia|Asia\/(Yangon|Rangoon))$/.test(zone) ? "imperial" : "metric";
+    me.units = me.units || guessUnits;
+    if (!full) { await saveMe(); await quickRest(); return; }
+
+    // Tailoring: where they are, units, experience, household, health.
+    a = await say("A few details make my answers fit **your** situation: plants, weather and gear differ a lot from place to place. " +
+      "**Where are you?** A region and climate is plenty.");
+    const where = await field(a, "e.g. Northern Europe, wet and cold winters", 80, false, false, "");
+    if (where) { addUser(where); me.location = where; }
+    a = await say("**Which units** should I use for temperatures, distances and weights?");
+    await cards(a, [
+      { id: "metric", name: "Metric" + (guessUnits === "metric" ? "  ★" : ""), line: "°C, kilometres, metres, kilograms, litres" },
+      { id: "imperial", name: "Imperial" + (guessUnits === "imperial" ? "  ★" : ""), line: "°F, miles, feet, pounds, gallons" },
+    ], me.units, (id) => { me.units = id; Sound.click(); });
+    a = await say("And **how much experience** do you have with survival and preparedness? I'll explain more, or less.");
+    me.experience = me.experience || "some";
+    await cards(a, [
+      { id: "new", name: "New to this", line: "Explain the basics, step by step" },
+      { id: "some", name: "Some experience", line: "A good balance" },
+      { id: "experienced", name: "Seasoned", line: "Skip the basics, be concise and technical" },
+    ], me.experience, (id) => { me.experience = id; Sound.click(); });
+    a = await say("**What can you already do?** Pick the skills you have: I'll build on them and skip the basics there.");
+    const skills = await multi(a, [["firstaid", "First aid"], ["navigation", "Map & compass"], ["radio", "Radio"], ["fire", "Fire"],
+      ["shelter", "Shelter"], ["water", "Water"], ["foraging", "Foraging"], ["hunting", "Hunting"], ["fishing", "Fishing"],
+      ["cooking", "Cooking"], ["gardening", "Growing food"], ["mechanics", "Mechanics"], ["electrics", "Electrics"],
+      ["carpentry", "Carpentry"], ["sewing", "Sewing"], ["defence", "Self-defence"]].map(([id, name]) => ({ id, name })), new Set(me.skills || []));
+    me.skills = [...skills];
+    a = await say("**Who do you look after?** Kids, older family, pets: I'll plan for them too when it matters.");
+    const household = await field(a, "e.g. 2 adults, a child of 6, a dog", 160, false, false, "");
+    if (household) { addUser(household); me.household = household; }
+    a = await say("An **emergency contact**, for your ID card: who should a helper call? Name and phone. Optional.");
+    const contact = await field(a, "e.g. Sam (partner) +31 6 1234 5678", 80, false, false, "");
+    if (contact) { addUser(contact); me.contact = contact; }
+    a = await say("Now your **health**, for first aid and food advice, and your pocket ID card. All optional; it never leaves this computer. " +
+      "First, **your blood type**, if you know it.");
+    await cards(a, ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((b) => ({ id: b, name: b || "Don't know", line: "" })),
+      me.blood || "", (id) => { me.blood = id; Sound.click(); });
+    a = await say("Any **allergies**? I'll never suggest them.");
+    const allergies = await field(a, "e.g. penicillin, peanuts, bee stings", 160, false, false, "");
+    if (allergies) { addUser(allergies); me.allergies = allergies; }
+    a = await say("Any **medication** you take regularly, or a condition I should keep in mind?");
+    const health = await field(a, "e.g. inhaler for asthma", 300, true);
+    if (health) { addUser("(health notes saved)"); me.health = health; }
+    a = await say("Last touch: **the colour of your name** in our conversations.");
+    const colours = [["", "Default"], ["signal", "Signal"], ["accent", "Accent"], ["net", "Network"], ["red", "Red"], ["fg-bright", "White"]];
+    await cards(a, colours.map(([id, label]) => ({
+      id, name: label, line: "",
+      swatch: `<span class="tour-sw"><i style="background:var(--${id || "fg"})"></i></span>`,
+    })), me.color || "", (id) => { me.color = id; Sound.click(); });
+    await saveMe();
+    await say("Saved to your **Profile**, where you can change any of it, and where your **dog tag** shows it at a glance. " +
+      "You'll also find your **Achievements** there: badges you earn as you learn and prepare. The first one is for finishing this briefing.");
+
+    // An optional password: typed as dots, asked twice.
+    a = await say("Would you like a **password** on Umbra? It's optional. I'll ask for it when I start and when you lock the screen, " +
+      "so nobody else can read your conversations here. (It keeps the screen private; it doesn't encrypt your files.)");
+    if (await choose(a, [["SET A PASSWORD", "yes", true], ["NO THANKS", "no"]]) === "yes") {
+      a = await say("Type your password.");
+      const first = await field(a, "Password", 200, false, true);
+      if (first) {
+        a = await say("And once more, to be sure.");
+        const second = await field(a, "Repeat the password", 200, false, true);
+        if (first === second) {
+          await post("/api/password", { new: first });
+          if (window.refreshPasswordLock) window.refreshPasswordLock();
+          await say("Done. Your Umbra is locked with a password. You can change or remove it any time in your **Profile**.");
+        } else {
+          await say("Those didn't match, so I haven't set a password. You can set one any time in your **Profile**.");
+        }
+      }
+    }
+
+    await say("Here's what I'm for. Out of the box I'm built for **survival and off-grid life**: water, fire, shelter, first aid, food, " +
+      "power, repairs and radio, for when the grid, the phone network or the internet is gone. And for everyday preparation long before that.");
+    a = await say("But I'm not limited to that. I can also be your **programming tutor**, help you **study** any subject, run a **homestead**, " +
+      "**fix things** in the workshop, or just trade stories by the fire. You can even **create your own scenarios** for anything you like. " +
+      "Your Umbra is yours to shape.");
+    await choose(a, [["GOT IT ▸", "ok", true]]);
+
+    await stepBrainAndLibrary();
+    await stepTheme(themeList);
 
     // Scenario.
     const scenarios = loadout.scenarios;
@@ -528,12 +651,14 @@
       "- On Omarchy, the **Umbra icon in the top bar** opens me, shows your loadout and a new field note every hour, and lights up when an answer is waiting.");
     a = await say(`That's the tour${who !== "friend" ? `, **${who}**` : ""}. You can replay it any time from **Settings**. Ready when you are.`);
     await choose(a, [["START USING UMBRA ▸", "go", true]]);
+    completed = true;
   }
 
   async function startTour() {
     if (document.body.classList.contains("touring")) return;
     skipped = false;
     skipHooks = [];
+    mode = ""; completed = false;
     document.body.classList.add("touring");
     stopRain();
     feed.innerHTML = "";
@@ -541,7 +666,7 @@
     const skip = document.createElement("button");
     skip.className = "ghost tour-skip";
     skip.textContent = "SKIP TOUR ✕";
-    skip.addEventListener("click", () => { skipped = true; skipHooks.forEach((f) => f()); });
+    skip.addEventListener("click", skipTour);
     document.body.appendChild(skip);
     try { await script(); } catch (e) { if (e !== SKIP) console.error("umbra tour: " + e.message); }
     skip.remove();
@@ -549,7 +674,8 @@
     document.body.classList.remove("touring");
     // The tour covers what's new, so the "what's new" note waits for the next update.
     const version = (await fetch("/api/whatsnew").then((r) => r.json()).catch(() => ({}))).version;
-    await postSettings({ onboarded: true, ...(version ? { seenVersion: version } : {}) });
+    // A tour played to the end earns the first achievement; a skipped one doesn't.
+    await postSettings({ onboarded: true, ...(completed ? { tourDone: true } : {}), ...(version ? { seenVersion: version } : {}) });
     if (window.reloadPrefs) await window.reloadPrefs();
     if (window.prefs) window.prefs.onboarded = true;
     // From the tour to the home screen through an ASCII transition.
