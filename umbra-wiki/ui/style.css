@@ -2549,17 +2549,31 @@ body.reduce-motion .fx-scan, body.reduce-motion .fx-static { animation: none; }
 .msg.user .label { flex-direction: row-reverse; }
 .msg.user .body { border-left: 0; border-right: 2px solid var(--signal); }
 .dossier { position: fixed; z-index: 20; font-family: var(--font); }
-.dos-card { width: 224px; padding: 0 12px 12px; background: color-mix(in srgb, var(--bg) 94%, #000); border: 1px solid var(--signal);
+.dos-card { width: 262px; padding: 0 14px 14px; background: color-mix(in srgb, var(--bg) 94%, #000); border: 1px solid var(--signal);
   box-shadow: 0 12px 30px rgba(0, 0, 0, .45); font-size: 10.5px; color: var(--fg); }
 .dos-card.glitch { animation: cf-glitch .5s steps(1, end) both; }
 body.reduce-motion .dos-card.glitch { animation: fade .2s ease-out both; }
-.dos-head { display: flex; justify-content: space-between; align-items: center; margin: 0 -12px 10px; padding: 6px 10px;
+.dos-head { display: flex; justify-content: space-between; align-items: center; margin: 0 -14px 12px; padding: 7px 12px;
   background: var(--signal); color: var(--bg); font-size: 9.5px; letter-spacing: .2em; font-weight: 800; }
 .dos-state { font-size: 9px; letter-spacing: .16em; }
 .dossier[data-state="thinking"] .dos-state::after { content: "…"; animation: dos-dots 1s steps(3) infinite; display: inline-block; width: 1.2em; overflow: hidden; vertical-align: bottom; }
 @keyframes dos-dots { from { width: 0; } to { width: 1.2em; } }
-.dos-face { margin: 0 auto 8px; width: max-content; font: 12px/1.1 var(--font); color: var(--signal); -webkit-text-stroke: 0; }
-.dos-name { text-align: center; color: var(--fg-bright); font-size: 12px; letter-spacing: .2em; font-weight: 700; }
+.dos-portrait { position: relative; margin: 0 0 10px; padding: 12px 0 8px; border: 1px solid var(--line); background:
+  repeating-linear-gradient(0deg, transparent 0 3px, color-mix(in srgb, var(--signal) 4%, transparent) 3px 4px), var(--bg); text-align: center; }
+.dos-portrait::before, .dos-portrait::after { content: ""; position: absolute; width: 8px; height: 8px; border: 1px solid var(--signal); }
+.dos-portrait::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+.dos-portrait::after { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+.dos-face { margin: 0 auto; width: max-content; font: 700 17px/1.08 var(--font); color: var(--signal); -webkit-text-stroke: 0; text-shadow: 0 0 8px var(--signal-soft); text-align: left; }
+.dos-mood { display: block; margin-top: 6px; font-size: 8.5px; letter-spacing: .28em; color: var(--dim); }
+.dossier[data-state="thinking"] .dos-mood, .dossier[data-state="transmitting"] .dos-mood { color: var(--accent); }
+.dos-line { margin: 10px 0 4px; text-align: center; font: 11px/1 var(--font); color: var(--shade-1); letter-spacing: 1px; -webkit-text-stroke: 0; }
+.dossier[data-state="transmitting"] .dos-line, .dossier[data-state="typing"] .dos-line { color: var(--signal); }
+.dos-rank { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-items: center; margin: 6px 0 2px; font-size: 9.5px; letter-spacing: .12em; }
+.dos-rank span { color: var(--signal); font-weight: 700; }
+.dos-rank b { color: var(--signal); font-weight: 400; letter-spacing: 0; text-align: right; }
+.dos-rank small { grid-column: 1 / -1; color: var(--dim); font-size: 8.5px; letter-spacing: .14em; text-align: right; }
+.dos-facts dd.warn { color: var(--accent); }
+.dos-name { text-align: center; color: var(--fg-bright); font-size: 13px; letter-spacing: .2em; font-weight: 700; }
 .dos-sub { text-align: center; color: var(--dim); font-size: 9.5px; letter-spacing: .08em; line-height: 1.4; margin-top: 3px; min-height: 1em; }
 .dos-sub .title-tag { font-size: 8.5px; }
 .dos-wave { display: flex; justify-content: center; align-items: center; gap: 3px; height: 22px; margin: 8px 0 6px; }
@@ -2577,8 +2591,8 @@ body.reduce-motion .dos-wave i { animation: none !important; }
 .dos-tab { display: none; }
 /* Wide windows: beside the conversation, Umbra's high on the left, yours
    low on the right, just above the prompt. */
-.dossier.docked.left { top: 132px; left: max(16px, calc((100vw - 860px) / 2 - 262px)); }
-.dossier.docked.right { bottom: calc(var(--dock, 150px) + 18px); right: max(16px, calc((100vw - 860px) / 2 - 262px)); }
+.dossier.docked.left { top: 128px; left: max(16px, calc((100vw - 860px) / 2 - 290px)); }
+.dossier.docked.right { bottom: calc(var(--dock, 150px) + 18px); right: max(16px, calc((100vw - 860px) / 2 - 290px)); }
 /* Narrower: slim bars at the edges that open on hover and push the conversation aside. */
 .dossier:not(.docked) { top: 50%; transform: translateY(-50%); display: flex; align-items: center; }
 .dossier:not(.docked).left { left: 0; }
@@ -2592,6 +2606,55 @@ body.reduce-motion .dos-wave i { animation: none !important; }
 .dossier[data-state="transmitting"] .dos-tab i, .dossier[data-state="thinking"] .dos-tab i { background: var(--accent); animation-duration: .8s; }
 .dossier:not(.docked) .dos-tab:hover { color: var(--signal); border-color: var(--signal); }
 .dossier:not(.docked) .dos-card { display: none; }
-.dossier:not(.docked).open .dos-card { display: block; animation: slide .2s ease-out both; }
-body.dos-push-left main { padding-left: max(270px, calc((100% - 860px) / 2)); transition: padding .2s; }
-body.dos-push-right main { padding-right: max(270px, calc((100% - 860px) / 2)); transition: padding .2s; }
+.dossier:not(.docked).open .dos-card { display: block; }
+.dossier:not(.docked) { z-index: 25; }
+
+/* ------------------------------------------------------------ link panel */
+
+.linkpanel-shade { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 70%, transparent); animation: fade .15s ease-out both; }
+.linkpanel { width: min(860px, calc(100vw - 40px)); max-height: calc(100vh - 60px); display: flex; flex-direction: column; overflow: hidden;
+  background: color-mix(in srgb, var(--bg) 94%, #000); border: 1px solid var(--signal); box-shadow: 0 18px 50px rgba(0, 0, 0, .6);
+  animation: cf-glitch .5s steps(1, end) both; font-size: 12px; color: var(--fg); }
+body.reduce-motion .linkpanel { animation: fade .2s ease-out both; }
+.lp-head { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px 8px 16px; background: var(--signal); color: var(--bg); }
+.lp-title { font-weight: 800; letter-spacing: .24em; font-size: 11px; }
+.lp-x { background: none; border: 0; color: var(--bg); cursor: pointer; font: 700 14px var(--font); }
+.linkpanel.online .lp-head, .linkpanel.switching:not(.dark) .lp-head { background: var(--accent); }
+.linkpanel.failed .lp-head { background: var(--red); }
+.lp-body { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 22px; padding: 18px 20px; overflow-y: auto; }
+@media (max-width: 700px) { .lp-body { grid-template-columns: 1fr; } }
+.lp-left { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.lp-radar { font-size: 12px; margin: 0; }
+.linkpanel.online .lp-radar, .linkpanel.switching:not(.dark) .lp-radar { filter: hue-rotate(-20deg) saturate(1.4); }
+.lp-radar-cap b { display: block; font-size: 13px; letter-spacing: .24em; color: var(--signal); animation: co-breathe 3s ease-in-out infinite; }
+.lp-radar-cap b.warn { color: var(--accent); animation: co-alarm 1.2s steps(2) infinite; }
+.lp-radar-cap b.bad { color: var(--red); }
+.lp-radar-cap small { display: block; margin-top: 4px; color: var(--dim); font-size: 10.5px; line-height: 1.45; }
+.lp-sec { margin-bottom: 14px; }
+.lp-sec > small { display: block; margin-bottom: 6px; color: var(--dim); font-size: 9.5px; letter-spacing: .22em; }
+.lp-sec ul { margin: 0; padding-left: 16px; line-height: 1.55; }
+.lp-sec li { margin: 2px 0; }
+.lp-row { display: grid; grid-template-columns: auto auto 1fr auto; gap: 8px; align-items: baseline; font-size: 11px; letter-spacing: .1em; padding: 2px 0; }
+.lp-row b { color: var(--dim); font-weight: 400; }
+.lp-row.on b { color: var(--signal); }
+.lp-row i { border-bottom: 1px dotted var(--line); height: 1px; align-self: center; }
+.lp-row em { font-style: normal; color: var(--dim); }
+.lp-row.on em { color: var(--fg-bright); }
+.lp-stats { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 8px; color: var(--dim); font-size: 10px; letter-spacing: .14em; }
+.lp-stats b { color: var(--accent); }
+.lp-warn { display: flex; gap: 14px; align-items: center; margin: 4px 0 12px; padding: 10px 12px; border: 1px solid var(--red);
+  background: color-mix(in srgb, var(--red) 8%, transparent); }
+.lp-warn-art { margin: 0; color: var(--red); font: 12px/1.15 var(--font); -webkit-text-stroke: 0; min-width: 4.5em; }
+.lp-warn b { display: block; color: var(--red); letter-spacing: .2em; font-size: 11px; }
+.lp-warn small { display: block; margin-top: 4px; color: var(--fg); font-size: 11px; line-height: 1.5; }
+.lp-agree { display: flex; gap: 8px; align-items: center; cursor: pointer; color: var(--fg-bright); }
+.lp-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 12px 20px; border-top: 1px solid var(--line); min-height: 20px; }
+.lp-go:disabled { opacity: .4; cursor: not-allowed; }
+.lp-console { margin: 0; min-height: 110px; color: var(--signal); font: 12px/1.6 var(--font); white-space: pre-wrap; -webkit-text-stroke: 0; }
+.linkpanel.failed .lp-console { color: var(--red); }
+.lp-bar { margin: 14px 0 0; color: var(--accent); font: 12px var(--font); -webkit-text-stroke: 0; }
+.linkpanel.dark .lp-bar { color: var(--signal); }
+#link.lp-flash-online { animation: lp-flash .9s ease-out; }
+#link.lp-flash-local { animation: lp-flash-local .9s ease-out; }
+@keyframes lp-flash { 0%, 40% { background: var(--accent); color: var(--bg); } 100% { background: transparent; } }
+@keyframes lp-flash-local { 0%, 40% { background: var(--signal); color: var(--bg); } 100% { background: transparent; } }

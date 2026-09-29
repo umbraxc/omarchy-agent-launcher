@@ -4,7 +4,8 @@
 
 ### Highlights
 
-- **A real conversation**: Umbra's card on one side and yours on the other, with your characters, what each of you is doing (thinking, transmitting, typing) and a little glitch as Umbra starts to talk. Your messages sit on the right.
+- **A real conversation**: Umbra's card on one side and yours on the other. The characters' faces follow along: Umbra thinks, talks as its answer arrives, then looks serious, pleased or curious to fit it; you look focused while typing. Your messages sit on the right.
+- **The LINK panel**: click LINK for what LOCAL means, what going online adds, exactly what leaves your computer and a warning that a transmitting device can be noticed, with a live radar and an uplink sequence when you switch.
 - **New orbs, rebuilt**: every start-screen orb redrawn in colour and finer detail, plus five new ones for the hardest achievements (Galaxy, Aurora, Atom, Black Hole, Supernova).
 - **The Core panel**: click STATUS at the top. Every system's condition at a glance, and eight AI models to choose from (SPARK, SCOUT, RANGER, SENTINEL, WARDEN, ORACLE, VANGUARD, COMMAND), each with what it's good at, how it answers and how well it suits your computer.
 - **An Umbra that adapts to you**: it matches how you write, formal or casual, remembers what you ask for (shorter answers, no lists), and stops repeating itself. Its personality always comes first.
@@ -32,6 +33,9 @@
   on hover and push the conversation aside.
 - The Core panel opens as a side panel, like Settings: the AI first, then what's local, with a live orb for the status.
 - The Locker uses the whole window: pick a reward to see it on you, then equip it.
+- Conversation cards: bigger, with a framed portrait and its mood, a live transmission line, the topic, link, sources
+  and answer time for Umbra, and your rank bar, streak and top topic; on narrower windows they open over the text.
+- Going online needs an "I understand"; the switch checks the connection for real and reports its latency.
 - Settings → Sound: a separate volume for notification sounds (pop-ups, achievements, finished downloads).
 
 ## 3.1.2

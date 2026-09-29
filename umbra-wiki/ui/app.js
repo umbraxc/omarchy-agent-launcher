@@ -1268,40 +1268,8 @@ function setOnline(value) {
   if (online) { $("#t-net-mask").textContent = "********"; refreshNet(); netTimer = setInterval(refreshNet, 10000); }
 }
 
-$("#link").addEventListener("click", async () => {
-  if (controller || locked) return; // don't switch sources mid-answer
-  if (!online) {
-    const go = await confirmDialog({
-      kind: "to-online", tag: "WARNING", title: "SWITCH TO ONLINE MODE?",
-      body: "Umbra will also search Wikipedia over the internet. Your questions will leave this device.\n\n" +
-            "Your offline archives stay in use and the AI still runs on this computer.",
-      ok: "GO ONLINE", cancel: "STAY LOCAL",
-    });
-    if (!go) return;
-    $("#link-label").textContent = "CHECKING…";
-    let reachable = false;
-    try { reachable = (await (await fetch("/api/netcheck")).json()).online; } catch {}
-    if (!reachable) {
-      setOnline(false);
-      await confirmDialog({
-        kind: "error", tag: "NO CONNECTION", title: "INTERNET NOT REACHABLE",
-        body: "Wikipedia could not be reached, so Umbra stays in LOCAL mode.\nCheck your connection and try again.",
-        cancel: "OK",
-      });
-      return;
-    }
-    setOnline(true);
-    Sound.online();
-  } else {
-    const back = await confirmDialog({
-      kind: "to-local", tag: "CONFIRM", title: "RETURN TO LOCAL ONLY?",
-      body: "Online search turns off. Answers will come only from the archives stored on this device, " +
-            "and nothing will be sent over the internet.",
-      ok: "GO LOCAL", cancel: "STAY ONLINE",
-    });
-    if (back) { setOnline(false); Sound.local(); }
-  }
-});
+// LINK opens the link panel (link.js): what online means, and the switch.
+$("#link").addEventListener("click", () => window.UmbraLink && window.UmbraLink.open());
 
 // -------------------------------------------------------------------- lock
 
