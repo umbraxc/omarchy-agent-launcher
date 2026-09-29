@@ -6,6 +6,7 @@ WebKit view with no browser chrome. Each launch is its own window/process,
 so the Agent Launcher can count open sessions.
 """
 
+import json
 import os
 import signal
 import subprocess
@@ -38,9 +39,42 @@ def backend_up():
         return False
 
 
+def installed_version():
+    """VERSION of the server.py on disk: next to this launcher (a clone or the
+    Omarchy plugin) or in /usr/share (the package)."""
+    here = os.path.dirname(os.path.realpath(__file__))
+    for path in (os.path.join(here, "server.py"), "/usr/share/umbra-wiki/server.py"):
+        try:
+            with open(path, encoding="utf-8") as fh:
+                for line in fh:
+                    if line.startswith("VERSION = "):
+                        return line.split("=", 1)[1].strip().strip("\"'")
+        except OSError:
+            continue
+    return None
+
+
+def running_version():
+    try:
+        return json.loads(urllib.request.urlopen(URL + "api/status", timeout=3).read()).get("version")
+    except Exception:
+        return None
+
+
 def ensure_backend():
     if backend_up():
-        return True
+        # An update (pacman, git pull) replaces the files but leaves the old
+        # backend running, so newer screens would find none of their API:
+        # restart it once when it's not the version on disk.
+        wanted = installed_version()
+        if not wanted or running_version() == wanted:
+            return True
+        subprocess.run(["systemctl", "--user", "restart", "umbra-wiki.service"], check=False)
+        for _ in range(60):
+            if backend_up():
+                return True
+            time.sleep(0.25)
+        return False
     started = subprocess.run(["systemctl", "--user", "start", "umbra-wiki.service"], check=False).returncode == 0
     if not started:
         # Just installed (for example from the AUR): let systemd see the unit.

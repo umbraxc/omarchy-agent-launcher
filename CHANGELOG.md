@@ -16,6 +16,12 @@
 - **A bigger library**: eight new collections, including a prepper encyclopedia, the CIA World Factbook, Wikipedia's essentials, vehicle repair, money, parenting and pets.
 - **Calmer notifications**: their own, quieter volume, and achievements only count once the tour is done.
 
+### Fixes (package 3.1.4-2)
+
+- The Locker works on a fresh install (the achievements screen failed before the first question was asked).
+- After an update, opening Umbra restarts its background service when it is still the old version, so new
+  screens (the Core panel's AI models, the Locker) have what they need without a manual restart.
+
 ### All changes
 
 - Attachments: up to four text files or pictures per question. Text files are read (about 8,000 characters in all);

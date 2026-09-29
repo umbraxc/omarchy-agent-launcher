@@ -1541,7 +1541,7 @@ def _ach_backfill():
     """The first time (e.g. right after updating): count the questions,
     topics, longest conversation and days already in the saved history, so
     earlier use counts. What that unlocks is awarded quietly, without pop-ups."""
-    st = {"earned": {}, "unseen": [], "counts": {}, "topics": {}, "sets": {}, "days": []}
+    st = {"earned": {}, "unseen": [], "counts": {}, "topics": {}, "sets": {}, "days": [], "rewardsSeen": None}
     counts = st["counts"]
     for item in history_list()["items"]:
         conv = read_json(history_path(item["id"]), {})
