@@ -17,7 +17,7 @@ optdepends=('pipewire-audio: sounds and voice recording'
             'bluez-utils: Bluetooth devices on the Signals & Radar screen')
 install=umbra-wiki.install
 source=("$pkgname-$pkgver.tar.gz::https://github.com/umbraxc/omarchy-umbra/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('2c0d3a8d05eba5d9c9a69f2c044d436b30d93a6ae1225faeb60af4be929033bf')
+sha256sums=('a960ac7b471baf6adb494b1952c5ce16ce11035550d9f82e443c95a56535460c')
 
 package() {
   cd "omarchy-umbra-$pkgver/umbra-wiki"
