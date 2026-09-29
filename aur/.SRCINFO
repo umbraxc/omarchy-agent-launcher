@@ -1,6 +1,6 @@
 pkgbase = umbra-wiki
 	pkgdesc = Offline survival assistant: a local AI that answers from an offline library, with sources
-	pkgver = 3.1.2
+	pkgver = 3.1.3
 	pkgrel = 1
 	url = https://github.com/umbraxc/omarchy-umbra
 	install = umbra-wiki.install
@@ -29,7 +29,7 @@ pkgbase = umbra-wiki
 	optdepends = ollama-rocm: run the AI on an AMD graphics card
 	optdepends = networkmanager: Wi-Fi networks on the Signals & Radar screen (iwd works too)
 	optdepends = bluez-utils: Bluetooth devices on the Signals & Radar screen
-	source = umbra-wiki-3.1.2.tar.gz::https://github.com/umbraxc/omarchy-umbra/archive/refs/tags/v3.1.2.tar.gz
-	sha256sums = d36ff05c6067f5d4129ec6ed412f8aee6207b2d36a4524f8868e72868d19ffc4
+	source = umbra-wiki-3.1.3.tar.gz::https://github.com/umbraxc/omarchy-umbra/archive/refs/tags/v3.1.3.tar.gz
+	sha256sums = 2c0d3a8d05eba5d9c9a69f2c044d436b30d93a6ae1225faeb60af4be929033bf
 
 pkgname = umbra-wiki
