@@ -37,6 +37,10 @@
   and answer time for Umbra, and your rank bar, streak and top topic; on narrower windows they open over the text.
 - Going online needs an "I understand"; the switch checks the connection for real and reports its latency.
 - Settings → Sound: a separate volume for notification sounds (pop-ups, achievements, finished downloads).
+- Numbered steps keep their numbers (no more "1. 1. 1."), and notes under a step stay with it.
+- Less space between an answer and its sources line; Settings opens with AI & PERFORMANCE first, and its group
+  headers no longer show the list scrolling above them.
+- Smoother on Linux: orbs don't draw while out of sight, previews run slower, and background checks ease off.
 
 ## 3.1.2
 

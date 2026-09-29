@@ -296,7 +296,7 @@ body.prompts-hidden .prompts { max-height: 0; opacity: 0; margin-top: 0; filter:
 .msg.bot .label { color: var(--signal); }
 .msg.bot .label .spin { margin-left: -2px; }
 .msg.bot .card {
-  position: relative; padding: 18px 20px 14px;
+  position: relative; padding: 18px 20px 12px;
   background: var(--bg-1);
   border: 1px solid var(--line);
 }
@@ -355,7 +355,7 @@ body.prompts-hidden .prompts { max-height: 0; opacity: 0; margin-top: 0; filter:
 
 /* One quiet sources line; the list folds out on click. */
 .srcline {
-  display: block; margin-top: 12px; padding: 7px 0 0; width: 100%; text-align: left;
+  display: block; margin-top: 6px; padding: 7px 0 0; width: 100%; text-align: left;
   border: 0; border-top: 1px dashed var(--muted); background: none; cursor: pointer;
   font: 10.5px var(--font); letter-spacing: .28em; color: var(--faint);
   transition: color .15s;
@@ -409,7 +409,8 @@ body.prompts-hidden .prompts { max-height: 0; opacity: 0; margin-top: 0; filter:
 .next button:hover::after { color: var(--bg); }
 .next button:disabled { opacity: .45; cursor: default; }
 
-.meta { margin-top: 10px; font-size: 10.5px; color: var(--faint); letter-spacing: .15em; animation: fade .4s ease-out both; }
+.msg.bot .answer > :last-child { margin-bottom: 0; }
+.meta { margin-top: 6px; font-size: 10.5px; color: var(--faint); letter-spacing: .15em; animation: fade .4s ease-out both; }
 
 /* -------------------------------------------------------------------- dock */
 
@@ -1812,7 +1813,8 @@ body.reduce-motion .news-card { animation: fade .2s ease-out both; }
 .set-cat { margin: 0 0 26px; }
 .set-cat-head { position: sticky; top: -1px; z-index: 2; display: grid; grid-template-columns: 22px auto 1fr; align-items: baseline; gap: 4px 10px;
   margin: 0 0 12px; padding: 9px 12px; border-left: 3px solid var(--cat);
-  background: linear-gradient(90deg, color-mix(in srgb, var(--cat) 16%, var(--bg-1)), var(--bg-1) 75%); }
+  background: linear-gradient(90deg, color-mix(in srgb, var(--cat) 16%, var(--bg-1)), var(--bg-1) 75%);
+  box-shadow: 0 -18px 0 var(--bg-1);   /* covers the panel's top padding, so nothing scrolls visibly above it */ }
 .set-cat-head .g { color: var(--cat); font-size: 15px; }
 .set-cat-head b { font-size: 11px; letter-spacing: .3em; color: var(--fg-bright); }
 .set-cat-head small { color: var(--dim); font-size: 10px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1824,7 +1826,7 @@ body.reduce-motion .news-card { animation: fade .2s ease-out both; }
 /* ------------------------------------------------------------ tools, Tab */
 
 /* Under an answer: buttons that open the fitting tool. */
-.toolrow { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 2px; }
+.toolrow { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; }
 .toolchip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 11px; cursor: pointer; font: 700 10px var(--font); letter-spacing: .16em;
   color: var(--signal); background: var(--signal-soft); border: 1px solid color-mix(in srgb, var(--signal) 45%, transparent); position: relative;
   transition: background-color .15s, border-color .15s, transform .1s; }

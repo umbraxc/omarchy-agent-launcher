@@ -222,11 +222,13 @@
     tab.addEventListener("click", () => { pinned = !el.classList.contains("open") || !pinned; set(pinned); Sound.click(); });
   }
 
-  const tick = () => { if (!ai.hidden) { fillAi(); fillMe(); states(); } };
+  // Only while the cards can be seen (not behind the map, the radar or another window).
+  const seen = () => !ai.hidden && !document.hidden && !/(maps|radar)-open/.test(document.body.className) && !document.body.classList.contains("locked");
+  const tick = () => { if (seen()) { fillAi(); fillMe(); states(); } };
   new MutationObserver(() => { layout(); tick(); }).observe(feed, { childList: true });
   addEventListener("resize", layout);
   setInterval(tick, 400);
-  setInterval(() => { if (!ai.hidden) drawFaces(); }, 170);
+  setInterval(() => { if (seen()) drawFaces(); }, 170);
   setInterval(layout, 1500);
   layout();
 })();

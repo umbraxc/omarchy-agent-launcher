@@ -293,8 +293,13 @@ window.UmbraOrbs = (() => {
       if (!el.isConnected) { alive = false; return; }
       raf = requestAnimationFrame(frame);
       const still = document.body.classList.contains("reduce-motion") || window.offgrid;
-      if (ts - last < (still ? 1000 : 75)) return;
+      // Small previews run slower; nothing is drawn while out of sight (the
+      // window draws on the processor, so unseen frames are pure waste).
+      if (ts - last < (still ? 1000 : W < 120 ? 140 : 75)) return;
       last = ts;
+      if (document.hidden) return;
+      const box = canvas.getBoundingClientRect();
+      if (!box.width || box.bottom < 0 || box.top > innerHeight || box.right < 0 || box.left > innerWidth) return;
       if (!still) t += 0.075;
       if (ts - palAt > 1000) { pal = colours(); palAt = ts; const f = parseFloat(getComputedStyle(el).fontSize) || 10; if (f !== fs) fs = size(); }
       const name = pick(), S = STYLES[name] || STYLES.globe;
