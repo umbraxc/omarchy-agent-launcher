@@ -87,7 +87,7 @@ MODEL = os.environ.get("UMBRA_MODEL") or CONFIG.get("model") or "gemma3:4b"
 
 WIKI_API = "https://en.wikipedia.org/w/api.php"
 # Wikimedia asks API clients to name themselves with a contact URL.
-VERSION = "3.1.3"
+VERSION = "3.1.4"
 WEB_HEADERS = {"User-Agent": f"UmbraWiki/{VERSION} (https://github.com/umbraxc/omarchy-umbra; offline survival assistant)"}
 
 # Gemma reads context at ~25 tokens/s on this CPU, so the prompt budget is
@@ -3891,6 +3891,50 @@ def style_prompt(question, history):
     return "STYLE: " + " ".join(parts)
 
 
+# ------------------------------------------------------------ attachments
+
+_vision = {}
+
+
+def model_sees(name):
+    """Can this model look at pictures? (Ollama says, once per model.)"""
+    if name not in _vision:
+        try:
+            req = urllib.request.Request(OLLAMA + "/api/show", json.dumps({"model": name}).encode(), {"Content-Type": "application/json"})
+            caps = json.loads(urllib.request.urlopen(req, timeout=10).read()).get("capabilities") or []
+        except Exception:
+            caps = []
+        _vision[name] = "vision" in caps
+    return _vision[name]
+
+
+def attach_files(messages, attachments, emit):
+    """Files from the paperclip: text goes into the question (up to about
+    8,000 characters in all, so a processor isn't kept busy for minutes),
+    pictures go to a model that can see."""
+    files = [a for a in (attachments or [])[:4] if isinstance(a, dict)]
+    texts = [a for a in files if a.get("kind") == "text" and isinstance(a.get("text"), str)]
+    images = [a["data"] for a in files if a.get("kind") == "image" and isinstance(a.get("data"), str)
+              and len(a["data"]) < 6_000_000 and re.fullmatch(r"[A-Za-z0-9+/=]+", a["data"][:200])]
+    last = messages[-1]
+    if texts:
+        budget, parts = 8000, []
+        for a in texts:
+            body = a["text"][:max(0, budget)]
+            budget -= len(body)
+            cut = a.get("cut") or len(body) < len(a["text"])
+            parts.append(f"--- {str(a.get('name', 'file'))[:80]} ---\n{body}" + ("\n[the rest of the file was left out]" if cut else ""))
+        last["content"] = ("ATTACHED FILES (the user's own files; read them to answer, and say so if they don't contain the answer):\n"
+                           + "\n\n".join(parts) + "\n\n" + last["content"])
+    if images:
+        if model_sees(MODEL):
+            last["images"] = images[:2]
+            last["content"] = "The user attached a picture: look at it carefully to answer.\n\n" + last["content"]
+        else:
+            emit({"type": "notice", "message": "My current AI model can't see pictures, so I've left them out. "
+                  "RANGER, SENTINEL, ORACLE, VANGUARD and COMMAND can: pick one in the Core panel (click STATUS)."})
+
+
 def answer(req, emit):
     question = str(req.get("question", "")).strip()
     history = req.get("history") or []
@@ -3952,6 +3996,8 @@ def answer(req, emit):
         context = "\n\n".join(blocks) if blocks else "(no relevant sources found; answer from your own knowledge)"
         messages.append({"role": "user", "content": f"SOURCES:\n{context}\n\nQUESTION: {question}"})
 
+    if req.get("attachments"):
+        attach_files(messages, req.get("attachments"), emit)
     emit({"type": "phase", "phase": "think"})
     full, done_event = stream_chat(messages, emit, 420 if offgrid else None)
     if not re.sub(r"\bNEXT\s*:.*", "", full, flags=re.S).strip():

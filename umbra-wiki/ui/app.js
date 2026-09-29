@@ -1411,6 +1411,7 @@ function renderMarkdown(src) {
 // half-arrived "NE" at the very end is held back too.
 function visibleAnswer(text, live) {
   let out = text.replace(/(^|\s)[*_]*NEXT\s*:[\s\S]*$/, "$1");
+  out = out.replace(/\s?\[n\]/g, "");   // a literal "[n]" copied from the citation rule
   if (live) out = out.replace(/(^|\s)N(E(X(T)?)?)?$/, "$1");
   return out.trimEnd();
 }
@@ -1743,7 +1744,9 @@ async function ask(question, shownAs = "") {
   stopRain();   // the start screen stays above the conversation, resting while Umbra works
   suggestToken++;
   setSuggestion("");
-  addUser(shownAs || question);
+  // Files from the paperclip go along with this question (their names show under it).
+  const attachments = window.UmbraAttach ? UmbraAttach.take() : [];
+  addUser((shownAs || question) + (attachments.length ? "\n" + attachments.map((a) => `\u{F03E2} ${a.name}`).join("   ") : ""));
   const msg = addBot();
   const card = msg.querySelector(".card");
   const answerEl = msg.querySelector(".answer");
@@ -1769,7 +1772,7 @@ async function ask(question, shownAs = "") {
     const res = await fetch("/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, history: chat, online, offgrid: !!window.offgrid, folder: window.currentFolder || "", context: localContext() }),
+      body: JSON.stringify({ question, history: chat, online, offgrid: !!window.offgrid, folder: window.currentFolder || "", context: localContext(), attachments }),
       signal: controller.signal,
     });
     const reader = res.body.getReader();
@@ -2249,7 +2252,8 @@ async function suggestFor(rec) {
 form.addEventListener("submit", (e) => {
   e.preventDefault();
   if (controller) { controller.abort(); if (window.track) track("stops"); return; }
-  const q = input.value;
+  let q = input.value;
+  if (!q.trim() && window.UmbraAttach && UmbraAttach.count()) q = "Look at what I've attached and tell me what's in it.";
   input.value = "";
   autosize();
   Undo.snap();
@@ -2477,8 +2481,44 @@ function updatePromptBar() {
 setInterval(updatePromptBar, 200);
 updatePromptBar();
 
-// The prompt uses the real text cursor, in the signal colour (it always
-// sits exactly where the next letter goes).
+// ------------------------------------------------------------ block cursor
+
+// The prompt's cursor is a thick block, like a terminal's. The native one is
+// made invisible (so there's only ever one); this one is placed with a hidden
+// mirror of the text. Solid while typing, blinking when idle.
+const fakeCaret = document.createElement("span");
+fakeCaret.className = "fake-caret";
+fakeCaret.hidden = true;
+form.appendChild(fakeCaret);
+const mirror = document.createElement("div");
+mirror.setAttribute("aria-hidden", "true");
+Object.assign(mirror.style, { position: "absolute", visibility: "hidden", whiteSpace: "pre-wrap", wordWrap: "break-word", top: "0", left: "-9999px" });
+document.body.appendChild(mirror);
+let caretIdle = 0;
+function placeCaret() {
+  if (document.activeElement !== input || input.selectionStart !== input.selectionEnd || locked) { fakeCaret.hidden = true; return; }
+  const cs = getComputedStyle(input);
+  for (const p of ["fontFamily", "fontSize", "fontWeight", "lineHeight", "letterSpacing", "paddingTop", "paddingLeft", "paddingRight", "borderLeftWidth", "boxSizing"]) mirror.style[p] = cs[p];
+  mirror.style.width = input.clientWidth + "px";
+  mirror.textContent = input.value.slice(0, input.selectionStart);
+  const mark = document.createElement("span");
+  mark.textContent = input.value.slice(input.selectionStart, input.selectionStart + 1).replace("\n", "") || " ";
+  mirror.appendChild(mark);
+  const lineH = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.5;
+  fakeCaret.style.left = input.offsetLeft + mark.offsetLeft + "px";
+  fakeCaret.style.top = input.offsetTop + mark.offsetTop - input.scrollTop + (lineH - parseFloat(cs.fontSize) * 1.2) / 2 + "px";
+  fakeCaret.style.width = Math.max(7, mark.offsetWidth || parseFloat(cs.fontSize) * 0.6) + "px";
+  fakeCaret.style.height = parseFloat(cs.fontSize) * 1.2 + "px";
+  fakeCaret.hidden = false;
+  fakeCaret.classList.add("steady");
+  clearTimeout(caretIdle);
+  caretIdle = setTimeout(() => fakeCaret.classList.remove("steady"), 600);
+}
+["input", "focus", "blur", "click", "keyup", "scroll", "select"].forEach((ev) => input.addEventListener(ev, placeCaret));
+input.addEventListener("keydown", () => requestAnimationFrame(placeCaret));
+document.addEventListener("selectionchange", () => { if (document.activeElement === input) placeCaret(); });
+addEventListener("resize", placeCaret);
+setTimeout(placeCaret, 300);
 
 // umbra-wiki --manual <page> opens a field-manual page.
 const manualParam = new URLSearchParams(location.search).get("manual");

@@ -185,7 +185,9 @@
     <span id="elapsed" class="elapsed">0.0s</span>
   </div>
   <div id="promptbar" class="promptbar" aria-live="polite"><span class="pb-left"></span><span class="pb-tab">⇥ PRESS TAB FOR QUICK ACTIONS</span><span class="pb-right"></span></div>
+  <div id="attached" class="attached" hidden></div>
   <form id="ask" class="ask" autocomplete="off">
+    <button id="attach" type="button" title="Attach files|Text files and pictures: Umbra reads them, or looks at them. You can also drop files anywhere on the window."><span class="g">󰏢</span></button>
     <span class="caret">&gt;</span>
     <textarea id="q" rows="1" placeholder="Ask anything: water, fire, wounds, repairs, power…" autofocus></textarea>
     <button id="mic" type="button" title="Voice input: hold F9, or click to talk and click again to stop"><span class="g">󰍬</span><kbd>F9</kbd></button>
@@ -200,6 +202,7 @@
 <script src="orbs.js"></script>
 <script src="app.js"></script>
 <script src="link.js"></script>
+<script src="attach.js"></script>
 <script src="loadout.js"></script>
 <script src="profile.js"></script>
 <script src="achievements.js"></script>

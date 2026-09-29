@@ -451,12 +451,12 @@ body.reduce-motion .promptbar .pb-tab { animation: none; }
 body.locked .promptbar { visibility: hidden; }
 
 /* A thick block cursor in the prompt, drawn by app.js (the native one is hidden). */
-#q { caret-color: var(--signal); }
+#q { caret-color: transparent; }   /* the block cursor below stands in for it */
 .fake-caret {
-  position: absolute; pointer-events: none; background: var(--signal); opacity: .75;
+  position: absolute; pointer-events: none; padding: 0; margin: 0; border: 0; box-sizing: border-box; background: var(--signal); opacity: .75;
   animation: caret-blink 1.06s steps(1) infinite;
 }
-.fake-caret.solid { animation: none; }
+.fake-caret.steady { animation: none; }
 @keyframes caret-blink { 50% { opacity: 0; } }
 .ask {
   display: flex; align-items: flex-end; gap: 12px; position: relative;
@@ -2303,7 +2303,13 @@ body.reduce-motion .rd-blink { animation: none; }
 .tour-cards.unfolded:not(.done) .tour-extra:nth-child(3n+2) { animation-delay: .04s; }
 .tour-cards.unfolded:not(.done) .tour-extra:nth-child(3n) { animation-delay: .08s; }
 @keyframes tour-unfold { from { opacity: 0; transform: translateY(-8px) scale(.97); } }
-.tour-more { display: block; margin: 8px 0 0; padding: 5px 12px; font-size: 10px; }
+/* Easy to miss otherwise: a full-width strip that pulses until it's used. */
+.tour-more { display: block; width: 100%; margin: 10px 0 0; padding: 9px 12px; font-size: 11px; letter-spacing: .24em;
+  color: var(--signal); border: 1px dashed var(--signal); background: var(--signal-soft); animation: more-pulse 1.8s ease-in-out infinite; }
+.tour-more:hover { background: color-mix(in srgb, var(--signal) 22%, transparent); }
+.tour-more.seen { animation: none; }
+@keyframes more-pulse { 50% { box-shadow: 0 0 0 3px var(--signal-soft), 0 0 14px var(--signal-soft); border-style: solid; } }
+body.reduce-motion .tour-more { animation: none; }
 
 .rd-kfilter { display: flex; gap: 4px; margin-bottom: 8px; }
 .rd-kfilter button { flex: 1; padding: 3px; cursor: pointer; font: 700 9px var(--font); letter-spacing: .16em; color: var(--dim); background: var(--bg-2); border: 1px solid var(--line); }
@@ -2660,3 +2666,22 @@ body.reduce-motion .linkpanel { animation: fade .2s ease-out both; }
 #link.lp-flash-local { animation: lp-flash-local .9s ease-out; }
 @keyframes lp-flash { 0%, 40% { background: var(--accent); color: var(--bg); } 100% { background: transparent; } }
 @keyframes lp-flash-local { 0%, 40% { background: var(--signal); color: var(--bg); } 100% { background: transparent; } }
+
+/* ------------------------------------------------------------ attachments */
+
+#attach { align-self: flex-end; display: grid; place-items: center; width: 32px; height: 32px; margin-bottom: 2px; padding: 0; cursor: pointer;
+  background: none; border: 1px dashed var(--muted); color: var(--dim); font: 16px var(--font); transition: color .15s, border-color .15s; }
+#attach:hover, #attach.on { color: var(--signal); border-color: var(--signal); border-style: solid; }
+.attached { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 8px; }
+.at-chip { display: inline-flex; align-items: center; gap: 8px; max-width: 280px; padding: 4px 6px 4px 8px; border: 1px solid var(--line);
+  background: var(--bg-2); font-size: 11px; color: var(--fg); animation: rise .25s ease-out both; }
+.at-chip img { width: 26px; height: 26px; object-fit: cover; border: 1px solid var(--line); }
+.at-chip b { color: var(--signal); font-weight: 400; }
+.at-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.at-chip small { color: var(--dim); font-size: 9px; letter-spacing: .12em; }
+.at-chip button { background: none; border: 0; color: var(--dim); cursor: pointer; font: 11px var(--font); }
+.at-chip button:hover { color: var(--red); }
+.at-note { color: var(--dim); font-size: 10px; font-style: italic; }
+body.dropping .ask { outline: 2px dashed var(--signal); outline-offset: 4px; }
+body.dropping::after { content: "DROP FILES TO ATTACH"; position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; pointer-events: none;
+  background: color-mix(in srgb, var(--bg) 60%, transparent); color: var(--signal); font: 800 16px var(--font); letter-spacing: .3em; }

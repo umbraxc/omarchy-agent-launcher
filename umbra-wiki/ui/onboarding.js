@@ -111,11 +111,12 @@
     more.type = "button";
     more.className = "ghost tour-more";
     const hidden = () => grid.querySelectorAll(".tour-extra").length;
-    const label = (open) => (more.textContent = open ? "SHOW FEWER ▴" : `MORE (${hidden()}) ▾`);
+    const label = (open) => (more.textContent = open ? "▴ SHOW FEWER ▴" : `▾ ${hidden()} MORE OPTIONS ▾`);
     label(false);
     more.addEventListener("click", () => {
       const open = !grid.classList.contains("unfolded");
       grid.classList.toggle("unfolded", open);
+      more.classList.add("seen");   // it only pulses until it's been used
       label(open);
       Sound.click();
       if (!open) grid.scrollIntoView({ block: "nearest", behavior: "smooth" });

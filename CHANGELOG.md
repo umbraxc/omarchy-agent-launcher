@@ -1,5 +1,31 @@
 # Changelog
 
+## 3.1.4
+
+### Highlights
+
+- **Attach files**: the paperclip left of the prompt (or drop files on the window): Umbra reads text files and looks at pictures.
+- The thick block cursor is back in the prompt, and the tour's "more options" are hard to miss.
+- **A real conversation**: Umbra's card on one side and yours on the other. The characters' faces follow along: Umbra thinks, talks as its answer arrives, then looks serious, pleased or curious to fit it; you look focused while typing. Your messages sit on the right.
+- **The LINK panel**: click LINK for what LOCAL means, what going online adds, exactly what leaves your computer and a warning that a transmitting device can be noticed, with a live radar and an uplink sequence when you switch.
+- **New orbs, rebuilt**: every start-screen orb redrawn in colour and finer detail, plus five new ones for the hardest achievements (Galaxy, Aurora, Atom, Black Hole, Supernova).
+- **The Core panel**: click STATUS at the top. Every system's condition at a glance, and eight AI models to choose from (SPARK, SCOUT, RANGER, SENTINEL, WARDEN, ORACLE, VANGUARD, COMMAND), each with what it's good at, how it answers and how well it suits your computer.
+- **An Umbra that adapts to you**: it matches how you write, formal or casual, remembers what you ask for (shorter answers, no lists), and stops repeating itself. Its personality always comes first.
+- **The Locker**: achievements now earn rewards: 14 orbs for the start screen, titles and name effects. 17 new achievements cover every tool.
+- **A shorter welcome**: a quick ASCII introduction, then choose a one-minute quick start, the full briefing, or skip. A skip link is always one click away.
+- **A bigger library**: eight new collections, including a prepper encyclopedia, the CIA World Factbook, Wikipedia's essentials, vehicle repair, money, parenting and pets.
+- **Calmer notifications**: their own, quieter volume, and achievements only count once the tour is done.
+
+### All changes
+
+- Attachments: up to four text files or pictures per question. Text files are read (about 8,000 characters in all);
+  pictures are shrunk and shown to models that can see (RANGER, SENTINEL, ORACLE, VANGUARD, COMMAND); other models
+  say so. PDFs aren't supported yet.
+- The prompt's cursor is a thick block again (with no second, thin one).
+- In the tour, "more options" is a full-width strip that pulses until used.
+- A stray "[n]" the AI sometimes copies from its citation rule is no longer shown.
+- Everything from 3.1.3 (see below).
+
 ## 3.1.3
 
 ### Highlights
