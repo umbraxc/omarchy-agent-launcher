@@ -332,8 +332,8 @@ body.prompts-hidden .prompts { max-height: 0; opacity: 0; margin-top: 0; filter:
   color: var(--signal); font-size: 13px; letter-spacing: .2em; text-transform: uppercase;
   margin: 18px 0 8px; font-weight: 700;
 }
-.answer strong { color: var(--signal); font-weight: 700; }
-.answer em { color: var(--accent); font-style: normal; }
+.answer strong { color: var(--fg-bright); font-weight: 700; }
+.answer em { color: inherit; font-style: italic; }
 .answer ul, .answer ol { margin: 0 0 12px; padding-left: 24px; }
 .answer li { margin: 5px 0; }
 .answer li::marker { color: var(--signal); }

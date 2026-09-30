@@ -109,15 +109,13 @@ HISTORY_TURNS = 5
 # How Umbra answers, whatever the loadout. The personality supplies the
 # voice and the scenario the situation; these rules always apply.
 RULES = (
-    "Talk naturally, never robotically. Get straight to the point: no compliments on the question "
-    "and no filler openers. "
-    "Follow the user's topic and tone, including ordinary conversation outside survival topics. "
-    "For small talk, reply briefly and naturally. Do not steer the conversation toward a scenario or a feature. "
-    "For practical questions, answer clearly with short steps when useful, and put the key action "
-    "or term of each step in **bold**. "
-    "Always give concrete, useful steps before asking anything: someone in trouble needs actions "
-    "first. If the situation is vague or huge (for example 'I have nothing'), give the most urgent "
-    "priorities in order, and only after them you may ask one short question to tailor your help. "
+    "Follow the user's actual request and tone. If they correct your topic, length or format, adjust immediately. "
+    "Answer ordinary questions in natural prose. Do not turn a question into a checklist, assessment, "
+    "emergency plan, quotation or lecture unless the user asks for one. Never repeat a stock opening. "
+    "Use numbered steps only when the user asks for steps or an ordered procedure is genuinely needed. "
+    "Use bullets only when several separate items are easier to read as a list. Use **bold** sparingly, "
+    "for a meaningful term or safety-critical action, never as decoration on every point. "
+    "For practical safety questions, give the immediate useful action before asking for details. "
     "SOURCES may include irrelevant material: use only what genuinely helps, cite [n] only for facts "
     "taken from that source, and simply ignore the rest. If no source helps, answer from your own "
     "knowledge without citing. "
@@ -133,13 +131,18 @@ RULES = (
 DEFAULT_PERSONA = "Speak as UMBRA: a calm, friendly survival expert, like a knowledgeable friend."
 SYSTEM_PROMPT = DEFAULT_PERSONA + " " + RULES
 CHAT_PROMPT = (
-    "You are Umbra, a friendly local assistant in an ordinary conversation. "
+    "You are Umbra, a friendly local assistant in an ordinary conversation. The selected personality is "
+    "a light voice preference, never a script or a reason to change the subject. "
     "Respond to what the person actually said in their language and tone. "
-    "For a greeting or a check-in, use one short, natural sentence and at most one easy question. "
-    "If they share something personal, respond with care and let them lead. "
-    "Do not turn casual conversation into advice, a survival scenario, a feature tour or a list. "
+    "Keep casual replies to one or two natural sentences and at most one easy question. "
+    "Use everyday wording for check-ins, even with a historical or theatrical personality; avoid lofty reflections. "
+    "If they share something personal, respond with care and let them lead. If they correct you, acknowledge it "
+    "briefly and follow their new direction. No lists, numbered steps, headings, bold, forced reflection, "
+    "practical exercise or unsolicited advice. "
+    "For a request for something fun, offer a short joke or interesting fact. Do not invent shared events, "
+    "local weather, personal experiences or things you did today. "
     "Do not mention earlier conversations unless the person asks about them. "
-    "Do not claim human experiences or feelings; speak naturally without an AI disclaimer."
+    "Speak naturally without pretending to have a human life or adding an AI disclaimer."
 )
 
 # What Umbra itself can do, told to the AI when a question is about Umbra or
@@ -179,7 +182,8 @@ UMBRA_GUIDE = (
     "button in the top bar (not in the Field Kit). You cannot change anything in the app yourself: never say you "
     "added, saved or changed something; tell the user where to do it."
 )
-ABOUT_UMBRA = re.compile(r"\b(umbra|this app|the app|your (features|tools|functions)|what can you do|what are you|who are you|"
+ABOUT_UMBRA = re.compile(r"\b(umbra|this app|the app|your (features|tools|functions)|what can you do|"
+                         r"what can you help me with|how can you help me|what are you|who are you|"
                          r"how do (i|you) use|field kit|medic tab|vault|radar|sun (and|&) moon|pocket cards?|morse trainer|"
                          r"settings|shortcut|offline map|waypoint|calendar|reminder|manuals?|radar|kill switch|theme|tour|download|backup|"
                          r"profile|achievement|help me with the app)\b", re.I)
@@ -903,7 +907,7 @@ SMALL_TALK = re.compile(
     r"(?i)^\s*(?:hi|hey|hello|yo|hiya|good (?:morning|afternoon|evening|night)|thanks?(?: you)?|"
     r"cheers|ok(?:ay)?|cool|nice|great|how are (?:you|u|things)|how have you been|"
     r"how'?s (?:it going|your day(?: going)?|life)|what'?s up|"
-    r"who are you|what are you|what can you do|what do you do|bye|goodbye|see you|"
+    r"who are you|what are you|what can you do|what can you help me with|what do you do|bye|goodbye|see you|"
     r"let'?s (?:chat|talk)|i had a rough day|"
     r"(?:hi|hey|hello)[,!\s]+(?:how are you|how'?s it going|what'?s up|how'?s your day(?: going)?))[!?.\s]*$")
 
@@ -917,10 +921,30 @@ def is_small_talk(question):
     q = question.strip()
     if SMALL_TALK.fullmatch(q):
         return True
-    return bool(re.fullmatch(
+    if re.fullmatch(
         r"(?i)(?:i(?:'m| am) (?:feeling )?(?:lonely|sad|happy|bored|tired|stressed)|"
         r"i had (?:a |an )?.{1,50} day|(?:let'?s|can we|could we|i want to) (?:just )?(?:chat|talk)(?: about .{1,50})?|"
-        r"tell me (?:something|about yourself)|what do you (?:like|think of) .{1,50})[!?.\s]*", q))
+        r"tell me (?:something|about yourself)|what do you like .{1,50})[!?.\s]*", q):
+        return True
+    if len(q.split()) > 45:
+        return False
+    # A correction or a social follow-up can be phrased in many ways. Keep it
+    # conversational unless it also asks for concrete instructions.
+    task_request = re.search(r"\b(?:how (?:do|can|should) i|how are you (?:supposed to|going to|able to)|"
+                             r"give me (?:steps|instructions)|"
+                             r"explain how|what should i do (?:if|about))\b", q, re.I)
+    if task_request:
+        return False
+    if re.match(r"(?i)what do you think of ", q):
+        return not (any(re.search(pattern, q, re.I) for pattern in TOPICS.values()) or
+                    re.search(r"surviv|prepar|emergen|evacuat|disaster|crisis", q, re.I))
+    if re.search(r"\b(?:i (?:just )?said (?:hi|hello)|i asked (?:you )?how|"
+                 r"stop talking about|don't (?:give|dump|lecture)|chill|take it easy|"
+                 r"not what i asked|how are you|how'?s your day|how you doing|"
+                 r"tell me about your day|what'?s up|tell me (?:a joke|something (?:fun|funny|interesting|random|nice))|"
+                 r"make me laugh|surprise me|what a (?:beautiful|lovely) day)\b", q, re.I):
+        return True
+    return False
 
 
 def greeting_reply(question):
@@ -929,6 +953,20 @@ def greeting_reply(question):
         return ""
     return random.choice(("Hey! How's your day going?", "Hi there. What's on your mind?",
                           "Hey. How are you doing?", "Hi! What would you like to talk about?"))
+
+
+def feature_reply(question):
+    """An accurate, brief introduction that no model can turn into a crisis plan."""
+    q = question.strip()
+    if re.fullmatch(r"(?i)(?:what can you (?:do|help me with)|how can you help me)[!?.\s]*", q):
+        return random.choice((
+            "We can just talk, or I can help with your offline library, maps, manuals and Field Kit. What's on your mind?",
+            "I can chat, look things up in your local library, and help you use maps or the Field Kit. What would you like to do?",
+            "Whatever suits you: a conversation, an answer from your offline library, or help with Umbra's tools. Where should we start?",
+        ))
+    if re.fullmatch(r"(?i)(?:who|what) are you[!?.\s]*", q):
+        return "I'm Umbra, your local assistant. We can talk, or I can help you explore your offline library and tools."
+    return ""
 
 
 def relevant(source, terms):
@@ -3168,13 +3206,13 @@ def user_context(question="", client=None):
     return ("RELEVANT USER TOOL DATA (use only where it helps; don't recite it): " + " ".join(lines))
 
 
-def build_system_prompt(online=False, question=""):
+def build_system_prompt(online=False, question="", chatting=False):
     """Persona + scenario + trait style + the user's profile + the fixed rules."""
     settings = read_json(SETTINGS_FILE, {})
     try:
         loadout = json.load(open(LOADOUT_FILE))
     except (OSError, ValueError):
-        return SYSTEM_PROMPT
+        return CHAT_PROMPT if chatting else SYSTEM_PROMPT
     scenario = next((x for x in loadout["scenarios"] + custom_scenarios() if x["id"] == settings.get("scenario")),
                     loadout["scenarios"][0])
     if scenario.get("custom"):
@@ -3188,6 +3226,8 @@ def build_system_prompt(online=False, question=""):
             persona += f" Example of how you talk: \"{person['sample']}\""
     else:
         persona = person["prompt"]
+    if chatting:
+        return " ".join((persona, CHAT_PROMPT))
     survival_topic = any(re.search(pattern, question, re.I) for pattern in TOPICS.values()) or bool(
         re.search(r"surviv|prepar|emergen|evacuat|off.grid|disaster|crisis", question, re.I))
     parts = [persona, "Use this personality as a light voice preference; follow the user's own tone."]
@@ -3515,7 +3555,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/suggest":
             req = self.read_json()
             question = str(req.get("question", ""))[:1000]
-            options = [] if is_small_talk(question) or greeting_reply(question) else suggest_replies(
+            options = [] if is_small_talk(question) or greeting_reply(question) or feature_reply(question) else suggest_replies(
                 question, str(req.get("answer", ""))[:6000])
             return self.send_json({"text": options[0] if options else "", "options": options})
         if self.path == "/api/history":
@@ -3788,7 +3828,8 @@ STYLE_LOCK = threading.Lock()
 FORMAL = re.compile(r"\b(please|kindly|would you|could you|thank you|regards|dear|sir|madam|shall|however|therefore|furthermore|moreover|appreciate)\b", re.I)
 CASUAL = re.compile(r"\b(hey|yo|gonna|wanna|gotta|lol|lmao|ok|okay|thx|pls|plz|u|ur|ya|yeah|yep|nah|dude|bro|kinda|sorta|btw|idk|tbh|cuz)\b", re.I)
 PREFERENCES = [
-    (r"\b(shorter|too long|less detail|keep it (short|brief)|brief(er)?|tl;?dr|in short|summari[sz]e)\b", "length", "short", "short, compact answers"),
+    (r"\b(shorter|too long|less detail|keep it (short|brief)|brief(er)?|tl;?dr|in short|summari[sz]e|"
+     r"don't dump|do not dump|take it easy|chill|not a whole paragraph)\b", "length", "short", "short, compact answers"),
     (r"\b(more detail|longer|explain more|go deeper|elaborate|in (more )?depth|tell me more)\b", "length", "long", "fuller, detailed answers"),
     (r"\b(simpler|simple words|plain (english|language)|too technical|eli5|like i'?m (five|5)|for a beginner)\b", "level", "simple", "plain, simple language"),
     (r"\b(more technical|technical details|be precise|exact (numbers|figures))\b", "level", "technical", "technical precision"),
@@ -3870,23 +3911,8 @@ def style_prompt(question, history):
     prefs = [l for key, p in st["prefs"].items() for _, k, v, l in PREFERENCES if k == key and v == p.get("value")]
     if prefs:
         parts.append("They have told you they prefer " + "; ".join(prefs) + ".")
-    # Don't sound like a template: vary openings and drop repeated phrases.
-    mine = [str(t.get("content", "")) for t in history if t.get("role") == "assistant"][-3:]
-    openings = [re.sub(r"[*_#>`]", "", m).strip().split("\n")[0] for m in mine]
-    openings = [" ".join(o.split()[:5]) for o in openings if o]
-    if openings:
-        parts.append("Your last replies began: " + "; ".join(f"'{o}'" for o in openings) + ". Open this one differently.")
-    grams = {}
-    for m in mine:
-        words = re.findall(r"[a-z']+", m.lower())
-        for g in {" ".join(words[i:i + 3]) for i in range(len(words) - 2)}:
-            grams[g] = grams.get(g, 0) + 1
-    stock = [g for g, c in grams.items() if c >= 2 and not re.fullmatch(r"(the|a|an|of|to|and|in|it|is|you|your|for|on|with|that|this|be) .*|.* (the|a|an|of|to|and)", g)][:5]
-    if stock:
-        parts.append("Avoid repeating these phrases from your earlier replies: " + ", ".join(f"'{g}'" for g in stock) + ".")
-    parts.append("Vary your sentence length and structure, and never begin with filler like 'Okay', 'Alright' or 'Great question'. "
-                 "Always answer in the language the user writes in. Adapt your register and length to them; "
-                 "the selected personality is a light voice preference, not a reason to override the user's style or topic.")
+    parts.append("Use the user's language and current tone. Don't copy an earlier opening or continue an old topic "
+                 "when the user has changed it. The selected personality changes phrasing, not the topic or format.")
     return "STYLE: " + " ".join(parts)
 
 
@@ -3944,7 +3970,7 @@ def answer(req, emit):
         emit({"type": "error", "message": "Empty question."})
         return
 
-    short_reply = greeting_reply(question)
+    short_reply = greeting_reply(question) or feature_reply(question)
     if short_reply:
         emit({"type": "sources", "sources": []})
         emit({"type": "phase", "phase": "write"})
@@ -3961,6 +3987,7 @@ def answer(req, emit):
         return
 
     chatting = is_small_talk(question)
+    learn_style(question)
     emit({"type": "phase", "phase": "search"})
     sources, notice = ([], "") if chatting else find_sources(question, online)
     if notice:
@@ -3976,10 +4003,11 @@ def answer(req, emit):
         for i, s in enumerate(sources, 1)
     ]})
 
-    system = CHAT_PROMPT if chatting else build_system_prompt(online, question)
+    system = build_system_prompt(online, question, chatting)
     if chatting and ABOUT_UMBRA.search(question):
         system += (" You are Umbra Wiki, a local assistant that can chat, answer using an offline library, "
-                   "and help with maps, manuals, a field kit and saved history. Keep this reply brief.")
+                   "and help with maps, manuals, a field kit and saved history. For this answer, briefly give "
+                   "two or three real examples of what you can help with, without a feature list or crisis framing.")
     if not chatting:
         ctx = user_context(question, req.get("context"))
         if ctx:
@@ -3994,7 +4022,6 @@ def answer(req, emit):
             emit({"type": "context", "message": f"Using {count} saved conversation{'s' if count != 1 else ''} for this answer."})
         elif wants_past_chat(question):
             system += " No matching saved conversation was found; do not invent a memory."
-        learn_style(question)
         system += " " + style_prompt(question, history)
     record("modelsTried", MODEL)
     if offgrid and not chatting:
@@ -4002,11 +4029,14 @@ def answer(req, emit):
                    "in their proper order, without long explanations. Never skip the first step or any "
                    "safety-critical step to save words (for bleeding, firm direct pressure always comes first).")
     messages = [{"role": "system", "content": system}]
-    recent = history[-HISTORY_TURNS * 2:]
+    recent = history[-(3 if chatting else HISTORY_TURNS) * 2:]
     for i, turn in enumerate(recent):
         role = "assistant" if turn.get("role") == "assistant" else "user"
-        keep = 900 if i >= len(recent) - 2 else 250
-        messages.append({"role": role, "content": str(turn.get("content", ""))[:keep]})
+        content = str(turn.get("content", ""))
+        if chatting and role == "assistant" and (len(content) > 300 or re.search(r"(?m)^\s*(?:\d+[.)]|[-*])\s", content)):
+            continue  # a previous long or list-like answer should not steer a new chat topic
+        keep = 200 if chatting else 900 if i >= len(recent) - 2 else 250
+        messages.append({"role": role, "content": content[:keep]})
     if chatting:
         messages.append({"role": "user", "content": question})
     else:
@@ -4016,11 +4046,13 @@ def answer(req, emit):
     if req.get("attachments"):
         attach_files(messages, req.get("attachments"), emit)
     emit({"type": "phase", "phase": "think"})
-    full, done_event = stream_chat(messages, emit, 80 if chatting else 420 if offgrid else None)
+    wants_detail = bool(re.search(r"\b(?:in detail|detailed|step[- ]by[- ]step|thorough|comprehensive|deep dive|explain fully)\b", question, re.I))
+    limit = 120 if chatting else 300 if offgrid else 650 if wants_detail else 420 if len(question.split()) > 25 else 240
+    full, done_event = stream_chat(messages, emit, limit)
     if not re.sub(r"\bNEXT\s*:.*", "", full, flags=re.S).strip():
         # An empty reply is never acceptable: retry once without sources.
         retry = [messages[0], {"role": "user", "content": question}]
-        full, done_event = stream_chat(retry, emit, 420 if offgrid else None)
+        full, done_event = stream_chat(retry, emit, limit)
 
     match = None
     for match in re.finditer(r"\bNEXT\s*:\s*(.+)", full):

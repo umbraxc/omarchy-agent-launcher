@@ -1400,24 +1400,27 @@ function escapeHtml(s) {
 }
 
 function inline(s) {
-  return s
-    .replace(/`([^`]+)`/g, "<code>$1</code>")
-    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
-    .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, "$1<em>$2</em>")
-    .replace(/\[(\d+(?:\s*,\s*\d+)*)\]/g, (_, nums) =>
-      nums.split(/\s*,\s*/).map((n) => `<span class="cite" data-n="${n}">${n}</span>`).join(""));
+  // One pass keeps markdown inside inline code literal and prevents emphasis
+  // from consuming adjacent words while a response is still streaming.
+  return s.replace(/`([^`\n]+)`|\*\*([^*\n]+)\*\*|\*([^*\s][^*\n]*?)\*|\[(\d+(?:\s*,\s*\d+)*)\]/g,
+    (_, code, strong, emphasis, nums) => {
+      if (code !== undefined) return `<code>${code}</code>`;
+      if (strong !== undefined) return `<strong>${strong}</strong>`;
+      if (emphasis !== undefined) return `<em>${emphasis}</em>`;
+      return nums.split(/\s*,\s*/).map((n) => `<span class="cite" data-n="${n}">${n}</span>`).join("");
+    });
 }
 
 // Small, forgiving renderer: it runs while an answer types out, so
 // half-written markdown must still render sensibly.
 function renderMarkdown(src) {
   const lines = escapeHtml(src).split("\n");
-  let out = "", list = null, para = [], code = null;
-  // Numbered steps keep their numbers even when blank lines or notes split
-  // them into several lists, and "1. 1. 1." (auto-numbering) counts up.
-  let lastNum = 0, run = false;
+  let out = "", list = null, itemOpen = false, para = [], code = null;
+  // Keep numbering through blank lines; start a new sequence after prose.
+  let lastNum = 0;
   const flushPara = () => { if (para.length) { out += `<p>${inline(para.join(" "))}</p>`; para = []; } };
-  const closeList = () => { if (list) { out += `</${list}>`; list = null; } };
+  const closeItem = () => { if (itemOpen) { out += "</li>"; itemOpen = false; } };
+  const closeList = () => { if (list) { closeItem(); out += `</${list}>`; list = null; } };
 
   for (const raw of lines) {
     const line = raw.trimEnd();
@@ -1430,27 +1433,25 @@ function renderMarkdown(src) {
 
     let m;
     if ((m = line.match(/^(#{1,3})\s+(.*)/))) {
-      flushPara(); closeList(); lastNum = 0; run = false;
+      flushPara(); closeList(); lastNum = 0;
       out += `<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`;
     } else if ((m = line.match(/^\s*(?:[-*•])\s+(.*)/)) || (m = line.match(/^\s*\d+[.)]\s+(.*)/))) {
       flushPara();
       const kind = /^\s*\d/.test(line) ? "ol" : "ul";
       if (list !== kind) { closeList(); out += `<${kind}>`; list = kind; }
+      closeItem();
       if (kind === "ol") {
         const n = parseInt(line, 10);
-        const num = run && n <= lastNum ? lastNum + 1 : n;
-        lastNum = num; run = true;
-        out += `<li value="${num}">${inline(m[1])}</li>`;
-      } else out += `<li>${inline(m[1])}</li>`;
+        lastNum = n <= lastNum ? lastNum + 1 : n;
+        out += `<li value="${lastNum}">${inline(m[1])}`;
+      } else out += `<li>${inline(m[1])}`;
+      itemOpen = true;
     } else if (!line.trim()) {
-      flushPara(); closeList();
-    } else if (/^\s{2,}\S/.test(raw) && out.endsWith("</li>")) {
-      out = out.slice(0, -5) + `<br>${inline(line.trim())}</li>`;   // a note under a step stays with it
-    } else if (/^\s{2,}\S/.test(raw) && list === null && run && out.endsWith(`</ol>`)) {
-      out = out.slice(0, -10) + `<br>${inline(line.trim())}</li></ol>`;
+      flushPara();
+    } else if (/^\s{2,}\S/.test(raw) && itemOpen) {
+      out += `<br>${inline(line.trim())}`;
     } else {
-      closeList(); para.push(line.trim());
-      if (/:\s*$/.test(line)) { lastNum = 0; run = false; }   // "Then:" introduces a new list
+      closeList(); lastNum = 0; para.push(line.trim());
     }
   }
   if (code !== null) out += `<pre>${code.join("\n")}</pre>`;
