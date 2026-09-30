@@ -250,10 +250,6 @@ const Sound = (() => {
       wave = setTimeout(arm, 3400);
     }, 60000);
   };
-  bar.addEventListener("mouseover", (e) => {
-    const button = e.target.closest(".ctl");
-    if (button && !button.contains(e.relatedTarget)) Sound.hover();
-  });
   for (const event of ["pointerdown", "keydown", "wheel"]) document.addEventListener(event, arm, { passive: true });
   let lastMove = 0;
   document.addEventListener("pointermove", () => { const now = performance.now(); if (now - lastMove > 1000) { lastMove = now; arm(); } }, { passive: true });

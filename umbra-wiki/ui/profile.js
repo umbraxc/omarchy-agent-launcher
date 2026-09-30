@@ -10,13 +10,20 @@
   // Character parts, all 7 characters wide so every combination lines up.
   const PARTS = {
     top: [["Plain", " .---. "], ["Buzz cut", " .'''. "], ["Spiky", " /\\/\\/\\"], ["Beanie", " (===) "],
-          ["Helmet", " [___] "], ["Hood", " /---\\ "], ["Wild", " ~~~~~ "], ["Cap", " .---=="]],
+          ["Helmet", " [___] "], ["Hood", " /---\\ "], ["Wild", " ~~~~~ "], ["Cap", " .---=="],
+          ["Wide brim", " _===_ "], ["Ranger", " /___\\ "], ["Crown", " .***. "], ["Braids", " {~~~} "],
+          ["Wool hat", " (###) "], ["Mohawk", "  /|\\  "], ["Visor", " [===] "], ["Rain hood", " /~~~\\ "]],
     eyes: [["Calm", "o o"], ["Wide", "O O"], ["Happy", "^ ^"], ["Sharp", "• •"], ["Wink", "o -"],
-           ["Shades", "■-■"], ["Goggles", "0-0"]],
+           ["Shades", "■-■"], ["Goggles", "0-0"], ["Focused", ". ."], ["Sleepy", "- -"],
+           ["Spark", "* *"], ["Alert", "! !"], ["Kind", "u u"], ["Curious", "o ?"],
+           ["Glowing", "✦ ✦"], ["Closed", "_ _"]],
     mouth: [["Neutral", " - "], ["Smile", "\\_/"], ["Open", " o "], ["Smirk", " ~ "], ["Beard", "vvv"],
-            ["Moustache", "~^~"], ["Mask", "[#]"]],
+            ["Moustache", "~^~"], ["Mask", "[#]"], ["Grin", "___"], ["Pout", " . "],
+            ["Laugh", " U "], ["Frown", "/_\\"], ["Whistle", " • "], ["Toothy", "==="], ["Quiet", "..."]],
     body: [["Plain", "  / \\  "], ["Backpack", "  /#\\  "], ["Vest", " /[=]\\ "], ["Scarf", "  /~\\  "],
-           ["Radio", "  / \\¤ "], ["Cape", " //_\\\\ "]],
+           ["Radio", "  / \\¤ "], ["Cape", " //_\\\\ "], ["Field jacket", " /|||\\ "],
+           ["Tool belt", " /-+-\\ "], ["Poncho", " /~~~\\ "], ["Harness", " /X X\\ "],
+           ["Medic kit", " /+ +\\ "], ["Ranger cloak", " /▓▓▓\\ "], ["Satchel", " / o \\ "], ["Rain gear", " /:::\\ "]],
   };
   const PART_LABELS = { top: "HEAD", eyes: "EYES", mouth: "MOUTH", body: "GEAR" };
   const pick = (part, i) => PARTS[part][((i || 0) % PARTS[part].length + PARTS[part].length) % PARTS[part].length];
@@ -25,7 +32,7 @@
   function art(ch = {}) {
     const eyes = pick("eyes", ch.eyes)[1];
     const frame = (e) => [pick("top", ch.top)[1], ` |${e}| `, ` |${pick("mouth", ch.mouth)[1]}| `, " '---' ", pick("body", ch.body)[1]];
-    return [frame(eyes), frame(/[■0]/.test(eyes) ? eyes : "- -")];
+    return [frame(eyes), frame(/[■0]/.test(eyes) ? eyes : "- -"), frame(/[■0]/.test(eyes) ? eyes : "> >")];
   }
 
   const profile = { name: "", callsign: "", about: "", location: "", continent: "", units: "", experience: "", household: "",
@@ -95,7 +102,7 @@
     renderRecord(grid.querySelector(".pf-record"));
     const showArt = () => {
       if (stop) stop();
-      stop = animate(grid.querySelector(".lo-portrait"), art(draft.character), "personality");
+      stop = animate(grid.querySelector(".lo-portrait"), art(draft.character), "profile");
     };
     const parts = grid.querySelector(".pf-parts");
     for (const part of Object.keys(PARTS)) {

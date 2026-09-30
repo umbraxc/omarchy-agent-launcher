@@ -72,11 +72,15 @@
     show(0);
     const tick = () => {
       if (!alive || !pre.isConnected) return;
+      if (document.body.classList.contains("reduce-motion")) {
+        show(0); setTimeout(tick, 1000); return;
+      }
       t++;
       if (kind === "scenario") { frame = (frame + 1) % frames.length; show(frame); setTimeout(tick, 650); }
       else {
         const blink = t % 18 === 0 || t % 47 === 0;
-        show(blink ? 1 : 0);
+        const glance = kind === "profile" && t % 61 < 3 && !blink;
+        show(blink ? 1 : glance ? 2 : 0);
         setTimeout(tick, blink ? 140 : 170);
       }
     };

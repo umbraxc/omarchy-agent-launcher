@@ -129,7 +129,7 @@ button { -webkit-text-stroke: inherit; }
 }
 .cell .k { color: var(--faint); font-size: 9.5px; letter-spacing: .28em; white-space: nowrap; }
 .cell .v { color: var(--fg); font-size: 12px; letter-spacing: .12em; white-space: nowrap; }
-.cell.link, .cell.status { padding-left: 14px; padding-right: 14px; }
+.cell.link, .cell.status { padding-left: 14px; padding-right: 14px; align-items: center; text-align: center; }
 #t-status.busy { color: var(--signal); }
 #t-status.bad { color: var(--red); }
 

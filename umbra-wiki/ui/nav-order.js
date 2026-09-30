@@ -16,19 +16,24 @@
   note.textContent = "HOLD SHIFT + DRAG TO REARRANGE";
   note.hidden = true;
   document.body.appendChild(note);
-  let noteTimer = 0;
-  const hideNote = () => { clearTimeout(noteTimer); note.hidden = true; };
+  let hideTimer = 0;
+  const hideNote = () => { clearTimeout(hideTimer); note.hidden = true; };
+  const busy = () => !!document.querySelector(".nav-callout:not([hidden]), .ac-toast:not([hidden]), .dl-toast:not([hidden]), .tip:not([hidden]), .sound-pop:not([hidden])");
   const showNote = () => {
-    clearTimeout(noteTimer);
-    noteTimer = setTimeout(() => {
-      const r = bar.getBoundingClientRect();
-      note.style.top = `${r.bottom + 8}px`;
-      note.style.right = `${Math.max(8, innerWidth - r.right)}px`;
-      note.hidden = false;
-    }, 650);
+    const panels = ["maps", "fieldkit", "farming", "radar", "loadout", "history", "library", "themes", "settings", "core"];
+    if (document.hidden || document.body.classList.contains("locked") || document.body.classList.contains("touring") || busy() ||
+        panels.some((id) => document.getElementById(id)?.hidden === false)) return;
+    const r = bar.getBoundingClientRect();
+    note.style.top = `${r.bottom + 10}px`;
+    note.style.right = `${Math.max(8, innerWidth - r.right)}px`;
+    note.hidden = false;
+    hideTimer = setTimeout(hideNote, 4500);
   };
-  bar.addEventListener("mouseover", (e) => { if (movable(e.target.closest(".ctl"))) showNote(); });
-  bar.addEventListener("mouseout", (e) => { if (!bar.contains(e.relatedTarget)) hideNote(); });
+  setTimeout(showNote, 45000);
+  setInterval(showNote, 300000);
+  bar.addEventListener("mouseover", hideNote);
+  new MutationObserver(() => { if (!note.hidden && busy()) hideNote(); })
+    .observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
   bar.addEventListener("pointerdown", (e) => {
     const el = e.target.closest(".ctl");
     if (!e.shiftKey || e.button !== 0 || !movable(el) || document.body.classList.contains("touring")) return;

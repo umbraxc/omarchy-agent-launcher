@@ -2,7 +2,8 @@
 // History; the bundled art can be replayed without asking an AI or the network.
 "use strict";
 (() => {
-  const names = {dawn:"Sunrise over a cabin",forest:"A sunlit forest",shore:"A quiet shore",stars:"Camp under the stars"};
+  const names = {dawn:"Sunrise over a cabin",forest:"A sunlit forest",shore:"A quiet shore",stars:"Camp under the stars",
+    valley:"A river valley homestead",rain:"A rainy forest refuge"};
   const ids=Object.keys(names);
   let lastTurn=-9,lastId="";
   function select(question,turn){

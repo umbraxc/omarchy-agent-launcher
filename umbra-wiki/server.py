@@ -1630,6 +1630,18 @@ def save_profile(p):
     return clean
 
 
+CHARACTER_OPTIONS = {
+    "top": ("Plain", "Buzz cut", "Spiky", "Beanie", "Helmet", "Hood", "Wild", "Cap",
+            "Wide brim", "Ranger", "Crown", "Braids", "Wool hat", "Mohawk", "Visor", "Rain hood"),
+    "eyes": ("Calm", "Wide", "Happy", "Sharp", "Wink", "Shades", "Goggles", "Focused",
+             "Sleepy", "Spark", "Alert", "Kind", "Curious", "Glowing", "Closed"),
+    "mouth": ("Neutral", "Smile", "Open", "Smirk", "Beard", "Moustache", "Mask", "Grin",
+              "Pout", "Laugh", "Frown", "Whistle", "Toothy", "Quiet"),
+    "body": ("Plain", "Backpack", "Vest", "Scarf", "Radio", "Cape", "Field jacket",
+             "Tool belt", "Poncho", "Harness", "Medic kit", "Ranger cloak", "Satchel", "Rain gear"),
+}
+
+
 def profile_prompt(question=""):
     p = get_profile()
     q = question.lower()
@@ -1640,6 +1652,13 @@ def profile_prompt(question=""):
         lines.append(f"The user's name is {p['name']}; use it sparingly, if at all.")
     if p.get("about") and re.search(r"\b(me|my|myself|about me|what do you know)\b", q):
         lines.append(f"What the user says about themselves: {p['about']}")
+    if re.search(r"\b(my (avatar|character|portrait|appearance|look)|what do i look like|how do i look)\b", q):
+        character = p.get("character") or {}
+        if not isinstance(character, dict):
+            character = {}
+        chosen = [f"{part}: {names[(int(character.get(part, 0)) if str(character.get(part, 0)).isdigit() else 0) % len(names)]}"
+                  for part, names in CHARACTER_OPTIONS.items()]
+        lines.append("The user's customizable ASCII avatar has " + ", ".join(chosen) + ". These are visual profile choices.")
     if re.search(r"weather|climate|local|near me|where i live|route|travel|map|evacuat|garden|plant", q):
         if p.get("location"):
             lines.append(f"Where the user says they live (climate and region matter for advice): {p['location']}.")
