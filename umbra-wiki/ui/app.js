@@ -1877,12 +1877,11 @@ async function ask(question, shownAs = "") {
           n.className = "notice";
           n.textContent = "⚠ " + e.message;
           card.prepend(n);
-        } else if (e.type === "context") {
-          contextNote = e.message;
-          const n = document.createElement("div");
-          n.className = "context-note";
-          n.textContent = e.message;
-          card.prepend(n);
+        } else if (e.type === "context" || e.type === "model") {
+          contextNote = contextNote ? contextNote + " · " + e.message : e.message;
+          let n = card.querySelector(".context-note");
+          if (!n) { n = document.createElement("div"); n.className = "context-note"; card.prepend(n); }
+          n.textContent = contextNote;
         } else if (e.type === "sources") {
           sources = e.sources;
           sources.forEach((s) => (sourceByN[s.n] = s));

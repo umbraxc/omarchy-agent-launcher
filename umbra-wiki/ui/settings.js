@@ -391,6 +391,7 @@
       <section class="set-section"><div class="lib-head">AI MODEL</div>
         <label class="set-row"><span class="set-text"><b>Local model</b><small>The AI Umbra thinks with. Bigger models are smarter but slower</small></span>
           <select class="set-model"></select></label>
+        <p class="lib-note set-model-flow"></p>
         <div class="set-row"><span class="set-text"><b>Compare and download models</b><small>What each model is good at, how it answers, and how well it suits this computer: in the Core panel (or click STATUS at the top)</small></span>
           <button class="ghost set-core">OPEN CORE ▸</button></div>
         <div class="set-pulls" hidden></div>
@@ -676,20 +677,26 @@
   function fillModels(models) {
     const select = body.querySelector(".set-model"), pulls = body.querySelector(".set-pulls");
     if (!select || !pulls) return;
-    const names = models.models.length ? models.models : [models.current];
+    const names = models.models.length ? models.models : [""];
     if (select.dataset.names !== names.join("|")) {
-      const label = (n) => ((models.choices || []).find((c) => c.id === n) || {}).name || n;   // "RANGER · Gemma 3 4B"
+      const label = (n) => !n ? "NO MODEL INSTALLED" : ((models.choices || []).find((c) => c.id === n) || {}).name || n;
       select.innerHTML = names.map((n) => `<option value="${escapeHtml(n)}">${escapeHtml(label(n))}</option>`).join("");
       select.dataset.names = names.join("|");
     }
     select.value = select.dataset.current = models.current;
+    select.disabled = !models.models.length;
     const pull = models.pull || {};
+    const currentName = ((models.choices || []).find((c) => c.id === models.current) || {}).callsign || models.current;
+    const flow = body.querySelector(".set-model-flow");
+    if (flow) flow.textContent = models.models.includes(models.current)
+      ? `${currentName} answers now. You can keep several models installed and switch with this menu. ${pull.active || pull.paused ? `${pull.model} is ${pull.paused ? "paused" : "downloading"}; ${currentName} keeps answering until you switch.` : "New downloads wait for you to choose them."}`
+      : `No AI model can answer yet. The first model you download becomes active when it finishes.`;
     const installedIds = (models.installed || []).map((m) => m.id);
     const busy = pull.active || pull.paused;
     pulls.innerHTML = (models.choices || []).filter((c) => !installedIds.includes(c.id)).map((c) => {
       const mine = busy && pull.model === c.id;
       const pct = mine && pull.total ? Math.round((pull.completed * 100) / pull.total) : 0;
-      return `<div class="set-row"><span class="set-text"><b>${escapeHtml(c.name)}</b><small>${c.size} GB · ${escapeHtml(c.line)}</small></span>
+      return `<div class="set-row"><span class="set-text"><b>${escapeHtml(c.name)}</b><small>${c.size} GB · ${escapeHtml(c.line)}${mine && pull.status ? ` · ${escapeHtml(pull.status)}` : ""}</small></span>
         <button class="ghost set-pull" data-model="${escapeHtml(c.id)}" ${busy ? "disabled" : ""}>${mine ? (pull.paused ? `PAUSED ${pct}%` : `↓ ${pct}%`) : "DOWNLOAD"}</button></div>
         ${mine && window.UmbraDownloads ? `<div class="dl-controls">${UmbraDownloads.controls("model", { paused: !!pull.paused })}</div>${UmbraDownloads.note("the model")}` : ""}`;
     }).join("") + (pull.status === "failed" ? `<p class="lib-note">Download failed: ${escapeHtml(pull.error || "")}</p>` : "");

@@ -2407,7 +2407,7 @@ body.reduce-motion .cal-dots i.imp4 { animation: none; }
 @keyframes cal-alarm { 50% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 45%, transparent), 0 10px 30px rgba(0, 0, 0, .45); } }
 
 /* A first-look guide in the corner of a screen or tab. */
-.tabguide { position: absolute; right: 18px; bottom: 18px; z-index: 50; width: min(340px, calc(100% - 36px)); padding: 12px 14px;
+.tabguide { position: absolute; left: 18px; right: auto; bottom: 18px; z-index: 50; width: min(340px, calc(100% - 36px)); padding: 12px 14px;
   background: var(--bg-1); border: 1px solid var(--signal); box-shadow: 0 14px 34px rgba(0, 0, 0, .5); animation: cf-glitch .45s steps(1, end) both; }
 .tabguide::before { content: ""; position: absolute; top: -1px; left: -1px; width: 10px; height: 10px; border-top: 2px solid var(--signal); border-left: 2px solid var(--signal); }
 .tabguide.leaving { animation: fade .25s ease-in reverse both; }
@@ -2511,6 +2511,19 @@ body.reduce-motion .zoom-toast { transition: none; }
 .co-ex { margin-top: 10px; padding: 10px 12px; border-left: 2px solid var(--net); background: var(--bg-2); }
 .co-ex p { margin: 6px 0 0; font-style: italic; }
 .co-actions { grid-column: 1 / -1; display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.co-flow, .co-team { padding: 11px 14px; border: 1px solid var(--line); background: var(--bg-1); }
+.co-flow { border-left: 2px solid var(--signal); }
+.co-team { border-left: 2px solid var(--net); margin-top: 10px; }
+.co-flow > b, .co-team > b, .co-transfer > b { color: var(--signal); font-size: 10px; letter-spacing: .2em; }
+.co-team > b { color: var(--net); }
+.co-flow p, .co-team p { margin: 6px 0 0; color: var(--fg); font-size: 11px; line-height: 1.5; }
+.co-flow .co-action-error { color: var(--red); }
+.co-team small { display: block; margin-top: 6px; color: var(--dim); }
+.co-team .co-actions { margin-top: 8px; }
+.co-transfer { padding: 10px 14px; background: var(--signal-soft); border: 1px solid var(--signal); }
+.co-transfer > span { display: block; margin-top: 5px; color: var(--fg); font-size: 11px; }
+.co-pair-why { border-top: 1px dashed var(--line); padding-top: 8px; }
+.co-pair-why b { color: var(--net); font-size: 9px; letter-spacing: .18em; }
 
 /* ----------------------------------------------------------------- locker */
 

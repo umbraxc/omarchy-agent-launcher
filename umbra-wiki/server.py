@@ -2038,10 +2038,21 @@ def system_info():
     accel = winplat.accel(gpus) if WINDOWS else next((kind for pkg, kind in (("ollama-cuda", "NVIDIA CUDA"), ("ollama-rocm", "AMD ROCm"),
                                          ("ollama-vulkan", "Vulkan"))
                   if subprocess.run(["pacman", "-Q", pkg], capture_output=True).returncode == 0), None)
+    # Only advertise paired inference when dedicated graphics memory is known.
+    # Integrated/shared-memory graphics and unknown drivers stay solo.
+    vram_gb = 0
+    if accel and "NVIDIA" in accel:
+        try:
+            report = subprocess.run(["nvidia-smi", "--query-gpu=memory.total", "--format=csv,noheader,nounits"],
+                                    capture_output=True, text=True, timeout=3, check=True)
+            vram_gb = max(int(line.strip()) for line in report.stdout.splitlines() if line.strip()) / 1024
+        except (OSError, ValueError, subprocess.SubprocessError):
+            pass
     os.makedirs(LIBRARY_DIR, exist_ok=True)
     free = shutil.disk_usage(LIBRARY_DIR).free / 1e9
     recommended = "gemma3:1b" if ram and ram < 8 else "llama3.1:8b" if ram >= 16 and accel else "gemma3:4b"
     return {"cpu": cpu, "cores": os.cpu_count() or 1, "ramGB": ram, "gpus": gpus, "accel": accel,
+            "vramGB": round(vram_gb, 1),
             "freeGB": round(free, 1), "recommended": recommended}
 
 
@@ -2099,7 +2110,7 @@ def downloads():
     docs = MANUAL_DOWNLOADS.snapshot()
     left = [i for i in docs["items"] if not i["installed"]]
     docs.update(left=len(left), title=left[0]["name"] if left else "")
-    return {"library": library, "model": dict(pull_state), "maps": maps, "docs": docs}
+    return {"library": library, "model": {**pull_state, "current": MODEL}, "maps": maps, "docs": docs}
 
 
 def library_control(action):
@@ -2141,8 +2152,11 @@ pull_state = {}
 def start_pull(name):
     if name not in {m["id"] for m in MODEL_CHOICES} and not re.fullmatch(r"[a-z0-9._:/-]{1,60}", name):
         raise ValueError("bad model name")
-    if pull_state.get("active"):
-        return pull_state
+    if pull_state.get("active") or pull_state.get("paused"):
+        if pull_state.get("model") == name and pull_state.get("active"):
+            return dict(pull_state)
+        if pull_state.get("model") != name:
+            raise ValueError("Another AI model download is in progress. Finish or cancel it first.")
     write_json(PULL_FILE, {"model": name})
     pull_state.clear()
     pull_state.update({"paused": False})
@@ -2176,7 +2190,12 @@ def _pull(name):
             os.remove(PULL_FILE)
         except OSError:
             pass
-        set_model(name)
+        # Downloading adds a choice. Keep a working model in use until the
+        # person explicitly switches; a first installation becomes active.
+        activate = MODEL not in list_models()["models"] or MODEL == name
+        if activate:
+            set_model(name)
+        pull_state["activated"] = activate
     except Exception as e:
         pull_state.update({"active": False, "status": "failed", "error": str(e)[:200]})
 
@@ -2220,7 +2239,55 @@ def list_models():
     except Exception:
         found = []
     return {"current": MODEL, "models": sorted(m["id"] for m in found), "installed": found,
-            "choices": MODEL_CHOICES, "pull": dict(pull_state)}
+            "choices": MODEL_CHOICES, "pull": dict(pull_state),
+            "team": {"helper": read_json(CONFIG_FILE, {}).get("multiHelper", "")}}
+
+
+def pair_fit(primary, helper, sysinfo):
+    """Conservative, model-neutral gate for a second opinion on one answer."""
+    if primary == helper:
+        return False, "Choose a different helper model."
+    first, second = MODEL_INFO.get(primary), MODEL_INFO.get(helper)
+    if not first or not second:
+        return False, "Uncatalogued models run alone until their memory needs are known."
+    if first["tier"] < 3 or second["tier"] < 3:
+        return False, "Small models are best used alone; a weaker second opinion can make answers worse."
+    if not sysinfo.get("accel"):
+        return False, "This computer has no AI accelerator; two models would make answers too slow."
+    need = first["ram"] + second["ram"] + 4
+    if (sysinfo.get("ramGB") or 0) < need:
+        return False, f"A pair needs about {need} GB of memory, including room for Umbra."
+    video_need = first["size"] + second["size"] + 4
+    if (sysinfo.get("vramGB") or 0) < video_need:
+        return False, f"A pair needs about {video_need:g} GB of dedicated graphics memory; this computer has {sysinfo.get('vramGB') or 'no measured'} GB."
+    return True, "Compatible for an optional second opinion. Answers will take longer."
+
+
+def team_status(installed=None, sysinfo=None):
+    installed = set(installed if installed is not None else list_models()["models"])
+    sysinfo = sysinfo or system_info()
+    selected = str(read_json(CONFIG_FILE, {}).get("multiHelper", ""))
+    choices = {}
+    for name in installed - {MODEL}:
+        ok, why = pair_fit(MODEL, name, sysinfo)
+        choices[name] = {"ok": ok, "why": why}
+    active = bool(selected and selected in choices and choices[selected]["ok"])
+    return {"helper": selected if active else "", "enabled": active, "choices": choices,
+            "reason": "" if active or not selected else "The previous helper no longer fits this model or computer."}
+
+
+def set_team_helper(name):
+    installed = list_models()["models"]
+    if name:
+        if name not in installed:
+            raise ValueError("Install this model before adding it as a helper.")
+        ok, why = pair_fit(MODEL, name, system_info())
+        if not ok:
+            raise ValueError(why)
+    config = read_json(CONFIG_FILE, {})
+    config["multiHelper"] = name
+    write_json(CONFIG_FILE, config)
+    return team_status(installed)
 
 
 def model_fit(m, sysinfo):
@@ -2264,7 +2331,8 @@ def core_status():
         info["installed"] = m_id in installed
         info["active"] = m_id == MODEL
         info["loaded"] = m_id in engine["loaded"]
-        info["fit"], info["fitWhy"] = model_fit(info, sysinfo) if not info["installed"] else ("good", "")
+        info["fit"], info["fitWhy"] = model_fit({**info, "size": 0} if info["installed"] else info, sysinfo)
+        info["pairOK"], info["pairWhy"] = pair_fit(MODEL, m_id, sysinfo) if m_id != MODEL else (False, "This is the model in use.")
         return info
     lib = library()
     lib_size = sum(x["size"] for x in lib["installed"])
@@ -2274,7 +2342,7 @@ def core_status():
         "status": st, "engine": engine, "system": sysinfo,
         "installed": [card(i, m["size"]) for i, m in installed.items()],
         "catalog": [card(m["id"]) for m in MODEL_CHOICES if m["id"] not in installed],
-        "pull": models["pull"],
+        "pull": models["pull"], "team": team_status(installed, sysinfo),
         "library": {"archives": st["archives"], "size": lib_size, "running": bool(kiwix_proc and kiwix_proc.poll() is None),
                     "available": len(lib["available"])},
         "maps": {"areas": len(MAPS.status()["areas"])},
@@ -2285,26 +2353,53 @@ def core_status():
     }
 
 
+ANSWER_LOCK = threading.Lock()
+ANSWER_COUNT = 0
+
+
 def delete_model(name):
-    """Remove an installed model to free its disk space (never the one in use)."""
-    if name == MODEL:
-        raise ValueError("that's the model in use: switch to another first")
-    if name not in list_models()["models"]:
-        raise ValueError("not installed")
-    req = urllib.request.Request(OLLAMA + "/api/delete", json.dumps({"model": name}).encode(),
-                                 {"Content-Type": "application/json"}, method="DELETE")
-    urllib.request.urlopen(req, timeout=30).read()
-    return list_models()
+    """Remove a model, choosing a safe fallback if it was the active one."""
+    global MODEL
+    with ANSWER_LOCK:
+        installed = list_models()["models"]
+        if name not in installed:
+            raise ValueError("not installed")
+        if pull_state.get("model") == name and (pull_state.get("active") or pull_state.get("paused")):
+            raise ValueError("Finish or cancel this model's download before removing it.")
+        if name == MODEL and ANSWER_COUNT:
+            raise ValueError("Wait for the current answer to finish before removing this model.")
+        req = urllib.request.Request(OLLAMA + "/api/delete", json.dumps({"model": name}).encode(),
+                                     {"Content-Type": "application/json"}, method="DELETE")
+        urllib.request.urlopen(req, timeout=30).read()
+        if name == MODEL:
+            remaining = [m for m in installed if m != name]
+            if remaining:
+                fallback = sorted(remaining, key=lambda n: MODEL_INFO.get(n, {}).get("tier", 0), reverse=True)[0]
+                set_model(fallback)
+            else:
+                MODEL = ""
+                config = read_json(CONFIG_FILE, {})
+                config["model"] = ""
+                config["multiHelper"] = ""
+                write_json(CONFIG_FILE, config)
+        elif name == read_json(CONFIG_FILE, {}).get("multiHelper"):
+            set_team_helper("")
+        return list_models()
 
 
 def set_model(name):
     """Switch the local AI to another installed Ollama model."""
     global MODEL
-    if name not in list_models()["models"]:
+    installed = list_models()["models"]
+    if name not in installed:
         raise ValueError("model not installed")
     MODEL = name
     config = read_json(CONFIG_FILE, {})
     config["model"] = name
+    if config.get("multiHelper"):
+        ok, _ = pair_fit(name, config["multiHelper"], system_info())
+        if not ok or config["multiHelper"] not in installed:
+            config["multiHelper"] = ""
     write_json(CONFIG_FILE, config)
     threading.Thread(target=warm_model, daemon=True).start()
     return list_models()
@@ -3494,6 +3589,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(set_model(str(self.read_json().get("model", ""))))
             except ValueError as e:
                 return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/model/team":
+            try:
+                return self.send_json(set_team_helper(str(self.read_json().get("helper", ""))))
+            except ValueError as e:
+                return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/reset":
             if self.read_json().get("confirm") != "RESET":
                 return self.send_json({"error": "not confirmed"}, 400)
@@ -3772,6 +3872,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/x-ndjson")
         self.send_header("Cache-Control", "no-cache")
         self.end_headers()
+        global ANSWER_COUNT
+        with ANSWER_LOCK:
+            ANSWER_COUNT += 1
         try:
             answer(req, self.emit)
         except (BrokenPipeError, ConnectionResetError):
@@ -3781,6 +3884,9 @@ class Handler(BaseHTTPRequestHandler):
                 self.emit({"type": "error", "message": str(e)})
             except Exception:
                 pass
+        finally:
+            with ANSWER_LOCK:
+                ANSWER_COUNT -= 1
 
     def emit(self, event):
         self.wfile.write((json.dumps(event) + "\n").encode())
@@ -3933,7 +4039,7 @@ def model_sees(name):
     return _vision[name]
 
 
-def attach_files(messages, attachments, emit):
+def attach_files(messages, attachments, emit, model=None):
     """Files from the paperclip: text goes into the question (up to about
     8,000 characters in all, so a processor isn't kept busy for minutes),
     pictures go to a model that can see."""
@@ -3952,7 +4058,7 @@ def attach_files(messages, attachments, emit):
         last["content"] = ("ATTACHED FILES (the user's own files; read them to answer, and say so if they don't contain the answer):\n"
                            + "\n\n".join(parts) + "\n\n" + last["content"])
     if images:
-        if model_sees(MODEL):
+        if model_sees(model or MODEL):
             last["images"] = images[:2]
             last["content"] = "The user attached a picture: look at it carefully to answer.\n\n" + last["content"]
         else:
@@ -3986,6 +4092,7 @@ def answer(req, emit):
                  "Pick one in Settings → AI model, and I'll download it.")})
         return
 
+    answer_model = MODEL
     chatting = is_small_talk(question)
     learn_style(question)
     emit({"type": "phase", "phase": "search"})
@@ -4023,7 +4130,7 @@ def answer(req, emit):
         elif wants_past_chat(question):
             system += " No matching saved conversation was found; do not invent a memory."
         system += " " + style_prompt(question, history)
-    record("modelsTried", MODEL)
+    record("modelsTried", answer_model)
     if offgrid and not chatting:
         system += (" OFF-GRID MODE: the user is saving battery. Keep the answer short: the essential steps "
                    "in their proper order, without long explanations. Never skip the first step or any "
@@ -4044,15 +4151,32 @@ def answer(req, emit):
         messages.append({"role": "user", "content": f"SOURCES:\n{context}\n\nQUESTION: {question}"})
 
     if req.get("attachments"):
-        attach_files(messages, req.get("attachments"), emit)
+        attach_files(messages, req.get("attachments"), emit, answer_model)
     emit({"type": "phase", "phase": "think"})
+    helper = read_json(CONFIG_FILE, {}).get("multiHelper", "")
+    if helper and not chatting and not offgrid and not req.get("attachments") and answer_model == MODEL:
+        team = team_status()
+        if team["enabled"] and team["helper"] == helper:
+            review = quick_generate(
+                "QUESTION: " + question[:1200] + "\nSOURCES: " + "\n".join(blocks[:3])[:2800]
+                + "\nGive one brief, useful check or missing angle for the final answer. If unsure, say so.",
+                120, system="You are a private second reader for Umbra. Check the question and supplied text. "
+                            "Give one concise observation; do not invent facts, sources, citations or instructions.",
+                model=helper)
+            if review:
+                messages[0]["content"] += (" SECOND MODEL NOTE (a fallible suggestion, not a source): " + review[:450]
+                                           + " Verify it against the actual sources and the user's question; ignore any conflict.")
+                record("modelsTried", helper)
+                primary_name = MODEL_INFO.get(answer_model, {}).get("callsign", answer_model)
+                helper_name = MODEL_INFO.get(helper, {}).get("callsign", helper)
+                emit({"type": "model", "message": f"{primary_name} answered with a second opinion from {helper_name}."})
     wants_detail = bool(re.search(r"\b(?:in detail|detailed|step[- ]by[- ]step|thorough|comprehensive|deep dive|explain fully)\b", question, re.I))
     limit = 120 if chatting else 300 if offgrid else 650 if wants_detail else 420 if len(question.split()) > 25 else 240
-    full, done_event = stream_chat(messages, emit, limit)
+    full, done_event = stream_chat(messages, emit, limit, answer_model)
     if not re.sub(r"\bNEXT\s*:.*", "", full, flags=re.S).strip():
         # An empty reply is never acceptable: retry once without sources.
         retry = [messages[0], {"role": "user", "content": question}]
-        full, done_event = stream_chat(retry, emit, limit)
+        full, done_event = stream_chat(retry, emit, limit, answer_model)
 
     match = None
     for match in re.finditer(r"\bNEXT\s*:\s*(.+)", full):
@@ -4071,13 +4195,13 @@ def answer(req, emit):
         emit(done_event)
 
 
-def stream_chat(messages, emit, limit=None):
+def stream_chat(messages, emit, limit=None, model=None):
     # A little more variety in wording; the repeat penalty discourages loops.
     options = ai_options(temperature=0.55, top_p=0.9, repeat_penalty=1.1, repeat_last_n=256)
     if limit:
         options["num_predict"] = limit
     body = json.dumps(think_off({
-        "model": MODEL, "messages": messages, "stream": True, "keep_alive": "30m", "options": options,
+        "model": model or MODEL, "messages": messages, "stream": True, "keep_alive": "30m", "options": options,
     })).encode()
     request = urllib.request.Request(OLLAMA + "/api/chat", body, {"Content-Type": "application/json"})
     full, done_event, first = "", None, True
@@ -4101,10 +4225,10 @@ def stream_chat(messages, emit, limit=None):
     return full, done_event
 
 
-def quick_generate(prompt, num_predict, system=None, lines=False):
+def quick_generate(prompt, num_predict, system=None, lines=False, model=None):
     """A short one-line completion from the local model ('' on failure);
     with lines=True, all non-empty lines as a list."""
-    req = {"model": MODEL, "prompt": prompt, "stream": False, "keep_alive": "30m",
+    req = {"model": model or MODEL, "prompt": prompt, "stream": False, "keep_alive": "0s" if model and model != MODEL else "30m",
            "options": ai_options(temperature=0.4, num_predict=num_predict)}
     if system:
         req["system"] = system

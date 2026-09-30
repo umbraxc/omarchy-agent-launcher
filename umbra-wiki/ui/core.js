@@ -18,7 +18,7 @@
   const STATES = [
     ["READY", "ok", "Every system is go: ask anything."],
     ["WORKING", "busy", "I'm reading the library and writing an answer. Esc stops it."],
-    ["AI ↓ %", "busy", "My AI model is downloading; I answer once it's in."],
+    ["AI ↓ %", "busy", "A model is downloading. The current one keeps answering until you switch."],
     ["LIB ↓ %", "busy", "Library collections are downloading; I already answer from what's here."],
     ["NO MODEL", "bad", "No AI model is installed yet: pick one below."],
     ["CORE OFFLINE", "bad", "My AI engine (Ollama) isn't running, so I can't think. See AI ENGINE below."],
@@ -64,7 +64,7 @@
           : onWin() ? "Ollama isn't running. Open Ollama from the Start menu, or install it from ollama.com/download."
             : "Ollama isn't running. Start it once in a terminal, and it starts by itself from then on: sudo systemctl enable --now ollama"],
       ["AI MODEL", pct !== null ? "busy" : st.modelReady ? "ok" : "bad", pct !== null ? `↓ ${pct}%` : st.modelReady ? (active && active.loaded ? "AWAKE" : "READY") : "MISSING",
-        pct !== null ? `Downloading ${pull.model}.`
+        pct !== null ? `${active ? active.callsign + " keeps answering" : "No model can answer yet"} while ${pull.model} downloads. It will ${active ? "wait for you to switch" : "become active when ready"}.`
           : st.modelReady ? `${active ? active.name : st.model}${active && active.loaded ? ", loaded in memory and quick to answer" : ", asleep until the next question (the first answer takes a little longer)"}.`
             : "No model is installed. Pick one under AI MODELS."],
       ["LIBRARY", lib.archives ? (lib.running ? "ok" : "bad") : "warn", lib.archives ? (lib.running ? `${lib.archives} ONLINE` : "STOPPED") : "EMPTY",
@@ -107,7 +107,7 @@
       m.size && `${m.size} GB`, m.ram && `${m.ram} GB memory`].filter(Boolean).join("  ·  ");
     const list = (items) => items && items.length ? `<ul>${items.map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul>` : "";
     let actions = "";
-    if (m.active) actions = `<span class="co-tag on">IN USE</span>`;
+    if (m.active) actions = `<span class="co-tag on">IN USE</span><button class="ghost co-del" data-id="${escapeHtml(m.id)}">REMOVE MODEL</button>`;
     else if (m.installed) actions = `<button class="solid co-use" data-id="${escapeHtml(m.id)}">USE ${escapeHtml(m.callsign)}</button><button class="ghost co-del" data-id="${escapeHtml(m.id)}" title="Remove|Deletes this model from the computer to free ${m.size} GB. You can download it again any time.">REMOVE</button>`;
     else if (mine) actions = `<span class="co-tag busy">${pull.paused ? "PAUSED" : "DOWNLOADING"} ${pct}%</span>`;
     else actions = `<button class="${m.fit === "good" ? "solid" : "ghost"} co-get" data-id="${escapeHtml(m.id)}" ${busy ? "disabled" : ""}>DOWNLOAD ${m.size} GB</button>`;
@@ -123,6 +123,7 @@
       <details ${big ? "open" : ""}><summary>MORE ABOUT ${escapeHtml(m.callsign)}</summary>
         ${!big ? `<div class="co-facts">${facts}</div>${!m.installed && m.fitWhy ? `<p class="co-why">${escapeHtml(m.fitWhy)}</p>` : ""}` : ""}
         <p>${escapeHtml(m.about || "")}</p>
+        <p class="co-pair-why"><b>PAIRING</b> ${escapeHtml(m.active ? "This is the model answering now. Add a compatible installed helper below if this computer can run one." : m.pairWhy || "Use this model on its own.")}</p>
         <div class="co-gl"><div><em>GOOD AT</em>${list(m.good)}</div><div><em>LIMITS</em>${list(m.limits)}</div></div>
         ${m.example ? `<div class="co-ex"><em>HOW IT ANSWERS · "How long do I boil water to make it safe?"</em><p>${escapeHtml(m.example).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")}</p></div>` : ""}
       </details>
@@ -135,8 +136,27 @@
     const order = { good: 0, slow: 1, tight: 2, "too big": 3 };
     const more = [...data.catalog].sort((a, b) => order[a.fit] - order[b.fit] || (a.tier || 3) - (b.tier || 3));
     const failed = (data.pull || {}).status === "failed" ? `<p class="lib-note">The last download failed: ${escapeHtml(data.pull.error || "")}</p>` : "";
-    return `${active ? modelCard(active, true) : `<p class="lib-note">No AI model is installed yet. Pick one below: <b>RANGER</b> suits most computers.</p>`}
+    const pull = data.pull || {};
+    const downloading = pull.active || pull.paused;
+    const progress = downloading ? `<div class="co-transfer"><b>${pull.paused ? "DOWNLOAD PAUSED" : "DOWNLOADING"} · ${escapeHtml(pull.model || "AI MODEL")}</b>
+      <span>${pull.total ? `${Math.min(100, Math.round((pull.completed || 0) * 100 / pull.total))}% · ${fmtSize(pull.completed || 0)} / ${fmtSize(pull.total)}` : escapeHtml(pull.status || "Preparing download…")}</span>
+      <div class="dl-bar"><i style="width:${pull.total ? Math.min(100, Math.round((pull.completed || 0) * 100 / pull.total)) : 0}%"></i></div>
+      ${window.UmbraDownloads ? `<div class="dl-controls">${UmbraDownloads.controls("model", { paused: !!pull.paused })}</div>` : ""}</div>` : "";
+    const flow = `<div class="co-flow"><b>MODEL CONTROL</b><p>${active ? `<strong>${escapeHtml(active.callsign)}</strong> answers now. Downloaded models stay installed together; choose USE to switch.`
+      : "No AI model can answer yet. The first model you download becomes active when ready."}
+      ${downloading ? ` ${escapeHtml(pull.model || "The new model")} is ${pull.paused ? "paused" : "downloading"}; ${active ? `${escapeHtml(active.callsign)} keeps answering.` : "answers begin when it finishes."}` : ""}</p></div>`;
+    const team = data.team || {};
+    const candidates = data.installed.filter((m) => !m.active && team.choices?.[m.id]?.ok);
+    const teamPanel = `<div class="co-team"><b>SECOND OPINION · OPTIONAL</b><p>${team.enabled
+      ? `${escapeHtml(active?.callsign || "The main model")} answers with a short check from ${escapeHtml(data.installed.find((m) => m.id === team.helper)?.callsign || team.helper)}. The models run in sequence; your main model writes the final answer. Casual chat stays quick and solo.`
+      : data.system.accel ? data.system.vramGB ? "A compatible installed helper can check a practical answer before the main model replies. This takes longer; casual chat stays solo."
+        : "Umbra cannot measure dedicated graphics memory here, so models run alone to keep answers reliable. Several models can still be installed and switched."
+        : "This computer uses its processor for AI. Models stay solo here so answers remain responsive; you can still keep and switch between several installed models."}</p>
+      ${team.reason ? `<small>${escapeHtml(team.reason)}</small>` : ""}
+      <div class="co-actions">${team.enabled ? `<button class="ghost co-solo">USE ONE MODEL</button>` : candidates.map((m) => `<button class="ghost co-pair" data-id="${escapeHtml(m.id)}">ADD ${escapeHtml(m.callsign)} AS HELPER</button>`).join("")}</div></div>`;
+    return `${flow}${progress}${active ? modelCard(active, true) : `<p class="lib-note">No AI model is installed yet. Pick one below: <b>RANGER</b> suits most computers.</p>`}
       ${others.length ? `<div class="co-sub-head">ALSO ON THIS COMPUTER</div>${others.map((m) => modelCard(m)).join("")}` : ""}
+      ${teamPanel}
       <div class="co-sub-head">MORE MODELS · FOR ${escapeHtml(data.system.ramGB + " GB")} MEMORY, ${data.system.accel ? escapeHtml(data.system.accel).toUpperCase() : "NO AI GRAPHICS CARD"}, ${escapeHtml(String(data.system.freeGB))} GB FREE</div>
       ${failed}${more.map((m) => modelCard(m)).join("")}`;
   }
@@ -169,32 +189,49 @@
   }
 
   function wire(body) {
+    const showError = (message) => {
+      Sound.error();
+      const flow = body.querySelector(".co-flow");
+      if (!flow) return;
+      let note = flow.querySelector(".co-action-error");
+      if (!note) { note = document.createElement("p"); note.className = "co-action-error"; flow.appendChild(note); }
+      note.textContent = message;
+    };
     body.querySelectorAll("button, summary").forEach((b) => b.addEventListener("mouseenter", Sound.hover));
     body.querySelectorAll(".co-use").forEach((b) => b.addEventListener("click", async () => {
       b.disabled = true;
       const r = await post("/api/model", { model: b.dataset.id });
-      if (r.error) { Sound.error(); b.disabled = false; return; }
+      if (r.error) { showError(r.error); b.disabled = false; return; }
       Sound.theme();
       if (window.refreshStatus) refreshStatus();
       load();
     }));
     body.querySelectorAll(".co-get").forEach((b) => b.addEventListener("click", async () => {
       b.disabled = true;
-      await post("/api/model/pull", { model: b.dataset.id });
+      const r = await post("/api/model/pull", { model: b.dataset.id });
+      if (r.error) { showError(r.error); b.disabled = false; return; }
       Sound.click();
       if (window.UmbraDownloads) UmbraDownloads.refresh();
       load();
     }));
     body.querySelectorAll(".co-del").forEach((b) => b.addEventListener("click", async () => {
       const m = data.installed.find((x) => x.id === b.dataset.id);
+      const fallback = data.installed.filter((x) => x.id !== b.dataset.id).sort((a, b) => (b.tier || 0) - (a.tier || 0))[0];
       const sure = await confirmDialog({ kind: "error", tag: "AI MODEL", title: `REMOVE ${m ? m.callsign : "THIS MODEL"}?`,
-        body: `${m ? m.name : b.dataset.id} is deleted from this computer, freeing ${m ? m.size : "?"} GB. You can download it again any time.`,
+        body: `${m ? m.name : b.dataset.id} will be deleted from this computer, freeing ${m ? m.size : "?"} GB. ${m?.active ? fallback ? `${fallback.callsign} will take over.` : "Umbra will need another model before it can answer AI questions." : "The model in use stays active."} You can download it again later.`,
         ok: "REMOVE", cancel: "KEEP IT" });
       if (!sure) return;
       const r = await post("/api/model/delete", { model: b.dataset.id });
-      if (r.error) Sound.error(); else Sound.click();
+      if (r.error) showError(r.error); else { Sound.click(); if (window.refreshStatus) refreshStatus(); }
       load();
     }));
+    body.querySelectorAll(".co-pair, .co-solo").forEach((b) => b.addEventListener("click", async () => {
+      b.disabled = true;
+      const r = await post("/api/model/team", { helper: b.classList.contains("co-solo") ? "" : b.dataset.id });
+      if (r.error) { showError(r.error); b.disabled = false; return; }
+      Sound.theme(); load();
+    }));
+    if (window.UmbraDownloads) UmbraDownloads.wire(body, load);
   }
 
   // ------------------------------------------------------ open / close

@@ -323,7 +323,8 @@
       await post("/api/model/pull", { model });
       if (window.UmbraDownloads) UmbraDownloads.refresh();
       await say(`Downloading **${model}** in the background. We can carry on meanwhile: the **downloads button** at the top shows the progress, ` +
-        "and pauses or resumes it any time. It goes on after a restart, and a chime tells you when it's done. Only the model is fetched; nothing of yours leaves this computer.");
+        `and pauses or resumes it any time. ${installed.length ? `Your current model keeps answering; ${model} waits for you to switch after it finishes.` : `${model} becomes active when it finishes.`} ` +
+        "It goes on after a restart, and a chime tells you when it's done. Only the model is fetched; nothing of yours leaves this computer.");
     }
 
     // The library: packs of offline collections.

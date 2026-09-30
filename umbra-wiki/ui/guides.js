@@ -6,7 +6,7 @@
 window.UmbraGuide = (() => {
   const G = {
     maps: ["MAPS", ["Drag to move, scroll to zoom; click a country's name for its file.", "Right-click anywhere for waypoints, measuring, coordinates and range rings.", "The download button (top right) gets detailed maps that work offline."]],
-    core: ["CORE", ["Every system's condition at a glance, and what to do when one isn't right.", "The AI models: what each is good at, how it answers, and how well it suits this computer. Download, switch or remove them here."]],
+    core: ["CORE", ["Every system's condition at a glance, and what to do when one isn't right.", "Download, switch or remove AI models here. A download keeps your current model answering; compatible computers can add an optional second opinion."]],
     "lo-locker": ["LOCKER", ["Rewards for your achievements: orbs for the start screen, titles and name effects.", "Earn points to rank up; ranks and certain achievements unlock more. Click one to equip it."]],
     radar: ["SIGNALS & RADAR", ["The Wi-Fi and Bluetooth signals around you: nearer the centre means stronger.", "Click a blip or a row for its details. DEVICES remembers what the radar has heard and marks new ones.", "The KILL SWITCH turns all radios off at once. F for full screen."]],
     library: ["LIBRARY", ["The offline collections Umbra reads from, and its built-in Field Manual.", "Download more here; downloads can be paused and go on after a restart."]],

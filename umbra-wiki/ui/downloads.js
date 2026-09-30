@@ -46,7 +46,7 @@
     const mo = d.model || {};
     if (mo.active || mo.paused) {
       out.model = { pct: mo.total ? Math.round((mo.completed * 100) / mo.total) : 0, active: mo.active, paused: mo.paused,
-                    line: String(mo.model || "").replace(":", " ") };
+                    line: `${String(mo.model || "").replace(":", " ")} · ${mo.status || "preparing"}${mo.current ? ` · ${mo.current} still answers` : ""}` };
     }
     return out;
   }
@@ -63,7 +63,7 @@
         if (!before[k].active || now[k]) continue;
         const done = k === "docs" ? !(d.docs && d.docs.error) : k === "maps" ? d.maps.phase === "done" : k === "model" ? d.model.status === "done" || !d.model.status
           : (d.library.items || []).every((x) => x.installed);
-        if (done) finished(k, before[k].line);
+        if (done) finished(k, before[k].line, d);
       }
     }
     state = d;
@@ -124,12 +124,13 @@
     }));
   }
 
-  function finished(kind, line) {
+  function finished(kind, line, latest) {
     Sound.complete();
     const t = document.createElement("div");
     t.className = "dl-toast";
     const what = kind === "maps" ? "MAP READY" : kind === "library" ? "LIBRARY READY" : kind === "docs" ? "MANUAL READY" : "AI MODEL READY";
-    const more = kind === "maps" ? "is on this computer and works offline." : kind === "library" ? "joined the library." : kind === "docs" ? "is ready to read (Field Kit → Training → Manuals)." : "is installed and ready.";
+    const more = kind === "maps" ? "is on this computer and works offline." : kind === "library" ? "joined the library." : kind === "docs" ? "is ready to read (Field Kit → Training → Manuals)."
+      : latest.model?.activated ? "is installed and now answers your questions." : "is installed. Your current model still answers; switch in Core when ready.";
     t.innerHTML = `<span class="g">󰄬</span><div><b>${what}</b><p></p></div><button class="ghost" title="Close">✕</button>`;
     t.querySelector("p").textContent = `${line.replace(/ · .*$/, "")} ${more}`;
     document.body.appendChild(t);
