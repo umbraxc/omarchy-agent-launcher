@@ -191,6 +191,47 @@
     });
   }
 
+  const CONTINENTS = [["africa", "Africa"], ["antarctica", "Antarctica"], ["asia", "Asia"], ["europe", "Europe"],
+                      ["north-america", "North America"], ["oceania", "Oceania"], ["south-america", "South America"]];
+  // Quick Start and Full Briefing each require a click here to continue.
+  // No location is guessed from the computer or network.
+  function continentCards(answer, current) {
+    return new Promise((resolve, reject) => {
+      const grid = document.createElement("div");
+      grid.className = "tour-cards tour-continents";
+      const next = document.createElement("div");
+      next.className = "tour-choices";
+      next.innerHTML = `<button class="solid" disabled>CONTINUE ▸</button>`;
+      let selected = "";
+      CONTINENTS.forEach(([id, label]) => {
+        const card = document.createElement("button");
+        card.className = "tour-card";
+        card.innerHTML = "<b></b>";
+        card.querySelector("b").textContent = label;
+        card.addEventListener("mouseenter", Sound.hover);
+        card.addEventListener("click", () => {
+          selected = id;
+          grid.querySelectorAll(".tour-card").forEach((b) => b.classList.remove("on"));
+          card.classList.add("on");
+          next.querySelector("button").disabled = false;
+          Sound.click();
+        });
+        grid.appendChild(card);
+      });
+      next.querySelector("button").addEventListener("click", () => {
+        if (!selected) return;
+        grid.classList.add("done"); next.remove(); Sound.click(); resolve(selected);
+      });
+      answer.append(grid, next);
+      skipHooks.push(() => reject(SKIP));
+      wake();
+      if (AUTO) {
+        autoClick(grid.children[CONTINENTS.findIndex(([id]) => id === current) >= 0 ? CONTINENTS.findIndex(([id]) => id === current) : 0]);
+        setTimeout(() => autoClick(next.querySelector("button")), 750);
+      }
+    });
+  }
+
   // -------------------------------------------------------- spotlight
 
   const SPOTS = [
@@ -389,7 +430,7 @@
   // ------------------------------------------------------------- tour
 
   let skipHooks = [];
-  let mode = "", completed = false;
+  let mode = "", completed = false, continentChosen = false;
   function skipTour() { skipped = true; skipHooks.forEach((f) => f()); }
 
   // Who Umbra is, in one ASCII frame, drawn line by line.
@@ -427,9 +468,9 @@
   // Three ways in, as cards: pick one and it starts.
   function pickMode(answer) {
     const MODES = [
-      ["quick", "QUICK START", "About a minute", "Your name, my AI, the library and a look. The basics, then straight in.", true],
-      ["full", "FULL BRIEFING", "About five minutes", "Everything: your profile, health notes and ID card, a password, scenarios, personalities, comfort and power, and every tool on screen."],
-      ["skip", "SKIP", "Straight in", "Set things up later from Settings and the Core panel (click STATUS). Each screen explains itself the first time."],
+      ["quick", "QUICK START", "About a minute", "Your name, continent, my AI, the library and a look. The basics, then straight in.", true],
+      ["full", "FULL BRIEFING", "About five minutes", "Everything: your continent and profile, health notes and ID card, a password, scenarios, personalities, comfort and power, and every tool on screen."],
+      ["skip", "SKIP", "Straight in", "Set your continent later in Profile, and the AI in Core (click STATUS). Each screen explains itself the first time."],
     ];
     return new Promise((resolve, reject) => {
       const grid = document.createElement("div");
@@ -462,19 +503,21 @@
     ]);
     const settings = await fetch("/api/settings").then((r) => r.json()).catch(() => ({}));
 
-    // A short introduction, then the choice of tour.
+    const me = { ...profile };
+    const saveMe = async () => {
+      const r = await post("/api/profile", me).then((x) => x.json()).catch(() => null);
+      if (r && !r.error && window.UmbraProfile) Object.assign(window.UmbraProfile.data, r);
+      return !!r && !r.error;
+    };
+
+    // The tour choice comes first. Each actual tour asks for a continent;
+    // SKIP leaves setup to the Profile later.
     let a = await introCard();
     mode = await pickMode(a);
     if (mode === "skip") throw SKIP;
     const full = mode === "full";
 
-    // The profile, step by step; every step can be skipped. It's saved as
-    // it grows, so skipping the rest of the tour keeps what's there.
-    const me = { ...profile };
-    const saveMe = async () => {
-      const r = await post("/api/profile", me).then((x) => x.json()).catch(() => null);
-      if (r && !r.error && window.UmbraProfile) Object.assign(window.UmbraProfile.data, r);
-    };
+    // The rest of the profile is optional and saved as it grows.
     a = await say("First things first: **what should I call you?**");
     const name = await field(a, "Your name, any way you like to write it", 32);
     let who = name;
@@ -496,6 +539,16 @@
       who = "friend";
     }
 
+    while (!continentChosen) {
+      a = await say("**Choose your continent.** Maps will start there whenever you open it. You can change this later in your Profile.");
+      const continent = await continentCards(a, me.continent);
+      me.continent = continent;
+      if (await saveMe()) continentChosen = true;
+      else await say("I couldn't save that yet. Please choose it again so Maps knows where to start.");
+    }
+    a = await say("You can also add a **city, region or climate** if you like. This is optional and helps me give more local advice.");
+    const where = await field(a, "e.g. Utrecht, Netherlands; wet winters", 80, false, false, "");
+    if (where) { addUser(where); me.location = where; await saveMe(); }
     // The time zone says more than the language (plenty of people outside the
     // US use US English): the US, Liberia and Myanmar use imperial units.
     const zone = (Intl.DateTimeFormat().resolvedOptions().timeZone || "");
@@ -503,11 +556,7 @@
     me.units = me.units || guessUnits;
     if (!full) { await saveMe(); await quickRest(); return; }
 
-    // Tailoring: where they are, units, experience, household, health.
-    a = await say("A few details make my answers fit **your** situation: plants, weather and gear differ a lot from place to place. " +
-      "**Where are you?** A region and climate is plenty.");
-    const where = await field(a, "e.g. Northern Europe, wet and cold winters", 80, false, false, "");
-    if (where) { addUser(where); me.location = where; }
+    // Tailoring: units, experience, household, health.
     a = await say("**Which units** should I use for temperatures, distances and weights?");
     await cards(a, [
       { id: "metric", name: "Metric" + (guessUnits === "metric" ? "  ★" : ""), line: "°C, kilometres, metres, kilograms, litres" },
@@ -660,7 +709,7 @@
     if (document.body.classList.contains("touring")) return;
     skipped = false;
     skipHooks = [];
-    mode = ""; completed = false;
+    mode = ""; completed = false; continentChosen = false;
     document.body.classList.add("touring");
     stopRain();
     feed.innerHTML = "";
@@ -674,6 +723,7 @@
     skip.remove();
     document.querySelector(".spot-shade")?.remove();
     document.body.classList.remove("touring");
+    if (mode !== "skip" && !skipped && !continentChosen) return;  // retry after a failed save
     // The tour covers what's new, so the "what's new" note waits for the next update.
     const version = (await fetch("/api/whatsnew").then((r) => r.json()).catch(() => ({}))).version;
     // A tour played to the end earns the first achievement; a skipped one doesn't.

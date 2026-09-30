@@ -22,6 +22,11 @@
   // --------------------------------------------------------------- view
 
   let view = { x: 0.53, y: 0.34, z: 3 };
+  const CONTINENT_BOUNDS = {
+    africa: [-18, -35, 52, 38], antarctica: [-180, -85, 180, -60], asia: [26, -11, 180, 82],
+    europe: [-12, 34, 45, 72], "north-america": [-168, 7, -52, 84],
+    oceania: [110, -50, 180, 0], "south-america": [-82, -56, -34, 14],
+  };
   const MAXZ = 19;
   let W = 0, H = 0, dpr = 1;
   let style = "topo", showGrid = true, tool = "", target = null, measure = [];
@@ -1823,6 +1828,16 @@
     } catch {}
   }
 
+  function focusContinent(continent) {
+    const b = CONTINENT_BOUNDS[continent];
+    if (!b || !W || !H) return;
+    const x0 = projX(b[0]), x1 = projX(b[2]), y0 = projY(b[3]), y1 = projY(b[1]);
+    flight = fling = zoomTo = null;
+    view = { x: (x0 + x1) / 2, y: (y0 + y1) / 2,
+             z: Math.log2(Math.min(W * 0.82 / (256 * (x1 - x0)), H * 0.82 / (256 * (y1 - y0)))) };
+    clampView(); labelsDirty = true; frame(); readout();
+  }
+
   async function toggle(show = $("#maps").hidden, quiet = false) {
     if (show && locked) return;
     const el = $("#maps");
@@ -1856,6 +1871,7 @@
     await refreshStatus();
     setStyle(style);
     resize();
+    try { focusContinent((await (await fetch("/api/profile")).json()).continent); } catch {}
     Sound.click();
     try { waypoints = await (await fetch("/api/waypoints")).json(); } catch {}
     if (!countries.length) try { countries = await (await fetch("/api/maps/countries")).json(); } catch {}

@@ -1398,6 +1398,7 @@ def get_profile():
 
 
 BLOOD_TYPES = ("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
+CONTINENTS = ("africa", "antarctica", "asia", "europe", "north-america", "oceania", "south-america")
 SKILLS = {"firstaid": "first aid", "navigation": "map and compass", "radio": "radio", "fire": "fire making",
           "shelter": "shelter building", "water": "water purification", "foraging": "foraging", "hunting": "hunting",
           "fishing": "fishing", "cooking": "cooking from scratch", "gardening": "growing food", "mechanics": "mechanics",
@@ -1419,6 +1420,7 @@ def save_profile(p):
         "callsign": one_line("callsign", 24),
         "about": str(p.get("about", "")).strip()[:500],
         "location": one_line("location", 80),
+        "continent": p.get("continent") if p.get("continent") in CONTINENTS else "",
         "units": p.get("units") if p.get("units") in ("metric", "imperial") else "",
         "experience": p.get("experience") if p.get("experience") in ("new", "some", "experienced") else "",
         "household": one_line("household", 160),
@@ -1449,8 +1451,11 @@ def profile_prompt(question=""):
         lines.append(f"The user's name is {p['name']}; use it sparingly, if at all.")
     if p.get("about") and re.search(r"\b(me|my|myself|about me|what do you know)\b", q):
         lines.append(f"What the user says about themselves: {p['about']}")
-    if p.get("location") and re.search(r"weather|climate|local|near me|where i live|route|travel|map|evacuat|garden|plant", q):
-        lines.append(f"Where the user lives (climate and region matter for advice): {p['location']}.")
+    if re.search(r"weather|climate|local|near me|where i live|route|travel|map|evacuat|garden|plant", q):
+        if p.get("location"):
+            lines.append(f"Where the user says they live (climate and region matter for advice): {p['location']}.")
+        elif p.get("continent") in CONTINENTS:
+            lines.append(f"The user's broad map region is {p['continent'].replace('-', ' ').title()}; do not infer a city or local climate from this alone.")
     if p.get("units") == "imperial" and re.search(r"how (much|many|far|long|hot|cold)|temperat|distance|measure|amount|quantity", q):
         lines.append("Give measurements in US units (°F, miles, feet, pounds, gallons), with metric in brackets where useful.")
     elif p.get("units") == "metric" and re.search(r"how (much|many|far|long|hot|cold)|temperat|distance|measure|amount|quantity", q):

@@ -28,7 +28,7 @@
     return [frame(eyes), frame(/[■0]/.test(eyes) ? eyes : "- -")];
   }
 
-  const profile = { name: "", callsign: "", about: "", location: "", units: "", experience: "", household: "",
+  const profile = { name: "", callsign: "", about: "", location: "", continent: "", units: "", experience: "", household: "",
                     health: "", blood: "", allergies: "", meds: "", contact: "", skills: [], color: "", badges: [], character: {}, picture: "" };
   const COLORS = [["", "Default"], ["signal", "Signal"], ["accent", "Accent"], ["net", "Network"], ["red", "Red"], ["fg-bright", "White"]];
   const TOPIC_NAMES = { water: "Water", fire: "Fire", shelter: "Shelter", medical: "First aid", food: "Food",
@@ -62,8 +62,10 @@
     ["cooking", "Cooking"], ["gardening", "Growing food"], ["mechanics", "Mechanics"], ["electrics", "Electrics"],
     ["carpentry", "Carpentry"], ["sewing", "Sewing"], ["defence", "Self-defence"]];
   const BLOOD = ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+  const CONTINENTS = [["africa", "AFRICA"], ["antarctica", "ANTARCTICA"], ["asia", "ASIA"], ["europe", "EUROPE"],
+                      ["north-america", "NORTH AMERICA"], ["oceania", "OCEANIA"], ["south-america", "SOUTH AMERICA"]];
   // What makes a profile complete (for the meter).
-  const FIELDS = ["name", "callsign", "about", "location", "units", "experience", "household", "health", "blood", "allergies", "contact", "skills", "color", "picture"];
+  const FIELDS = ["name", "callsign", "about", "continent", "units", "experience", "household", "health", "blood", "allergies", "contact", "skills", "color", "picture"];
   const filled = (d) => FIELDS.filter((k) => (Array.isArray(d[k]) ? d[k].length : !!d[k])).length;
 
   function section(key, cat, title, line, body, color) {
@@ -138,9 +140,11 @@
         </div>
         <label class="lo-field"><span>ABOUT YOU</span><textarea class="pf-about" maxlength="500" rows="3"
           placeholder="For example: I live in the countryside with my partner and two dogs, and I'm new to camping."></textarea></label>`, C("#36aec8"))}
-      ${section("place", "place", "WHERE YOU ARE", "Climate and region change the advice", `
-        <label class="lo-field"><span>REGION AND CLIMATE</span><input class="pf-location" maxlength="80"
-          placeholder="e.g. Northern Europe, wet and cold winters"></label>
+      ${section("place", "place", "WHERE YOU ARE", "Set where Maps opens; add details for more useful local advice", `
+        <div class="lo-field"><span>CONTINENT · MAP START</span><div class="pf-choice pf-continents">
+          ${CONTINENTS.map(([id, label]) => `<button type="button" data-v="${id}">${label}</button>`).join("")}</div></div>
+        <label class="lo-field"><span>CITY, REGION OR CLIMATE · OPTIONAL</span><input class="pf-location" maxlength="80"
+          placeholder="e.g. Utrecht, Netherlands; wet winters"></label>
         <div class="lo-field"><span>UNITS <pre class="pf-anim pf-inline" data-anim="units"></pre></span><div class="pf-choice pf-units">
           <button type="button" data-v="">AUTO</button><button type="button" data-v="metric">METRIC</button><button type="button" data-v="imperial">IMPERIAL</button></div></div>`, C("#4fb86a"))}
       ${section("exp", "exp", "EXPERIENCE & SKILLS", "Umbra skips what you know, explains what you don't", `
@@ -193,6 +197,7 @@
       show();
     };
     choice(".pf-units", "units");
+    choice(".pf-continents", "continent");
     choice(".pf-exp", "experience", true);
     choice(".pf-blood", "blood", true);
     detail.querySelectorAll(".pf-skill").forEach((b) => {
