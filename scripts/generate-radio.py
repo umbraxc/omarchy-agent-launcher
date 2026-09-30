@@ -72,29 +72,37 @@ def bird(seconds, base):
 
 
 def forest():
-    sec = 48; out = mix(sec); n = len(out); t = np.arange(n) / RATE
+    sec = 112; out = mix(sec); n = len(out); t = np.arange(n) / RATE
     breeze = noise(sec, 40); breeze /= max(.01, np.max(np.abs(breeze)))
     sway = .35 + .1 * np.sin(2 * np.pi * t / 17) + .05 * np.sin(2 * np.pi * t / 9)
     add(out, 0, breeze * sway, .5, -.2)
     leaves = noise(sec, 5); leaves /= max(.01, np.max(np.abs(leaves)))
     add(out, 0, leaves * (.14 + .04 * np.sin(2 * np.pi * t / 11)), .45, .35)
-    for start in np.arange(1.8, sec - 1, 2.8):
-        p = float(start + rng.uniform(-.8, .8))
-        add(out, p, bird(float(rng.uniform(.3, .65)), float(rng.uniform(1000, 1900))), .10, float(rng.uniform(-.85, .85)))
+    # A slower brook and several sparse bird calls keep the scene moving
+    # without making a short, obvious repeating pattern.
+    brook = noise(sec, 12); brook /= max(.01, np.max(np.abs(brook)))
+    add(out, 0, brook * (.11 + .035 * np.sin(2 * np.pi * t / 29)), .45, .65)
+    p = 2.0
+    while p < sec - 2:
+        for chirp in range(int(rng.integers(1, 4))):
+            add(out, p + chirp * float(rng.uniform(.18, .38)),
+                bird(float(rng.uniform(.18, .63)), float(rng.uniform(950, 2300))),
+                float(rng.uniform(.035, .085)), float(rng.uniform(-.85, .85)))
+        p += float(rng.uniform(3, 9))
     return out
 
 
 def rain():
-    sec = 44; out = mix(sec); n = len(out); t = np.arange(n) / RATE
+    sec = 108; out = mix(sec); n = len(out); t = np.arange(n) / RATE
     broad = noise(sec, 4); broad /= max(.01, np.max(np.abs(broad)))
     add(out, 0, broad * (.25 + .035 * np.sin(2 * np.pi * t / 19)), .7, -.25)
     patter = noise(sec); patter /= max(.01, np.max(np.abs(patter)))
     add(out, 0, patter * (.17 + .025 * np.sin(2 * np.pi * t / 13)), .65, .2)
-    for p in rng.uniform(0, sec - .2, 650):
+    for p in rng.uniform(0, sec - .2, 1450):
         duration = float(rng.uniform(.025, .1)); drops = noise(duration, 3)
         drops *= np.exp(-np.linspace(0, 6, len(drops)))
         add(out, float(p), drops, float(rng.uniform(.015, .045)), float(rng.uniform(-1, 1)))
-    for p in [13, 35]:
+    for p in [17, 48, 79]:
         rumble = noise(4, 250); rumble /= max(.01, np.max(np.abs(rumble)))
         add(out, p, rumble * env(len(rumble), 1.5, 1.5), .1, -.35)
     return out
@@ -105,20 +113,28 @@ def hz(midi):
 
 
 def jazz():
-    bpm = 90; beat = 60 / bpm; sec = 64 * beat; out = mix(sec)
+    bpm = 90; beat = 60 / bpm; sec = 160 * beat; out = mix(sec)
     # Original small-combo progression. Gentle electric-piano voicings,
     # walking bass and brush taps; no sampled jazz recording or melody.
     chords = [(50, [57, 60, 64, 69]), (55, [59, 62, 65, 69]),
               (48, [55, 59, 64, 69]), (53, [57, 60, 64, 69]),
               (50, [57, 60, 64, 69]), (55, [59, 62, 65, 69]),
               (48, [55, 59, 64, 67]), (48, [55, 59, 64, 69])]
-    for bar in range(16):
+    melody = [69, 72, 76, 74, 69, 67, 65, 64, 67, 69, 72, 69, 65, 64, 62, 60]
+    for bar in range(40):
         root, notes = chords[bar % len(chords)]; start = bar * 4 * beat
-        for ix in [0, 2.5]:
+        if 16 <= bar < 24:
+            root, notes = chords[(bar + 3) % len(chords)]
+        for ix in ([0, 2.5] if bar % 4 else [0, 1.75, 3.25]):
             for note in notes:
-                add(out, start + ix * beat, tone(hz(note), 1.75 * beat, "piano"), .033, (-.45 if ix == 0 else .3))
+                add(out, start + ix * beat, tone(hz(note), 1.75 * beat, "piano"), .028, (-.45 if ix == 0 else .3))
+        if bar % 8 not in (0, 7):
+            for m in range(2 if bar % 3 else 3):
+                note = melody[(bar * 3 + m) % len(melody)]
+                at = start + (1.45 + m * .82) * beat
+                add(out, at, tone(hz(note), .75 * beat, "piano"), .022, .4)
         for b in range(4):
-            bass_note = root - 12 + [0, 7, 10, 7][b]
+            bass_note = root - 12 + ([0, 7, 10, 7] if bar % 4 else [0, 4, 7, 11])[b]
             add(out, start + b * beat, tone(hz(bass_note), .88 * beat, "bass"), .1, -.25)
             hiss = noise(.12, 3) * env(round(.12 * RATE), .002, .09)
             add(out, start + b * beat, hiss, .014, .55)
@@ -130,17 +146,21 @@ def jazz():
 
 
 def grid():
-    bpm = 100; beat = 60 / bpm; sec = 64 * beat; out = mix(sec)
+    bpm = 100; beat = 60 / bpm; sec = 160 * beat; out = mix(sec)
     # Original restrained electronic pulse: low drones, gated notes and a
     # steady beat. It evokes a digital atmosphere without copying a score.
     roots = [45, 41, 48, 43]
-    for bar in range(16):
+    for bar in range(40):
         start = bar * 4 * beat; root = roots[(bar // 4) % 4]
         for note in [root, root + 7, root + 12]:
             add(out, start, tone(hz(note), 4 * beat, "synth"), .046, -.15 if note == root else .25)
+        pattern = ([0, 7, 12, 7, 3, 7, 10, 7] if bar % 8 < 4 else [0, 3, 7, 12, 10, 7, 3, 7])
         for step in range(8):
-            note = root + [0, 7, 12, 7, 3, 7, 10, 7][step]
-            add(out, start + step * beat / 2, tone(hz(note + 12), beat * .36, "synth", 6), .035, (-.35 if step % 2 else .35))
+            note = root + pattern[step]
+            add(out, start + step * beat / 2, tone(hz(note + 12), beat * .36, "synth", 6),
+                .024 + .012 * (bar % 4 == 3), (-.35 if step % 2 else .35))
+        if bar % 8 >= 4:
+            add(out, start + 1.5 * beat, tone(hz(root + 24), 2 * beat, "soft"), .016, .6)
         for b in range(4):
             dur = .3; t = np.arange(round(dur * RATE)) / RATE
             f = 90 * np.exp(-12 * t) + 48

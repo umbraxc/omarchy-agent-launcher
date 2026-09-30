@@ -51,18 +51,6 @@
     /__/__/__/__\\     /  _  \\     /__\\__\\__\\__\\
      || || || ||       |  | |  |       || || || ||
   ___||_||_||_||_______|__|_|__|_______||_||_||_||___`;
-  const cropForms = {
-    Grains: ["     /|  |/", "    / | /|", "      |  |", "      |  |", "   ___|__|___"],
-    "Roots & tubers": ["      .|.", "     ( | )", "       |", "      / |", "     /  |"],
-    Legumes: ["      /|", "     (  )   ()", "      ||---'", "      ||", "    __||__"],
-    Oilseeds: ["       @", "     @@@@", "    @ (o) @", "      ||", "    __||__"],
-    Alliums: ["     | | |", "      | |", "     (   )", "      ( )", "      |_|"],
-    Brassicas: ["    .-~~~~-.", "   (  .--.  )", "  (  (    )  )", "   (______)", "      ||"],
-    "Leafy greens": ["    /|  |/", "   ( |  | )", "    (|  |)", "      ||", "    __||__"],
-    "Fruit vegetables": ["    |  /|", "    | / |", "    |/  |", "   (  o  )", "    (___)"],
-    Fruit: ["      /|", "     / |", "   o  |  o", "      |", "    __|__"],
-    Vegetables: ["     .-~~-.", "   .'  /|  '.", "  (  (____)  )", "   '._    _.'", "      ||"],
-  };
   const cropArt = {
     wheat:["    <\\ | />", "     <\\|/>", "      /|", "     / |", "   ___|___"],
     maize:["      /|", "    |/ ||", "   (###)||", "    |  ||", "   _|__||_"],
@@ -72,6 +60,22 @@
     pumpkin:["      /|", "    .--|--.", "   /  | |  |", "  (   | |   )", "   '-----'"],
     sunflower:["     @@@@@", "    @ (o) @", "     @@@@@", "       ||", "     __||__"],
     strawberry:["     /| |/", "     (o o)", "    (o o o)", "     '---'", "      ||"],
+  };
+  // Every bundled crop has its own field mark. The same template family can
+  // show related anatomy while the canopy, fruit and root remain item specific.
+  const cropMarks = {
+    wheat:["grain","<\\|/>"], rice:["grain","/\\|/"], maize:["grain","[###]"], barley:["grain","<*|*>"],
+    sorghum:["grain","{***}"], millet:["grain",".:|:."], quinoa:["grain","o:|:o"],
+    potato:["root","(o  o)"], "sweet-potato":["root","(oo oo)"], cassava:["root","(Y  Y)"],
+    carrot:["root","  \\/  "], beet:["root"," (###) "], turnip:["root"," (___) "], radish:["root","  (o)  "],
+    onion:["root"," (   ) "], garlic:["root"," (o-o) "],
+    "dry-bean":["vine","(o) (o)"], lentil:["vine","(.) (.)"], chickpea:["vine","(@) (@)"],
+    soybean:["vine","(8) (8)"], pea:["vine","(O) (O)"], peanut:["root","(o)(o)"],
+    sunflower:["flower","@ (O) @"], tomato:["vine","(O) (O)"], pepper:["vine","<O> <O>"],
+    cucumber:["vine","[====]"], pumpkin:["vine","(____)"], zucchini:["vine","<====>"],
+    eggplant:["vine","(____>"], cabbage:["leaf","(~~~~)"], broccoli:["leaf","{####}"],
+    cauliflower:["leaf","{oooo}"], kale:["leaf","{/\\/}"], spinach:["leaf","(/\\/)"],
+    lettuce:["leaf","(oooo)"], chard:["leaf","{\\||/}"], strawberry:["vine","(v) (v)"],
   };
   const animalForms = {
     Chicken:["    ,~.","   (o  )>","   /|  |", "    /  |", "  _/____|_"],
@@ -88,9 +92,30 @@
     Tilapia:["    /|___","<===( o  )>","    |/~~~"],
     "Water buffalo":["  /|      |/"," /  |____/  |","|   o    o   |","|    (__)    |"," (__________)"],
   };
-  function itemArt(d, crop) {
-    const shape = crop ? (cropArt[d.id] || cropForms[d.group] || cropForms.Vegetables) : (animalForms[d.name] || animalForms.Cow);
-    return [...shape, "", "  [ " + d.name.toUpperCase() + " ]"].join("\n");
+  function itemArt(d, crop, frame = 0) {
+    let shape;
+    if (crop) {
+      const [family, mark] = cropMarks[d.id] || ["leaf", "(****)"];
+      const stem = frame % 2 ? "       /|" : "      |\\";
+      shape = family === "grain" ? ["      \\ | /", "     " + mark, stem, "      ||", "   ___||___"]
+        : family === "root" ? ["     \\ | /", "      \\|/", "       ||", "    " + mark, "   ___/  \\___"]
+        : family === "flower" ? ["     .-*-.", "    " + mark, "     '-*-'", stem, "   ___||___"]
+        : family === "leaf" ? ["    /\\  /\\", "   " + mark, "      \\|/", stem, "   ___||___"]
+        : ["   /\\     /\\", "  " + mark, "     \\ | /", stem, "   ___||___"];
+      if (cropArt[d.id]) shape = cropArt[d.id].slice();
+      if (frame % 2) shape[0] = " " + shape[0];
+    } else {
+      shape = (animalForms[d.name] || animalForms.Cow).slice();
+      if (frame % 4 === 3) shape = shape.map((line) => line.replace(/o/g, "-"));
+      if (frame % 2) shape[0] = " " + shape[0];
+      shape.push(d.product.toLowerCase().includes("egg") ? "   (o)   (o)   (o)" :
+        d.product.toLowerCase().includes("milk") ? "    [  MILK  ]" : "    [  HERD  ]");
+    }
+    const sky = frame % 2 ? ["     .      *         .", "          \\ | /", "      .    ☼      ."]
+                          : ["    *         .      *", "          \\ | /", "       .   ☼    ."];
+    const ground = crop ? ["  ___..____..____..___", "  :::::  FIELD  ::::::"]
+                        : ["  __|__|______|__|___", "  ::::  PASTURE  ::::"];
+    return [...sky, ...shape, ...ground, "  [ " + d.name.toUpperCase() + " ]"].join("\n");
   }
 
   function build() {
@@ -111,6 +136,11 @@
         <details class="fm-method"><summary>DATA, SOURCES & LIMITS</summary><div class="fm-method-inner"></div></details></main></div>`;
     document.body.appendChild(panel);
     $f(".fm-art").textContent = art;
+    let artFrame = 0;
+    setInterval(() => {
+      if (panel.hidden || document.hidden || document.body.classList.contains("reduce-motion") || !chosen) return;
+      const d = item(chosen); if (d) $f(".fm-art").textContent = itemArt(d, isCrop(chosen), ++artFrame);
+    }, 1050);
     $f(".fm-close").addEventListener("click", () => toggle(false));
     $f(".fm-search").addEventListener("input", (e) => { query = e.target.value.trim().toLowerCase(); renderCatalog(); });
     $f(".fm-filter").addEventListener("click", (e) => {

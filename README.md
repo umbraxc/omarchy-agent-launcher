@@ -12,8 +12,10 @@ and no subscription. Nothing you ask leaves your machine.
 
 - **Offline and private**: a local AI (through Ollama) reads from offline
   field manuals, medical guides and repair libraries on your disk.
-- **Answers you can check**: every answer cites its sources, and a built-in
-  field manual covers the critical basics.
+- **Answers you can check**: factual answers cite relevant available sources,
+  and a built-in field manual covers the critical basics.
+- **Farming field planner**: explore edible crops and livestock through
+  animated ASCII field cards, then adjust land, care, feed and food estimates.
 - **Made to be lived with**: scenarios and personalities, a welcome tour,
   history, voice input, 22 themes, animated backgrounds and transitions, and
   an off-grid battery saver.
@@ -45,9 +47,9 @@ and no subscription. Nothing you ask leaves your machine.
 ### Answers you can check
 
 Ask anything in plain words. Umbra searches its offline library and its field
-manual, then answers in the voice of the personality you picked, with
-numbered citations. Hover a citation for a summary; click it to read the page
-itself. Umbra usually ends with an offer ("If you like, I can…"). Under an
+manual when a question calls for it, then answers in the voice of the personality you picked. Factual answers can carry
+numbered citations; relaxed conversation stays relaxed. Hover a citation for a summary; click it to read the page
+itself. Umbra can offer a fitting next step when useful. Under an
 answer, buttons open the tool that fits (the CPR metronome, a field manual
 page, the map…), and Umbra knows its own features, so you can simply ask it
 what it can do. Press **Tab** in the empty prompt for **quick actions**: a
@@ -229,6 +231,17 @@ tooltip that says what it does.
 ![Maps, topographic style with relief and contours](docs/maps-topo.png)
 ![Maps, tactical style with a country file](docs/maps-tactical.png)
 
+### Farming
+
+The **Farming** tab is an offline field planner for 37 edible crops and 16
+livestock entries. Each selection has its own animated ASCII field card, care
+notes, growing conditions and space estimates. Add items to a local plan and
+adjust quantities, cycles, feed and yield; compare average daily, weekly and
+yearly output. Open it with **Ctrl+Shift+F**.
+
+Hold **Shift** and drag any top tab to put your most used tools first. The
+Settings tab stays anchored. Your tab order is saved on this computer.
+
 ### Field Kit
 
 The tools that can matter between life and death, all offline (Ctrl+K):
@@ -357,8 +370,8 @@ skips Umbra's extra AI work and keeps answers short, automatically when you
 unplug if you like.
 
 The speaker button opens sound controls beneath it: mute, effects and
-notification volume, hover sounds, and a small offline radio. Its four original
-looping tracks include nature, rain, instrumental jazz and electronic ambience.
+notification volume, hover sounds, and an offline radio. Its four original,
+longer evolving tracks include nature, rain, instrumental jazz and electronic ambience.
 The radio continues while you move among Umbra's screens; Stop ends it.
 
 ![Settings](docs/settings.png)
@@ -506,10 +519,10 @@ the [repository page](https://umbraxc.github.io/umbra-repo/#windows).
 Umbra introduces itself in a short ASCII frame and asks how you'd like to
 start:
 
-- **Quick start** (about a minute): your name, the AI model (it looks at your
+- **Quick start**: your name and continent, the AI model (it looks at your
   processor, memory and graphics card and recommends one), a library pack, a
-  theme, and a short look at the screen.
-- **Full briefing** (about five minutes): everything, including your profile
+  theme, and a guided look at every main tab.
+- **Full briefing**: everything, including your profile
   and health notes for the ID card, a password, scenario and personality,
   text size, background, off-grid mode, and a spotlight tour of every control.
 - **Skip**: straight in; each screen explains itself the first time.
@@ -578,6 +591,8 @@ Umbra Wiki speaks and understands English.
 | Ctrl+G | maps (inside: / search, W waypoint, M measure, G grid, F full screen, + and − zoom) |
 | Ctrl+K | field kit |
 | Ctrl+J | signals & radar (S scans again) |
+| Ctrl+Shift+F | farming planner |
+| Shift+drag a top tab | rearrange top tabs; Settings stays fixed |
 | Ctrl+T | themes |
 | Ctrl+M | mute |
 | Ctrl+, | settings |

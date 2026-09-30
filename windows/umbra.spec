@@ -22,7 +22,7 @@ datas = [
     (os.path.join(ROOT, "LICENSE"), "."),
     (os.path.join(ROOT, "CREDITS.md"), "."),
 ]
-for name in ("manuals.json", "facts.json", "fieldmanual.json", "library.json", "packs.json", "achievements.json", "farming.json"):
+for name in ("manuals.json", "facts.json", "fieldmanual.json", "knowledge.json", "library.json", "packs.json", "achievements.json", "farming.json"):
     datas.append((os.path.join(APP, name), "."))
 
 a = Analysis(

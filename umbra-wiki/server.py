@@ -26,6 +26,7 @@ import time
 import urllib.parse
 import urllib.request
 import wave
+from functools import lru_cache
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -197,6 +198,7 @@ is are was were be been being am do does did doing have has had having can could
 will shall may might must i me my we our you your he she it they them their this that these those
 what which who whom whose when where why how there here any some all no not very just also too
 please tell explain give show want need know make get use using way ways best good
+looking other another more again okay ok fun fact facts indeed curious thing things
 """.split())
 
 kiwix_proc = None
@@ -979,6 +981,8 @@ def is_small_talk(question):
         return True
     if len(q.split()) > 45:
         return False
+    if re.search(r"\b(?:(?:fun|interesting|random) facts?|another fact) (?:about|on)\b", q, re.I):
+        return False
     # A correction or a social follow-up can be phrased in many ways. Keep it
     # conversational unless it also asks for concrete instructions.
     task_request = re.search(r"\b(?:how (?:do|can|should) i|how are you (?:supposed to|going to|able to)|"
@@ -986,6 +990,12 @@ def is_small_talk(question):
                              r"explain how|what should i do (?:if|about))\b", q, re.I)
     if task_request:
         return False
+    if re.search(r"\b(fun facts?|another fact|jokes?|tell me (?:a |another |some )?(?:story|stories)|"
+                 r"what'?s on your mind|shared moment|moment of stillness|"
+                 r"how are things|no cap|low[- ]key|high[- ]key|vib(?:e|es|ing))\b", q, re.I) and not re.search(
+                 r"\b(?:how (?:do|can|should) i|where (?:can|do|should) i|what should i do|"
+                 r"(?:fun|interesting|random) facts? (?:about|on)|another fact (?:about|on))\b", q, re.I):
+        return True
     if re.match(r"(?i)what do you think of ", q):
         return not (any(re.search(pattern, q, re.I) for pattern in TOPICS.values()) or
                     re.search(r"surviv|prepar|emergen|evacuat|disaster|crisis", q, re.I))
@@ -994,6 +1004,9 @@ def is_small_talk(question):
                  r"not what i asked|how are you|how'?s your day|how you doing|"
                  r"tell me about your day|what'?s up|tell me (?:a joke|something (?:fun|funny|interesting|random|nice))|"
                  r"make me laugh|surprise me|what a (?:beautiful|lovely) day)\b", q, re.I):
+        return True
+    if "?" not in q and not any(re.search(pattern, q, re.I) for pattern in TOPICS.values()) and not re.search(
+            r"\b(?:surviv|prepar|emergen|evacuat|disaster|crisis|injur|bleed|poison)\w*\b", q, re.I):
         return True
     return False
 
@@ -1022,12 +1035,15 @@ def feature_reply(question):
 
 def relevant(source, terms):
     """Keep a source only if it is plausibly about the question."""
-    topical = [t[:5] for t in terms if t not in GENERIC] or [t[:5] for t in terms]
-    title = source["title"].lower()
-    body = (source["passage"] + " " + source["summary"]).lower()
-    in_title = sum(1 for t in topical if t in title)
-    in_body = sum(1 for t in topical if t in body)
-    return in_title >= 1 or in_body >= max(2, (len(topical) + 1) // 2)
+    topical = [t.lower()[:-1] if t.lower().endswith("s") and not t.lower().endswith("ss") else t.lower()
+               for t in terms if t not in GENERIC and t not in STOPWORDS]
+    if not topical:
+        return False
+    title = set(re.findall(r"[a-z]{3,}", source["title"].lower()))
+    body = set(re.findall(r"[a-z]{3,}", (source["passage"] + " " + source["summary"]).lower()))
+    in_title = sum(1 for t in topical if t in title or t + "s" in title)
+    in_body = sum(1 for t in topical if t in body or t + "s" in body)
+    return in_title >= 1 or in_body >= max(2, min(3, len(set(topical))))
 
 
 def find_sources(question, online):
@@ -1044,7 +1060,7 @@ def find_sources(question, online):
             sources += wiki_sources(terms, WIKI_SOURCES)
         except Exception:
             notice = "Wikipedia could not be reached; answered from local archives only."
-    return [src for src in sources if relevant(src, terms)], notice
+    return knowledge_sources(question) + [src for src in sources if relevant(src, terms)], notice
 
 
 def netinfo():
@@ -2793,8 +2809,11 @@ def apply_settings(update):
             if isinstance(update.get(key), bool):
                 settings[key] = update[key]
         if isinstance(update.get("hiddenControls"), list):
-            allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "fieldkit-btn", "radar-btn", "theme-btn", "sound", "lock"}
+            allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "fieldkit-btn", "farming-btn", "radar-btn", "theme-btn", "sound", "lock"}
             settings["hiddenControls"] = [c for c in update["hiddenControls"] if c in allowed]
+        if isinstance(update.get("headerOrder"), list):
+            allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "fieldkit-btn", "farming-btn", "radar-btn", "theme-btn", "sound", "lock"}
+            settings["headerOrder"] = list(dict.fromkeys(c for c in update["headerOrder"] if isinstance(c, str) and c in allowed))
         if update.get("background") in ("rain", "rise", "rings", "stars", "forest", "snow", "aurora",
                                          "embers", "radar", "none"):
             settings["background"] = update["background"]
@@ -2884,19 +2903,83 @@ def field_manual():
         return []
 
 
+@lru_cache(maxsize=1)
+def core_knowledge():
+    try:
+        return json.load(open(os.path.join(APP_DIR, "knowledge.json"), encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"items": [], "funFacts": []}
+
+
+def knowledge_matches(question, category=None, limit=3):
+    q = question.lower()
+    matches = []
+    for entry in core_knowledge()["items"]:
+        if category and entry["category"] != category:
+            continue
+        if entry["category"] == "language" and entry["title"].isupper() and len(entry["title"]) <= 4:
+            common_chat = {"LOL", "BRB", "TBH", "IDK", "IMO", "AFK", "POV"}
+            if entry["title"] not in common_chat and not re.search(
+                    r"\b(?:mean|meaning|stand for|stands for|abbreviation|acronym|define)\b", q):
+                if not re.search(r"(?<!\w)" + re.escape(entry["title"]) + r"(?!\w)", question):
+                    continue
+        if any(re.search(r"(?<!\w)" + re.escape(alias.lower()) + r"(?!\w)", q) for alias in entry["aliases"]):
+            matches.append(entry)
+            if len(matches) >= limit:
+                break
+    return matches
+
+
+def knowledge_sources(question):
+    meaning_ask = bool(re.search(r"\b(?:mean|meaning|stand for|stands for|abbreviation|acronym|define|what is|what are)\b", question, re.I))
+    matches = knowledge_matches(question, limit=5)
+    if re.search(r"\b(?:stand for|stands for|abbreviation|acronym)\b", question, re.I):
+        matches.sort(key=lambda x: x["category"] != "language")
+    seen = set()
+    selected = []
+    for x in matches:
+        if x["title"] in seen or (x["category"] == "language" and not meaning_ask):
+            continue
+        seen.add(x["title"]); selected.append(x)
+        if len(selected) >= 3: break
+    return [{"kind": "core", "title": x["title"], "archive": "Umbra Built-in Knowledge",
+             "url": "core:" + x["id"], "passage": x["text"], "summary": x["text"]}
+            for x in selected]
+
+
+def fun_fact_source(history, topic=""):
+    facts = core_knowledge().get("funFacts", [])
+    if not facts:
+        return None
+    recent = " ".join(str(t.get("content", "")) for t in history[-8:] if t.get("role") == "assistant").lower()
+    if topic:
+        facts = [x for x in facts if re.search(r"\b" + re.escape(x["topic"]) + r"\b", topic, re.I)]
+        if not facts: return None
+    choices = [x for x in facts if x["text"].lower() not in recent and x["topic"].lower() not in recent] or facts
+    fact = random.choice(choices)
+    return {"kind": "core", "title": "A fact about " + fact["topic"], "archive": "Umbra Built-in Knowledge",
+            "url": "core:fact:" + fact["topic"].lower(), "passage": fact["text"], "summary": fact["text"],
+            "reference": fact["source"]}
+
+
 def manual_sources(terms, limit=2):
-    topical = [t[:5] for t in terms if t not in GENERIC] or [t[:5] for t in terms]
+    topical = [t.lower() for t in terms if t not in GENERIC]
     scored = []
     for page in field_manual():
         title, text = page["title"].lower(), (page["summary"] + " " + page["body"]).lower()
-        score = sum(3 for t in topical if t in title) + sum(1 for t in topical if t in text)
-        if score >= 3:
+        title_words = set(re.findall(r"[a-z]{3,}", title))
+        text_words = set(re.findall(r"[a-z]{3,}", text))
+        hits = [t for t in topical if t in title_words or (t.endswith("s") and t[:-1] in title_words)]
+        score = 3 * len(hits) + sum(1 for t in topical if t in text_words)
+        if hits and score >= 3:
             scored.append((score, page))
     scored.sort(key=lambda x: -x[0])
     out = []
     for _, page in scored[:limit]:
         plain = re.sub(r"[*_#>]", "", page["body"])
         passage, _ = best_passage(plain, terms, 900)
+        if page["id"] == "water":
+            passage = plain[:900]  # Keep the distinction between clearing and treating water.
         out.append({"kind": "manual", "title": page["title"], "archive": "Umbra Field Manual",
                     "url": "manual:" + page["id"], "passage": passage, "summary": page["summary"]})
     return out
@@ -3229,6 +3312,7 @@ def history_save(conv, keep_time=False):
             "meta": str(m.get("meta", ""))[:200],
             "online": bool(m.get("online")),
             "persona": str(m.get("persona", ""))[:40],
+            "scene": str(m.get("scene", ""))[:20] if m.get("scene") in ("dawn", "forest", "shore", "stars") else "",
             "sources": sources,
         })
     now = int(time.time() * 1000)
@@ -4295,6 +4379,15 @@ def attach_files(messages, attachments, emit, model=None):
                   "RANGER, SENTINEL, ORACLE, VANGUARD and COMMAND can: pick one in the Core panel (click STATUS)."})
 
 
+def message_parts(question):
+    """Separate a mixed message into parts without rewriting the user's words."""
+    pieces = [p.strip() for p in re.split(r"(?<=[.!?])\s+|\n\s*\n", question) if len(p.strip()) >= 9]
+    if len(pieces) < 2:
+        return []
+    # Keep the reminder small; the full message still follows verbatim.
+    return pieces[:3] + ([" ".join(pieces[3:])] if len(pieces) > 3 else [])
+
+
 def answer(req, emit):
     question = str(req.get("question", "")).strip()
     history = req.get("history") or []
@@ -4314,18 +4407,49 @@ def answer(req, emit):
         return
 
     if not status()["modelReady"]:
-        pulling = pull_state.get("active") and pull_state.get("total")
-        pct = f" ({round(pull_state['completed'] * 100 / pull_state['total'])}% downloaded)" if pulling else ""
-        emit({"type": "error", "message": f"My AI model {MODEL} isn't installed yet{pct}. "
-              + ("It's downloading now; ask again when it's done." if pulling else
-                 "Pick one in Settings → AI model, and I'll download it.")})
+        pulling = bool(pull_state.get("active"))
+        pct = round(pull_state.get("completed", 0) * 100 / pull_state["total"]) if pulling and pull_state.get("total") else None
+        replies = (
+            "I hear you. My local AI is still downloading, so I can't answer that yet. Feel free to explore the tabs above while it finishes.",
+            "I'm here, though my AI is still getting ready. You can browse Maps, Farming or the Library while the download continues.",
+            "My AI is downloading in the background. Once it's ready, send that again and we can pick up here. The tabs above are ready to explore.",
+        ) if pulling else (
+            "I hear you. A local AI model still needs to be installed before I can answer. Open Settings → AI model to choose one; the tabs above are ready meanwhile.",
+            "My AI isn't ready yet. Choose a model in Settings → AI model, then send that again. You can explore the other tabs now.",
+        )
+        reply = replies[(len(history) // 2) % len(replies)]
+        if pct is not None: reply += f" The download is {pct}% complete."
+        emit({"type": "phase", "phase": "write"})
+        emit({"type": "token", "text": reply})
+        emit({"type": "model", "message": "AI DOWNLOAD IN PROGRESS" if pulling else "AI MODEL NEEDED"})
         return
 
     answer_model = MODEL
     chatting = is_small_talk(question)
+    parts = message_parts(question)
+    wants_fun_fact = bool(re.search(r"\b(?:fun|interesting|random) facts?\b|\banother fact\b|\bdid you know\b", question, re.I))
+    topic_fact = re.search(r"\b(?:(?:fun|interesting|random) facts?|another fact) (?:about|on)\b", question, re.I)
+    fact = fun_fact_source(history, question if topic_fact else "") if wants_fun_fact else None
     learn_style(question)
     emit({"type": "phase", "phase": "search"})
-    sources, notice = ([], "") if chatting else find_sources(question, online)
+    if chatting:
+        sources, notice = ([fact] if fact else []), ""
+    elif parts:
+        sources, notice, seen = [], "", set()
+        for part in parts:
+            if not part.endswith("?") and is_small_talk(part):
+                continue  # a conversational aside needs acknowledgement, not an archive scan
+            found, part_notice = find_sources(part, online)
+            if part_notice: notice = part_notice
+            for source in found[:3]:
+                if source["url"] not in seen:
+                    sources.append(source); seen.add(source["url"])
+            if len(sources) >= 6: break
+        sources = sources[:6]
+    else:
+        sources, notice = find_sources(question, online)
+    if fact and not any(s["url"] == fact["url"] for s in sources):
+        sources = [fact] + sources[:5]
     if notice:
         emit({"type": "notice", "message": notice})
 
@@ -4340,6 +4464,23 @@ def answer(req, emit):
     ]})
 
     system = build_system_prompt(online, question, chatting)
+    if re.search(r"\b(?:fresh|drinking|safe|clean|purif\w*|treat\w*)?\s*water\b", question, re.I) and not chatting:
+        system += (" WATER SAFETY: Fresh or clear-looking water is not necessarily safe to drink. "
+                   "Keep finding/collecting water distinct from making it safe. Settling or cloth filtering "
+                   "removes visible particles, not microbes. Use treatment only as described in the supplied "
+                   "source; do not invent a settling time or call untreated water potable.")
+    language = knowledge_matches(question, "language", 2)
+    if language:
+        system += (" LANGUAGE CONTEXT (use only if this sense fits the user's words): "
+                   + " ".join(x["title"] + ": " + x["text"] for x in language))
+    if fact:
+        system += (" For the fun fact, use this checked bundled fact accurately, in your own brief words: "
+                   + fact["passage"] + " Do not add an unrelated fact or an unsupported citation.")
+    if parts:
+        system += (" The user's message has several parts. Respond to each one, including a brief comment "
+                   "or question after the main request. Keep it conversational; use short headings only when "
+                   "two substantial subjects genuinely need separate sections. Before finishing, check that "
+                   "none of these parts was missed: " + " ".join(f"[{i}] {p[:180]}" for i, p in enumerate(parts, 1)))
     if chatting and ABOUT_UMBRA.search(question):
         system += (" You are Umbra Wiki, a local assistant that can chat, answer using an offline library, "
                    "and help with maps, manuals, a field kit and saved history. For this answer, briefly give "
@@ -4406,6 +4547,10 @@ def answer(req, emit):
         # An empty reply is never acceptable: retry once without sources.
         retry = [messages[0], {"role": "user", "content": question}]
         full, done_event = stream_chat(retry, emit, limit, answer_model)
+    if not full.strip() and fact:
+        full = ("Starting with the surroundings sounds sensible. " if re.search(r"surroundings|ground", question, re.I) else "") + fact["passage"]
+        emit({"type": "phase", "phase": "write"})
+        emit({"type": "token", "text": full})
 
     match = None
     for match in re.finditer(r"\bNEXT\s*:\s*(.+)", full):

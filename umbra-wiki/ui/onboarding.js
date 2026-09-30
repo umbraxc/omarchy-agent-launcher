@@ -1,8 +1,8 @@
 // Umbra Wiki welcome tour: on the very first launch (and after a reset, or
 // from Settings). A short ASCII introduction, then the user picks how much
 // of a tour they want:
-//   QUICK START    their name, the AI, the library, a theme and a short look
-//                  at the screen (about a minute);
+  //   QUICK START    their name, the AI, the library, a theme and a tour
+  //                  of each main tab;
 //   FULL BRIEFING  everything: the whole profile with health notes and ID
 //                  card, a password, scenario and personality, comfort and
 //                  power, the full screen tour and the extras;
@@ -240,26 +240,34 @@
     [".cell.status", "CORE", "Shows when I'm ready, working, or can't reach my AI. Click it for the Core panel: every system's condition, and the AI models, what each can do and which suits this computer."],
     ["#loadout-btn", "PROFILE & LOADOUT", "Your profile (name, callsign, character, what I should know about you), your Achievements and rank, plus scenarios and personalities. You can create your own of both."],
     ["#history-btn", "HISTORY", "Every conversation is saved on this computer. Reopen and continue any of them, search through everything, sort them into folders (each with a brief I keep in mind), pin them, and export them."],
-    ["#library-btn", "LIBRARY", "The offline collections I read from, and my built-in Field Manual: the critical basics, always available. Download more collections here."],
+    ["#library-btn", "LIBRARY", "Offline collections I can read when relevant, plus the built-in Field Manual and a new everyday knowledge base for science, places, history, arts and modern expressions. Download more collections here."],
     ["#maps-btn", "MAPS", "Offline maps with a military look, down to street level: download a country or any area, search towns, streets, water and coordinates. Right-click for waypoints (15 marker types), measuring and range rings. Click a country's name for its file and your own safety level."],
     ["#fieldkit-btn", "FIELD KIT", "Tools that matter in an emergency. MEDIC: CPR metronome, timers, triage, coma scale, burns and child-dose calculators, a patient chart with handover reports. SUN & MOON with a live Earth. SUPPLIES. A CALENDAR that also shows when water and food run out. The VAULT for your arsenal and valuables. TRAINING: Morse, radio, grid references, compass, and field manuals to download. Printable CARDS."],
-    ["#farming-btn", "FARMING", "An offline field planner for edible crops and common livestock. Compare growing conditions, food output, feed, seed and work with numbers you can adjust."],
+    ["#farming-btn", "FARMING", "An offline field planner for edible crops and common livestock. Choose an item to see animated field art, care, space, climate, and daily or weekly estimates; adjust the numbers for your plan. Ctrl+Shift+F opens it."],
     ["#radar-btn", "SIGNALS & RADAR", "The Wi-Fi networks and Bluetooth devices around you on a radar, nearer the centre when stronger; click one for its details. Plus your device's vitals. No internet needed."],
     ["#dl-btn", "DOWNLOADS", "Shows while something downloads (maps, library, AI model): pause, resume or cancel it here. Downloads go on after a restart."],
     ["#theme-btn", "THEMES", "Pick a colour theme, follow your Omarchy theme, or design your own."],
-    ["#sound", "SOUND", "Mute or unmute my sounds."],
+    ["#sound", "SOUND", "Open sound controls, adjust effects and notifications, or play longer offline nature and instrumental radio tracks. The same choices appear in Settings."],
     ["#lock", "LOCK", "Locks the window so nothing can be clicked or typed by accident."],
-    ["#settings-btn", "SETTINGS", "Search box at the top. Performance and the processor limit, sounds, text size, backgrounds, off-grid mode, the AI model, voice, backups, updates, replaying this tour, and more."],
+    ["#settings-btn", "SETTINGS", "This differently colored tab stays fixed. Hold Shift and drag any other top tab to arrange it. Settings also has sounds, AI models, text, backups, updates and this tour."],
     ["#q", "ASK", "Type here. Enter sends, Shift+Enter adds a line, Ctrl+Z undoes. Press Tab in an empty prompt for quick actions: likely replies, the right tool, questions to start with."],
     ["#mic", "VOICE", "Hold F9 (or click) and just talk. Speech is turned into text offline."],
     ["#send", "TRANSMIT", "Sends your question. While I'm answering it becomes STOP (or press Esc)."],
   ];
 
-  // The quick start shows the essentials only.
-  const QUICK_SPOTS = [".cell.status", "#loadout-btn", "#history-btn", "#library-btn", "#maps-btn", "#fieldkit-btn", "#settings-btn", "#q"];
+  // Both visual tours introduce every main tab. The short tour keeps fewer
+  // explanatory steps outside the header.
+  const QUICK_SPOTS = [".cell.status", "#loadout-btn", "#history-btn", "#library-btn", "#maps-btn", "#fieldkit-btn", "#farming-btn", "#radar-btn", "#dl-btn", "#theme-btn", "#sound", "#lock", "#settings-btn", "#q"];
 
   function spotlight(quick = false) {
     return new Promise((resolve, reject) => {
+      const restore = [];
+      for (const el of document.querySelectorAll(".controls .ctl")) {
+        const previous = { hidden: el.hidden, gone: el.classList.contains("gone") };
+        if (previous.hidden || previous.gone) {
+          restore.push([el, previous]); el.hidden = false; el.classList.remove("gone");
+        }
+      }
       const steps = SPOTS.filter(([sel]) => !quick || QUICK_SPOTS.includes(sel)).filter(([sel]) => {
         const el = $(sel);
         return el && el.getClientRects().length && el.getBoundingClientRect().width > 0;
@@ -275,6 +283,7 @@
       let i = 0;
       const show = () => {
         const [sel, title, text] = steps[i];
+        if ($(sel).closest(".controls")) $(sel).scrollIntoView({ block: "nearest", inline: "center" });
         const r = $(sel).getBoundingClientRect();
         const pad = 6;
         Object.assign(spot.style, { left: r.left - pad + "px", top: r.top - pad + "px", width: r.width + pad * 2 + "px", height: r.height + pad * 2 + "px" });
@@ -286,10 +295,10 @@
         const w = card.offsetWidth, h = card.offsetHeight;
         const below = r.bottom + pad + 14 + h < innerHeight;
         card.style.left = Math.min(Math.max(12, r.left + r.width / 2 - w / 2), innerWidth - w - 12) + "px";
-        card.style.top = (below ? r.bottom + pad + 14 : r.top - pad - 14 - h) + "px";
+        card.style.top = Math.max(12, Math.min(innerHeight - h - 12, below ? r.bottom + pad + 14 : r.top - pad - 14 - h)) + "px";
         card.classList.remove("in"); void card.offsetWidth; card.classList.add("in");
       };
-      const finish = (ok) => { shade.remove(); removeEventListener("resize", show); ok ? resolve() : reject(SKIP); };
+      const finish = (ok) => { shade.remove(); removeEventListener("resize", show); for (const [el, previous] of restore) { el.hidden = previous.hidden; el.classList.toggle("gone", previous.gone); } ok ? resolve() : reject(SKIP); };
       shade.querySelector(".spot-next").addEventListener("click", () => {
         Sound.click();
         if (i === steps.length - 1) finish(true); else { i++; show(); }
@@ -375,13 +384,12 @@
       name: p.name + (p.recommended ? "  ★" : ""),
       line: `${p.count} collections · ${fmtSize(p.size)}${!p.missing.length ? " · ✓ installed" : p.missing.length < p.count ? ` · ${fmtSize(p.missingSize)} still to get` : ""} · ${p.tagline}`,
     }));
-    packCards.push({ id: "none", name: "Not now", line: "I still work without a library, from the AI's own knowledge. Add collections any time from the Library." });
+    packCards.push({ id: "none", name: "Not now", line: "The built-in manual and everyday notes still work; add larger collections later from the Library." });
     const done = [...packs].reverse().find((p) => !p.missing.length);
     const fits = (p) => !sys.freeGB || p.missingSize / 1e9 < sys.freeGB - 2;
     let pack = done ? done.id : (packs.find((p) => p.recommended && fits(p)) || packs[0] || { id: "none" }).id;
     if (AUTO) pack = "none";
-    await say("Next, my **library**: the offline knowledge I read from when I answer. With no library I answer from memory alone; " +
-      "with a big one I can quote real field manuals, medical guides and repair steps.");
+    await say("Next, my **library**: I already include a field manual and compact everyday notes. Larger offline collections let me read deeper sources when your question calls for them.");
     a = await say("> *The more you prepare on a calm day, the more you'll have on a hard one.*\n\n" +
       `Pick a pack (you have **${sys.freeGB || "?"} GB** free). Downloads run in the background and are checked for damage.`);
     const packBy = (id) => packs.find((p) => p.id === id);
@@ -421,8 +429,8 @@
     let a = await say("Now a quick look at the screen: the parts you'll use most.");
     await choose(a, [["SHOW ME ▸", "go", true]]);
     await spotlight(true);
-    a = await say("That's the essentials. Everything else (your full profile and health card, a password, scenarios and personalities, " +
-      "maps, the Field Kit, the radar) waits in the menus, each with a short note the first time you open it. " +
+    a = await say("Those are the main tabs. Each has a short note the first time you open it. " +
+      "Hold **Shift** and drag a top tab if you'd like a different order; Settings stays in place. " +
       "Press **F1** for shortcuts, or replay the **full briefing** any time from Settings.");
     await choose(a, [["START USING UMBRA ▸", "go", true]]);
     completed = true;
@@ -690,8 +698,8 @@
     await spotlight();
 
     a = await say("A few more things worth knowing:\n\n" +
-      "- My answers cite their sources as numbered tags. **Hover** one for a summary, **click** to open the page.\n" +
-      "- I usually end with an offer. Click it, or press **Tab** and pick it. Under an answer, buttons open the tool that fits (the CPR metronome for CPR, a manual page, the map…).\n" +
+      "- When a source helps answer a factual question, I show a numbered citation. **Hover** it for a summary, **click** to open the page.\n" +
+      "- I can offer a specific next step when useful. Press **Tab** in an empty prompt for quick actions. Under an answer, buttons open tools that actually fit (the CPR metronome for CPR, a manual page, the map…).\n" +
       "- While I think, a little scene and **field notes** keep you company. Answers take a minute or so, because everything runs on this computer.\n" +
       "- My **Field Manual** (in the Library) has the critical basics, from bleeding to water, and I use it in my answers too.\n" +
       "- Scroll up any time, even while I'm writing: the whole conversation is one long page, with the start screen on top.\n" +

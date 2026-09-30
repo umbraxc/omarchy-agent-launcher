@@ -1,6 +1,6 @@
 [
-  {"id":"forest","title":"FOREST DAWN","kind":"NATURE","line":"Breeze, leaves and distant birds","seconds":48},
-  {"id":"rain","title":"RAIN SHELTER","kind":"AMBIENCE","line":"Steady rain and low distant rumble","seconds":44},
-  {"id":"jazz","title":"MIDNIGHT JAZZ","kind":"INSTRUMENTAL","line":"Electric piano, bass and brushed rhythm","seconds":43},
-  {"id":"grid","title":"GRID PULSE","kind":"ELECTRONIC","line":"Original low synths and a measured pulse","seconds":38}
+  {"id":"forest","title":"FOREST DAWN","kind":"NATURE","line":"Moving breeze, leaves, brook and varied distant birds","seconds":112},
+  {"id":"rain","title":"RAIN SHELTER","kind":"AMBIENCE","line":"Shifting rain, roof drops and distant rumbles","seconds":108},
+  {"id":"jazz","title":"MIDNIGHT JAZZ","kind":"INSTRUMENTAL","line":"Original electric piano lines, walking bass and brushes","seconds":107},
+  {"id":"grid","title":"GRID PULSE","kind":"ELECTRONIC","line":"Evolving original low synths and a measured pulse","seconds":96}
 ]

@@ -1662,7 +1662,7 @@ function showPop(s, anchor) {
   if (locked) return;
   $("#pop-n").textContent = s.n;
   const kind = $("#pop-kind");
-  kind.textContent = s.kind === "manual" ? "FIELD MANUAL" : s.kind === "local" ? "LOCAL ARCHIVE" : s.kind === "linked" ? "LINKED FILE" : "WIKIPEDIA ↗";
+  kind.textContent = s.kind === "manual" ? "FIELD MANUAL" : s.kind === "core" ? "BUILT-IN NOTE" : s.kind === "local" ? "LOCAL ARCHIVE" : s.kind === "linked" ? "LINKED FILE" : "WIKIPEDIA ↗";
   kind.className = "pop-kind " + s.kind;
   $("#pop-title").textContent = s.title;
   $("#pop-archive").textContent = s.kind === "wiki" ? "Opens in your browser" : s.archive;
@@ -1795,6 +1795,13 @@ function setWaitingText(answerEl, text) {
 function openSource(s) {
   if (window.track) track("sources");
   if (s.kind === "manual") openManual(String(s.url).replace(/^manual:/, ""));
+  else if (s.kind === "core") {
+    $("#reader-title").textContent = `${s.title} · ${s.archive}`;
+    $("#reader-frame").hidden = true;
+    $("#reader-doc").hidden = false;
+    $("#reader-doc").textContent = s.summary || "";
+    $("#reader").hidden = false;
+  }
   else if (s.kind === "local") openReader(s);
   else if (s.kind === "linked") fetch("/api/library/open-linked", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: s.url }) });
   else fetch("/api/open", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: s.url }) });
@@ -1814,7 +1821,7 @@ function renderSources(card, sources) {
     row.innerHTML = `<span class="n">${s.n}</span><span class="t"></span><span class="kind"></span>`;
     row.querySelector(".t").textContent = s.title;
     const kind = row.querySelector(".kind");
-    kind.textContent = s.kind === "manual" ? "MANUAL" : s.kind === "local" ? "LOCAL" : s.kind === "linked" ? "LINKED FILE" : "WIKIPEDIA ↗";
+    kind.textContent = s.kind === "manual" ? "MANUAL" : s.kind === "core" ? "BUILT-IN" : s.kind === "local" ? "LOCAL" : s.kind === "linked" ? "LINKED FILE" : "WIKIPEDIA ↗";
     kind.classList.add(s.kind);
     bindSource(row, s);
     list.appendChild(row);
@@ -1866,6 +1873,7 @@ function finishAnswer(msg, rec) {
   const byN = {};
   rec.sources.forEach((s) => (byN[s.n] = s));
   paintAnswer(answerEl, rec.answer, byN);
+  if (rec.scene && window.UmbraChill && !msg.querySelector(".chat-scene")) UmbraChill.render(card, rec.scene);
   msg.querySelector(".label .spin")?.remove();
   renderSources(card, rec.sources);
   if (rec.offer) renderNext(answerEl, rec.offer);
@@ -1931,6 +1939,7 @@ function localContext() {
 async function ask(question, shownAs = "") {
   if (controller || locked || !question.trim() || document.body.classList.contains("touring")) return;
   stopRain();   // the start screen stays above the conversation, resting while Umbra works
+  document.body.classList.remove("model-pending");
   suggestToken++;
   setSuggestion("");
   // Files from the paperclip go along with this question (their names show under it).
@@ -1987,6 +1996,7 @@ async function ask(question, shownAs = "") {
           n.textContent = "⚠ " + e.message;
           card.prepend(n);
         } else if (e.type === "context" || e.type === "model") {
+          if (e.type === "model" && /AI (?:DOWNLOAD IN PROGRESS|MODEL NEEDED)/.test(e.message)) document.body.classList.add("model-pending");
           contextNote = contextNote ? contextNote + " · " + e.message : e.message;
           let n = card.querySelector(".context-note");
           if (!n) { n = document.createElement("div"); n.className = "context-note"; card.prepend(n); }
@@ -2024,6 +2034,7 @@ async function ask(question, shownAs = "") {
   if (!stopped) { typer.set(shown); await typer.drained(); }
   const rec = {
     question, shown: shownAs, answer: shown, offer: stopped ? "" : next, sources, online, contextNote,
+    scene: !stopped && window.UmbraChill ? UmbraChill.select(question, chat.length / 2) : "",
     persona: window.loadoutPersona || "",
     meta: meta ? `${meta.tokens} TOKENS · ${meta.seconds}s · ${sources.length} SOURCES · ${online ? "ONLINE" : "OFFLINE"}` : "",
   };
@@ -2526,7 +2537,9 @@ const SHORTCUTS = [
   ["Ctrl + N", "New conversation"], ["Ctrl + H", "History"], ["Ctrl + F", "Search your conversations"],
   ["Ctrl + E", "Export this conversation"], ["Ctrl + L", "Library and field manual"], ["Ctrl + P", "Your profile"],
   ["Ctrl + O", "Loadout: scenario and personality"], ["Ctrl + G", "Maps"], ["Ctrl + K", "Field kit: medic, sun & moon, supplies, vault, training"], ["Ctrl + J", "Signals & radar"], ["Ctrl + T", "Themes"], ["Ctrl + M", "Mute or unmute sounds"],
+  ["Ctrl + Shift + F", "Farming planner"],
   ["Ctrl + ,", "Settings"], ["Ctrl + wheel", "Zoom in or out (also Ctrl + plus / minus; Ctrl + 0 resets)"], ["F1", "This list"],
+  ["Shift + drag", "Rearrange top tabs (Settings stays fixed)"],
 ];
 function showShortcuts() {
   if ($(".keys-overlay")) return;
@@ -2548,6 +2561,7 @@ window.showShortcuts = showShortcuts;
 document.addEventListener("keydown", (e) => {
   if (locked || !$("#modal").hidden || document.body.classList.contains("touring")) return;
   if (e.key === "F1") { e.preventDefault(); showShortcuts(); return; }
+  if (e.ctrlKey && e.shiftKey && !e.altKey && e.key.toLowerCase() === "f") { e.preventDefault(); window.toggleFarming?.(); return; }
   if (!e.ctrlKey || e.altKey || e.shiftKey) return;
   const actions = {
     n: () => window.newConversation && window.newConversation(),

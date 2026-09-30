@@ -6,6 +6,13 @@
     "ids": "essential"
   },
   {
+    "id": "everyday",
+    "name": "Everyday Knowledge + Survival",
+    "tagline": "Survival essentials plus compact general knowledge in history, science, geography, arts, people and more.",
+    "ids": ["essential", "wikipedia_en_top_mini"],
+    "recommended": true
+  },
+  {
     "id": "prepared",
     "name": "Prepared",
     "tagline": "Essentials plus a prepper encyclopedia, emergency medicine, medicines, animal health, radio, low-tech builds, cooking, gardening, wilderness skills, off-grid power, vehicle repair, money, parenting and every country's facts.",
@@ -34,6 +41,6 @@
     "name": "Complete",
     "tagline": "All 27 collections, including the full medical encyclopedia, Wikipedia's essentials and every iFixit repair guide. The full Umbra experience.",
     "ids": "all",
-    "recommended": true
+    "recommended": false
   }
 ]

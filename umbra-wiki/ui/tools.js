@@ -57,8 +57,18 @@
       // The question counts most; the answer only for the medical kit.
       if (t[3].test(q) || (id === "kit:medic" && t[3].test(both) && /\b(cpr|bleed|tourniquet|burn|fracture|wound)/i.test(both))) out.push(id);
     }
-    const words = q.toLowerCase().match(/[a-z]{4,}/g) || [];
-    const page = pages.find((p) => { const t = p.title.toLowerCase(); return words.some((w) => t.includes(w.replace(/(ing|ed|s)$/, ""))); });
+    // A manual is a useful action only for the user's subject. Substring
+    // matches turned "other" into "hypothermia" and offered unrelated pages.
+    const normalized = q.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const page = pages.find((p) => {
+      const title = p.title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      if (!title) return false;
+      const words = title.split(" ").filter((w) => w.length > 2 && !["and", "the", "for", "with"].includes(w));
+      const idWords = p.id.split("-").filter((w) => w.length > 3);
+      return (` ${normalized} `).includes(` ${title} `)
+        || (idWords.length && idWords.every((w) => new RegExp(`(?:^| )${w}s?(?: |$)`).test(normalized)))
+        || (words.length > 1 && words.every((w) => new RegExp(`(?:^| )${w}s?(?: |$)`).test(normalized)));
+    });
     if (page) out.unshift("manual:" + page.id);
     return out.slice(0, 2);
   }

@@ -141,13 +141,24 @@ button.cell {
 .net:hover .mask, .net:focus-within .mask { display: none; }
 .net .mask { letter-spacing: .1em; }
 
-.controls { display: flex; gap: 6px; align-items: center; padding-left: 12px; border-left: 1px solid var(--line); }
+.controls { display: flex; gap: 6px; align-items: center; padding-left: 12px; border-left: 1px solid var(--line); min-width: 0; overflow-x: auto; scrollbar-width: thin; }
 .ctl {
-  width: 34px; height: 34px; display: grid; place-items: center; cursor: pointer;
+  width: 34px; height: 34px; flex: none; display: grid; place-items: center; cursor: pointer;
   background: transparent; border: 1px solid var(--line); color: var(--dim);
   font: 17px var(--font); transition: color .15s, border-color .15s, background-color .15s;
 }
 .ctl:hover { color: var(--signal); border-color: var(--signal); background: var(--signal-soft); }
+#settings-btn { position: sticky; right: 0; z-index: 1; color: var(--signal); border-color: var(--signal); background: var(--bg-1); box-shadow: inset 0 0 0 1px var(--signal); }
+#settings-btn:hover { color: var(--fg-bright); box-shadow: inset 0 0 0 1px var(--signal); }
+body.model-pending .controls { box-shadow: inset 0 -2px var(--signal); animation: model-tab-invite 2.4s ease-in-out 3; }
+@keyframes model-tab-invite { 50% { box-shadow: inset 0 -3px var(--signal), 0 8px 20px var(--signal-soft); } }
+body.reduce-motion.model-pending .controls { animation: none; }
+.ctl.nav-moving { opacity: .55; border-color: var(--signal); background: var(--signal-soft); cursor: grabbing; }
+.ctl.nav-target { box-shadow: inset 3px 0 var(--signal); }
+.chat-scene { width: min(100%, 650px); box-sizing: border-box; margin: 8px 0 22px 32px; border: 1px solid var(--line); border-left: 2px solid var(--signal); background: var(--bg-1); color: var(--signal); overflow: hidden; }
+.chat-scene span { display: block; border-bottom: 1px solid var(--line); padding: 7px 12px; font: 9px var(--font); letter-spacing: .18em; color: var(--dim); }
+.chat-scene pre { margin: 0; padding: 13px; font: clamp(8px, 1vw, 12px)/1.25 var(--font); overflow: auto; }
+@media (max-width: 650px) { .chat-scene { margin-left: 0; } .chat-scene pre { font-size: 8px; } }
 .nav-callout { position: fixed; top: 76px; right: 22px; z-index: 3; max-width: 250px; padding: 8px 12px;
   text-align: right; background: var(--bg-1); border: 1px solid var(--signal); border-right: 2px solid var(--signal);
   box-shadow: 0 10px 24px rgba(0, 0, 0, .35); pointer-events: none; animation: nav-reveal .22s ease-out both; }
@@ -2786,7 +2797,7 @@ body.farming-open > :not(#farming):not(.modal):not(.ac-toast):not(.wipe):not(.ti
 .fm-main { overflow-y: auto; min-height: 0; padding: 20px clamp(14px, 3vw, 38px) 28px; }
 .fm-hero { display: grid; grid-template-columns: minmax(255px, 42%) 1fr; gap: 18px; align-items: center; border: 1px solid var(--signal);
   padding: 12px 20px; background: var(--bg-1); }
-.fm-art { margin: 0; color: var(--signal); opacity: .9; font: 10px/1.25 var(--font); white-space: pre; overflow: hidden; }
+.fm-art { margin: 0; color: var(--signal); opacity: .95; font: clamp(10px, 1.05vw, 14px)/1.2 var(--font); white-space: pre; overflow: hidden; text-shadow: 0 0 12px var(--signal-soft); }
 .fm-hero small { color: var(--signal); font-size: 10px; letter-spacing: .25em; }
 .fm-hero h2 { margin: 6px 0 8px; color: var(--fg-bright); font-size: clamp(17px, 2vw, 26px); line-height: 1.2; }
 .fm-hero p { margin: 0; color: var(--dim); font-size: 11px; line-height: 1.55; max-width: 500px; }

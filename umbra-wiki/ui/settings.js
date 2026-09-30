@@ -11,9 +11,9 @@
     volume: 0.9, notifyVolume: 0.5, radioVolume: 0.4, hoverSounds: true, rain: true, background: "rain", reduceMotion: false, offgrid: "off", textScale: 1, cpuLimit: 100,
     suggestions: true, greeting: true, barAlert: true,
   };
-  window.prefs = { ...DEFAULTS, hiddenControls: [] };
+  window.prefs = { ...DEFAULTS, hiddenControls: [], headerOrder: [] };
   // Header buttons that can be hidden (Settings itself always stays).
-  const CONTROLS = [["loadout-btn", "Profile & loadout"], ["history-btn", "History"], ["library-btn", "Library"], ["maps-btn", "Maps"], ["fieldkit-btn", "Field kit"],
+  const CONTROLS = [["loadout-btn", "Profile & loadout"], ["history-btn", "History"], ["library-btn", "Library"], ["maps-btn", "Maps"], ["fieldkit-btn", "Field kit"], ["farming-btn", "Farming"],
                     ["radar-btn", "Signals & radar"], ["theme-btn", "Themes"], ["sound", "Sound"], ["lock", "Lock"]];
   const panel = $("#settings");
   let pullTimer = 0;
@@ -94,6 +94,7 @@
     try { Object.assign(prefs, DEFAULTS, await (await fetch("/api/settings")).json()); } catch {}
     await checkPower();
     applyControls(false);
+    window.UmbraNavOrder?.apply(prefs.headerOrder);
   }
   function save(update) {
     Object.assign(prefs, update);
@@ -367,6 +368,7 @@
         <p class="lib-note set-sound-missing" hidden></p>
       </section>
       <section class="set-section"><div class="lib-head">HEADER BUTTONS</div>
+        <p class="lib-note">Hold Shift and drag a top tab to move it. Umbra remembers your order. Settings stays in place.</p>
         ${CONTROLS.map(([id, label]) => `
           <label class="set-row"><span class="set-text"><b>${label}</b><small>Show this button in the top right</small></span>
             <input type="checkbox" class="set-control" data-control="${id}"></label>`).join("")}
@@ -953,7 +955,7 @@
       e.stopImmediatePropagation(); open(false);
     }
     // Ctrl+F searches Settings while it's open (elsewhere it searches History).
-    if (e.ctrlKey && !e.altKey && e.key.toLowerCase() === "f" && !panel.hidden) {
+    if (e.ctrlKey && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "f" && !panel.hidden) {
       e.preventDefault(); e.stopImmediatePropagation(); window.focusSettingsSearch();
     }
   }, true);
@@ -970,6 +972,10 @@
       if (JSON.stringify(s.hiddenControls || []) !== JSON.stringify(prefs.hiddenControls || [])) {
         prefs.hiddenControls = s.hiddenControls || [];
         applyControls(true);
+      }
+      if (JSON.stringify(s.headerOrder || []) !== JSON.stringify(prefs.headerOrder || [])) {
+        prefs.headerOrder = s.headerOrder || [];
+        window.UmbraNavOrder?.apply(prefs.headerOrder);
       }
     } catch {}
   }, 3000);

@@ -1,0 +1,1212 @@
+{
+  "version": 1,
+  "note": "Original compact topic notes and language glosses bundled with Umbra. They are not a current-events feed. Slang meanings depend on context.",
+  "items": [
+    {
+      "id": "ancient-egypt",
+      "category": "history",
+      "title": "Ancient Egypt",
+      "aliases": [
+        "egypt",
+        "pharaoh",
+        "nile civilization"
+      ],
+      "text": "Ancient Egyptian civilization developed along the Nile over several millennia. Its rulers are often called pharaohs; surviving monuments include pyramids and temples."
+    },
+    {
+      "id": "roman-republic",
+      "category": "history",
+      "title": "Roman Republic",
+      "aliases": [
+        "roman republic",
+        "senate"
+      ],
+      "text": "Before the Roman Empire, Rome was a republic with elected magistrates and a senate. Political rights were unequal and changed over time."
+    },
+    {
+      "id": "ancient-rome",
+      "category": "history",
+      "title": "Ancient Rome",
+      "aliases": ["rome", "ancient rome", "roman empire"],
+      "text": "Ancient Rome grew from a city into a Mediterranean power. It passed through a republic and an empire; its law, roads, languages and buildings left lasting influences."
+    },
+    {
+      "id": "silk-roads",
+      "category": "history",
+      "title": "Silk Roads",
+      "aliases": [
+        "silk road",
+        "silk roads",
+        "eurasian trade"
+      ],
+      "text": "The Silk Roads were overlapping trade routes across Eurasia, carrying goods, technologies, religions and ideas; they were never one continuous road."
+    },
+    {
+      "id": "renaissance",
+      "category": "history",
+      "title": "Renaissance",
+      "aliases": [
+        "renaissance",
+        "italian renaissance"
+      ],
+      "text": "The Renaissance was a period of renewed interest in classical learning and artistic experimentation, beginning in parts of Italy and spreading through Europe."
+    },
+    {
+      "id": "printing-press",
+      "category": "history",
+      "title": "Printing press",
+      "aliases": [
+        "printing press",
+        "gutenberg",
+        "movable type"
+      ],
+      "text": "Movable type printing greatly expanded book production in Europe in the fifteenth century. Printing technologies also had earlier histories in East Asia."
+    },
+    {
+      "id": "industrial-revolution",
+      "category": "history",
+      "title": "Industrial Revolution",
+      "aliases": [
+        "industrial revolution",
+        "industrialization",
+        "factories"
+      ],
+      "text": "Industrialization shifted much production toward machines, factories and fossil fuels, changing work, cities and the environment over several generations."
+    },
+    {
+      "id": "world-war-i",
+      "category": "history",
+      "title": "World War I",
+      "aliases": [
+        "first world war",
+        "world war one",
+        "ww1"
+      ],
+      "text": "World War I lasted from 1914 to 1918. It involved many countries beyond Europe and reshaped empires and international borders."
+    },
+    {
+      "id": "world-war-ii",
+      "category": "history",
+      "title": "World War II",
+      "aliases": [
+        "second world war",
+        "world war two",
+        "ww2"
+      ],
+      "text": "World War II lasted from 1939 to 1945 in Europe and Asia, with wider global participation. The Holocaust was the Nazi genocide of six million Jews and millions of other victims."
+    },
+    {
+      "id": "decolonization",
+      "category": "history",
+      "title": "Decolonization",
+      "aliases": [
+        "decolonization",
+        "independence movements"
+      ],
+      "text": "During the twentieth century, many colonized peoples won or negotiated independence. Their paths, dates and continuing consequences varied greatly by place."
+    },
+    {
+      "id": "moon-landing",
+      "category": "history",
+      "title": "Moon landing",
+      "aliases": [
+        "apollo 11",
+        "moon landing",
+        "neil armstrong"
+      ],
+      "text": "Apollo 11 landed humans on the Moon in 1969. Neil Armstrong and Buzz Aldrin walked on its surface while Michael Collins orbited above."
+    },
+    {
+      "id": "stoicism",
+      "category": "philosophy",
+      "title": "Stoicism",
+      "aliases": [
+        "stoicism",
+        "stoic",
+        "marcus aurelius"
+      ],
+      "text": "Stoicism emphasizes good judgment, virtue and attention to what is within one's control. It does not require suppressing every feeling."
+    },
+    {
+      "id": "epicureanism",
+      "category": "philosophy",
+      "title": "Epicureanism",
+      "aliases": [
+        "epicureanism",
+        "epicurus"
+      ],
+      "text": "Epicurus argued that a pleasant life depends heavily on friendship, freedom from fear and modest needs, rather than constant indulgence."
+    },
+    {
+      "id": "utilitarianism",
+      "category": "philosophy",
+      "title": "Utilitarianism",
+      "aliases": [
+        "utilitarianism",
+        "greatest good"
+      ],
+      "text": "Utilitarian approaches judge actions partly by their consequences for well-being. Different versions disagree about how to measure and compare outcomes."
+    },
+    {
+      "id": "existentialism",
+      "category": "philosophy",
+      "title": "Existentialism",
+      "aliases": [
+        "existentialism",
+        "existentialist",
+        "sartre"
+      ],
+      "text": "Existentialist thinkers examine freedom, responsibility, meaning and the choices people make within real constraints."
+    },
+    {
+      "id": "socratic-method",
+      "category": "philosophy",
+      "title": "Socratic method",
+      "aliases": [
+        "socratic method",
+        "socrates",
+        "questioning"
+      ],
+      "text": "Socratic questioning tests an idea by asking what it means, what supports it and whether it survives counterexamples."
+    },
+    {
+      "id": "empiricism",
+      "category": "philosophy",
+      "title": "Empiricism",
+      "aliases": [
+        "empiricism",
+        "empiricist"
+      ],
+      "text": "Empiricism gives observation and experience a central role in forming knowledge, while recognizing that observations need interpretation."
+    },
+    {
+      "id": "social-contract",
+      "category": "philosophy",
+      "title": "Social contract",
+      "aliases": [
+        "social contract",
+        "political philosophy"
+      ],
+      "text": "Social contract theories ask why political authority is legitimate and what people owe one another in a society. Thinkers offer very different answers."
+    },
+    {
+      "id": "latitude-and-longitude",
+      "category": "geography",
+      "title": "Latitude and longitude",
+      "aliases": [
+        "latitude",
+        "longitude",
+        "coordinates"
+      ],
+      "text": "Latitude measures north or south of the equator; longitude measures east or west of a chosen prime meridian. Together they locate a place on Earth."
+    },
+    {
+      "id": "equator",
+      "category": "geography",
+      "title": "Equator",
+      "aliases": [
+        "equator",
+        "hemispheres"
+      ],
+      "text": "The equator is the imaginary line halfway between Earth's poles. It divides the planet into northern and southern hemispheres."
+    },
+    {
+      "id": "plate-tectonics",
+      "category": "geography",
+      "title": "Plate tectonics",
+      "aliases": [
+        "plate tectonics",
+        "tectonic plates"
+      ],
+      "text": "Earth's outer shell is divided into moving plates. Their interactions help explain many earthquakes, volcanoes and mountain ranges."
+    },
+    {
+      "id": "monsoon",
+      "category": "geography",
+      "title": "Monsoon",
+      "aliases": [
+        "monsoon",
+        "seasonal rain"
+      ],
+      "text": "A monsoon is a seasonal shift in prevailing winds, often linked to a wet and a dry season. It is a climate pattern, not simply a severe storm."
+    },
+    {
+      "id": "watershed",
+      "category": "geography",
+      "title": "Watershed",
+      "aliases": [
+        "watershed",
+        "drainage basin",
+        "river basin"
+      ],
+      "text": "A watershed is the land area whose water drains toward a shared stream, river, lake or other outlet."
+    },
+    {
+      "id": "time-zones",
+      "category": "geography",
+      "title": "Time zones",
+      "aliases": [
+        "time zone",
+        "utc",
+        "gmt"
+      ],
+      "text": "Civil time zones are political conventions built around Earth's rotation. Their boundaries and daylight-saving rules can change."
+    },
+    {
+      "id": "continents",
+      "category": "geography",
+      "title": "Continents",
+      "aliases": [
+        "continents",
+        "continent"
+      ],
+      "text": "Continents are large landmasses, but the number taught varies by convention. Geographic and cultural definitions do not always agree."
+    },
+    {
+      "id": "separation-of-powers",
+      "category": "civics",
+      "title": "Separation of powers",
+      "aliases": [
+        "separation of powers",
+        "legislature",
+        "executive",
+        "judiciary"
+      ],
+      "text": "Some political systems divide authority among lawmaking, executive and judicial branches to limit concentrated power. The exact design varies by country."
+    },
+    {
+      "id": "constitution",
+      "category": "civics",
+      "title": "Constitution",
+      "aliases": [
+        "constitution",
+        "constitutional law"
+      ],
+      "text": "A constitution sets fundamental rules for a political system. It may be one document or a collection of laws and conventions."
+    },
+    {
+      "id": "democracy",
+      "category": "civics",
+      "title": "Democracy",
+      "aliases": [
+        "democracy",
+        "democratic government"
+      ],
+      "text": "Democracy gives people a role in collective rule, often through elections. Democratic systems differ in representation, rights and checks on power."
+    },
+    {
+      "id": "federalism",
+      "category": "civics",
+      "title": "Federalism",
+      "aliases": [
+        "federalism",
+        "federal government"
+      ],
+      "text": "Federal systems divide some governing powers between a central authority and regional governments. The division differs across countries."
+    },
+    {
+      "id": "civil-liberties",
+      "category": "civics",
+      "title": "Civil liberties",
+      "aliases": [
+        "civil liberties",
+        "free speech",
+        "freedom of religion"
+      ],
+      "text": "Civil liberties are protections against certain uses of power, such as limits on speech or belief. Their legal scope differs by jurisdiction and time."
+    },
+    {
+      "id": "public-policy",
+      "category": "civics",
+      "title": "Public policy",
+      "aliases": [
+        "public policy",
+        "policy making"
+      ],
+      "text": "Public policy is what governments choose to do or not do about collective problems. Evidence, values, resources and politics all shape it."
+    },
+    {
+      "id": "scientific-method",
+      "category": "science",
+      "title": "Scientific method",
+      "aliases": [
+        "scientific method",
+        "hypothesis",
+        "experiment"
+      ],
+      "text": "Scientific work tests explanations against evidence. Reproducibility, criticism and revision matter more than any single fixed sequence of steps."
+    },
+    {
+      "id": "evolution",
+      "category": "science",
+      "title": "Evolution",
+      "aliases": [
+        "evolution",
+        "natural selection"
+      ],
+      "text": "Populations change across generations. Natural selection is one mechanism: inherited traits affecting survival or reproduction can become more common."
+    },
+    {
+      "id": "dna",
+      "category": "science",
+      "title": "DNA",
+      "aliases": [
+        "dna",
+        "genes",
+        "genetics"
+      ],
+      "text": "DNA stores genetic information in most living organisms. Genes are segments of DNA, but traits also depend on regulation, environment and many genes together."
+    },
+    {
+      "id": "atoms",
+      "category": "science",
+      "title": "Atoms",
+      "aliases": [
+        "atom",
+        "atoms",
+        "elements"
+      ],
+      "text": "Atoms have a nucleus of protons and neutrons surrounded by electrons. The number of protons identifies the chemical element."
+    },
+    {
+      "id": "gravity",
+      "category": "science",
+      "title": "Gravity",
+      "aliases": [
+        "gravity",
+        "gravitation"
+      ],
+      "text": "Gravity is the attraction associated with mass and energy. It shapes falling objects, planetary orbits and the large-scale structure of the universe."
+    },
+    {
+      "id": "photosynthesis",
+      "category": "science",
+      "title": "Photosynthesis",
+      "aliases": [
+        "photosynthesis",
+        "plants and sunlight"
+      ],
+      "text": "In photosynthesis, plants and some other organisms use light energy to make sugars from carbon dioxide and water, releasing oxygen in the process."
+    },
+    {
+      "id": "greenhouse-effect",
+      "category": "science",
+      "title": "Greenhouse effect",
+      "aliases": [
+        "greenhouse effect",
+        "climate change"
+      ],
+      "text": "Greenhouse gases absorb and re-emit infrared radiation, keeping Earth warmer than it would otherwise be. Increasing their concentrations changes the planet's energy balance."
+    },
+    {
+      "id": "vaccination",
+      "category": "science",
+      "title": "Vaccination",
+      "aliases": [
+        "vaccination",
+        "vaccines",
+        "immunization"
+      ],
+      "text": "Vaccines train immune responses against a pathogen or its parts. Effectiveness and recommendations depend on the specific vaccine and situation."
+    },
+    {
+      "id": "venus-rotation",
+      "category": "science",
+      "title": "Venus rotation",
+      "aliases": [
+        "venus day",
+        "venus year",
+        "venus facts"
+      ],
+      "text": "A full rotation of Venus takes about 243 Earth days, longer than its roughly 225-day orbit around the Sun. A sunrise-to-sunrise day is different.",
+      "source": "https://science.nasa.gov/venus/venus-facts/"
+    },
+    {
+      "id": "moon-drift",
+      "category": "science",
+      "title": "Moon drift",
+      "aliases": [
+        "moon moving away",
+        "moon distance",
+        "lunar recession"
+      ],
+      "text": "Measurements show the Moon is currently moving away from Earth by roughly four centimeters per year.",
+      "source": "https://science.nasa.gov/moon/tidal-locking/"
+    },
+    {
+      "id": "octopus-hearts",
+      "category": "science",
+      "title": "Octopus hearts",
+      "aliases": [
+        "octopus hearts",
+        "octopus fun fact"
+      ],
+      "text": "Octopuses have three hearts: two pump blood to the gills and one supplies the rest of the body.",
+      "source": "https://ocean.si.edu/ocean-life/invertebrates/octopuses-squids-and-relatives"
+    },
+    {
+      "id": "perspective-in-painting",
+      "category": "arts",
+      "title": "Perspective in painting",
+      "aliases": [
+        "linear perspective",
+        "perspective drawing"
+      ],
+      "text": "Linear perspective uses converging lines and vanishing points to suggest depth on a flat surface. Artists use many other ways to create depth too."
+    },
+    {
+      "id": "impressionism",
+      "category": "arts",
+      "title": "Impressionism",
+      "aliases": [
+        "impressionism",
+        "impressionist",
+        "monet"
+      ],
+      "text": "Impressionist painters often emphasized changing light, visible brushwork and scenes of modern life. The movement began in nineteenth-century France."
+    },
+    {
+      "id": "cubism",
+      "category": "arts",
+      "title": "Cubism",
+      "aliases": [
+        "cubism",
+        "picasso",
+        "braque"
+      ],
+      "text": "Cubist artists fragmented forms and showed multiple viewpoints, challenging the idea that a picture must imitate one fixed view."
+    },
+    {
+      "id": "jazz",
+      "category": "arts",
+      "title": "Jazz",
+      "aliases": [
+        "jazz music",
+        "swing",
+        "improvisation"
+      ],
+      "text": "Jazz grew from African American musical traditions and includes improvisation, distinctive rhythms and many styles. It cannot be reduced to one sound or era."
+    },
+    {
+      "id": "film-editing",
+      "category": "arts",
+      "title": "Film editing",
+      "aliases": [
+        "film editing",
+        "montage"
+      ],
+      "text": "Film editing arranges shots to shape time, space, rhythm and meaning. A cut can connect images even when the camera never showed them together."
+    },
+    {
+      "id": "architecture-and-place",
+      "category": "arts",
+      "title": "Architecture and place",
+      "aliases": [
+        "architecture",
+        "buildings",
+        "vernacular architecture"
+      ],
+      "text": "Buildings respond to materials, climate, culture, use and technology. Vernacular architecture grows from local practices rather than one universal style."
+    },
+    {
+      "id": "ballet",
+      "category": "arts",
+      "title": "Ballet",
+      "aliases": [
+        "ballet",
+        "classical dance"
+      ],
+      "text": "Ballet is a theatrical dance tradition with techniques developed over centuries. Its forms and stories have changed across cultures and eras."
+    },
+    {
+      "id": "shakespeare",
+      "category": "literature",
+      "title": "Shakespeare",
+      "aliases": [
+        "shakespeare",
+        "hamlet",
+        "macbeth"
+      ],
+      "text": "William Shakespeare wrote plays and poems in late sixteenth- and early seventeenth-century England. His works are interpreted and staged in many different ways."
+    },
+    {
+      "id": "mary-shelley",
+      "category": "literature",
+      "title": "Mary Shelley",
+      "aliases": [
+        "mary shelley",
+        "frankenstein"
+      ],
+      "text": "Mary Shelley published Frankenstein in 1818. The novel explores creation, responsibility and isolation; Frankenstein is the scientist's name."
+    },
+    {
+      "id": "poetry",
+      "category": "literature",
+      "title": "Poetry",
+      "aliases": [
+        "poetry",
+        "poem",
+        "verse"
+      ],
+      "text": "Poetry uses rhythm, sound, imagery and arrangement of language in many forms. It need not rhyme."
+    },
+    {
+      "id": "metaphor",
+      "category": "literature",
+      "title": "Metaphor",
+      "aliases": [
+        "metaphor",
+        "figurative language"
+      ],
+      "text": "A metaphor describes one thing in terms of another to suggest a connection, rather than asserting the two are literally identical."
+    },
+    {
+      "id": "ada-lovelace",
+      "category": "people",
+      "title": "Ada Lovelace",
+      "aliases": [
+        "ada lovelace",
+        "analytical engine"
+      ],
+      "text": "Ada Lovelace wrote influential notes on Charles Babbage's proposed Analytical Engine and imagined uses beyond arithmetic."
+    },
+    {
+      "id": "marie-curie",
+      "category": "people",
+      "title": "Marie Curie",
+      "aliases": [
+        "marie curie",
+        "radioactivity"
+      ],
+      "text": "Marie Curie researched radioactivity and shared Nobel Prizes in Physics and Chemistry. Her work changed the study of matter and medicine."
+    },
+    {
+      "id": "ibn-sina",
+      "category": "people",
+      "title": "Ibn Sina",
+      "aliases": [
+        "ibn sina",
+        "avicenna"
+      ],
+      "text": "Ibn Sina was an eleventh-century scholar whose writings on medicine and philosophy circulated widely across several intellectual traditions."
+    },
+    {
+      "id": "hypatia",
+      "category": "people",
+      "title": "Hypatia",
+      "aliases": [
+        "hypatia",
+        "alexandria philosopher"
+      ],
+      "text": "Hypatia was a mathematician and philosopher in late antique Alexandria. Much about her life is known only through later and sometimes partisan sources."
+    },
+    {
+      "id": "galileo-galilei",
+      "category": "people",
+      "title": "Galileo Galilei",
+      "aliases": [
+        "galileo",
+        "telescope",
+        "heliocentrism"
+      ],
+      "text": "Galileo used telescopic observations to challenge older cosmological ideas and studied motion. He did not invent the telescope."
+    },
+    {
+      "id": "nelson-mandela",
+      "category": "people",
+      "title": "Nelson Mandela",
+      "aliases": [
+        "nelson mandela",
+        "anti apartheid"
+      ],
+      "text": "Nelson Mandela was a leader in the struggle against apartheid and later served as South Africa's president from 1994 to 1999."
+    },
+    {
+      "id": "no-cap",
+      "category": "language",
+      "title": "No cap",
+      "aliases": [
+        "no cap"
+      ],
+      "text": "No cap is informal speech meaning 'honestly' or 'I'm not exaggerating.' It can sound unnatural outside a casual setting."
+    },
+    {
+      "id": "low-key",
+      "category": "language",
+      "title": "Low-key",
+      "aliases": [
+        "low key",
+        "low-key"
+      ],
+      "text": "Low-key can mean quietly, subtly or somewhat, depending on context: 'I'm low-key excited' means a little or privately excited."
+    },
+    {
+      "id": "high-key",
+      "category": "language",
+      "title": "High-key",
+      "aliases": [
+        "high key",
+        "high-key"
+      ],
+      "text": "High-key is an informal emphatic opposite of low-key: openly or strongly."
+    },
+    {
+      "id": "vibe",
+      "category": "language",
+      "title": "Vibe",
+      "aliases": [
+        "vibe",
+        "vibes",
+        "vibing"
+      ],
+      "text": "A vibe is the mood or feel of a place, person or moment. 'Vibing' means enjoying or settling into that mood."
+    },
+    {
+      "id": "its-giving",
+      "category": "language",
+      "title": "It's giving",
+      "aliases": [
+        "it's giving",
+        "its giving"
+      ],
+      "text": "It's giving introduces a resemblance or impression: 'It's giving summer' means it feels summery. The phrase is playful and context-dependent."
+    },
+    {
+      "id": "main-character-energy",
+      "category": "language",
+      "title": "Main character energy",
+      "aliases": [
+        "main character energy",
+        "main character moment"
+      ],
+      "text": "Main character energy describes acting or feeling like the center of a story, often jokingly."
+    },
+    {
+      "id": "hits-different",
+      "category": "language",
+      "title": "Hits different",
+      "aliases": [
+        "hits different",
+        "hit different"
+      ],
+      "text": "Something that 'hits different' feels unusually affecting in a particular situation."
+    },
+    {
+      "id": "iykyk",
+      "category": "language",
+      "title": "IYKYK",
+      "aliases": [
+        "iykyk",
+        "if you know you know"
+      ],
+      "text": "IYKYK means 'if you know, you know': a shared reference is understood by insiders without explanation."
+    },
+    {
+      "id": "bet",
+      "category": "language",
+      "title": "Bet",
+      "aliases": [
+        "bet",
+        "you bet"
+      ],
+      "text": "In casual speech, 'bet' can mean 'okay,' 'agreed' or 'I'm in.' The ordinary wager meaning still exists."
+    },
+    {
+      "id": "sus",
+      "category": "language",
+      "title": "Sus",
+      "aliases": [
+        "sus",
+        "suspicious"
+      ],
+      "text": "Sus means suspicious or questionable; it is informal shorthand, not a precise accusation."
+    },
+    {
+      "id": "slay",
+      "category": "language",
+      "title": "Slay",
+      "aliases": [
+        "slay",
+        "you slayed"
+      ],
+      "text": "In praise, 'slay' means someone performed impressively. Its literal meaning is different, so context matters."
+    },
+    {
+      "id": "rizz",
+      "category": "language",
+      "title": "Rizz",
+      "aliases": [
+        "rizz",
+        "charisma"
+      ],
+      "text": "Rizz refers to social or romantic charm, especially the ability to attract someone through conversation."
+    },
+    {
+      "id": "ghosting",
+      "category": "language",
+      "title": "Ghosting",
+      "aliases": [
+        "ghosting",
+        "ghosted"
+      ],
+      "text": "Ghosting means abruptly ending communication without explaining why, especially in a personal relationship."
+    },
+    {
+      "id": "touch-grass",
+      "category": "language",
+      "title": "Touch grass",
+      "aliases": [
+        "touch grass",
+        "go outside"
+      ],
+      "text": "Touch grass is a teasing way to suggest stepping away from an online argument or obsession and reconnecting with ordinary life."
+    },
+    {
+      "id": "receipts",
+      "category": "language",
+      "title": "Receipts",
+      "aliases": [
+        "receipts",
+        "show receipts"
+      ],
+      "text": "Receipts can mean evidence, such as screenshots or messages, rather than store slips."
+    },
+    {
+      "id": "read-the-room",
+      "category": "language",
+      "title": "Read the room",
+      "aliases": [
+        "read the room",
+        "reading the room"
+      ],
+      "text": "Read the room means notice the mood and respond appropriately to the people present."
+    },
+    {
+      "id": "on-the-same-page",
+      "category": "language",
+      "title": "On the same page",
+      "aliases": [
+        "on the same page"
+      ],
+      "text": "Being on the same page means sharing an understanding or plan."
+    },
+    {
+      "id": "spill-the-tea",
+      "category": "language",
+      "title": "Spill the tea",
+      "aliases": [
+        "spill the tea",
+        "tea gossip"
+      ],
+      "text": "Spill the tea means share gossip or reveal what happened; 'tea' means the information."
+    },
+    {
+      "id": "not-my-cup-of-tea",
+      "category": "language",
+      "title": "Not my cup of tea",
+      "aliases": [
+        "not my cup of tea"
+      ],
+      "text": "Not my cup of tea means something does not suit one's taste."
+    },
+    {
+      "id": "a-blessing-in-disguise",
+      "category": "language",
+      "title": "A blessing in disguise",
+      "aliases": [
+        "blessing in disguise"
+      ],
+      "text": "A blessing in disguise is something unwelcome that later turns out beneficial."
+    },
+    {
+      "id": "break-the-ice",
+      "category": "language",
+      "title": "Break the ice",
+      "aliases": [
+        "break the ice"
+      ],
+      "text": "Breaking the ice means easing initial social tension or starting a conversation."
+    },
+    {
+      "id": "go-with-the-flow",
+      "category": "language",
+      "title": "Go with the flow",
+      "aliases": [
+        "go with the flow"
+      ],
+      "text": "Go with the flow means adapt without trying to control every detail."
+    },
+    {
+      "id": "on-the-fence",
+      "category": "language",
+      "title": "On the fence",
+      "aliases": [
+        "on the fence"
+      ],
+      "text": "Being on the fence means undecided between options."
+    },
+    {
+      "id": "pull-someones-leg",
+      "category": "language",
+      "title": "Pull someone's leg",
+      "aliases": [
+        "pull my leg",
+        "pulling your leg"
+      ],
+      "text": "Pulling someone's leg means joking or teasing them, not physical pulling."
+    },
+    {
+      "id": "under-the-weather",
+      "category": "language",
+      "title": "Under the weather",
+      "aliases": [
+        "under the weather"
+      ],
+      "text": "Feeling under the weather means feeling somewhat unwell."
+    },
+    {
+      "id": "burnout",
+      "category": "language",
+      "title": "Burnout",
+      "aliases": [
+        "burnout",
+        "burned out",
+        "burnt out"
+      ],
+      "text": "Burnout describes exhaustion and detachment after prolonged stress; it is not a diagnosis from one phrase alone."
+    },
+    {
+      "id": "soft-launch",
+      "category": "language",
+      "title": "Soft launch",
+      "aliases": [
+        "soft launch",
+        "soft launching"
+      ],
+      "text": "A soft launch is a quiet or partial introduction before a bigger public one; people also use it for relationships on social media."
+    },
+    {
+      "id": "fomo",
+      "category": "language",
+      "title": "FOMO",
+      "aliases": [
+        "fomo",
+        "fear of missing out"
+      ],
+      "text": "FOMO means fear of missing out on experiences others are having."
+    },
+    {
+      "id": "tldr",
+      "category": "language",
+      "title": "TLDR",
+      "aliases": [
+        "tldr",
+        "tl dr",
+        "too long didnt read"
+      ],
+      "text": "TLDR means 'too long; didn't read' and often introduces a short summary."
+    },
+    {
+      "id": "irl",
+      "category": "language",
+      "title": "IRL",
+      "aliases": [
+        "irl",
+        "in real life"
+      ],
+      "text": "IRL means 'in real life,' usually contrasted with online interaction."
+    },
+    {
+      "id": "asap",
+      "category": "language",
+      "title": "ASAP",
+      "aliases": [
+        "asap",
+        "as soon as possible"
+      ],
+      "text": "As soon as possible; it asks for urgency without specifying an exact deadline."
+    },
+    {
+      "id": "fyi",
+      "category": "language",
+      "title": "FYI",
+      "aliases": [
+        "fyi",
+        "for your information"
+      ],
+      "text": "For your information; often used to share something without requesting action."
+    },
+    {
+      "id": "idk",
+      "category": "language",
+      "title": "IDK",
+      "aliases": [
+        "idk",
+        "i dont know"
+      ],
+      "text": "I don't know; informal text shorthand."
+    },
+    {
+      "id": "imo",
+      "category": "language",
+      "title": "IMO",
+      "aliases": [
+        "imo",
+        "in my opinion"
+      ],
+      "text": "In my opinion; marks a view rather than an established fact."
+    },
+    {
+      "id": "imho",
+      "category": "language",
+      "title": "IMHO",
+      "aliases": [
+        "imho",
+        "in my humble opinion"
+      ],
+      "text": "In my humble opinion, sometimes sincere and sometimes playful."
+    },
+    {
+      "id": "brb",
+      "category": "language",
+      "title": "BRB",
+      "aliases": [
+        "brb",
+        "be right back"
+      ],
+      "text": "Be right back; the speaker expects a short absence."
+    },
+    {
+      "id": "tbh",
+      "category": "language",
+      "title": "TBH",
+      "aliases": [
+        "tbh",
+        "to be honest"
+      ],
+      "text": "To be honest; often introduces a frank opinion or admission."
+    },
+    {
+      "id": "lol",
+      "category": "language",
+      "title": "LOL",
+      "aliases": [
+        "lol",
+        "laughing out loud"
+      ],
+      "text": "Laughing out loud; in text it can signal amusement or simply soften the tone."
+    },
+    {
+      "id": "afk",
+      "category": "language",
+      "title": "AFK",
+      "aliases": [
+        "afk",
+        "away from keyboard"
+      ],
+      "text": "Away from keyboard; temporarily unavailable in a game or chat."
+    },
+    {
+      "id": "pov",
+      "category": "language",
+      "title": "POV",
+      "aliases": [
+        "pov",
+        "point of view"
+      ],
+      "text": "Point of view; online it often captions a scene written from someone's perspective."
+    },
+    {
+      "id": "goat",
+      "category": "language",
+      "title": "GOAT",
+      "aliases": [
+        "goat",
+        "greatest of all time"
+      ],
+      "text": "Greatest of all time when used as praise; the ordinary animal meaning also exists."
+    },
+    {
+      "id": "npc",
+      "category": "language",
+      "title": "NPC",
+      "aliases": [
+        "npc",
+        "non player character"
+      ],
+      "text": "Non-player character in a game; online, calling a person an NPC can be dismissive."
+    },
+    {
+      "id": "eta",
+      "category": "language",
+      "title": "ETA",
+      "aliases": [
+        "eta",
+        "estimated time of arrival"
+      ],
+      "text": "Estimated time of arrival in travel or deliveries. In other fields ETA can mean something else."
+    },
+    {
+      "id": "faq",
+      "category": "language",
+      "title": "FAQ",
+      "aliases": [
+        "faq",
+        "frequently asked questions"
+      ],
+      "text": "Frequently asked questions; a short reference page or list of common answers."
+    },
+    {
+      "id": "diy",
+      "category": "language",
+      "title": "DIY",
+      "aliases": [
+        "diy",
+        "do it yourself"
+      ],
+      "text": "Do it yourself; making or repairing something without hiring a professional."
+    },
+    {
+      "id": "gps",
+      "category": "language",
+      "title": "GPS",
+      "aliases": [
+        "gps",
+        "global positioning system"
+      ],
+      "text": "Global Positioning System, a satellite-based navigation system. Other satellite navigation constellations also exist."
+    },
+    {
+      "id": "abbr-dna",
+      "category": "language",
+      "title": "DNA",
+      "aliases": [
+        "dna",
+        "deoxyribonucleic acid"
+      ],
+      "text": "Deoxyribonucleic acid, the molecule that stores genetic information in most living things."
+    },
+    {
+      "id": "ai",
+      "category": "language",
+      "title": "AI",
+      "aliases": [
+        "ai",
+        "artificial intelligence"
+      ],
+      "text": "Artificial intelligence; a broad label for systems that perform tasks involving learning, language, perception or reasoning."
+    },
+    {
+      "id": "gdp",
+      "category": "language",
+      "title": "GDP",
+      "aliases": [
+        "gdp",
+        "gross domestic product"
+      ],
+      "text": "Gross domestic product, a measure of the value of final goods and services produced within an economy over a period."
+    },
+    {
+      "id": "un",
+      "category": "language",
+      "title": "UN",
+      "aliases": [
+        "un",
+        "united nations"
+      ],
+      "text": "United Nations, an international organization founded in 1945. It is not a world government."
+    },
+    {
+      "id": "who",
+      "category": "language",
+      "title": "WHO",
+      "aliases": [
+        "who",
+        "world health organization"
+      ],
+      "text": "World Health Organization, the United Nations specialized agency for public health."
+    },
+    {
+      "id": "nasa",
+      "category": "language",
+      "title": "NASA",
+      "aliases": [
+        "nasa",
+        "national aeronautics and space administration"
+      ],
+      "text": "National Aeronautics and Space Administration, the United States civilian space agency."
+    },
+    {
+      "id": "unesco",
+      "category": "language",
+      "title": "UNESCO",
+      "aliases": [
+        "unesco",
+        "united nations educational scientific and cultural organization"
+      ],
+      "text": "United Nations Educational, Scientific and Cultural Organization; it works across education, science, culture and communication."
+    },
+    {
+      "id": "eu",
+      "category": "language",
+      "title": "EU",
+      "aliases": [
+        "eu",
+        "european union"
+      ],
+      "text": "European Union, a political and economic union of European member states. Membership and rules can change."
+    },
+    {
+      "id": "nato",
+      "category": "language",
+      "title": "NATO",
+      "aliases": [
+        "nato",
+        "north atlantic treaty organization"
+      ],
+      "text": "North Atlantic Treaty Organization, a military alliance whose membership and policies can change."
+    }
+  ],
+  "funFacts": [
+    {
+      "text": "A full spin of Venus takes longer than one trip around the Sun: about 243 Earth days versus about 225.",
+      "source": "https://science.nasa.gov/venus/venus-facts/",
+      "topic": "Venus"
+    },
+    {
+      "text": "Laser measurements show the Moon is slowly moving away from Earth, currently by roughly four centimeters a year.",
+      "source": "https://science.nasa.gov/moon/tidal-locking/",
+      "topic": "Moon"
+    },
+    {
+      "text": "Octopuses have three hearts: two send blood to the gills, and one serves the rest of the body.",
+      "source": "https://ocean.si.edu/ocean-life/invertebrates/octopuses-squids-and-relatives",
+      "topic": "Octopus"
+    },
+    {
+      "text": "Jupiter makes a full rotation in about 9.9 hours, giving it the shortest day of any planet in our solar system.",
+      "source": "https://science.nasa.gov/jupiter/jupiter-facts/",
+      "topic": "Jupiter"
+    },
+    {
+      "text": "Uranus is tilted almost onto its side, so its seasons are especially extreme.",
+      "source": "https://science.nasa.gov/uranus/facts/",
+      "topic": "Uranus"
+    },
+    {
+      "text": "Olympus Mons on Mars is the largest known volcano in the solar system.",
+      "source": "https://science.nasa.gov/photojournal/olympus-mons/",
+      "topic": "Mars"
+    },
+    {
+      "text": "The same side of the Moon faces Earth because its spin and orbit are synchronized, a state called tidal locking.",
+      "source": "https://science.nasa.gov/moon/tidal-locking/",
+      "topic": "Moon"
+    },
+    {
+      "text": "Venus rotates opposite to most planets, so from its surface the Sun would rise in the west and set in the east.",
+      "source": "https://science.nasa.gov/venus/venus-facts/",
+      "topic": "Venus"
+    }
+  ]
+}
