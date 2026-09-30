@@ -521,7 +521,7 @@ kbd { font: inherit; opacity: .7; margin-left: 4px; }
 /* ------------------------------------------------------------------ reader */
 
 .reader {
-  position: fixed; top: 0; right: 0; bottom: 0; width: min(62%, 900px); z-index: 20;
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(62%, 900px); z-index: 35;
   display: flex; flex-direction: column;
   background: var(--bg-1); border-left: 1px solid var(--signal);
   animation: slide .25s ease-out both;
@@ -2589,7 +2589,7 @@ body.reduce-motion .fx-scan, body.reduce-motion .fx-static { animation: none; }
 .msg.user { margin-left: auto; max-width: 84%; }
 .msg.user .label { flex-direction: row-reverse; }
 .msg.user .body { border-left: 0; border-right: 2px solid var(--signal); }
-.dossier { position: fixed; z-index: 20; font-family: var(--font); }
+.dossier { position: fixed; z-index: 3; font-family: var(--font); }
 .dos-card { width: 262px; padding: 0 14px 14px; background: color-mix(in srgb, var(--bg) 94%, #000); border: 1px solid var(--signal);
   box-shadow: 0 12px 30px rgba(0, 0, 0, .45); font-size: 10.5px; color: var(--fg); }
 .dos-card.glitch { animation: cf-glitch .5s steps(1, end) both; }
@@ -2648,7 +2648,7 @@ body.reduce-motion .dos-wave i { animation: none !important; }
 .dossier:not(.docked) .dos-tab:hover { color: var(--signal); border-color: var(--signal); }
 .dossier:not(.docked) .dos-card { display: none; }
 .dossier:not(.docked).open .dos-card { display: block; }
-.dossier:not(.docked) { z-index: 25; }
+.dossier:not(.docked) { z-index: 3; }
 
 /* ------------------------------------------------------------ link panel */
 
