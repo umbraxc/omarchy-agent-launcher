@@ -164,7 +164,7 @@ const Sound = (() => {
       .catch(() => {});
   };
   const names = ["launch", "key", "hover", "click", "send", "searchstart", "found", "done",
-                 "lock", "unlock", "online", "local", "theme", "error", "beep", "boot", "glitch", "shutdown", "achieve", "complete"];
+                 "lock", "unlock", "online", "local", "theme", "error", "beep", "boot", "glitch", "shutdown", "achieve", "complete", "toolshift"];
   const api = { get muted() { return muted; }, set muted(v) { muted = v; if (v) api.hum(false); } };
   // A click for controls that had no sound of their own just now.
   api.tap = () => { if (performance.now() - last > 120) play("click"); };
@@ -2594,7 +2594,8 @@ document.addEventListener("keydown", (e) => {
 const SHORTCUTS = [
   ["Enter", "Send your question"], ["Shift + Enter", "New line"], ["Esc", "Stop an answer, or close a panel"],
   ["Tab", "Quick actions: likely replies, fitting tools, questions to start with"], ["F9", "Hold to talk (voice input)"], ["Ctrl + Z", "Undo in the prompt"], ["Ctrl + Y", "Redo in the prompt"],
-  ["Ctrl + N", "New conversation"], ["Ctrl + H", "History"], ["Ctrl + F", "Search your conversations"],
+  ["Ctrl (hold)", "Conversation tools: search, history and export"], ["Ctrl + N", "New conversation"], ["Ctrl + F", "Search this conversation"],
+  ["Ctrl + H", "History"], ["Ctrl + Shift + H", "Search all conversations in History"],
   ["Ctrl + E", "Export this conversation"], ["Ctrl + L", "Library and field manual"], ["Ctrl + P", "Your profile"],
   ["Ctrl + O", "Loadout: scenario and personality"], ["Ctrl + G", "Maps"], ["Ctrl + K", "Field kit: medic, sun & moon, supplies, vault, training"], ["Ctrl + J", "Signals & radar"], ["Ctrl + T", "Themes"], ["Ctrl + M", "Mute or unmute sounds"],
   ["Ctrl + Shift + F", "Farming planner"],
@@ -2622,6 +2623,7 @@ document.addEventListener("keydown", (e) => {
   if (locked || !$("#modal").hidden || document.body.classList.contains("touring")) return;
   if (e.key === "F1") { e.preventDefault(); showShortcuts(); return; }
   if (e.ctrlKey && e.shiftKey && !e.altKey && e.key.toLowerCase() === "f") { e.preventDefault(); window.toggleFarming?.(); return; }
+  if (e.ctrlKey && e.shiftKey && !e.altKey && e.key.toLowerCase() === "h") { e.preventDefault(); window.focusHistorySearch?.(); return; }
   if (!e.ctrlKey || e.altKey || e.shiftKey) return;
   const actions = {
     n: () => window.newConversation && window.newConversation(),

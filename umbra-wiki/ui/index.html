@@ -58,6 +58,7 @@
   </div>
 </header>
 <div class="hazard" aria-hidden="true"></div>
+<div id="signal-tape" class="signal-tape" hidden aria-label="Umbra live local status"><div class="signal-tape-track"><div class="signal-tape-group"></div><div class="signal-tape-group" aria-hidden="true"></div></div></div>
 <div id="netbanner" class="netbanner" hidden><span class="pulse">◉</span> ONLINE · WIKIPEDIA SEARCH ACTIVE · QUESTIONS LEAVE THIS DEVICE</div>
 
 <main id="feed">
@@ -185,8 +186,9 @@
     <div class="bar"><i></i></div>
     <span id="elapsed" class="elapsed">0.0s</span>
   </div>
-  <div id="promptbar" class="promptbar" aria-live="polite"><span class="pb-left"></span><span class="pb-tab">⇥ PRESS TAB FOR QUICK ACTIONS</span><span class="pb-right"></span></div>
+  <div id="promptbar" class="promptbar" aria-live="polite"><span class="pb-left"></span><span class="pb-tab">⇥ TAB QUICK ACTIONS · HOLD CTRL FOR TOOLS</span><span class="pb-right"></span></div>
   <div id="attached" class="attached" hidden></div>
+  <div class="command-stack">
   <form id="ask" class="ask" autocomplete="off">
     <button id="attach" type="button" title="Attach files|Text files and pictures: Umbra reads them, or looks at them. You can also drop files anywhere on the window."><span class="g">󰏢</span></button>
     <span class="caret">&gt;</span>
@@ -194,6 +196,13 @@
     <button id="mic" type="button" title="Voice input: hold F9, or click to talk and click again to stop"><span class="g">󰍬</span><kbd>F9</kbd></button>
     <button id="send" type="submit">TRANSMIT <kbd>⏎</kbd></button>
   </form>
+  <section id="commandbar" class="commandbar" aria-label="Conversation tools" hidden>
+    <div class="command-choice"><span class="command-rivet">▣</span><b>TOOLS</b><span class="command-sub">HOLD CTRL</span>
+      <button type="button" data-command="search"><kbd>F</kbd> SEARCH CHAT</button><button type="button" data-command="history"><kbd>H</kbd> HISTORY</button><button type="button" data-command="export"><kbd>E</kbd> EXPORT</button></div>
+    <div class="command-search" hidden><span class="command-rivet">⌕</span><input id="chat-find" type="search" placeholder="Search this conversation…" autocomplete="off" spellcheck="false" aria-label="Search this conversation"><span class="command-count" aria-live="polite">0 MATCHES</span><button type="button" class="command-close" aria-label="Close search">ESC ✕</button></div>
+  </section>
+  <section id="chat-find-results" class="chat-find-results" hidden aria-label="Conversation search results"><div class="find-list"></div><div class="find-actions"><button type="button" class="find-prev">↑ PREVIOUS</button><button type="button" class="find-next">↓ NEXT</button><button type="button" class="find-bottom">↧ BACK TO BOTTOM</button><span>ENTER TO JUMP · ESC TO CLOSE</span></div></section>
+  </div>
   <div class="hint">answers cite their sources · verify critical steps there</div>
 </footer>
 
@@ -233,5 +242,7 @@
 <script src="whatsnew.js"></script>
 <script src="guides.js"></script>
 <script src="dossiers.js"></script>
+<script src="commandbar.js"></script>
+<script src="signal-tape.js"></script>
 </body>
 </html>

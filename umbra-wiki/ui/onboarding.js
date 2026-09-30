@@ -250,7 +250,7 @@
     ["#sound", "SOUND", "Open sound controls, adjust effects and notifications, or play longer offline nature and instrumental radio tracks. The same choices appear in Settings."],
     ["#lock", "LOCK", "Locks the window so nothing can be clicked or typed by accident."],
     ["#settings-btn", "SETTINGS", "This differently colored tab stays fixed. Hold Shift and drag any other top tab to arrange it. Settings also has sounds, AI models, text, backups, updates and this tour."],
-    ["#q", "ASK", "Type here. Enter sends, Shift+Enter adds a line, Ctrl+Z undoes. Press Tab in an empty prompt for quick actions: likely replies, the right tool, questions to start with."],
+    ["#q", "ASK", "Type here. Enter sends, Shift+Enter adds a line, Ctrl+Z undoes. Tab opens quick actions; hold Ctrl for conversation tools. Ctrl+F searches this conversation, while Ctrl+Shift+H searches all saved conversations."],
     ["#mic", "VOICE", "Hold F9 (or click) and just talk. Speech is turned into text offline."],
     ["#send", "TRANSMIT", "Sends your question. While I'm answering it becomes STOP (or press Esc)."],
   ];
@@ -698,7 +698,7 @@
 
     a = await say("A few more things worth knowing:\n\n" +
       "- When a source helps answer a factual question, I show a numbered citation. **Hover** it for a summary, **click** to open the page.\n" +
-      "- I can offer a specific next step when useful. Press **Tab** in an empty prompt for quick actions. Under an answer, buttons open tools that actually fit (the CPR metronome for CPR, a manual page, the map…).\n" +
+      "- I can offer a specific next step when useful. Press **Tab** for quick actions, or hold **Ctrl** for conversation tools. **Ctrl+F** searches this chat; **Ctrl+Shift+H** searches all saved chats. Under an answer, buttons open tools that actually fit (the CPR metronome for CPR, a manual page, the map…).\n" +
       "- While I think, a little scene and **field notes** keep you company. Answers take a minute or so, because everything runs on this computer.\n" +
       "- My **Field Manual** (in the Library) has the critical basics, from bleeding to water, and I use it in my answers too.\n" +
       "- Scroll up any time, even while I'm writing: the whole conversation is one long page, with the start screen on top.\n" +

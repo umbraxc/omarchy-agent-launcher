@@ -11,7 +11,7 @@ window.UmbraGuide = (() => {
     "lo-locker": ["LOCKER", ["Rewards for your achievements: orbs for the start screen, titles and name effects.", "Earn points to rank up; ranks and certain achievements unlock more. Click one to equip it."]],
     radar: ["SIGNALS & RADAR", ["The Wi-Fi and Bluetooth signals around you: nearer the centre means stronger.", "Click a blip or a row for its details. DEVICES remembers what the radar has heard and marks new ones.", "The KILL SWITCH turns all radios off at once. F for full screen."]],
     library: ["LIBRARY", ["The offline collections Umbra reads from, and its built-in Field Manual.", "Download more here; downloads can be paused and go on after a restart."]],
-    history: ["HISTORY", ["Every conversation, saved on this computer. Search everything that was said.", "Make folders with a brief Umbra keeps in mind; drag conversations onto them, or pin them."]],
+    history: ["HISTORY", ["Every conversation, saved on this computer. Ctrl+Shift+H searches all saved chats; Ctrl+F searches only the open chat.", "Make folders with a brief Umbra keeps in mind; drag conversations onto them, or pin them."]],
     settings: ["SETTINGS", ["Six coloured groups: jump with the chips, or type in the search box (Ctrl+F).", "Your data lists your downloaded maps and waypoints, with backups and restore."]],
     themes: ["THEMES", ["Click a theme to try it at once. Each has its own character.", "Make your own at the bottom, or follow your Omarchy theme."]],
     "lo-profile": ["PROFILE", ["What Umbra should know about you: it fits every answer to it.", "Health details go on your ID card and are never suggested against. Save when you're done."]],

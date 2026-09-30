@@ -269,6 +269,23 @@ body.online .ask .caret { color: var(--net); }
   flex: none; padding: 4px 16px; text-align: center;
   font-size: 10.5px; letter-spacing: .28em; color: var(--bg); background: var(--net);
 }
+.signal-tape { flex: none; height: 25px; overflow: hidden; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, var(--bg-2), var(--bg-1)); color: var(--fg); }
+.signal-tape-track { display: flex; width: max-content; height: 100%; animation: tape-travel var(--tape-duration, 42s) linear infinite; }
+.signal-tape:hover .signal-tape-track { animation-play-state: paused; }
+.signal-tape-group { display: flex; flex: none; align-items: center; gap: 28px; height: 100%; padding-right: 28px; }
+.tape-item { display: inline-flex; align-items: center; gap: 5px; font: 700 9px var(--font); letter-spacing: .07em; white-space: nowrap; }
+.tape-item small { color: var(--dim); font-size: 8px; letter-spacing: .13em; }
+.tape-item b { color: var(--signal); font-weight: 700; }
+.tape-art { display: inline-block; width: 16px; color: var(--signal); font-size: 12px; text-align: center; }
+.tape-green b, .tape-green .tape-art { color: var(--net); }
+.tape-alert b, .tape-alert .tape-art { color: var(--red); }
+.tape-accent b, .tape-accent .tape-art { color: var(--accent); }
+.tape-muted b, .tape-muted .tape-art { color: var(--dim); }
+.tape-live { animation: tape-pulse 2.8s ease-in-out infinite; }
+@keyframes tape-travel { to { transform: translateX(-50%); } }
+@keyframes tape-pulse { 50% { opacity: .55; transform: scale(.9); } }
+body.reduce-motion .signal-tape-track { animation: none; }
+body.reduce-motion .tape-live { animation: none; }
 
 /* -------------------------------------------------------------------- feed */
 
@@ -504,6 +521,46 @@ body.prompts-hidden .prompts { max-height: 0; opacity: 0; margin-top: 0; filter:
   padding: 10px max(26px, calc((100% - 860px) / 2)) 12px;
   background: var(--bg-1);
   border-top: 1px solid var(--line);
+}
+.command-stack { position: relative; }
+.command-stack .ask { min-height: 49px; transform-origin: center; transition: transform .2s cubic-bezier(.18,.75,.2,1), opacity .16s, filter .2s; }
+.dock.command-armed .ask, .dock.command-searching .ask { opacity: 0; transform: perspective(300px) rotateX(20deg) scaleY(.78); filter: blur(2px); pointer-events: none; }
+.commandbar { position: absolute; inset: 0; z-index: 3; min-height: 49px; border: 1px solid var(--signal); background: linear-gradient(115deg, var(--bg-2), var(--bg-1) 60%, var(--bg-2));
+  box-shadow: inset 0 0 0 1px var(--signal-soft), 0 0 22px var(--signal-soft); transform-origin: center; animation: command-engage .22s cubic-bezier(.18,.75,.2,1) both; }
+.commandbar::before, .commandbar::after { content: ""; position: absolute; z-index: 1; top: 0; bottom: 0; width: 5px; background: repeating-linear-gradient(45deg, var(--signal) 0 2px, transparent 2px 5px); opacity: .55; }
+.commandbar::before { left: 0; } .commandbar::after { right: 0; }
+@keyframes command-engage { from { opacity: .2; transform: perspective(300px) rotateX(-25deg) scaleY(.45); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
+.command-choice, .command-search { display: flex; align-items: center; gap: 9px; height: 100%; min-height: 47px; padding: 6px 14px; }
+.command-rivet { color: var(--signal); font-size: 18px; line-height: 1; }
+.command-choice > b { color: var(--signal); font-size: 10px; letter-spacing: .18em; }
+.command-sub { margin-right: auto; color: var(--dim); font-size: 8px; letter-spacing: .12em; white-space: nowrap; }
+.commandbar button, .find-actions button { border: 1px solid var(--line); background: var(--bg-2); color: var(--fg); padding: 6px 8px; font: 700 9px var(--font); letter-spacing: .07em; cursor: pointer; white-space: nowrap; }
+.commandbar button:hover, .find-actions button:hover { border-color: var(--signal); color: var(--signal); }
+.commandbar kbd { display: inline-block; min-width: 16px; color: var(--signal); font: 700 10px var(--font); }
+.command-search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--fg-bright); font: 12px var(--font); }
+.command-search input::placeholder { color: var(--dim); }
+.command-count { color: var(--signal); font-size: 9px; white-space: nowrap; }
+.chat-find-results { position: absolute; z-index: 5; left: 0; right: 0; bottom: calc(100% + 8px); border: 1px solid var(--signal); background: var(--bg-1); box-shadow: 0 12px 28px #0009; animation: command-engage .2s ease-out both; }
+.find-list { max-height: min(36vh, 260px); overflow-y: auto; }
+.find-result { display: block; width: 100%; padding: 7px 12px; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--fg); text-align: left; font: 10px/1.45 var(--font); cursor: pointer; }
+.find-result:hover, .find-result.on { background: var(--signal-soft); }
+.find-result small { display: block; margin-bottom: 2px; color: var(--signal); font-size: 8px; letter-spacing: .12em; }
+.find-result span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.find-result mark { background: var(--signal); color: var(--bg); }
+.find-empty { margin: 0; padding: 14px; color: var(--dim); font-size: 10px; }
+.find-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 7px; border-top: 1px solid var(--line); }
+.find-actions span { margin-left: auto; color: var(--dim); font-size: 8px; white-space: nowrap; }
+.msg.find-active .body, .msg.find-active .card { outline: 1px solid var(--signal); outline-offset: 3px; }
+.msg.find-arrived .body, .msg.find-arrived .card { animation: find-arrival .65s ease-out; }
+@keyframes find-arrival { 0%, 50% { box-shadow: 0 0 0 4px var(--signal-soft), 0 0 20px var(--signal-soft); } 100% { box-shadow: none; } }
+body.reduce-motion .commandbar, body.reduce-motion .chat-find-results, body.reduce-motion .msg.find-arrived .body, body.reduce-motion .msg.find-arrived .card { animation: none; }
+body.reduce-motion .command-stack .ask { transition: none; }
+@media (max-width: 700px) {
+  .command-sub { display: none; }
+  .command-choice { gap: 4px; padding: 5px 8px; }
+  .command-choice > b { margin-right: auto; font-size: 9px; }
+  .commandbar button { padding: 5px; font-size: 8px; }
+  .find-actions span { display: none; }
 }
 
 .phase { display: grid; grid-template-columns: 1fr auto; gap: 6px 14px; margin-bottom: 10px; }
