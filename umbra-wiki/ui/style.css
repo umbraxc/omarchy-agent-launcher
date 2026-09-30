@@ -155,7 +155,7 @@ button.cell {
 .nav-callout small { display: block; color: var(--dim); font-size: 10px; line-height: 1.4; }
 @keyframes nav-reveal { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 body.reduce-motion .nav-callout { animation: none; }
-.sound-pop { position: fixed; z-index: 145; width: min(330px, calc(100vw - 24px)); padding: 12px 14px; background: var(--bg-1);
+.sound-pop { position: fixed; z-index: 145; width: min(350px, calc(100vw - 24px)); max-height: calc(100vh - 74px); overflow-y: auto; padding: 12px 14px; background: var(--bg-1);
   border: 1px solid var(--signal); box-shadow: 0 16px 32px rgba(0, 0, 0, .5); animation: nav-reveal .18s ease-out both; }
 .snd-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--line); padding-bottom: 7px; }
 .snd-head b { color: var(--signal); letter-spacing: .22em; font-size: 10px; }
@@ -172,6 +172,22 @@ body.reduce-motion .nav-callout { animation: none; }
 .snd-previews > div { display: flex; gap: 6px; margin-top: 7px; }
 .snd-previews button { flex: 1; padding: 6px 4px; border: 1px solid var(--line); color: var(--signal); background: var(--bg-2); font: 700 9px var(--font); cursor: pointer; }
 .snd-previews button:hover { border-color: var(--signal); background: var(--signal-soft); }
+.snd-radio { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 11px; }
+.snd-radio-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.snd-radio-head b { color: var(--signal); letter-spacing: .2em; font-size: 10px; }
+.snd-radio-head button { padding: 4px 7px; font-size: 9px; }
+.snd-radio-head button:disabled { opacity: .4; cursor: default; }
+.snd-radio-note { margin: 6px 0 8px; color: var(--dim); font-size: 9px; line-height: 1.45; }
+.snd-radio-list { display: grid; gap: 4px; }
+.snd-radio-list button { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 6px;
+  padding: 7px 6px; text-align: left; border: 1px solid var(--line); color: var(--fg); background: var(--bg-2); cursor: pointer; font: 10px var(--font); }
+.snd-radio-list button:hover, .snd-radio-list button.on { border-color: var(--signal); background: var(--signal-soft); }
+.snd-radio-list .snd-radio-mark { color: var(--signal); font-size: 16px; text-align: center; }
+.snd-radio-list b { display: block; color: var(--fg-bright); font-size: 10px; letter-spacing: .08em; }
+.snd-radio-list small { display: block; color: var(--dim); font-size: 9px; line-height: 1.3; }
+.snd-radio-list em { color: var(--signal); font-size: 8px; font-style: normal; white-space: nowrap; }
+.snd-radio-volume { padding-bottom: 2px; }
+.snd-radio-state { color: var(--signal); font-size: 9px; letter-spacing: .12em; padding-top: 4px; min-height: 16px; }
 body.reduce-motion .sound-pop { animation: none; }
 /* Header buttons hidden from Settings glitch out, then their space closes;
    showing one plays the same in reverse. */

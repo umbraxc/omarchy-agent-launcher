@@ -325,7 +325,7 @@
         </div>
       </section>
       <section class="set-section"><div class="lib-head">SOUND</div>
-        ${toggle("sound", "Sound effects", "Startup, clicks, search and answer sounds")}
+        ${toggle("sound", "All sound", "Effects and the offline radio")}
         <label class="set-row"><span class="set-text"><b>Volume</b><small>How loud Umbra's sounds are</small></span>
           <input type="range" class="set-volume" min="0" max="1" step="0.05"></label>
         <label class="set-row"><span class="set-text"><b>Notification sounds</b><small>Pop-ups, first-look notes, achievements and finished downloads. All the way left turns them off</small></span>

@@ -304,7 +304,7 @@ function setMuted(value, save = true) {
   panel.className = "sound-pop";
   panel.hidden = true;
   panel.innerHTML = `<div class="snd-head"><b>◆ SOUND</b><button class="ghost snd-close" title="Close sound controls">✕</button></div>
-    <label class="snd-switch"><span>Sound effects<small>Clicks, alerts and startup</small></span><input class="snd-on" type="checkbox"></label>
+    <label class="snd-switch"><span>All sound<small>Effects and offline radio</small></span><input class="snd-on" type="checkbox"></label>
     <label class="snd-range"><span>Effects volume <output class="snd-vol-value"></output></span><input class="snd-volume" type="range" min="0" max="1" step="0.05"></label>
     <label class="snd-range"><span>Notification volume <output class="snd-notify-value"></output></span><input class="snd-notify" type="range" min="0" max="1" step="0.05"></label>
     <label class="snd-switch"><span>Hover sounds<small>Soft blips over controls</small></span><input class="snd-hover" type="checkbox"></label>
@@ -348,6 +348,7 @@ function setMuted(value, save = true) {
   }
   q(".snd-previews").addEventListener("click", (e) => { const sample = e.target.closest("button[data-sample]"); if (sample) Sound[sample.dataset.sample](); });
   document.addEventListener("pointerdown", (e) => { if (!panel.hidden && !panel.contains(e.target) && !button.contains(e.target)) close(); }, true);
+  document.addEventListener("click", (e) => { if (!panel.hidden && !panel.contains(e.target) && !button.contains(e.target)) close(); }, true);
   document.addEventListener("keydown", (e) => { if (!panel.hidden && (e.key === "Escape" || e.ctrlKey || e.metaKey)) close(); }, true);
   document.addEventListener("umbra-sound-change", sync);
   window.addEventListener("resize", () => { if (!panel.hidden) place(); });

@@ -1,0 +1,6 @@
+[
+  {"id":"forest","title":"FOREST DAWN","kind":"NATURE","line":"Breeze, leaves and distant birds","seconds":48},
+  {"id":"rain","title":"RAIN SHELTER","kind":"AMBIENCE","line":"Steady rain and low distant rumble","seconds":44},
+  {"id":"jazz","title":"MIDNIGHT JAZZ","kind":"INSTRUMENTAL","line":"Electric piano, bass and brushed rhythm","seconds":43},
+  {"id":"grid","title":"GRID PULSE","kind":"ELECTRONIC","line":"Original low synths and a measured pulse","seconds":38}
+]

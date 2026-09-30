@@ -356,6 +356,11 @@ backups, and **off-grid mode**: a battery saver that calms the animations,
 skips Umbra's extra AI work and keeps answers short, automatically when you
 unplug if you like.
 
+The speaker button opens sound controls beneath it: mute, effects and
+notification volume, hover sounds, and a small offline radio. Its four original
+looping tracks include nature, rain, instrumental jazz and electronic ambience.
+The radio continues while you move among Umbra's screens; Stop ends it.
+
 ![Settings](docs/settings.png)
 
 ---
@@ -631,8 +636,8 @@ Umbra plays its sounds with a small system program: `pw-play` (from
 package lists them as optional, so a minimal Arch install may have neither,
 and Umbra then stays silent. Go through these steps in order:
 
-1. **Unmute Umbra.** The speaker button in the top right (or Settings → Sound →
-   Sound effects) should be on, and the volume above zero.
+1. **Unmute Umbra.** Open the speaker button in the top right (or Settings →
+   Sound → All sound). Check the relevant effects or radio volume is above zero.
 2. **Look at Settings → Sound.** If it says *No sound player is installed*, it
    shows the exact command to run. Otherwise, run this check in a terminal
    while Umbra is open. It changes nothing and plays one beep:

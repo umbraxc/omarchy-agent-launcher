@@ -25,6 +25,7 @@ import threading
 import time
 import urllib.parse
 import urllib.request
+import wave
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -1088,6 +1089,119 @@ def library():
 
 SOUNDS_DIR = os.path.join(APP_DIR, "sounds")
 _last_sound = {}
+
+# A single local radio stream loops bundled PCM without a decoder or network.
+# Each window has an owner token so closing one window cannot stop another's
+# selection. The stream uses the configured output device and its own volume.
+_radio_lock = threading.Lock()
+_radio_owner = ""
+_radio_track = ""
+_radio_proc = None
+_radio_stop = None
+_radio_error = ""
+
+
+def radio_catalog():
+    with open(os.path.join(SOUNDS_DIR, "radio", "catalog.json"), encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def radio_state():
+    with _radio_lock:
+        track, playing, error = _radio_track, bool(_radio_stop and not _radio_stop.is_set()), _radio_error
+    return {"catalog": radio_catalog(), "track": track, "playing": playing, "error": error,
+            "volume": read_json(SETTINGS_FILE, {}).get("radioVolume", 0.4)}
+
+
+def radio_command(volume):
+    if WINDOWS:
+        return None  # Windows uses the WebView's native audio element.
+    runtime = os.environ.get("XDG_RUNTIME_DIR") or "/tmp"
+    if shutil.which("pw-play") and os.path.exists(os.path.join(runtime, "pipewire-0")):
+        return ["pw-play", *audio_target("audioOut"), "--raw", "--rate", "22050", "--channels", "2",
+                "--format", "s16", "--volume", f"{volume:.2f}", "-P",
+                '{ application.name = "Umbra Wiki Radio" media.role = "Music" }', "-"]
+    if shutil.which("paplay"):
+        sink = read_json(SETTINGS_FILE, {}).get("audioOut", "")
+        return ["paplay", *( ["--device=" + sink] if sink else []), "--raw", "--rate=22050",
+                "--channels=2", "--format=s16le", f"--volume={int(volume * 65536)}", "-"]
+    return None
+
+
+def _radio_loop(track, command, stop):
+    global _radio_proc, _radio_track, _radio_stop, _radio_error
+    proc = None
+    try:
+        path = os.path.join(SOUNDS_DIR, "radio", track + ".wav")
+        with wave.open(path, "rb") as audio:
+            if (audio.getnchannels(), audio.getsampwidth(), audio.getframerate()) != (2, 2, 22050):
+                raise ValueError("invalid bundled radio track")
+            proc = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            with _radio_lock:
+                if _radio_stop is stop: _radio_proc = proc
+                else: stop.set()
+            while not stop.is_set():
+                chunk = audio.readframes(4096)
+                if not chunk:
+                    audio.rewind()
+                    continue
+                proc.stdin.write(chunk)
+    except (OSError, ValueError, BrokenPipeError) as exc:
+        with _radio_lock:
+            if _radio_stop is stop and not stop.is_set(): _radio_error = "Audio playback stopped: " + str(exc)[:100]
+    finally:
+        if proc:
+            try: proc.stdin.close()
+            except OSError: pass
+            if proc.poll() is None:
+                proc.terminate()
+            try: proc.wait(timeout=2)
+            except subprocess.TimeoutExpired: proc.kill()
+        with _radio_lock:
+            if _radio_stop is stop:
+                _radio_proc = None
+                if not stop.is_set():
+                    _radio_track = ""
+                    _radio_stop = None
+
+
+def radio_control(request):
+    global _radio_owner, _radio_track, _radio_proc, _radio_stop, _radio_error
+    if not isinstance(request, dict):
+        raise ValueError("invalid radio request")
+    owner = request.get("owner", "")
+    track = request.get("track", "")
+    volume = request.get("volume", read_json(SETTINGS_FILE, {}).get("radioVolume", 0.4))
+    if not isinstance(owner, str) or not re.fullmatch(r"[a-zA-Z0-9-]{8,64}", owner):
+        raise ValueError("invalid radio window")
+    if not isinstance(track, str) or (track and (not re.fullmatch(r"[a-z0-9-]{1,30}", track) or track not in {x["id"] for x in radio_catalog()})):
+        raise ValueError("unknown radio track")
+    if isinstance(volume, bool) or not isinstance(volume, (int, float)) or not math.isfinite(volume) or not 0 <= volume <= 1:
+        raise ValueError("invalid radio volume")
+    apply_settings({"radioVolume": volume})
+    command = radio_command(volume) if track else None
+    if track and not command and not WINDOWS:
+        raise ValueError("No local audio output is available; check Sound settings")
+    with _radio_lock:
+        if not track and owner != _radio_owner:
+            return radio_state_unlocked()
+        old_stop, old_proc = _radio_stop, _radio_proc
+        if old_stop: old_stop.set()
+        _radio_owner, _radio_track, _radio_proc, _radio_error = (owner if track else ""), track, None, ""
+        _radio_stop = threading.Event() if track and not WINDOWS else None
+        stop = _radio_stop
+    if old_proc and old_proc.poll() is None:
+        old_proc.terminate()
+    if stop:
+        threading.Thread(target=_radio_loop, args=(track, command, stop), daemon=True, name="umbra-radio").start()
+    return radio_state()
+
+
+def radio_state_unlocked():
+    """Only for a caller already holding _radio_lock."""
+    return {"catalog": radio_catalog(), "track": _radio_track,
+            "playing": bool(_radio_stop and not _radio_stop.is_set()), "error": _radio_error,
+            "volume": read_json(SETTINGS_FILE, {}).get("radioVolume", 0.4)}
 
 
 _hum = None
@@ -2700,6 +2814,8 @@ def apply_settings(update):
             settings["notifyVolume"] = max(0.0, min(1.0, float(update["notifyVolume"])))
         if isinstance(update.get("volume"), (int, float)):
             settings["volume"] = max(0.0, min(1.0, float(update["volume"])))
+        if isinstance(update.get("radioVolume"), (int, float)) and not isinstance(update["radioVolume"], bool) and math.isfinite(update["radioVolume"]):
+            settings["radioVolume"] = round(max(0.0, min(1.0, float(update["radioVolume"]))), 2)
         if update.get("cpuLimit") in CPU_LIMITS:
             settings["cpuLimit"] = update["cpuLimit"]
         for key in ("scenario", "personality"):
@@ -3496,6 +3612,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(st)
         if path == "/api/waypoints":
             return self.send_json(get_waypoints())
+        if path == "/api/radio":
+            return self.send_json(radio_state())
         if path == "/api/supplies":
             return self.send_json(get_supplies())
         if path == "/api/mapsearch":
@@ -3888,6 +4006,11 @@ class Handler(BaseHTTPRequestHandler):
             elif not muted:
                 play_sound(name)
             return self.send_json({"ok": True})
+        if self.path == "/api/radio":
+            try:
+                return self.send_json(radio_control(self.read_json()))
+            except (ValueError, TypeError) as e:
+                return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/library/download":
             ids = self.read_json().get("ids") or []
             return self.send_json({"ok": start_download([str(i) for i in ids])})
