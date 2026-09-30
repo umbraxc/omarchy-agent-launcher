@@ -75,7 +75,8 @@
 
   function render(now) {
     const btn = $("#dl-btn"), kinds = Object.keys(now);
-    btn.hidden = !kinds.length;
+    // The guided tour introduces this tab even before the first download.
+    btn.hidden = !kinds.length && !document.body.classList.contains("touring");
     if (!kinds.length && open) toggle(false);
     const running = kinds.filter((k) => now[k].active && !now[k].paused);
     const pct = kinds.length ? Math.round(kinds.reduce((n, k) => n + now[k].pct, 0) / kinds.length) : 0;
