@@ -8,7 +8,7 @@
 
 (() => {
   const DEFAULTS = {
-    volume: 0.9, hoverSounds: true, rain: true, background: "rain", reduceMotion: false, offgrid: "off", textScale: 1, cpuLimit: 100,
+    volume: 0.9, notifyVolume: 0.5, radioVolume: 0.4, hoverSounds: true, rain: true, background: "rain", reduceMotion: false, offgrid: "off", textScale: 1, cpuLimit: 100,
     suggestions: true, greeting: true, barAlert: true,
   };
   window.prefs = { ...DEFAULTS, hiddenControls: [] };
@@ -98,8 +98,30 @@
   function save(update) {
     Object.assign(prefs, update);
     applyPrefs();
+    if (Object.keys(update).some((key) => ["volume", "notifyVolume", "radioVolume", "hoverSounds"].includes(key))) audioPrefsChanged(update);
     return postSettings(update);
   }
+  function syncAudioControls() {
+    const controls = [[".set-volume", prefs.volume], [".set-notify-volume", prefs.notifyVolume], [".set-radio-volume", window.UmbraRadio?.volume ?? prefs.radioVolume]];
+    for (const [sel, value] of controls) {
+      const input = body.querySelector(sel);
+      if (input && document.activeElement !== input) input.value = value;
+      const output = input?.closest(".set-row")?.querySelector("output");
+      if (output) output.textContent = Math.round(Number(value) * 100) + "%";
+    }
+    const all = body.querySelector('.set-toggle[data-key="sound"]'); if (all) all.checked = !Sound.muted;
+    const hover = body.querySelector('.set-toggle[data-key="hoverSounds"]'); if (hover) hover.checked = prefs.hoverSounds !== false;
+    const radio = window.UmbraRadio;
+    const tracks = body.querySelector(".set-radio-tracks");
+    if (tracks && radio) {
+      tracks.innerHTML = `<option value="">Stopped</option>${radio.catalog.map((x) => `<option value="${escapeHtml(x.id)}">${escapeHtml(x.title)}</option>`).join("")}`;
+      tracks.value = radio.track;
+    }
+    const state = body.querySelector(".set-radio-state"); if (state) state.textContent = radio?.status || "Offline radio unavailable";
+  }
+  document.addEventListener("umbra-audio-prefs", syncAudioControls);
+  document.addEventListener("umbra-radio-change", syncAudioControls);
+  document.addEventListener("umbra-sound-change", syncAudioControls);
 
   // ---------------------------------------------------------- search
 
@@ -326,11 +348,18 @@
       </section>
       <section class="set-section"><div class="lib-head">SOUND</div>
         ${toggle("sound", "All sound", "Effects and the offline radio")}
-        <label class="set-row"><span class="set-text"><b>Volume</b><small>How loud Umbra's sounds are</small></span>
-          <input type="range" class="set-volume" min="0" max="1" step="0.05"></label>
+        <label class="set-row"><span class="set-text"><b>Effects volume</b><small>How loud Umbra's interface sounds are</small></span>
+          <span class="set-audio-range"><input type="range" class="set-volume" min="0" max="1" step="0.05"><output></output></span></label>
         <label class="set-row"><span class="set-text"><b>Notification sounds</b><small>Pop-ups, first-look notes, achievements and finished downloads. All the way left turns them off</small></span>
-          <input type="range" class="set-notify-volume" min="0" max="1" step="0.05"></label>
+          <span class="set-audio-range"><input type="range" class="set-notify-volume" min="0" max="1" step="0.05"><output></output></span></label>
         ${toggle("hoverSounds", "Hover sounds", "Soft blips when the mouse moves over buttons")}
+        <label class="set-row"><span class="set-text"><b>Offline radio</b><small>Bundled loops play while you move between screens</small></span>
+          <select class="set-radio-tracks" aria-label="Offline radio track"><option value="">Stopped</option></select></label>
+        <label class="set-row"><span class="set-text"><b>Radio volume</b><small>Separate from interface effects</small></span>
+          <span class="set-audio-range"><input type="range" class="set-radio-volume" min="0" max="1" step="0.05"><output></output></span></label>
+        <p class="lib-note set-radio-state" role="status"></p>
+        <div class="set-row"><span class="set-text"><b>Preview effects</b><small>Hear interface, notification and alert sounds</small></span>
+          <span class="set-previews"><button class="ghost set-sample" data-sample="click" type="button">CLICK</button><button class="ghost set-sample" data-sample="achieve" type="button">NOTIFY</button><button class="ghost set-sample" data-sample="error" type="button">ALERT</button></span></div>
         <label class="set-row"><span class="set-text"><b>Sound output</b><small>Where Umbra's sounds play</small></span>
           <span class="set-previews"><select class="set-audio-out"></select><button class="ghost set-audio-test">▶ TEST</button></span></label>
         <label class="set-row"><span class="set-text"><b>Microphone</b><small class="set-audio-in-note">What voice input listens to</small></span>
@@ -614,6 +643,20 @@
     const vol = body.querySelector(".set-volume");
     vol.value = prefs.volume;
     vol.addEventListener("change", () => { save({ volume: Number(vol.value) }); Sound.click(); });
+    for (const input of [vol, nv]) input.addEventListener("input", () => {
+      audioPrefsChanged({ [input === vol ? "volume" : "notifyVolume"]: Number(input.value) });
+    });
+    body.querySelector(".set-radio-tracks").addEventListener("change", (e) => {
+      if (e.target.value) window.UmbraRadio?.select(e.target.value); else window.UmbraRadio?.stop();
+    });
+    const rv = body.querySelector(".set-radio-volume");
+    rv.addEventListener("input", () => {
+      const output = rv.closest(".set-row").querySelector("output");
+      output.textContent = Math.round(Number(rv.value) * 100) + "%";
+    });
+    rv.addEventListener("change", () => window.UmbraRadio?.setVolume(rv.value));
+    body.querySelectorAll(".set-sample").forEach((button) => button.addEventListener("click", () => Sound[button.dataset.sample]()));
+    syncAudioControls();
 
     const select = body.querySelector(".set-model");
     select.addEventListener("change", async () => {

@@ -542,7 +542,8 @@ def save_farm(data):
         entry = {"id": item["id"], "amount": number(item.get("amount"), 1, 0, 100000),
                  "cycles": number(item.get("cycles"), 1, 0, 12)}
         for key, high in (("yieldKg", 10000), ("kcalKg", 10000), ("seedKgM2", 10),
-                          ("feedKgDay", 1000), ("feedKcalKg", 10000), ("workHours", 1000)):
+                          ("feedKgDay", 1000), ("feedKcalKg", 10000), ("workHours", 1000),
+                          ("plantSpaceM2", 100), ("housingM2", 10000)):
             if key in item:
                 entry[key] = number(item[key], 0, 0, high)
         clean.append(entry)
@@ -3418,6 +3419,45 @@ def user_context(question="", client=None):
     q = question.lower()
     wants = lambda pattern: bool(re.search(pattern, q, re.I))
     lines = []
+    farm_topic = wants(r"\b(farm|farming|crop|livestock|planting|harvest|growing|grow|soil|pasture|grazing|my animals?|my chickens?|my pigs?|my cows?|my goats?|my sheep|my garden|my field|my plan)\b")
+    if not farm_topic and wants(r"\b(my|our)\b"):
+        try:
+            farm_topic = any(re.search(r"\b" + re.escape(x["name"].lower()) + r"(?:s|es)?\b", q)
+                             for x in farm_catalog()["crops"] + farm_catalog()["livestock"])
+        except (OSError, ValueError):
+            pass
+    if farm_topic:
+        try:
+            farm = get_farm()
+            entries = farm.get("items") or []
+            book = farm_catalog()
+            mentioned = [x for x in book["crops"] + book["livestock"]
+                         if re.search(r"\b" + re.escape(x["name"].lower()) + r"(?:s|es)?\b", q)]
+            if mentioned:
+                details = []
+                for data in mentioned[:3]:
+                    if "yieldKgM2" in data:
+                        details.append(f'{data["name"]}: approximate first harvest {data["days"]} days; temperature {data["tempC"][0]}–{data["tempC"][1]}°C; soil {data["soil"]}; water {data["water"]}; planning spacing {data.get("plantSpaceM2", 0):g} m² per plant; care: {" ".join(data.get("care", [])[:2])}')
+                    else:
+                        details.append(f'{data["name"]} ({data["product"]}): {data["climate"]}; shelter planning start {data["housingM2"]:g} m² per animal, outdoor space additional; care: {" ".join(data.get("care", [])[:2])}')
+                lines.append("Bundled Farming catalog (editable illustrative starts; check local conditions): " + "; ".join(details) + ".")
+            if entries:
+                lookup = {x["id"]: x for x in book["crops"] + book["livestock"]}
+                selected = []
+                for entry in entries:
+                    data = lookup.get(entry.get("id"))
+                    if not data:
+                        continue
+                    name = data["name"]
+                    if any(word in q for word in (name.lower(), entry["id"].replace("-", " "))) or wants(r"\b(my|our|farm|farming|plan|garden|field|livestock|crops?)\b"):
+                        quantity = f'{entry.get("amount", 0):g} m² planted' if "yieldKgM2" in data else f'{entry.get("amount", 0):g} animals'
+                        selected.append(f'{name} ({data.get("product", "crop")}; {quantity}; {entry.get("cycles", 1):g} cycles/year)')
+                if selected:
+                    lines.append("Their saved Farming plan, editable local estimates: " + "; ".join(selected[:12])
+                                 + (f"; and {len(selected) - 12} more" if len(selected) > 12 else "")
+                                 + ". Use the Farming tab for current figures; do not imply annual averages are steady daily harvests.")
+        except (OSError, ValueError, TypeError, KeyError):
+            pass
     if wants(r"\b(achievement|rank|locker|my progress|my record)\b"):
         try:
             a = achievements(False)

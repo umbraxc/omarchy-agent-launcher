@@ -30,7 +30,7 @@
     return { outputKg, outputKcal, seedKg: 0, seedKcal: 0, feedKg,
       feedKcal: feedKg * numeric(entry, "feedKcalKg", data.feedKcalKg),
       work: amount * cycles * data.cycleDays / 7 * numeric(entry, "workHours", data.workHoursWeek),
-      land: 0, housing: amount * data.housingM2, overYear: cycles * data.cycleDays > 365 };
+      land: 0, housing: amount * numeric(entry, "housingM2", data.housingM2), overYear: cycles * data.cycleDays > 365 };
   }
   function totals() {
     const sum = { outputKg: 0, outputKcal: 0, seedKg: 0, seedKcal: 0, feedKg: 0, feedKcal: 0, work: 0, land: 0, housing: 0, overYear: false };
@@ -51,6 +51,47 @@
     /__/__/__/__\\     /  _  \\     /__\\__\\__\\__\\
      || || || ||       |  | |  |       || || || ||
   ___||_||_||_||_______|__|_|__|_______||_||_||_||___`;
+  const cropForms = {
+    Grains: ["     /|  |/", "    / | /|", "      |  |", "      |  |", "   ___|__|___"],
+    "Roots & tubers": ["      .|.", "     ( | )", "       |", "      / |", "     /  |"],
+    Legumes: ["      /|", "     (  )   ()", "      ||---'", "      ||", "    __||__"],
+    Oilseeds: ["       @", "     @@@@", "    @ (o) @", "      ||", "    __||__"],
+    Alliums: ["     | | |", "      | |", "     (   )", "      ( )", "      |_|"],
+    Brassicas: ["    .-~~~~-.", "   (  .--.  )", "  (  (    )  )", "   (______)", "      ||"],
+    "Leafy greens": ["    /|  |/", "   ( |  | )", "    (|  |)", "      ||", "    __||__"],
+    "Fruit vegetables": ["    |  /|", "    | / |", "    |/  |", "   (  o  )", "    (___)"],
+    Fruit: ["      /|", "     / |", "   o  |  o", "      |", "    __|__"],
+    Vegetables: ["     .-~~-.", "   .'  /|  '.", "  (  (____)  )", "   '._    _.'", "      ||"],
+  };
+  const cropArt = {
+    wheat:["    <\\ | />", "     <\\|/>", "      /|", "     / |", "   ___|___"],
+    maize:["      /|", "    |/ ||", "   (###)||", "    |  ||", "   _|__||_"],
+    potato:["    /|  |/", "      ||", "   .--||--.", "  ( o    o )", "   '------'"],
+    carrot:["    /| | |/", "     ( | )", "      ( )", "       V", "       |"],
+    tomato:["     /|  |/", "      |  |", "    (o) (o)", "      |  |", "    __|__|__"],
+    pumpkin:["      /|", "    .--|--.", "   /  | |  |", "  (   | |   )", "   '-----'"],
+    sunflower:["     @@@@@", "    @ (o) @", "     @@@@@", "       ||", "     __||__"],
+    strawberry:["     /| |/", "     (o o)", "    (o o o)", "     '---'", "      ||"],
+  };
+  const animalForms = {
+    Chicken:["    ,~.","   (o  )>","   /|  |", "    /  |", "  _/____|_"],
+    Duck:["    __", " __(o )__", "/   >    )","(_______/","   /    |"],
+    Pig:["   .------.","  /  o  o  |"," (    (oo)   )","  (________)","   /|    |"],
+    Cow:["  /|      |/"," (  )____(  )"," |  o    o  |"," |   (__)   |","  (________)"],
+    Goat:["  /|  |/"," (  |__/  )"," |  o  o  |","  (  --  )","   /|____|"],
+    Sheep:["  .-~~~~~~-."," (  o    o  )","(   (____)   )"," '._      _.'","   /|____|"],
+    Rabbit:["   /|  |/","  /  |/  |"," (  o  o  )","  (  ^^  )","   /____|"],
+    Turkey:["  | | | //"," --(o o)--","   (  >  )","    /| |","   /_| |_"],
+    Goose:["    __"," __/o )","/   __/","(____)~~","  /  |"],
+    Quail:["  .-~~~-."," ( o   o )","  (  >  )","   '---'","   /   |"],
+    Carp:["   /|","<===( o)>","   |/"],
+    Tilapia:["    /|___","<===( o  )>","    |/~~~"],
+    "Water buffalo":["  /|      |/"," /  |____/  |","|   o    o   |","|    (__)    |"," (__________)"],
+  };
+  function itemArt(d, crop) {
+    const shape = crop ? (cropArt[d.id] || cropForms[d.group] || cropForms.Vegetables) : (animalForms[d.name] || animalForms.Cow);
+    return [...shape, "", "  [ " + d.name.toUpperCase() + " ]"].join("\n");
+  }
 
   function build() {
     const panel = document.createElement("div");
@@ -61,10 +102,10 @@
         <input class="fm-search" type="search" placeholder="Search crops or animals…" aria-label="Search farming catalog">
         <div class="fm-filter"><button data-kind="all" class="on">ALL</button><button data-kind="crop">CROPS</button><button data-kind="stock">LIVESTOCK</button></div>
         <div class="fm-catalog-list"></div></aside><main class="fm-main"><div class="fm-hero"><pre class="fm-art" aria-hidden="true"></pre>
-        <div><small>UMBRA // AGRICULTURE</small><h2>Plan your food production.</h2><p>Compare food output, planting seed, animal feed and work over a planning year. Change every estimate to fit your own farm.</p></div></div>
-        <div class="fm-target"><label>PEOPLE IN PLAN <input class="fm-people" type="number" min="1" max="100" step="1"></label>
+        <div><small class="fm-hero-kicker">UMBRA // AGRICULTURE</small><h2 class="fm-hero-name">Plan your food production.</h2><p class="fm-hero-desc">Select a crop or animal to see its needs, then add it to your plan.</p></div></div>
+        <details class="fm-comparison"><summary>HOUSEHOLD CALORIE COMPARISON · OPTIONAL</summary><div class="fm-target"><label>PEOPLE IN PLAN <input class="fm-people" type="number" min="1" max="100" step="1"></label>
           <label>COMPARISON TARGET · KCAL / PERSON / DAY <input class="fm-target-kcal" type="number" min="500" max="5000" step="50"></label>
-          <span>Math reference only; set a target appropriate to your household.</span></div>
+          <span>Choose your own reference target. This is a planning comparison, not nutritional advice.</span></div></details>
         <div class="fm-stats"></div><div class="fm-content"><section class="fm-plan"><div class="fm-title"><b>YOUR PRODUCTION PLAN</b><small class="fm-save-state"></small></div><div class="fm-rows"></div></section>
           <section class="fm-detail"><div class="fm-title"><b>FIELD NOTES & ESTIMATES</b></div><div class="fm-detail-inner"></div></section></div>
         <details class="fm-method"><summary>DATA, SOURCES & LIMITS</summary><div class="fm-method-inner"></div></details></main></div>`;
@@ -81,10 +122,7 @@
     $f(".fm-catalog-list").addEventListener("click", (e) => {
       const button = e.target.closest("button[data-id]"); if (!button) return;
       const id = button.dataset.id;
-      if (!plan.items.some((x) => x.id === id)) {
-        plan.items.push({ id, amount: isCrop(id) ? 10 : 1, cycles: isCrop(id) ? 1 : item(id).defaultCycles });
-        scheduleSave(); Sound.found();
-      } else Sound.click();
+      Sound.click();
       chosen = id; renderPlan(); renderDetail(); renderCatalog();
     });
     $f(".fm-rows").addEventListener("click", (e) => {
@@ -92,7 +130,7 @@
       if (!row) return;
       if (del) {
         plan.items = plan.items.filter((x) => x.id !== row.dataset.id);
-        if (chosen === row.dataset.id) chosen = plan.items[0]?.id || "";
+        if (chosen === row.dataset.id) chosen = row.dataset.id;
         scheduleSave(); renderPlan(); renderDetail(); renderCatalog(); Sound.click();
       } else { chosen = row.dataset.id; renderPlan(); renderDetail(); Sound.click(); }
     });
@@ -109,14 +147,30 @@
       if (!Number.isFinite(val) || val < +input.min || val > +input.max) return;
       const entry = plan.items.find((x) => x.id === chosen);
       if (!entry) return;
-      entry[input.dataset.field] = val;
+      if (input.dataset.field === "plants") entry.amount = val * numeric(entry, "plantSpaceM2", item(chosen).plantSpaceM2);
+      else entry[input.dataset.field] = val;
+      if (input.dataset.field === "plantSpaceM2" || input.dataset.field === "amount") {
+        const plants = $f('.fm-detail-inner input[data-field="plants"]');
+        if (plants) plants.value = Math.round(entry.amount / numeric(entry, "plantSpaceM2", item(chosen).plantSpaceM2));
+      }
+      if (input.dataset.field === "plants") {
+        const area = $f('.fm-detail-inner input[data-field="amount"]'); if (area) area.value = +entry.amount.toFixed(3);
+      }
+      renderDetailFigures();
       renderStats(); renderPlan(); scheduleSave();
     });
     $f(".fm-detail-inner").addEventListener("click", (e) => {
+      if (e.target.closest(".fm-add")) {
+        if (!plan.items.some((x) => x.id === chosen)) {
+          plan.items.push({ id: chosen, amount: isCrop(chosen) ? 10 : 1, cycles: isCrop(chosen) ? 1 : item(chosen).defaultCycles });
+          scheduleSave(); renderPlan(); renderDetail(); renderCatalog(); Sound.found();
+        }
+        return;
+      }
       if (!e.target.closest(".fm-defaults")) return;
       const entry = plan.items.find((x) => x.id === chosen);
       if (!entry) return;
-      for (const key of ["yieldKg", "kcalKg", "seedKgM2", "feedKgDay", "feedKcalKg", "workHours"]) delete entry[key];
+      for (const key of ["yieldKg", "kcalKg", "seedKgM2", "feedKgDay", "feedKcalKg", "workHours", "plantSpaceM2", "housingM2"]) delete entry[key];
       renderDetail(); renderStats(); renderPlan(); scheduleSave(); Sound.click();
     });
     document.addEventListener("keydown", (e) => {
@@ -151,16 +205,16 @@
     $f(".fm-catalog-list").innerHTML = entries.length ? entries.map((x) => {
       const added = plan.items.some((p) => p.id === x.id);
       return `<button data-id="${safe(x.id)}" class="fm-catalog-item${x.id === chosen ? " on" : ""}"><span class="fm-type">${x.type === "crop" ? "✣" : "◇"}</span>
-        <span><b>${safe(x.name)}</b><small>${safe(x.group)} · ${n(x.kcalKg)} kcal/kg</small></span><em>${added ? "IN PLAN" : "+ ADD"}</em></button>`;
+        <span><b>${safe(x.name)}</b><small>${safe(x.group)}${x.product ? " · " + safe(x.product) : ""}</small></span><em>${added ? "IN PLAN" : "VIEW"}</em></button>`;
     }).join("") : `<p class="lib-note">No match in the bundled catalog.</p>`;
   }
   function renderStats() {
     const t = totals(), need = (plan.people || 1) * (plan.targetKcal || 2000) * 365;
     const days = t.outputKcal / ((plan.people || 1) * (plan.targetKcal || 2000));
-    $f(".fm-stats").innerHTML = `<div><small>ESTIMATED FOOD OUTPUT / YEAR</small><b>${n(t.outputKcal)} <em>kcal</em></b><span>${n(t.outputKg, 1)} kg edible mass · ${n(days, 1)} household target days</span></div>
-      <div><small>COMPARISON TARGET / YEAR</small><b>${n(need)} <em>kcal</em></b><span>${n(need ? 100 * t.outputKcal / need : 0, 1)}% of the selected reference target</span></div>
-      <div><small>PLANTING & FEED INPUT</small><b>${n(t.seedKcal + t.feedKcal)} <em>kcal</em></b><span>${n(t.seedKg, 1)} kg edible seed · ${n(t.feedKg, 1)} kg animal feed</span></div>
-      <div><small>LAND & WORK</small><b>${n(t.land, 1)} <em>m² planted</em></b><span>${n(t.housing, 1)} m² animal housing · ≈${n(t.work, 1)} work h/year</span></div>`;
+    $f(".fm-stats").innerHTML = `<div><small>FOOD / DAY · AVERAGE</small><b>${n(t.outputKg / 365, 2)} <em>kg</em></b><span>${n(t.outputKcal / 365)} kcal · seasonal output averaged</span></div>
+      <div><small>FOOD / WEEK · AVERAGE</small><b>${n(t.outputKg / 52, 2)} <em>kg</em></b><span>${n(t.outputKcal / 52)} kcal · ${n(days, 1)} household target days/year</span></div>
+      <div><small>FOOD / YEAR</small><b>${n(t.outputKg, 1)} <em>kg</em></b><span>${n(t.outputKcal)} kcal · ${n(need ? 100 * t.outputKcal / need : 0, 1)}% of comparison target</span></div>
+      <div><small>SPACE & INPUTS</small><b>${n(t.land + t.housing, 1)} <em>m²</em></b><span>${n(t.land, 1)} planted + ${n(t.housing, 1)} shelter · ${n(t.seedKg + t.feedKg, 1)} kg seed/feed</span></div>`;
     $f(".fm-stats").classList.toggle("fm-empty", !plan.items.length);
     $f(".fm-method").querySelector("summary").textContent = t.overYear ? "DATA, SOURCES & LIMITS · CHECK CYCLES" : "DATA, SOURCES & LIMITS";
   }
@@ -168,34 +222,66 @@
     $f(".fm-rows").innerHTML = plan.items.length ? plan.items.map((entry) => {
       const data = item(entry.id), p = projection(entry), crop = isCrop(entry.id);
       return `<div class="fm-plan-row${chosen === entry.id ? " on" : ""}" data-id="${safe(entry.id)}"><span class="fm-type">${crop ? "✣" : "◇"}</span>
-        <span><b>${safe(data.name)}</b><small>${n(entry.amount, 1)} ${crop ? "m²" : "head"} · ${n(entry.cycles, 1)} cycle${entry.cycles === 1 ? "" : "s"}/year${p.overYear ? " · CHECK TIMING" : ""}</small></span>
+        <span><b>${safe(data.name)}</b><small>${crop ? "" : safe(data.product) + " · "}${n(entry.amount, 1)} ${crop ? "m²" : "head"} · ${n(entry.cycles, 1)} cycle${entry.cycles === 1 ? "" : "s"}/year${p.overYear ? " · CHECK TIMING" : ""}</small></span>
         <strong>${n(p.outputKcal)} kcal</strong><button class="ghost fm-remove" title="Remove from plan">✕</button></div>`;
     }).join("") : `<p class="fm-blank">Choose crops or livestock in the Field Book to build your plan. Your numbers save on this computer.</p>`;
     renderStats();
   }
   const input = (title, field, value, unit, min, max, step) => `<label class="fm-edit"><span>${title}</span><div><input type="number" data-field="${field}" value="${value}" min="${min}" max="${max}" step="${step}"><small>${unit}</small></div></label>`;
+  function renderDetailFigures() {
+    const entry = plan.items.find((x) => x.id === chosen);
+    if (!entry) return;
+    const p = projection(entry), crop = isCrop(chosen), d = item(chosen);
+    const box = $f(".fm-detail-inner");
+    const figure = box.querySelector(".fm-projection");
+    if (figure) figure.innerHTML = `<div><small>PER DAY · YEAR AVERAGE</small><b>${n(p.outputKg / 365, 2)} kg</b><span>${n(p.outputKcal / 365)} kcal</span></div>
+      <div><small>PER WEEK · YEAR AVERAGE</small><b>${n(p.outputKg / 52, 2)} kg</b><span>${n(p.outputKcal / 52)} kcal</span></div>
+      <div><small>PER YEAR</small><b>${n(p.outputKg, 1)} kg</b><span>${n(p.outputKcal)} kcal</span></div>`;
+    const land = box.querySelector(".fm-land-total");
+    if (land) land.textContent = crop
+      ? `${n(entry.amount, 2)} m² planted · about ${n(entry.amount / numeric(entry, "plantSpaceM2", d.plantSpaceM2))} plants at ${n(numeric(entry, "plantSpaceM2", d.plantSpaceM2), 3)} m² each`
+      : `${n(entry.amount * numeric(entry, "housingM2", d.housingM2), 1)} m² shelter for ${n(entry.amount)} animals (${n(numeric(entry, "housingM2", d.housingM2), 2)} m² each). Outdoor range, grazing or pond space is additional.`;
+    const note = box.querySelector(".fm-estimate-note");
+    if (note) note.textContent = (crop ? `Planting seed: ${n(p.seedKg, 2)} kg for planned cycles.` : `Feed: ${n(p.feedKg, 1)} kg for planned cycles.`) +
+      ` Work: about ${n(p.work, 1)} h/year. Daily and weekly values are annual averages; actual harvests and batches are seasonal.` +
+      (p.overYear ? " Selected cycles exceed 365 days; check timing." : "");
+  }
   function renderDetail() {
-    const entry = plan.items.find((x) => x.id === chosen), box = $f(".fm-detail-inner");
-    if (!entry) { box.innerHTML = `<p class="fm-blank">Select an entry to inspect climate, soil, timing, feed and calorie assumptions.</p>`; return; }
-    const d = item(chosen), crop = isCrop(chosen), p = projection(entry);
-    box.innerHTML = `<div class="fm-detail-name"><span>${crop ? "CROP" : "LIVESTOCK"} / ${safe(d.group)}</span><h3>${safe(d.name)}</h3><p>${safe(d.note)}</p></div>
-      <div class="fm-projection"><b>${n(p.outputKg, 1)} kg</b><span>edible output / planning year</span><strong>${n(p.outputKcal)} kcal</strong></div>
+    const d = item(chosen), box = $f(".fm-detail-inner");
+    if (!d) { box.innerHTML = `<p class="fm-blank">Choose a crop or animal in the Field Book to preview it. Nothing is added until you choose Add to plan.</p>`; return; }
+    const crop = isCrop(chosen), entry = plan.items.find((x) => x.id === chosen);
+    $f(".fm-art").textContent = itemArt(d, crop);
+    $f(".fm-hero-kicker").textContent = crop ? "CROP / " + d.group.toUpperCase() : "LIVESTOCK / " + d.group.toUpperCase();
+    $f(".fm-hero-name").textContent = d.name;
+    $f(".fm-hero-desc").textContent = crop ? `${d.days} days to first harvest · ${d.soil} · ${d.water} water` : `${d.product} · ${d.climate}`;
+    const preview = `<div class="fm-detail-name"><span>${crop ? "CROP" : "LIVESTOCK"} / ${safe(d.group)}</span><h3>${safe(d.name)}</h3><p>${safe(d.note)}</p></div>`;
+    if (!entry) {
+      box.innerHTML = preview + `<div class="fm-facts">${crop ? `<div><small>FIRST HARVEST</small><b>≈${d.days} days</b></div><div><small>GROWING TEMPERATURE</small><b>${d.tempC[0]}–${d.tempC[1]}°C</b></div><div><small>SOIL</small><b>${safe(d.soil)}</b></div><div><small>SOIL pH</small><b>${d.ph[0]}–${d.ph[1]}</b></div><div><small>WATER</small><b>${safe(d.water)}</b></div><div><small>SPACE START</small><b>≈${n(d.plantSpaceM2, 3)} m² / plant</b></div>` : `<div><small>PRODUCT</small><b>${safe(d.product)}</b></div><div><small>CYCLE</small><b>≈${d.cycleDays} days</b></div><div><small>CLIMATE</small><b>${safe(d.climate)}</b></div><div><small>SHELTER START</small><b>≈${d.housingM2} m² / animal</b></div>`}</div>
+        <div class="fm-care"><b>CARE & MAINTENANCE</b><ul>${(d.care || []).map((x) => `<li>${safe(x)}</li>`).join("")}</ul></div>
+        <p class="fm-estimate-note">These are starting estimates. Add this item to enter your own numbers and see land, feed, work and output.</p>
+        <button class="fm-add" type="button">+ ADD ${safe(d.name.toUpperCase())} TO PLAN</button>`;
+      return;
+    }
+    box.innerHTML = preview + `<div class="fm-projection"></div>
+      <p class="fm-average-note">Planning averages. Harvests, milk, eggs and meat arrive on different schedules.</p>
       <div class="fm-edit-grid">${input(crop ? "PLANTED AREA" : "ANIMALS", "amount", entry.amount, crop ? "m²" : "head", 0, crop ? 100000 : 10000, crop ? 0.1 : 1)}
-        ${input("CYCLES IN PLAN YEAR", "cycles", entry.cycles, "cycles", 0, 12, 0.1)}
-        ${input(crop ? "YIELD PER M² / CYCLE" : "EDIBLE KG / HEAD / CYCLE", "yieldKg", numeric(entry, "yieldKg", crop ? d.yieldKgM2 : d.outputKgCycle), "kg", 0, 10000, 0.01)}
+        ${crop ? `${input("APPROX. PLANTS", "plants", Math.round(entry.amount / numeric(entry, "plantSpaceM2", d.plantSpaceM2)), "plants", 0, 10000000, 1)}
+          ${input("SPACE PER PLANT", "plantSpaceM2", numeric(entry, "plantSpaceM2", d.plantSpaceM2), "m²", 0.001, 100, 0.001)}`
+        : input("SHELTER PER ANIMAL", "housingM2", numeric(entry, "housingM2", d.housingM2), "m²", 0, 10000, 0.1)}
+        ${input("CYCLES PER YEAR", "cycles", entry.cycles, "cycles", 0, 12, 0.1)}
+        ${input(crop ? "YIELD PER M² / CYCLE" : "EDIBLE KG / ANIMAL / CYCLE", "yieldKg", numeric(entry, "yieldKg", crop ? d.yieldKgM2 : d.outputKgCycle), "kg", 0, 10000, 0.01)}
         ${input("FOOD ENERGY", "kcalKg", numeric(entry, "kcalKg", d.kcalKg), "kcal/kg", 0, 10000, 10)}
         ${crop ? `${input("PLANTING SEED", "seedKgM2", numeric(entry, "seedKgM2", d.seedKgM2), "kg/m²/cycle", 0, 10, 0.001)}
           ${input("WORK", "workHours", numeric(entry, "workHours", d.workHours10M2), "h/10 m²/cycle", 0, 1000, 0.1)}`
-          : `${input("FEED PER DAY", "feedKgDay", numeric(entry, "feedKgDay", d.feedKgDay), "kg/head/day", 0, 1000, 0.01)}
+          : `${input("FEED PER DAY", "feedKgDay", numeric(entry, "feedKgDay", d.feedKgDay), "kg/animal", 0, 1000, 0.01)}
           ${input("FEED ENERGY", "feedKcalKg", numeric(entry, "feedKcalKg", d.feedKcalKg), "kcal/kg feed", 0, 10000, 10)}
-          ${input("WORK", "workHours", numeric(entry, "workHours", d.workHoursWeek), "h/head/week", 0, 1000, 0.1)}`}</div>
-      <div class="fm-facts">${crop ? `<div><small>FIRST HARVEST</small><b>≈${d.days} days</b></div><div><small>BEST GROWING TEMPERATURE</small><b>${d.tempC[0]}–${d.tempC[1]}°C</b></div>
-        <div><small>SOIL</small><b>${safe(d.soil)}</b></div><div><small>SOIL pH</small><b>${d.ph[0]}–${d.ph[1]}</b></div><div><small>WATER</small><b>${safe(d.water)}</b></div>`
-        : `<div><small>CYCLE</small><b>≈${d.cycleDays} days</b></div><div><small>OUTPUT</small><b>${safe(d.product)}</b></div><div><small>CLIMATE & CARE</small><b>${safe(d.climate)}</b></div>
-        <div><small>HOUSING</small><b>≈${d.housingM2} m²/head, pasture extra</b></div>`}</div>
-      <p class="fm-estimate-note">${crop ? `Planting seed: ${n(p.seedKg, 2)} kg, ≈${n(p.seedKcal)} kcal where edible seed is modelled.` : `Animal feed: ${n(p.feedKg, 1)} kg, ≈${n(p.feedKcal)} feed kcal. Feed energy is not human food energy.`}
-        Work: ≈${n(p.work, 1)} h/year.${p.overYear ? " Selected cycles need more than 365 days; check your schedule." : ""}</p>
-      <button class="ghost fm-defaults">RESTORE CATALOG ESTIMATES</button>`;
+          ${input("WORK", "workHours", numeric(entry, "workHours", d.workHoursWeek), "h/animal/week", 0, 1000, 0.1)}`}</div>
+      <div class="fm-land-total"></div>
+      <div class="fm-facts">${crop ? `<div><small>FIRST HARVEST</small><b>≈${d.days} days</b></div><div><small>GROWING TEMPERATURE</small><b>${d.tempC[0]}–${d.tempC[1]}°C</b></div><div><small>SOIL</small><b>${safe(d.soil)}</b></div><div><small>SOIL pH</small><b>${d.ph[0]}–${d.ph[1]}</b></div><div><small>WATER</small><b>${safe(d.water)}</b></div>`
+        : `<div><small>CYCLE</small><b>≈${d.cycleDays} days</b></div><div><small>OUTPUT</small><b>${safe(d.product)}</b></div><div><small>CLIMATE & CARE</small><b>${safe(d.climate)}</b></div>`}</div>
+      <div class="fm-care"><b>CARE & MAINTENANCE</b><ul>${(d.care || []).map((x) => `<li>${safe(x)}</li>`).join("")}</ul></div>
+      <p class="fm-estimate-note"></p><button class="ghost fm-defaults">RESTORE CATALOG ESTIMATES</button>`;
+    renderDetailFigures();
   }
   function render() { renderCatalog(); renderPlan(); renderDetail(); }
   function scheduleSave() {

@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "crops": [
     {
       "id": "wheat",
@@ -20,7 +20,13 @@
       "water": "medium",
       "seedKgM2": 0.02,
       "workHours10M2": 1.5,
-      "note": "Dry grain; thresh and dry before storage"
+      "note": "Dry grain; thresh and dry before storage",
+      "plantSpaceM2": 0.02,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Dry grain; thresh and dry before storage."
+      ]
     },
     {
       "id": "rice",
@@ -41,11 +47,17 @@
       "water": "high",
       "seedKgM2": 0.03,
       "workHours10M2": 2.8,
-      "note": "Water method and variety strongly change yield"
+      "note": "Water method and variety strongly change yield",
+      "plantSpaceM2": 0.02,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Water method and variety strongly change yield."
+      ]
     },
     {
       "id": "maize",
-      "name": "Maize (dry grain)",
+      "name": "Maize",
       "group": "Grains",
       "kcalKg": 3650,
       "yieldKgM2": 0.75,
@@ -62,7 +74,13 @@
       "water": "medium",
       "seedKgM2": 0.004,
       "workHours10M2": 1.8,
-      "note": "Dry kernels; sweetcorn has far fewer kcal/kg"
+      "note": "Dry kernels; sweetcorn has far fewer kcal/kg",
+      "plantSpaceM2": 0.3,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Dry kernels; sweetcorn has far fewer kcal/kg."
+      ]
     },
     {
       "id": "barley",
@@ -83,7 +101,13 @@
       "water": "low",
       "seedKgM2": 0.02,
       "workHours10M2": 1.3,
-      "note": "Dry grain"
+      "note": "Dry grain",
+      "plantSpaceM2": 0.02,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Dry grain."
+      ]
     },
     {
       "id": "sorghum",
@@ -104,7 +128,13 @@
       "water": "low",
       "seedKgM2": 0.012,
       "workHours10M2": 1.4,
-      "note": "Dry grain; heat tolerant"
+      "note": "Dry grain; heat tolerant",
+      "plantSpaceM2": 0.15,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Dry grain; heat tolerant."
+      ]
     },
     {
       "id": "millet",
@@ -125,7 +155,13 @@
       "water": "low",
       "seedKgM2": 0.008,
       "workHours10M2": 1.3,
-      "note": "Dry grain"
+      "note": "Dry grain",
+      "plantSpaceM2": 0.02,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Dry grain."
+      ]
     },
     {
       "id": "quinoa",
@@ -146,7 +182,13 @@
       "water": "low",
       "seedKgM2": 0.006,
       "workHours10M2": 2.0,
-      "note": "Dry seed; rinse before cooking"
+      "note": "Dry seed; rinse before cooking",
+      "plantSpaceM2": 0.04,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Dry seed; rinse before cooking."
+      ]
     },
     {
       "id": "potato",
@@ -167,7 +209,13 @@
       "water": "medium",
       "seedKgM2": 0.25,
       "workHours10M2": 2.6,
-      "note": "Seed tubers are counted as planting input"
+      "note": "Seed tubers are counted as planting input",
+      "plantSpaceM2": 0.3,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Seed tubers are counted as planting input."
+      ]
     },
     {
       "id": "sweet-potato",
@@ -188,7 +236,13 @@
       "water": "medium",
       "seedKgM2": 0.0,
       "workHours10M2": 2.5,
-      "note": "Usually planted from slips, not edible seed"
+      "note": "Usually planted from slips, not edible seed",
+      "plantSpaceM2": 0.3,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Usually planted from slips, not edible seed."
+      ]
     },
     {
       "id": "cassava",
@@ -209,7 +263,13 @@
       "water": "low",
       "seedKgM2": 0.0,
       "workHours10M2": 3.0,
-      "note": "Requires correct processing; raw cassava is unsafe"
+      "note": "Requires correct processing; raw cassava is unsafe",
+      "plantSpaceM2": 1,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Requires correct processing; raw cassava is unsafe."
+      ]
     },
     {
       "id": "carrot",
@@ -230,7 +290,13 @@
       "water": "medium",
       "seedKgM2": 0.002,
       "workHours10M2": 2.8,
-      "note": "Harvest size and spacing change yield"
+      "note": "Harvest size and spacing change yield",
+      "plantSpaceM2": 0.01,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Harvest size and spacing change yield."
+      ]
     },
     {
       "id": "beet",
@@ -251,7 +317,13 @@
       "water": "medium",
       "seedKgM2": 0.004,
       "workHours10M2": 2.4,
-      "note": "Roots counted; leaves can also be edible"
+      "note": "Roots counted; leaves can also be edible",
+      "plantSpaceM2": 0.02,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Roots counted; leaves can also be edible."
+      ]
     },
     {
       "id": "turnip",
@@ -272,7 +344,13 @@
       "water": "medium",
       "seedKgM2": 0.002,
       "workHours10M2": 2.0,
-      "note": "Roots counted"
+      "note": "Roots counted",
+      "plantSpaceM2": 0.04,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Roots counted."
+      ]
     },
     {
       "id": "radish",
@@ -293,7 +371,13 @@
       "water": "medium",
       "seedKgM2": 0.003,
       "workHours10M2": 1.8,
-      "note": "Short cycle; several plantings possible"
+      "note": "Short cycle; several plantings possible",
+      "plantSpaceM2": 0.01,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Short cycle; several plantings possible."
+      ]
     },
     {
       "id": "onion",
@@ -314,7 +398,13 @@
       "water": "medium",
       "seedKgM2": 0.003,
       "workHours10M2": 2.4,
-      "note": "Dry before long storage"
+      "note": "Dry before long storage",
+      "plantSpaceM2": 0.03,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Dry before long storage."
+      ]
     },
     {
       "id": "garlic",
@@ -335,11 +425,17 @@
       "water": "low",
       "seedKgM2": 0.15,
       "workHours10M2": 2.5,
-      "note": "Planting cloves counted as input"
+      "note": "Planting cloves counted as input",
+      "plantSpaceM2": 0.03,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Planting cloves counted as input."
+      ]
     },
     {
       "id": "dry-bean",
-      "name": "Dry bean",
+      "name": "Bean",
       "group": "Legumes",
       "kcalKg": 3330,
       "yieldKgM2": 0.25,
@@ -356,7 +452,13 @@
       "water": "medium",
       "seedKgM2": 0.012,
       "workHours10M2": 2.0,
-      "note": "Dry seed yield"
+      "note": "Dry seed yield",
+      "plantSpaceM2": 0.1,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Dry seed yield."
+      ]
     },
     {
       "id": "lentil",
@@ -377,7 +479,13 @@
       "water": "low",
       "seedKgM2": 0.012,
       "workHours10M2": 1.5,
-      "note": "Dry seed yield"
+      "note": "Dry seed yield",
+      "plantSpaceM2": 0.04,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Dry seed yield."
+      ]
     },
     {
       "id": "chickpea",
@@ -398,7 +506,13 @@
       "water": "low",
       "seedKgM2": 0.015,
       "workHours10M2": 1.6,
-      "note": "Dry seed yield"
+      "note": "Dry seed yield",
+      "plantSpaceM2": 0.1,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Dry seed yield."
+      ]
     },
     {
       "id": "soybean",
@@ -419,7 +533,13 @@
       "water": "medium",
       "seedKgM2": 0.016,
       "workHours10M2": 1.7,
-      "note": "Dry mature beans; cook fully"
+      "note": "Dry mature beans; cook fully",
+      "plantSpaceM2": 0.08,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Dry mature beans; cook fully."
+      ]
     },
     {
       "id": "pea",
@@ -440,7 +560,13 @@
       "water": "medium",
       "seedKgM2": 0.018,
       "workHours10M2": 2.2,
-      "note": "Fresh shelled peas"
+      "note": "Fresh shelled peas",
+      "plantSpaceM2": 0.08,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Fresh shelled peas."
+      ]
     },
     {
       "id": "peanut",
@@ -461,11 +587,17 @@
       "water": "medium",
       "seedKgM2": 0.012,
       "workHours10M2": 2.2,
-      "note": "Dry shelled nuts; dry carefully to limit mould"
+      "note": "Dry shelled nuts; dry carefully to limit mould",
+      "plantSpaceM2": 0.1,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Dry shelled nuts; dry carefully to limit mould."
+      ]
     },
     {
       "id": "sunflower",
-      "name": "Sunflower seed",
+      "name": "Sunflower",
       "group": "Oilseeds",
       "kcalKg": 5840,
       "yieldKgM2": 0.22,
@@ -482,7 +614,13 @@
       "water": "medium",
       "seedKgM2": 0.005,
       "workHours10M2": 1.7,
-      "note": "Edible dry kernels only; hulls excluded"
+      "note": "Edible dry kernels only; hulls excluded",
+      "plantSpaceM2": 0.3,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Edible dry kernels only; hulls excluded."
+      ]
     },
     {
       "id": "tomato",
@@ -503,7 +641,13 @@
       "water": "medium",
       "seedKgM2": 0.0,
       "workHours10M2": 3.8,
-      "note": "Pruning/support and variety change labour"
+      "note": "Pruning/support and variety change labour",
+      "plantSpaceM2": 0.6,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Pruning/support and variety change labour."
+      ]
     },
     {
       "id": "pepper",
@@ -524,7 +668,13 @@
       "water": "medium",
       "seedKgM2": 0.0,
       "workHours10M2": 3.5,
-      "note": "Sweet pepper default"
+      "note": "Sweet pepper default",
+      "plantSpaceM2": 0.4,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Sweet pepper default."
+      ]
     },
     {
       "id": "cucumber",
@@ -545,7 +695,13 @@
       "water": "high",
       "seedKgM2": 0.0,
       "workHours10M2": 3.0,
-      "note": "Repeated harvest within one cycle"
+      "note": "Repeated harvest within one cycle",
+      "plantSpaceM2": 0.5,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Repeated harvest within one cycle."
+      ]
     },
     {
       "id": "pumpkin",
@@ -566,7 +722,13 @@
       "water": "medium",
       "seedKgM2": 0.004,
       "workHours10M2": 2.4,
-      "note": "Large vines need spacing"
+      "note": "Large vines need spacing",
+      "plantSpaceM2": 2,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Large vines need spacing."
+      ]
     },
     {
       "id": "zucchini",
@@ -587,7 +749,13 @@
       "water": "high",
       "seedKgM2": 0.0,
       "workHours10M2": 3.0,
-      "note": "Repeated harvest within one cycle"
+      "note": "Repeated harvest within one cycle",
+      "plantSpaceM2": 1,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Repeated harvest within one cycle."
+      ]
     },
     {
       "id": "eggplant",
@@ -608,7 +776,13 @@
       "water": "medium",
       "seedKgM2": 0.0,
       "workHours10M2": 3.4,
-      "note": "Warm season crop"
+      "note": "Warm season crop",
+      "plantSpaceM2": 0.5,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Warm season crop."
+      ]
     },
     {
       "id": "cabbage",
@@ -629,7 +803,13 @@
       "water": "high",
       "seedKgM2": 0.0,
       "workHours10M2": 3.0,
-      "note": "Heads counted; heavy feeder"
+      "note": "Heads counted; heavy feeder",
+      "plantSpaceM2": 0.4,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Heads counted; heavy feeder."
+      ]
     },
     {
       "id": "broccoli",
@@ -650,7 +830,13 @@
       "water": "high",
       "seedKgM2": 0.0,
       "workHours10M2": 3.3,
-      "note": "Heads and side shoots vary"
+      "note": "Heads and side shoots vary",
+      "plantSpaceM2": 0.4,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Heads and side shoots vary."
+      ]
     },
     {
       "id": "cauliflower",
@@ -671,7 +857,13 @@
       "water": "high",
       "seedKgM2": 0.0,
       "workHours10M2": 3.4,
-      "note": "Heat stress can prevent heads"
+      "note": "Heat stress can prevent heads",
+      "plantSpaceM2": 0.4,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Heat stress can prevent heads."
+      ]
     },
     {
       "id": "kale",
@@ -692,7 +884,13 @@
       "water": "medium",
       "seedKgM2": 0.0,
       "workHours10M2": 3.0,
-      "note": "Several cuts within one cycle"
+      "note": "Several cuts within one cycle",
+      "plantSpaceM2": 0.3,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Several cuts within one cycle."
+      ]
     },
     {
       "id": "spinach",
@@ -713,7 +911,13 @@
       "water": "medium",
       "seedKgM2": 0.0,
       "workHours10M2": 2.5,
-      "note": "Bolts in heat"
+      "note": "Bolts in heat",
+      "plantSpaceM2": 0.04,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Bolts in heat."
+      ]
     },
     {
       "id": "lettuce",
@@ -734,7 +938,13 @@
       "water": "medium",
       "seedKgM2": 0.0,
       "workHours10M2": 2.4,
-      "note": "Multiple heads or cuts"
+      "note": "Multiple heads or cuts",
+      "plantSpaceM2": 0.1,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Multiple heads or cuts."
+      ]
     },
     {
       "id": "chard",
@@ -755,7 +965,13 @@
       "water": "medium",
       "seedKgM2": 0.0,
       "workHours10M2": 2.6,
-      "note": "Repeat harvest within one cycle"
+      "note": "Repeat harvest within one cycle",
+      "plantSpaceM2": 0.15,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Repeat harvest within one cycle."
+      ]
     },
     {
       "id": "strawberry",
@@ -776,13 +992,19 @@
       "water": "medium",
       "seedKgM2": 0.0,
       "workHours10M2": 3.5,
-      "note": "Perennial bed; annual yield once established"
+      "note": "Perennial bed; annual yield once established",
+      "plantSpaceM2": 0.25,
+      "care": [
+        "Check moisture regularly; water at the root as local weather requires.",
+        "Keep weeds down and check leaves for pests or disease.",
+        "Perennial bed; annual yield once established."
+      ]
     }
   ],
   "livestock": [
     {
       "id": "hen-eggs",
-      "name": "Laying hen",
+      "name": "Chicken",
       "group": "Eggs",
       "product": "Eggs",
       "kcalKg": 1430,
@@ -794,11 +1016,16 @@
       "workHoursWeek": 0.5,
       "defaultCycles": 1.0,
       "climate": "Temperate; dry ventilated shelter",
-      "note": "Output is edible egg mass, about 180-220 eggs"
+      "note": "Output is edible egg mass, about 180-220 eggs",
+      "care": [
+        "Provide fresh water and suitable feed every day.",
+        "Keep shelter clean, dry and ventilated; check animals daily.",
+        "Output is edible egg mass, about 180-220 eggs."
+      ]
     },
     {
       "id": "duck-eggs",
-      "name": "Laying duck",
+      "name": "Duck",
       "group": "Eggs",
       "product": "Eggs",
       "kcalKg": 1850,
@@ -810,11 +1037,16 @@
       "workHoursWeek": 0.6,
       "defaultCycles": 1.0,
       "climate": "Temperate; clean water and dry shelter",
-      "note": "Output is edible egg mass"
+      "note": "Output is edible egg mass",
+      "care": [
+        "Provide fresh water and suitable feed every day.",
+        "Keep shelter clean, dry and ventilated; check animals daily.",
+        "Output is edible egg mass."
+      ]
     },
     {
       "id": "broiler",
-      "name": "Broiler chicken",
+      "name": "Chicken",
       "group": "Meat",
       "product": "Chicken meat",
       "kcalKg": 1650,
@@ -826,7 +1058,12 @@
       "workHoursWeek": 0.3,
       "defaultCycles": 4.0,
       "climate": "Sheltered; protect from heat and cold",
-      "note": "One grow-out cycle per group"
+      "note": "One grow-out cycle per group",
+      "care": [
+        "Provide fresh water and suitable feed every day.",
+        "Keep shelter clean, dry and ventilated; check animals daily.",
+        "One grow-out cycle per group."
+      ]
     },
     {
       "id": "turkey",
@@ -842,11 +1079,16 @@
       "workHoursWeek": 0.5,
       "defaultCycles": 1.0,
       "climate": "Temperate; dry ventilated shelter",
-      "note": "One grow-out cycle"
+      "note": "One grow-out cycle",
+      "care": [
+        "Provide fresh water and suitable feed every day.",
+        "Keep shelter clean, dry and ventilated; check animals daily.",
+        "One grow-out cycle."
+      ]
     },
     {
       "id": "rabbit",
-      "name": "Meat rabbit",
+      "name": "Rabbit",
       "group": "Meat",
       "product": "Rabbit meat",
       "kcalKg": 1730,
@@ -858,11 +1100,16 @@
       "workHoursWeek": 0.4,
       "defaultCycles": 2.0,
       "climate": "Cool/temperate; shaded dry housing",
-      "note": "Feed and output per raised animal"
+      "note": "Feed and output per raised animal",
+      "care": [
+        "Provide fresh water and suitable feed every day.",
+        "Keep shelter clean, dry and ventilated; check animals daily.",
+        "Feed and output per raised animal."
+      ]
     },
     {
       "id": "goat-milk",
-      "name": "Dairy goat",
+      "name": "Goat",
       "group": "Milk",
       "product": "Goat milk",
       "kcalKg": 690,
@@ -874,11 +1121,16 @@
       "workHoursWeek": 1.5,
       "defaultCycles": 1.0,
       "climate": "Temperate; dry shelter and suitable forage",
-      "note": "Milk volume varies greatly with breed and lactation"
+      "note": "Milk volume varies greatly with breed and lactation",
+      "care": [
+        "Provide fresh water and suitable feed every day.",
+        "Keep shelter clean, dry and ventilated; check animals daily.",
+        "Milk volume varies greatly with breed and lactation."
+      ]
     },
     {
       "id": "goat-meat",
-      "name": "Meat goat",
+      "name": "Goat",
       "group": "Meat",
       "product": "Goat meat",
       "kcalKg": 1430,
@@ -890,11 +1142,16 @@
       "workHoursWeek": 0.7,
       "defaultCycles": 1.0,
       "climate": "Temperate/warm; browse and shelter",
-      "note": "Edible meat estimate per animal"
+      "note": "Edible meat estimate per animal",
+      "care": [
+        "Provide fresh water and suitable feed every day.",
+        "Keep shelter clean, dry and ventilated; check animals daily.",
+        "Edible meat estimate per animal."
+      ]
     },
     {
       "id": "sheep-meat",
-      "name": "Meat sheep",
+      "name": "Sheep",
       "group": "Meat",
       "product": "Lamb meat",
       "kcalKg": 2500,
@@ -906,11 +1163,16 @@
       "workHoursWeek": 0.7,
       "defaultCycles": 1.0,
       "climate": "Temperate; dry shelter and grazing",
-      "note": "Edible meat estimate per animal"
+      "note": "Edible meat estimate per animal",
+      "care": [
+        "Provide fresh water and suitable feed every day.",
+        "Keep shelter clean, dry and ventilated; check animals daily.",
+        "Edible meat estimate per animal."
+      ]
     },
     {
       "id": "pig",
-      "name": "Market pig",
+      "name": "Pig",
       "group": "Meat",
       "product": "Pork",
       "kcalKg": 2420,
@@ -922,11 +1184,16 @@
       "workHoursWeek": 0.8,
       "defaultCycles": 1.0,
       "climate": "Shelter from heat/cold; dry bedding",
-      "note": "Feed rises as animal grows; this is a cycle average"
+      "note": "Feed rises as animal grows; this is a cycle average",
+      "care": [
+        "Provide fresh water and suitable feed every day.",
+        "Keep shelter clean, dry and ventilated; check animals daily.",
+        "Feed rises as animal grows; this is a cycle average."
+      ]
     },
     {
       "id": "cow-milk",
-      "name": "Dairy cow",
+      "name": "Cow",
       "group": "Milk",
       "product": "Cow milk",
       "kcalKg": 610,
@@ -938,11 +1205,16 @@
       "workHoursWeek": 5.0,
       "defaultCycles": 1.0,
       "climate": "Temperate; pasture and shelter",
-      "note": "Smallholder milk estimate; housing space excludes pasture"
+      "note": "Smallholder milk estimate; housing space excludes pasture",
+      "care": [
+        "Provide fresh water and suitable feed every day.",
+        "Keep shelter clean, dry and ventilated; check animals daily.",
+        "Smallholder milk estimate; housing space excludes pasture."
+      ]
     },
     {
       "id": "beef",
-      "name": "Beef cattle",
+      "name": "Cow",
       "group": "Meat",
       "product": "Beef",
       "kcalKg": 2500,
@@ -954,7 +1226,117 @@
       "workHoursWeek": 1.5,
       "defaultCycles": 0.5,
       "climate": "Temperate; grazing and shelter",
-      "note": "One long grow-out cycle; housing space excludes pasture"
+      "note": "One long grow-out cycle; housing space excludes pasture",
+      "care": [
+        "Provide fresh water and suitable feed every day.",
+        "Keep shelter clean, dry and ventilated; check animals daily.",
+        "One long grow-out cycle; housing space excludes pasture."
+      ]
+    },
+    {
+      "id": "quail",
+      "name": "Quail",
+      "group": "Eggs",
+      "product": "Eggs",
+      "kcalKg": 1580,
+      "outputKgCycle": 2.5,
+      "cycleDays": 365,
+      "feedKgDay": 0.03,
+      "feedKcalKg": 2800,
+      "housingM2": 0.2,
+      "workHoursWeek": 0.2,
+      "defaultCycles": 1,
+      "climate": "Sheltered; protect from drafts and predators",
+      "note": "Egg mass varies with breed and laying season",
+      "care": [
+        "Provide clean water and feed suitable for the species every day.",
+        "Check health and housing or water conditions daily.",
+        "Egg mass varies with breed and laying season."
+      ]
+    },
+    {
+      "id": "goose",
+      "name": "Goose",
+      "group": "Meat",
+      "product": "Goose meat",
+      "kcalKg": 2380,
+      "outputKgCycle": 4,
+      "cycleDays": 180,
+      "feedKgDay": 0.35,
+      "feedKcalKg": 2500,
+      "housingM2": 2,
+      "workHoursWeek": 0.5,
+      "defaultCycles": 1,
+      "climate": "Temperate; shelter and access to grazing",
+      "note": "Rough edible meat estimate per raised bird",
+      "care": [
+        "Provide clean water and feed suitable for the species every day.",
+        "Check health and housing or water conditions daily.",
+        "Rough edible meat estimate per raised bird."
+      ]
+    },
+    {
+      "id": "fish-carp",
+      "name": "Carp",
+      "group": "Fish",
+      "product": "Fish",
+      "kcalKg": 1270,
+      "outputKgCycle": 1.5,
+      "cycleDays": 365,
+      "feedKgDay": 0.02,
+      "feedKcalKg": 2500,
+      "housingM2": 0,
+      "workHoursWeek": 0.3,
+      "defaultCycles": 1,
+      "climate": "Freshwater pond; monitor oxygen and water quality",
+      "note": "Pond water area is separate from housing; feed is a rough average",
+      "care": [
+        "Provide clean water and feed suitable for the species every day.",
+        "Check health and housing or water conditions daily.",
+        "Pond water area is separate from housing; feed is a rough average."
+      ]
+    },
+    {
+      "id": "fish-tilapia",
+      "name": "Tilapia",
+      "group": "Fish",
+      "product": "Fish",
+      "kcalKg": 1280,
+      "outputKgCycle": 0.8,
+      "cycleDays": 240,
+      "feedKgDay": 0.02,
+      "feedKcalKg": 2800,
+      "housingM2": 0,
+      "workHoursWeek": 0.3,
+      "defaultCycles": 1,
+      "climate": "Warm freshwater; temperature and water quality are critical",
+      "note": "Climate or heated water may limit suitability",
+      "care": [
+        "Provide clean water and feed suitable for the species every day.",
+        "Check health and housing or water conditions daily.",
+        "Climate or heated water may limit suitability."
+      ]
+    },
+    {
+      "id": "buffalo",
+      "name": "Water buffalo",
+      "group": "Milk",
+      "product": "Milk",
+      "kcalKg": 970,
+      "outputKgCycle": 1800,
+      "cycleDays": 365,
+      "feedKgDay": 16,
+      "feedKcalKg": 800,
+      "housingM2": 8,
+      "workHoursWeek": 4,
+      "defaultCycles": 1,
+      "climate": "Warm; water, shade, forage and secure shelter",
+      "note": "Milk production varies greatly with breed and lactation",
+      "care": [
+        "Provide clean water and feed suitable for the species every day.",
+        "Check health and housing or water conditions daily.",
+        "Milk production varies greatly with breed and lactation."
+      ]
     }
   ],
   "sources": [
@@ -987,7 +1369,17 @@
       "title": "FAO Roots and Tubers in Human Nutrition",
       "url": "https://www.fao.org/4/t0207e/t0207e08.htm",
       "use": "Cassava processing safety context."
+    },
+    {
+      "title": "University of Minnesota Extension · Crop and field planning tools",
+      "use": "Plant spacing and planning approach; local methods change usable spacing",
+      "url": "https://extension.umn.edu/vegetable-growing-guides-farmers/crop-and-field-planning-tools-vegetable-farmers"
+    },
+    {
+      "title": "FAO · Rural animal housing",
+      "use": "Animal shelter planning; space varies by species, age and system",
+      "url": "https://www.fao.org/4/s1250e/S1250E17.htm"
     }
   ],
-  "method": "Illustrative offline planning defaults assembled for Umbra, not direct record-by-record extracts or local agronomic predictions. Rounded kcal/kg refer to edible food mass; dry grains and pulses use dry edible mass. Yields, days, labour, feed and growing conditions vary by cultivar, weather and management. Replace defaults with local observations and extension advice."
+  "method": "Illustrative offline planning defaults assembled for Umbra, not direct record-by-record extracts or local agronomic predictions. Rounded kcal/kg refer to edible food mass; dry grains and pulses use dry edible mass. Yields, days, labour, feed and growing conditions vary by cultivar, weather and management. Replace defaults with local observations and extension advice. Plant spacing and animal housing values are editable planning starts, not universal requirements. Daily and weekly outputs are annual averages; seasonal harvests and meat cycles do not arrive evenly."
 }

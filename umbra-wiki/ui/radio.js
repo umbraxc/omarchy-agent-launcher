@@ -10,6 +10,7 @@
   let catalog = [], current = "", volume = 0.4, audio = null, sequence = 0, queue = Promise.resolve(), error = "";
   const safe = (s) => escapeHtml(String(s || ""));
   const label = (id) => catalog.find((x) => x.id === id)?.title || id;
+  const changed = () => document.dispatchEvent(new CustomEvent("umbra-radio-change", { detail: { track: current, volume, status: status(), catalog } }));
   const saveVolume = () => postSettings({ radioVolume: volume });
   const status = () => error || (current ? Sound.muted ? `PAUSED · ALL SOUND IS MUTED` : `PLAYING · ${label(current)}` : "STOPPED");
   const paintState = () => {
@@ -22,6 +23,7 @@
     if (stop) stop.disabled = !current;
     const state = host.querySelector(".snd-radio-state");
     if (state) state.textContent = status();
+    changed();
   };
   const backend = (track) => {
     const mine = ++sequence;
@@ -47,11 +49,29 @@
     });
   };
   const select = (id) => {
+    if (id && !catalog.some((x) => x.id === id)) return;
     if (current === id) { current = ""; error = ""; playback(""); paintState(); return; }
     current = id; error = "";
     if (Sound.muted) setMuted(false); // this event starts the selected track
     else playback(id);
     paintState();
+  };
+  window.UmbraRadio = {
+    get catalog() { return catalog; }, get track() { return current; }, get volume() { return volume; },
+    get status() { return status(); }, select,
+    stop() { if (current) select(current); },
+    setVolume(value) {
+      volume = Math.max(0, Math.min(1, Number(value) || 0));
+      if (audio) audio.volume = volume;
+      const slider = host.querySelector(".snd-radio-volume input");
+      if (slider) slider.value = volume;
+      const output = host.querySelector(".snd-radio-volume output");
+      if (output) output.textContent = Math.round(volume * 100) + "%";
+      audioPrefsChanged({ radioVolume: volume });
+      saveVolume();
+      if (current && !Sound.muted && !windows) playback(current);
+      changed();
+    },
   };
   function render() {
     host.innerHTML = `<div class="snd-radio-head"><b>OFFLINE RADIO</b><button class="ghost snd-radio-stop" type="button">STOP ■</button></div>
@@ -71,6 +91,8 @@
     volume = Number(e.target.value);
     host.querySelector(".snd-radio-volume output").textContent = Math.round(volume * 100) + "%";
     if (audio) audio.volume = volume;
+    audioPrefsChanged({ radioVolume: volume });
+    changed();
   });
   host.addEventListener("change", (e) => {
     if (!e.target.matches(".snd-radio-volume input")) return;
@@ -101,7 +123,7 @@
   fetch("/api/radio").then((r) => r.json()).then((data) => {
     catalog = Array.isArray(data.catalog) ? data.catalog : [];
     if (typeof data.volume === "number") volume = data.volume;
-    if (window.prefs) prefs.radioVolume = volume;
+    audioPrefsChanged({ radioVolume: volume });
     render();
   }).catch(() => { host.innerHTML = `<p class="snd-radio-note">The local radio catalog is unavailable.</p>`; });
 })();

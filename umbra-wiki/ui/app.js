@@ -121,6 +121,10 @@ async function postSettings(update) {
     await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(update) });
   } catch {}
 }
+function audioPrefsChanged(update) {
+  if (window.prefs) Object.assign(prefs, update);
+  document.dispatchEvent(new CustomEvent("umbra-audio-prefs", { detail: update }));
+}
 
 // ------------------------------------------------------------------ sound
 
@@ -291,6 +295,7 @@ document.fonts.ready.then(() => {
 
 function setMuted(value, save = true) {
   Sound.muted = value;
+  audioPrefsChanged({ muted: value });
   $("#sound-icon").textContent = value ? "󰖁" : "󰕾";
   $("#sound").classList.toggle("off", value);
   $("#sound").title = value ? "Sound off · open sound controls" : "Sound on · open sound controls";
@@ -303,7 +308,7 @@ function setMuted(value, save = true) {
   panel.id = "sound-pop";
   panel.className = "sound-pop";
   panel.hidden = true;
-  panel.innerHTML = `<div class="snd-head"><b>◆ SOUND</b><button class="ghost snd-close" title="Close sound controls">✕</button></div>
+  panel.innerHTML = `<div class="snd-head lib-head"><b>◆ SOUND</b><button class="ghost snd-close" title="Close sound controls">✕</button></div>
     <label class="snd-switch"><span>All sound<small>Effects and offline radio</small></span><input class="snd-on" type="checkbox"></label>
     <label class="snd-range"><span>Effects volume <output class="snd-vol-value"></output></span><input class="snd-volume" type="range" min="0" max="1" step="0.05"></label>
     <label class="snd-range"><span>Notification volume <output class="snd-notify-value"></output></span><input class="snd-notify" type="range" min="0" max="1" step="0.05"></label>
@@ -337,13 +342,13 @@ function setMuted(value, save = true) {
   q(".snd-close").addEventListener("click", close);
   q(".snd-on").addEventListener("change", (e) => { setMuted(!e.target.checked); if (e.target.checked) Sound.click(); });
   q(".snd-hover").addEventListener("change", (e) => {
-    if (window.prefs) prefs.hoverSounds = e.target.checked;
+    audioPrefsChanged({ hoverSounds: e.target.checked });
     postSettings({ hoverSounds: e.target.checked });
     if (e.target.checked) Sound.hover();
   });
   for (const [sel, out, key] of [[".snd-volume", ".snd-vol-value", "volume"], [".snd-notify", ".snd-notify-value", "notifyVolume"]]) {
     const slider = q(sel);
-    slider.addEventListener("input", () => { if (window.prefs) prefs[key] = Number(slider.value); q(out).textContent = Math.round(Number(slider.value) * 100) + "%"; });
+    slider.addEventListener("input", () => { audioPrefsChanged({ [key]: Number(slider.value) }); q(out).textContent = Math.round(Number(slider.value) * 100) + "%"; });
     slider.addEventListener("change", () => { postSettings({ [key]: Number(slider.value) }); Sound.click(); });
   }
   q(".snd-previews").addEventListener("click", (e) => { const sample = e.target.closest("button[data-sample]"); if (sample) Sound[sample.dataset.sample](); });
@@ -351,6 +356,7 @@ function setMuted(value, save = true) {
   document.addEventListener("click", (e) => { if (!panel.hidden && !panel.contains(e.target) && !button.contains(e.target)) close(); }, true);
   document.addEventListener("keydown", (e) => { if (!panel.hidden && (e.key === "Escape" || e.ctrlKey || e.metaKey)) close(); }, true);
   document.addEventListener("umbra-sound-change", sync);
+  document.addEventListener("umbra-audio-prefs", sync);
   window.addEventListener("resize", () => { if (!panel.hidden) place(); });
   window.UmbraSoundMenu = { panel, sync, close };
 })();
