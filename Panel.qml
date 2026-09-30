@@ -283,13 +283,33 @@ Panel {
     id: button
     anchors.fill: parent
     bar: root.bar
-    // The Umbra Wiki emblem in the bar's own colour; dimmed when idle.
+    // A small wordmark makes the refreshed widget recognizable on the bar.
+    slotSize: Style.bar.iconSlot + (vertical ? 0 : Style.space(24))
+    opticalSize: Style.bar.iconCanvas + (vertical ? 0 : Style.space(24))
     iconComponent: Component {
-      UmbraMark {
-        // Lights up in the theme colour while an answer is waiting.
-        color: root.attention || root.umbraRunning ? root.online
-          : root.totalRunning > 0 ? root.barForeground : Qt.darker(root.barForeground, 1.55)
-        Behavior on color { ColorAnimation { duration: 900; easing.type: Easing.InOutQuad } }
+      Item {
+        UmbraMark {
+          width: Style.bar.iconCanvas
+          height: Style.bar.iconCanvas
+          anchors.left: parent.left
+          anchors.verticalCenter: parent.verticalCenter
+          color: root.attention || root.umbraRunning ? root.online
+            : root.totalRunning > 0 ? root.barForeground : Qt.darker(root.barForeground, 1.55)
+          Behavior on color { ColorAnimation { duration: 900; easing.type: Easing.InOutQuad } }
+        }
+        Text {
+          visible: !button.vertical
+          anchors.left: parent.left
+          anchors.leftMargin: Style.bar.iconCanvas + Style.space(3)
+          anchors.verticalCenter: parent.verticalCenter
+          text: "UM"
+          color: root.attention || root.umbraRunning ? root.online : root.dim
+          font.family: root.fontFamily
+          font.pixelSize: Math.max(8, Math.round(Style.font.caption * 0.9))
+          font.bold: true
+          font.letterSpacing: Style.space(1)
+          Behavior on color { ColorAnimation { duration: 900; easing.type: Easing.InOutQuad } }
+        }
       }
     }
     tooltipText: root.attention ? "Umbra Wiki: a new answer is waiting"
