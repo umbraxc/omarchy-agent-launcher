@@ -42,7 +42,7 @@
   function arm() {
     if (!available() || mode) return;
     setMode("armed");
-    Sound.toolshift();
+    Sound.toolchuff();
   }
   function openSearch() {
     if (!available()) return;

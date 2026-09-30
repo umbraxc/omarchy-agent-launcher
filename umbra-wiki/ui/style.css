@@ -35,11 +35,15 @@
 /* A theme-colored in-app cue replaces the platform's bright scrollbar. */
 * { scrollbar-width: none; }
 *::-webkit-scrollbar { width: 0; height: 0; display: none; }
-.scroll-cue { position: fixed; z-index: 149; width: 26px; height: 46px; display: grid; place-items: center;
-  color: var(--signal); pointer-events: none; filter: drop-shadow(0 0 5px var(--signal-soft)); }
+.scroll-cue { position: fixed; z-index: 149; width: 26px; height: 46px; display: grid; place-items: center; opacity: 0;
+  color: var(--signal); pointer-events: none; filter: drop-shadow(0 0 5px var(--signal-soft)); transition: opacity .25s ease-out; }
+.scroll-cue.is-visible { opacity: 1; }
 .scroll-cue-arrow { font: 400 23px/1 var(--font); opacity: .48; animation: scroll-cue-pulse 2.6s ease-in-out infinite; }
 @keyframes scroll-cue-pulse { 0%, 100% { opacity: .22; transform: translateY(-2px); } 50% { opacity: .65; transform: translateY(3px); } }
-body.reduce-motion .scroll-cue-arrow { animation: none; }
+.scroll-cue.changing .scroll-cue-arrow { animation: scroll-cue-change .3s ease-out; }
+@keyframes scroll-cue-change { from { opacity: .1; transform: translateY(5px) scale(.72); } to { opacity: .6; transform: none; } }
+body.reduce-motion .scroll-cue-arrow, body.reduce-motion .scroll-cue.changing .scroll-cue-arrow { animation: none; }
+body.reduce-motion .scroll-cue { transition: none; }
 
 html, body {
   height: 100%;
@@ -136,8 +140,9 @@ button.cell {
 }
 .link:hover { background: var(--signal-soft); }
 .link .v b { color: var(--signal); }
+.link .v { display: inline-flex; align-items: center; gap: 3px; }
 .dot {
-  display: inline-block; width: 7px; height: 7px; margin-right: 7px; vertical-align: 1px;
+  display: inline-block; width: 7px; height: 7px; flex: none;
   background: var(--signal);
   animation: pulse 2.4s ease-in-out infinite;
 }
@@ -270,6 +275,8 @@ body.online .ask .caret { color: var(--net); }
   font-size: 10.5px; letter-spacing: .28em; color: var(--bg); background: var(--net);
 }
 .signal-tape { flex: none; height: 25px; overflow: hidden; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, var(--bg-2), var(--bg-1)); color: var(--fg); }
+body.locked .signal-tape, body.touring .signal-tape { opacity: 0; }
+body.maps-open > #signal-tape.signal-tape, body.radar-open > #signal-tape.signal-tape { visibility: visible; }
 .signal-tape-track { display: flex; width: max-content; height: 100%; animation: tape-travel var(--tape-duration, 42s) linear infinite; }
 .signal-tape:hover .signal-tape-track { animation-play-state: paused; }
 .signal-tape-group { display: flex; flex: none; align-items: center; gap: 28px; height: 100%; padding-right: 28px; }

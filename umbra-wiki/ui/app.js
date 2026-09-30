@@ -164,7 +164,7 @@ const Sound = (() => {
       .catch(() => {});
   };
   const names = ["launch", "key", "hover", "click", "send", "searchstart", "found", "done",
-                 "lock", "unlock", "online", "local", "theme", "error", "beep", "boot", "glitch", "shutdown", "achieve", "complete", "toolshift"];
+                 "lock", "unlock", "online", "local", "theme", "error", "beep", "boot", "glitch", "shutdown", "achieve", "complete", "toolchuff"];
   const api = { get muted() { return muted; }, set muted(v) { muted = v; if (v) api.hum(false); } };
   // A click for controls that had no sound of their own just now.
   api.tap = () => { if (performance.now() - last > 120) play("click"); };
