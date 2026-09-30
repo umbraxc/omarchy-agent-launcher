@@ -665,6 +665,10 @@ kbd { font: inherit; opacity: .7; margin-left: 4px; }
 .dl-bar i { display: block; height: 100%; background: var(--signal); transition: width .6s; }
 .dl-row { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; color: var(--dim); padding: 2px 4px; }
 .lib-row .get:disabled { opacity: .55; cursor: default; }
+.lib-link-entry { display: flex; gap: 6px; margin: 8px 0 12px; }
+.lib-link-entry input { min-width: 0; flex: 1; background: var(--bg-2); border: 1px solid var(--line); color: var(--fg-bright); padding: 6px 8px; font: inherit; }
+.lib-link-entry input:focus { border-color: var(--signal); outline: none; }
+.lib-linked .ldesc { overflow-wrap: anywhere; }
 
 /* ------------------------------------------------------- greeting & labels */
 
@@ -768,7 +772,7 @@ kbd { font: inherit; opacity: .7; margin-left: 4px; }
 .badge.locked .bd-icon { color: var(--faint); }
 .badge .bd-track, .badge .bd-prog { fill: none; stroke-width: 3; }
 .badge .bd-track { stroke: var(--bg-3); }
-.badge .bd-prog { stroke: var(--signal); transform: rotate(-90deg); transform-origin: 50px 50px; stroke-linecap: round; }
+.badge .bd-prog { stroke: var(--signal); stroke-linecap: butt; }
 .badge.big { width: 116px; height: 116px; }
 .badge.big .bd-icon { font-size: 50px; }
 .badge.big.got { animation: badge-in .7s cubic-bezier(.2, 1.4, .4, 1) both; }

@@ -28,6 +28,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import maps  # noqa: E402  (offline maps: maps.py next to this file)
+import transfers
+import linked_library
 import radar  # noqa: E402  (signals & radar: radar.py next to this file)
 
 # The Windows app (built from windows/): its own places, tools and readings.
@@ -77,6 +79,7 @@ def write_json(path, value):
 
 CONFIG = read_json(CONFIG_FILE, {})
 LIBRARY_DIR = os.path.expanduser(CONFIG.get("libraryDir") or os.path.join(HOME, "UmbraWiki", "library"))
+LINKS = linked_library.Links(DATA_DIR)
 
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("UMBRA_PORT", 8766))
@@ -100,14 +103,15 @@ WIKI_SOURCES = 3
 SNIPPET_CHARS = 800
 WIKI_SNIPPET_CHARS = 1300   # online: Wikipedia excerpts are longer and richer
 SUMMARY_CHARS = 150
-HISTORY_TURNS = 3
+HISTORY_TURNS = 5
 
 # How Umbra answers, whatever the loadout. The personality supplies the
 # voice and the scenario the situation; these rules always apply.
 RULES = (
     "Talk naturally, never robotically. Get straight to the point: no compliments on the question "
     "and no filler openers. "
-    "For small talk, reply briefly and naturally, and mention what you can help with if it fits. "
+    "Follow the user's topic and tone, including ordinary conversation outside survival topics. "
+    "For small talk, reply briefly and naturally. Do not steer the conversation toward a scenario or a feature. "
     "For practical questions, answer clearly with short steps when useful, and put the key action "
     "or term of each step in **bold**. "
     "Always give concrete, useful steps before asking anything: someone in trouble needs actions "
@@ -121,9 +125,9 @@ RULES = (
     "For medical, poisoning, electrical or other dangerous topics, end the answer with one short "
     "sentence of safety advice. Do not add generic AI or legal disclaimers. Never invent sources. "
     "Stay in character, but never let the character change the facts or skip safety advice. "
-    "Always finish with one final line in exactly this form: "
-    "NEXT: <one short, friendly sentence in your own voice offering the most useful next step, "
-    "for example 'If you'd like, I can walk you through keeping the fire burning overnight.'>"
+    "Only when a specific next step would genuinely help, you may finish with a separate line "
+    "NEXT: <one short optional offer>. Usually end after answering. Never tack on an offer to small talk, "
+    "a direct factual answer, or an answer that already asks the user a question."
 )
 DEFAULT_PERSONA = "Speak as UMBRA: a calm, friendly survival expert, like a knowledgeable friend."
 SYSTEM_PROMPT = DEFAULT_PERSONA + " " + RULES
@@ -185,7 +189,7 @@ kiwix_proc = None
 
 def start_kiwix():
     global kiwix_proc
-    zims = sorted(glob.glob(os.path.join(LIBRARY_DIR, "*.zim")))
+    zims = sorted(set(glob.glob(os.path.join(LIBRARY_DIR, "*.zim")) + LINKS.zims()))
     if not zims:
         print("umbra: no .zim files in", LIBRARY_DIR, file=sys.stderr)
         return 0
@@ -202,21 +206,28 @@ def start_kiwix():
     return len(zims)
 
 
+KIWIX_RELOAD_LOCK = threading.Lock()
+
+
 def reload_library():
     """New archives arrived: restart only kiwix-serve, so answers and model
     downloads in progress carry on."""
     global kiwix_proc
-    if kiwix_proc and kiwix_proc.poll() is None:
-        kiwix_proc.terminate()
-        try:
-            kiwix_proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            kiwix_proc.kill()
-    return start_kiwix()
+    with KIWIX_RELOAD_LOCK:
+        if kiwix_proc and kiwix_proc.poll() is None:
+            kiwix_proc.terminate()
+            try:
+                kiwix_proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                kiwix_proc.kill()
+                kiwix_proc.wait(timeout=5)
+        return start_kiwix()
 
 
 def stop_kiwix(*_):
     maps.SHUTDOWN.set()
+    DOWNLOADS.halt()
+    MANUAL_DOWNLOADS.halt()
     if kiwix_proc and kiwix_proc.poll() is None:
         kiwix_proc.terminate()
     sys.exit(0)
@@ -225,8 +236,9 @@ def stop_kiwix(*_):
 def shutdown():
     """The Windows app is closing: stop what this backend started."""
     maps.SHUTDOWN.set()
+    DOWNLOADS.halt()
+    MANUAL_DOWNLOADS.halt()
     if WINDOWS:
-        DOWNLOADS.halt()
         winplat.stop_ollama()
     if kiwix_proc and kiwix_proc.poll() is None:
         kiwix_proc.terminate()
@@ -321,14 +333,9 @@ def save_calendar(events):
 
 # ---------------------------------------------------------------- manuals
 
-# Public field manuals and civil-defence guides (manuals.json), downloaded
-# on request from their official or archive sources into
-# ~/.local/share/umbra-wiki/manuals, one at a time, resumable (after a pause
-# or a restart), and opened in the system's PDF viewer.
+# Resumable manual downloads use the same validated transfer queue on both platforms.
 MANUALS_DIR = os.path.join(DATA_DIR, "manuals")
 MANUALS_STATE = os.path.join(DATA_DIR, "manuals-queue.json")
-doc_state = {"active": False, "id": "", "done": 0, "total": 0, "paused": False, "error": ""}
-_doc_lock = threading.Lock()
 
 
 def manuals_catalog():
@@ -340,99 +347,26 @@ def manuals_catalog():
 
 
 def manuals():
-    q = read_json(MANUALS_STATE, {})
+    state = MANUAL_DOWNLOADS.snapshot()
+    jobs = {i["id"]: i for i in state["items"]}
     out = []
     for m in manuals_catalog():
         path = os.path.join(MANUALS_DIR, m["id"] + ".pdf")
-        part = path + ".part"
-        got = os.path.getsize(part) if os.path.exists(part) else 0
-        out.append({**m, "installed": os.path.exists(path), "got": got, "queued": m["id"] in q.get("ids", [])})
-    return {"manuals": out, "state": dict(doc_state), "paused": bool(q.get("paused")), "dir": MANUALS_DIR.replace(HOME, "~", 1)}
+        job = jobs.get(m["id"], {})
+        out.append({**m, "installed": os.path.isfile(path), "got": job.get("done", 0),
+                    "queued": job.get("status") in ("queued", "downloading", "paused"),
+                    "status": job.get("status", ""), "error": job.get("error", ""),
+                    "total": job.get("size", m.get("size", 0))})
+    return {"manuals": out, "state": state, "paused": state["paused"], "dir": MANUALS_DIR.replace(HOME, "~", 1)}
 
 
 def manuals_download(ids):
-    known = {m["id"] for m in manuals_catalog()}
-    q = read_json(MANUALS_STATE, {})
-    ids = [i for i in ids if i in known and i not in q.get("ids", [])]
-    q["ids"] = q.get("ids", []) + ids
-    q["paused"] = False
-    write_json(MANUALS_STATE, q)
-    _doc_kick()
+    MANUAL_DOWNLOADS.add(ids)
     return manuals()
 
 
-def _doc_kick():
-    with _doc_lock:
-        if doc_state["active"]:
-            return
-        doc_state.update(active=True, paused=False, error="")
-    threading.Thread(target=_doc_worker, daemon=True).start()
-
-
-def _doc_worker():
-    try:
-        while True:
-            q = read_json(MANUALS_STATE, {})
-            if q.get("paused") or not q.get("ids"):
-                break
-            mid = q["ids"][0]
-            m = next((x for x in manuals_catalog() if x["id"] == mid), None)
-            path = os.path.join(MANUALS_DIR, mid + ".pdf")
-            if m and not os.path.exists(path):
-                os.makedirs(MANUALS_DIR, exist_ok=True)
-                part = path + ".part"
-                have = os.path.getsize(part) if os.path.exists(part) else 0
-                doc_state.update(id=mid, done=have, total=m.get("size", 0))
-                req = urllib.request.Request(m["url"], headers={"User-Agent": "umbra-wiki/" + VERSION, **({"Range": f"bytes={have}-"} if have else {})})
-                with urllib.request.urlopen(req, timeout=60) as r, open(part, "ab" if have and r.status == 206 else "wb") as fh:
-                    if not (have and r.status == 206):
-                        doc_state["done"] = 0
-                    length = r.headers.get("Content-Length")
-                    if length:
-                        doc_state["total"] = doc_state["done"] + int(length)
-                    while True:
-                        if read_json(MANUALS_STATE, {}).get("paused") or doc_state.get("stop"):
-                            return
-                        chunk = r.read(65536)
-                        if not chunk:
-                            break
-                        fh.write(chunk)
-                        doc_state["done"] += len(chunk)
-                with open(part, "rb") as fh:
-                    if fh.read(4) != b"%PDF":
-                        os.remove(part)
-                        raise ValueError(f"{m['title']}: not a PDF (the source may have moved)")
-                os.replace(part, path)
-                record("manuals", mid)
-            q = read_json(MANUALS_STATE, {})
-            q["ids"] = [i for i in q.get("ids", []) if i != mid]
-            write_json(MANUALS_STATE, q)
-    except Exception as e:
-        doc_state["error"] = str(e)[:200]
-        q = read_json(MANUALS_STATE, {})
-        q["paused"] = True   # a failure waits for the resume button
-        write_json(MANUALS_STATE, q)
-    finally:
-        doc_state.update(active=False, stop=False)
-
-
 def manuals_control(action):
-    q = read_json(MANUALS_STATE, {})
-    if action == "pause":
-        q["paused"] = True
-        write_json(MANUALS_STATE, q)
-    elif action == "resume":
-        q["paused"] = False
-        write_json(MANUALS_STATE, q)
-        _doc_kick()
-    elif action == "cancel":
-        doc_state["stop"] = True
-        for mid in q.get("ids", []):
-            try:
-                os.remove(os.path.join(MANUALS_DIR, mid + ".pdf.part"))
-            except OSError:
-                pass
-        write_json(MANUALS_STATE, {"ids": [], "paused": False})
+    MANUAL_DOWNLOADS.control(action)
     return manuals()
 
 
@@ -448,6 +382,7 @@ def manuals_open(mid, folder=False):
 
 
 def manuals_delete(mid):
+    MANUAL_DOWNLOADS.forget(mid)
     if re.fullmatch(r"[a-z0-9-]{1,40}", mid or ""):
         for suffix in (".pdf", ".pdf.part"):
             try:
@@ -990,6 +925,7 @@ def find_sources(question, online):
         sources += local_sources(terms, ONLINE_LOCAL_SOURCES if online else LOCAL_SOURCES) if kiwix_proc else []
     except Exception:
         pass
+    sources += LINKS.search(terms, limit=2)
     notice = ""
     if online:
         try:
@@ -1034,9 +970,10 @@ def library():
             "description": entry["description"] if entry else "",
             "size": os.path.getsize(os.path.join(LIBRARY_DIR, f)),
         })
-    available = [c for c in catalog if c["id"] not in known]
+    linked_names = {os.path.basename(p) for p in LINKS.zims()}
+    available = [c for c in catalog if c["id"] not in known and c["file"] not in linked_names]
     shown = "~" + LIBRARY_DIR[len(HOME):] if LIBRARY_DIR.startswith(HOME) else LIBRARY_DIR
-    return {"dir": shown, "installed": installed, "available": available}
+    return {"dir": shown, "installed": installed, "available": available, "linked": LINKS.list()}
 
 
 SOUNDS_DIR = os.path.join(APP_DIR, "sounds")
@@ -1180,6 +1117,25 @@ def open_path(target):
     else:
         cmd = ["xdg-open", target]
     subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+
+
+def choose_library_files():
+    """A native chooser returns paths so linked files remain in their own folders."""
+    if WINDOWS:
+        script = ("[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; "
+                  "Add-Type -AssemblyName System.Windows.Forms; "
+                  "$d=New-Object System.Windows.Forms.OpenFileDialog; "
+                  "$d.Multiselect=$true; $d.Filter='Library files|*.zim;*.pdf;*.txt;*.md;*.csv;*.log;*.html;*.json'; "
+                  "if($d.ShowDialog() -eq 'OK') { $d.FileNames -join \"`n\" }")
+        cmd = ["powershell.exe", "-NoProfile", "-STA", "-Command", script]
+    elif shutil.which("zenity"):
+        cmd = ["zenity", "--file-selection", "--multiple", "--separator=\n", "--title=Link files to Umbra Library"]
+    else:
+        raise ValueError("No file chooser is installed; paste the full file path instead")
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    if result.returncode:
+        return []
+    return [p for p in result.stdout.splitlines() if p.strip()]
 
 
 def play_sound(name):
@@ -1617,7 +1573,7 @@ def _stat(st, stat):
     if stat == "password":
         return 1 if read_json(LOCK_FILE, {}).get("hash") else counts.get("password", 0)
     if stat == "collections":
-        return len(glob.glob(os.path.join(LIBRARY_DIR, "*.zim")))
+        return len(set(glob.glob(os.path.join(LIBRARY_DIR, "*.zim")) + LINKS.zims()))
     if stat == "allOthers":
         return sum(1 for a in achievement_catalog()["achievements"] if a["stat"] != "allOthers" and a["id"] in st["earned"])
     return counts.get(stat, 0)
@@ -2053,7 +2009,7 @@ def catalog():
 def packs():
     """Library packs with their collections, sizes and what's installed."""
     items = catalog()
-    have = {f for f in os.listdir(LIBRARY_DIR)} if os.path.isdir(LIBRARY_DIR) else set()
+    have = ({f for f in os.listdir(LIBRARY_DIR)} if os.path.isdir(LIBRARY_DIR) else set()) | {os.path.basename(p) for p in LINKS.zims()}
     try:
         defs = json.load(open(os.path.join(APP_DIR, "packs.json")))
     except (OSError, ValueError):
@@ -2074,113 +2030,60 @@ def packs():
     return out
 
 
-# Library downloads run in their own systemd unit, so they survive backend
-# restarts; progress is read from the growing files.
-DOWNLOAD_UNIT = "umbra-wiki-download"
+# Bounded concurrent queues; adding files never interrupts existing transfers.
+# Intent is saved so active jobs resume after backend/app restarts.
 DOWNLOADS_FILE = os.path.join(DATA_DIR, "downloads.json")
 
 
 def start_download(ids):
-    known = {c["id"]: c for c in catalog()}
+    known = {c["id"] for c in catalog()}
     ids = [i for i in ids if i in known]
     if not ids:
         return False
-    queued = read_json(DOWNLOADS_FILE, {}).get("ids", []) if _download_units() else []
-    ids = [i for i in ids if i not in queued]
-    if not ids:
-        return True
-    if WINDOWS:   # a background thread (no systemd); it finishes the whole queue
-        if DOWNLOADS.active():
-            DOWNLOADS.halt()
-        everything = queued + ids
-        write_json(DOWNLOADS_FILE, {"ids": everything})
-        return DOWNLOADS.start([known[i] for i in everything], LIBRARY_DIR, reload_library)
-    # The download unit gets this backend's config location and port.
-    env = [f"--setenv={k}={os.environ[k]}" for k in ("XDG_CONFIG_HOME", "UMBRA_PORT") if os.environ.get(k)]
-    r = subprocess.run(["systemd-run", "--user", "--collect", f"--unit={DOWNLOAD_UNIT}-{int(time.time() * 1000)}", *env,
-                        os.path.join(APP_DIR, "fetch-archive.sh"), *ids], capture_output=True)
-    write_json(DOWNLOADS_FILE, {"ids": queued + ids})
-    return r.returncode == 0
+    DOWNLOADS.add(ids)
+    return True
 
 
 def downloads():
-    known = {c["id"]: c for c in catalog()}
-    ids = [i for i in read_json(DOWNLOADS_FILE, {}).get("ids", []) if i in known]
-    active = bool(_download_units())
-    total = done = 0
-    items = []
-    for i in ids:
-        c = known[i]
-        path = os.path.join(LIBRARY_DIR, c["file"])
-        got = c["size"] if os.path.exists(path) else os.path.getsize(path + ".part") if os.path.exists(path + ".part") else 0
-        total += c["size"]
-        done += min(got, c["size"])
-        items.append({"id": i, "name": c["name"], "size": c["size"], "done": min(got, c["size"]),
-                      "installed": os.path.exists(path)})
-    state = read_json(DOWNLOADS_FILE, {})
-    waiting = not active and any(not i["installed"] for i in items)
-    library = {"active": active, "items": items, "percent": round(done * 100 / total) if total else 0,
-               "paused": waiting and bool(state.get("paused")), "done": done, "total": total}
+    library = DOWNLOADS.snapshot()
     job = MAPS.job
     maps = {"active": bool(job.get("active")) or bool(job.get("resumable")), "paused": bool(job.get("paused")),
             "phase": job.get("phase", ""), "name": (job.get("plan") or {}).get("name", ""), "kind": job.get("kind", ""),
             "received": job.get("received", 0), "total": job.get("total", 0), "done": job.get("done", 0), "count": job.get("count", 0)}
-    q = read_json(MANUALS_STATE, {})
-    docs = {"active": bool(doc_state["active"]), "paused": bool(q.get("paused")) and bool(q.get("ids")), "left": len(q.get("ids", [])),
-            "title": next((m["title"] for m in manuals_catalog() if m["id"] == (q.get("ids") or [""])[0]), ""),
-            "done": doc_state["done"], "total": doc_state["total"], "error": doc_state["error"]}
+    docs = MANUAL_DOWNLOADS.snapshot()
+    left = [i for i in docs["items"] if not i["installed"]]
+    docs.update(left=len(left), title=left[0]["name"] if left else "")
     return {"library": library, "model": dict(pull_state), "maps": maps, "docs": docs}
 
 
 def library_control(action):
-    """Pause (the download stops; the part already fetched is kept), resume
-    (it goes on from there) or cancel (the unfinished files are removed)."""
-    state = read_json(DOWNLOADS_FILE, {})
-    known = {c["id"]: c for c in catalog()}
-    left = [i for i in state.get("ids", []) if i in known and not os.path.exists(os.path.join(LIBRARY_DIR, known[i]["file"]))]
-    if action in ("pause", "cancel"):
-        if WINDOWS:
-            DOWNLOADS.halt()
-        for unit in ([] if WINDOWS else _download_units()):
-            subprocess.run(["systemctl", "--user", "stop", unit], capture_output=True)
-    if action == "pause":
-        write_json(DOWNLOADS_FILE, {**state, "paused": True})
-    elif action == "resume":
-        if left:
-            start_download(left)
-    elif action == "cancel":
-        for i in left:
-            try:
-                os.remove(os.path.join(LIBRARY_DIR, known[i]["file"]) + ".part")
-            except OSError:
-                pass
-        try:
-            os.remove(DOWNLOADS_FILE)
-        except OSError:
-            pass
+    DOWNLOADS.control(action)
     return downloads()
 
 
 def resume_library():
-    """At start: library downloads cut off by a restart go on (paused ones wait)."""
-    state = read_json(DOWNLOADS_FILE, {})
-    if state.get("paused") or _download_units():
-        return
-    known = {c["id"]: c for c in catalog()}
-    left = [i for i in state.get("ids", []) if i in known and not os.path.exists(os.path.join(LIBRARY_DIR, known[i]["file"]))]
-    if left:
-        start_download(left)
+    # Older Linux versions left independent systemd downloads running. Wait
+    # for them before taking ownership of their .part files.
+    if not WINDOWS and shutil.which("systemctl"):
+        for unit in _download_units():
+            subprocess.run(["systemctl", "--user", "stop", unit], capture_output=True)
+    DOWNLOADS.restore()
 
 
 def _download_units():
     if WINDOWS:
-        return ["thread"] if DOWNLOADS.active() else []
-    out = subprocess.run(["systemctl", "--user", "list-units", "--plain", "--no-legend", "--state=active,activating",
-                          f"{DOWNLOAD_UNIT}-*"], capture_output=True, text=True).stdout
-    return [line.split()[0] for line in out.splitlines() if line.strip()]
+        return []
+    try:
+        out = subprocess.run(["systemctl", "--user", "list-units", "--plain", "--no-legend", "--state=active,activating",
+                              "umbra-wiki-download-*"], capture_output=True, text=True, timeout=5).stdout
+        return [line.split()[0] for line in out.splitlines() if line.strip()]
+    except (OSError, subprocess.SubprocessError):
+        return []
 
 
-DOWNLOADS = winplat.Downloads() if WINDOWS else None
+DOWNLOADS = transfers.Queue(DOWNLOADS_FILE, LIBRARY_DIR, catalog, workers=3, on_done=lambda _id: reload_library())
+MANUAL_DOWNLOADS = transfers.Queue(MANUALS_STATE, MANUALS_DIR, manuals_catalog, workers=2, pdf=True,
+                                   on_done=lambda mid: record("manuals", mid))
 
 
 # Model downloads go through Ollama's API in a background thread; a pending
@@ -2374,6 +2277,7 @@ def uninstall_windows(library_too, model_too):
                 except OSError:
                     pass
     DOWNLOADS.halt()
+    MANUAL_DOWNLOADS.halt()
     winplat.remove_tree(CONFIG_DIR)
     winplat.remove_tree(DATA_DIR)   # the open log file stays until the app closes
     app = winplat.uninstaller(APP_DIR)
@@ -2387,6 +2291,7 @@ def reset_umbra():
     custom themes, personalities and scenarios, and all saved conversations
     are deleted (downloaded maps stay, like the library). The AI model,
     the library and config.json (model, library folder) are kept."""
+    MANUAL_DOWNLOADS.control("cancel")
     for path in (SETTINGS_FILE, PROFILE_FILE, CUSTOM_THEMES_FILE, PERSONALITIES_FILE, SCENARIOS_FILE, LOCK_FILE, ACH_FILE,
                  WAYPOINTS_FILE, SUPPLIES_FILE, SAFETY_FILE, FOLDERS_FILE, VAULT_FILE, radar.KNOWN_FILE, CALENDAR_FILE, MANUALS_STATE, STYLE_FILE):
         try:
@@ -3223,7 +3128,9 @@ def build_system_prompt(online=False):
         persona = person["prompt"]
     no_humor = bool(scenario.get("noHumor"))
     parts = [persona, trait_lines(person.get("stats", {}), no_humor),
-             "SCENARIO: " + scenario["prompt"], MODE_ONLINE if online else MODE_LOCAL, profile_prompt(), RULES]
+             "SELECTED LOADOUT (use only when relevant to the user's question; it does not prove these circumstances are happening now): "
+             + scenario["prompt"] + " If the user describes a different situation, follow their account. Do not bring the loadout into unrelated conversation.",
+             MODE_ONLINE if online else MODE_LOCAL, profile_prompt(), RULES]
     return " ".join(x for x in parts if x)
 
 
@@ -3711,6 +3618,31 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/library/download":
             ids = self.read_json().get("ids") or []
             return self.send_json({"ok": start_download([str(i) for i in ids])})
+        if self.path in ("/api/library/link", "/api/library/choose", "/api/library/unlink", "/api/library/open-linked"):
+            try:
+                req = self.read_json()
+                if self.path == "/api/library/open-linked":
+                    path = LINKS.path_for_url(str(req.get("url", "")))
+                    if not path:
+                        raise ValueError("Linked file is unavailable")
+                    open_path(path)
+                    return self.send_json({"ok": True})
+                if self.path == "/api/library/unlink":
+                    old = LINKS.list()
+                    out = LINKS.remove(str(req.get("path", "")))
+                    if any(x["kind"] == "zim" and x["path"] == req.get("path") for x in old):
+                        reload_library()
+                    return self.send_json({"linked": out})
+                paths = choose_library_files() if self.path == "/api/library/choose" else req.get("paths", [])
+                if not isinstance(paths, list):
+                    raise ValueError("Expected a list of file paths")
+                before = set(LINKS.zims())
+                out = LINKS.add([str(p) for p in paths]) if paths else LINKS.list()
+                if set(LINKS.zims()) != before:
+                    reload_library()
+                return self.send_json({"linked": out})
+            except (ValueError, OSError, subprocess.SubprocessError) as e:
+                return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/reload-library":
             return self.send_json({"archives": reload_library()})
         if self.path == "/api/model/pull":
@@ -3769,7 +3701,7 @@ def status():
     except Exception:
         model_ok = ollama_ok = False
     return {
-        "archives": len(glob.glob(os.path.join(LIBRARY_DIR, "*.zim"))),
+        "archives": len(set(glob.glob(os.path.join(LIBRARY_DIR, "*.zim")) + LINKS.zims())),
         "model": MODEL,
         "ollama": ollama_ok,
         "modelReady": model_ok,
@@ -3886,8 +3818,8 @@ def style_prompt(question, history):
     if stock:
         parts.append("Avoid repeating these phrases from your earlier replies: " + ", ".join(f"'{g}'" for g in stock) + ".")
     parts.append("Vary your sentence length and structure, and never begin with filler like 'Okay', 'Alright' or 'Great question'. "
-                 "Always answer in the language the user writes in. Adapt your register and length to them, but your "
-                 "personality always comes first: never drop your character to match theirs.")
+                 "Always answer in the language the user writes in. Adapt your register and length to them; "
+                 "the selected personality is a light voice preference, not a reason to override the user's style or topic.")
     return "STYLE: " + " ".join(parts)
 
 
@@ -3988,7 +3920,7 @@ def answer(req, emit):
     recent = history[-HISTORY_TURNS * 2:]
     for i, turn in enumerate(recent):
         role = "assistant" if turn.get("role") == "assistant" else "user"
-        keep = 600 if i >= len(recent) - 2 else 350   # the last exchange in full, older ones shortened
+        keep = 900 if i >= len(recent) - 2 else 250
         messages.append({"role": role, "content": str(turn.get("content", ""))[:keep]})
     if chatting:
         messages.append({"role": "user", "content": question})
@@ -4014,7 +3946,7 @@ def answer(req, emit):
     if chatting or asks_back:
         follow = ""
     else:
-        follow = match.group(1).strip(" *_\"'") if match else follow_up(question, full)
+        follow = match.group(1).strip(" *_\"'") if match else ""
     if follow:
         emit({"type": "next", "text": follow})
     record("question", question, online=online, offgrid=offgrid, turn=len(history) // 2 + 1)
@@ -4134,8 +4066,7 @@ def run(signals=True):
     threading.Thread(target=warm_model, daemon=True).start()
     resume_pull()
     threading.Thread(target=resume_library, daemon=True).start()
-    if read_json(MANUALS_STATE, {}).get("ids") and not read_json(MANUALS_STATE, {}).get("paused"):
-        _doc_kick()   # manuals that were downloading go on
+    MANUAL_DOWNLOADS.restore()
     MAPS.restore(on_done=lambda aid: record("mapPacks", aid))
     HTTPD = ThreadingHTTPServer((HOST, PORT), Handler)
     print(f"umbra: {n} archives, model {MODEL}, http://{HOST}:{PORT}", flush=True)

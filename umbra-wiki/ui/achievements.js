@@ -23,14 +23,18 @@
     legendary: `<polygon class="bd-face" points="50,2 61,24 85,15 76,39 98,50 76,61 85,85 61,76 50,98 39,76 15,85 24,61 2,50 24,39 15,15 39,24"/>
                 <circle class="bd-ring" cx="50" cy="50" r="27"/>`,
   };
-  const pct = (a) => Math.round((Math.min(a.progress, a.goal) / a.goal) * 100);
+  const pct = (a) => a.goal > 0 ? Math.round(Math.max(0, Math.min(1, a.progress / a.goal)) * 100) : 0;
   const hidden = (a) => a.secret && !a.earned;
 
   // A badge: the tier shape, the icon, and (while locked) a progress ring.
   function badge(a, size = "") {
     const p = pct(a);
-    const ring = a.earned ? "" : `<circle class="bd-track" cx="50" cy="50" r="47"/>` +
-      (p > 0 ? `<circle class="bd-prog" cx="50" cy="50" r="47" pathLength="100" stroke-dasharray="${p} 100"/>` : "");
+    // Draw the actual arc in viewBox coordinates. WebKit's pathLength/dash
+    // normalization can change with native page zoom, shifting progress.
+    const angle = p * Math.PI / 50;
+    const arc = p >= 100 ? `<circle class="bd-prog" cx="50" cy="50" r="47"/>`
+      : p > 0 ? `<path class="bd-prog" d="M50 3 A47 47 0 ${p > 50 ? 1 : 0} 1 ${50 + 47 * Math.sin(angle)} ${50 - 47 * Math.cos(angle)}"/>` : "";
+    const ring = a.earned ? "" : `<circle class="bd-track" cx="50" cy="50" r="47"/>` + arc;
     return `<span class="badge ${a.tier} ${a.earned ? "got" : "locked"} ${size}">
       <svg viewBox="0 0 100 100" aria-hidden="true">${ring}${SHAPES[a.tier]}</svg>
       <span class="bd-icon g">${hidden(a) ? "?" : a.icon}</span></span>`;

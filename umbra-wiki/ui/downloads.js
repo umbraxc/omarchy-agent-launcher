@@ -33,15 +33,15 @@
       out.maps = { pct, active: m.active, paused: m.paused, line: `${m.name || "Map area"} · ${phase}` };
     }
     const lib = d.library || {};
-    if (lib.active || lib.paused) {
+    if (lib.active || lib.paused || lib.error) {
       const left = (lib.items || []).filter((x) => !x.installed);
-      out.library = { pct: lib.percent || 0, active: lib.active, paused: lib.paused,
-                      line: left.length === 1 ? left[0].name : `${left.length} collections` };
+      out.library = { pct: lib.percent || 0, active: lib.active, paused: lib.paused || !lib.active,
+                      line: lib.error || (left.length === 1 ? left[0].name : `${left.length} collections`) };
     }
     const dc = d.docs || {};
-    if (dc.left && (dc.active || dc.paused)) {
-      out.docs = { pct: dc.total ? Math.round((dc.done / dc.total) * 100) : 0, active: dc.active, paused: dc.paused,
-                   line: dc.left === 1 ? dc.title : `${dc.title} + ${dc.left - 1} more` };
+    if (dc.left && (dc.active || dc.paused || dc.error)) {
+      out.docs = { pct: dc.percent || 0, active: dc.active, paused: dc.paused || !dc.active,
+                   line: dc.error || (dc.left === 1 ? dc.title : `${dc.title} + ${dc.left - 1} more`) };
     }
     const mo = d.model || {};
     if (mo.active || mo.paused) {

@@ -286,21 +286,22 @@ window.UmbraTraining = (() => {
     const draw = async () => {
       if (!box.isConnected) { clearInterval(mTimer); return; }
       let d; try { d = await (await fetch("/api/manuals")).json(); } catch { return; }
-      const st = d.state || {}, busy = d.manuals.some((m) => m.queued);
+      const st = d.state || {}, busy = d.manuals.some((m) => m.queued || m.status === "error");
       box.innerHTML = `<section class="fk-card tr-man-head"><div class="fk-h">FIELD MANUALS & GUIDES</div>
         <p class="lib-note">Public manuals from armed forces and civil-defence agencies: US Army field manuals (public domain, from the Internet Archive),
           Sweden's civil-defence brochure and FEMA's preparedness guide (from their official sites). Download the ones you want; they open in your PDF viewer
           and stay on this computer${d.dir ? ` (<code>${escapeHtml(d.dir)}</code>)` : ""}.</p>
-        ${busy && window.UmbraDownloads ? `<div class="dl-controls">${UmbraDownloads.controls("docs", { paused: d.paused })}</div>${UmbraDownloads.note("the download")}` : ""}
+        ${busy && window.UmbraDownloads ? `<div class="dl-controls">${UmbraDownloads.controls("docs", { paused: d.paused || (!st.active && !!st.error) })}</div>${UmbraDownloads.note("the download")}` : ""}
         ${st.error ? `<p class="lib-note mp-err">${escapeHtml(st.error)} Press resume to try again.</p>` : ""}</section>
         <div class="tr-man">${d.manuals.map((m) => {
-          const pct = m.id === st.id && st.total ? Math.round((st.done / st.total) * 100) : m.got && m.size ? Math.round((m.got / m.size) * 100) : 0;
+          const pct = m.got && m.total ? Math.min(100, Math.round((m.got / m.total) * 100)) : 0;
           const art = MART[m.art] || MART.tent;
           return `<article class="tr-mcard ${m.installed ? "have" : ""}"><pre class="tr-mart" data-a="${m.art}">${escapeHtml(art[0])}</pre>
             <div class="tr-mtext"><small>${escapeHtml(m.org)} · ${m.year}</small><b>${escapeHtml(m.title)}</b><p>${escapeHtml(m.summary)}</p>
-            ${m.queued ? `<div class="dl-bar"><i style="width:${pct}%"></i></div><small class="tr-mstate">${d.paused ? "PAUSED" : m.id === st.id ? "DOWNLOADING " + pct + "%" : "WAITING"}</small>` : ""}
+            ${m.queued ? `<div class="dl-bar"><i style="width:${pct}%"></i></div><small class="tr-mstate">${d.paused || m.status === "paused" ? "PAUSED" : m.status === "downloading" ? "DOWNLOADING " + pct + "%" : "WAITING"}</small>` : ""}
+            ${m.error ? `<small class="tr-mstate mp-err">${escapeHtml(m.error)}</small>` : ""}
             <div class="tr-mact">${m.installed ? `<button class="solid tr-mopen" data-id="${m.id}">OPEN ▸</button><button class="ghost tr-mdel" data-id="${m.id}" title="Remove it from this computer">✕</button>`
-              : m.queued ? "" : `<button class="ghost tr-mget" data-id="${m.id}">󰇚 DOWNLOAD · ${Math.max(1, Math.round(m.size / 1e6))} MB</button>`}</div></div></article>`;
+              : m.queued ? "" : `<button class="ghost tr-mget" data-id="${m.id}">󰇚 ${m.status === "error" ? "RETRY" : "DOWNLOAD · " + Math.max(1, Math.round(m.size / 1e6)) + " MB"}</button>`}</div></div></article>`;
         }).join("")}</div>`;
       box.querySelectorAll(".tr-mget").forEach((b) => b.addEventListener("click", async () => {
         await fetch("/api/manuals/download", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: [b.dataset.id] }) });

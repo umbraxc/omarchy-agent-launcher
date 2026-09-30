@@ -20,6 +20,19 @@
   let packagedInstall = false;   // installed with pacman (the AUR): removal goes through pacman
   let onWindowsApp = false;      // the Windows app: removal ends in Windows' own uninstaller
   const body = $("#settings-body");
+  function syncZoom(z) {
+    const select = body.querySelector(".set-zoom");
+    if (!select) return;
+    // Also display levels restored from older/custom settings.
+    select.querySelectorAll("option[data-custom]").forEach((o) => o.remove());
+    if (![...select.options].some((o) => Number(o.value) === z)) {
+      const option = new Option(`${Math.round(z * 100)}%`, String(z));
+      option.dataset.custom = "1";
+      select.add(option);
+    }
+    select.value = String(z);
+  }
+  document.addEventListener("umbra-zoom", (e) => syncZoom(e.detail));
 
   // Hidden buttons glitch out and the rest close up to the right; shown ones
   // glitch back in. Without animation (at startup) they just switch.
@@ -513,7 +526,7 @@
     if (!ts.value) ts.value = "1";
     ts.addEventListener("change", () => { save({ textScale: Number(ts.value) }); Sound.click(); });
     const zs = body.querySelector(".set-zoom");
-    zs.value = String(prefs.zoom || 1);
+    syncZoom(prefs.zoom || 1);
     zs.addEventListener("change", () => { save({ zoom: Number(zs.value) }); window.applyZoom && applyZoom(Number(zs.value), true); Sound.click(); });
     const og = body.querySelector(".set-offgrid");
     og.value = prefs.offgrid || "off";

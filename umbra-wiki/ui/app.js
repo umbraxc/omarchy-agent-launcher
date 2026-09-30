@@ -479,9 +479,11 @@ function keepScroll(el, rebuild) {
 }
 
 // fresh: the panel was just opened (start at the top, show "Reading…").
+let libraryStructure = "";
 async function renderLibrary(fresh = false) {
   const body = $("#library-body");
   if (fresh) {
+    libraryStructure = "";
     body.innerHTML = `<p class="lib-note"><span class="spin" data-spin>✻</span> Reading library…</p>`;
     body.scrollTop = 0;
   }
@@ -493,21 +495,41 @@ async function renderLibrary(fresh = false) {
       fetch("/api/downloads").then((r) => r.json()).catch(() => dl),
     ]);
   } catch { body.innerHTML = `<p class="lib-note">Library unavailable.</p>`; return; }
-  const downloading = new Set(dl.library.active ? dl.library.items.filter((x) => !x.installed).map((x) => x.id) : []);
+  const jobs = dl.library.items || [];
+  const downloading = new Set(jobs.filter((x) => !x.installed && ["queued", "downloading", "paused"].includes(x.status)).map((x) => x.id));
+  const structure = JSON.stringify([lib.installed.map((x) => x.file), lib.available.map((x) => x.id),
+    jobs.map((x) => [x.id, x.status, x.installed]), dl.library.paused,
+    (lib.linked || []).map((x) => [x.path, x.available])]);
+  if (!fresh && structure === libraryStructure) {
+    const overall = body.querySelector("[data-library-percent]");
+    if (overall) overall.textContent = dl.library.percent + "%";
+    const bar = body.querySelector("[data-library-bar]");
+    if (bar) bar.style.width = dl.library.percent + "%";
+    jobs.forEach((x) => {
+      const row = [...body.querySelectorAll("[data-dl-id]")].find((el) => el.dataset.dlId === x.id);
+      if (row) row.querySelector("[data-dl-pct]").textContent = x.status === "downloading"
+        ? (x.size ? Math.round(x.done * 100 / x.size) : 0) + "%" : x.status.toUpperCase();
+    });
+    clearTimeout(libraryTimer);
+    if (dl.library.active) libraryTimer = setTimeout(() => { if (!$("#library").hidden) renderLibrary(); }, 2500);
+    return;
+  }
+  libraryStructure = structure;
 
   const total = lib.installed.reduce((n, x) => n + x.size, 0);
   let html = `<p class="lib-note">Collections are stored in <code>${escapeHtml(lib.dir)}</code> and work fully offline.
     Downloads run in the background, are checked for damage, and join the library as soon as they finish.</p>`;
 
-  if (dl.library.active || dl.library.paused) {
+  if (dl.library.active || dl.library.paused || jobs.some((x) => x.status === "error")) {
     const paused = !!dl.library.paused;
-    html += `<div class="lib-section"><div class="lib-head"><span>${paused ? "󰏤 PAUSED" : `<span class="spin" data-spin>✻</span> DOWNLOADING`}</span><b>${dl.library.percent}%</b></div>
-      <div class="dl-bar"><i style="width:${dl.library.percent}%"></i></div>`;
-    dl.library.items.forEach((x) => {
+    html += `<div class="lib-section"><div class="lib-head"><span>${paused ? "󰏤 PAUSED" : dl.library.active ? `<span class="spin" data-spin>✻</span> DOWNLOADING` : "DOWNLOAD NEEDS ATTENTION"}</span><b data-library-percent>${dl.library.percent}%</b></div>
+      <div class="dl-bar"><i data-library-bar style="width:${dl.library.percent}%"></i></div>`;
+    jobs.forEach((x) => {
       const pct = x.size ? Math.round((x.done * 100) / x.size) : 0;
-      html += `<div class="dl-row"><span>${x.installed ? "✓" : pct ? "↓" : "·"} ${escapeHtml(x.name)}</span><span>${x.installed ? "DONE" : pct + "%"}</span></div>`;
+      html += `<div class="dl-row" data-dl-id="${escapeHtml(x.id)}"><span>${x.installed ? "✓" : pct ? "↓" : "·"} ${escapeHtml(x.name)}</span><span data-dl-pct>${x.installed ? "DONE" : x.status === "downloading" ? pct + "%" : x.status.toUpperCase()}</span></div>`;
     });
-    if (window.UmbraDownloads) html += `<div class="dl-controls">${UmbraDownloads.controls("library", { paused })}</div>${UmbraDownloads.note("the library download")}`;
+    if (dl.library.error) html += `<p class="lib-note mp-err">${escapeHtml(dl.library.error)}</p>`;
+    if (window.UmbraDownloads) html += `<div class="dl-controls">${UmbraDownloads.controls("library", { paused: paused || (!dl.library.active && !!dl.library.error) })}</div>${UmbraDownloads.note("the library download")}`;
     html += `</div>`;
   }
 
@@ -548,6 +570,20 @@ async function renderLibrary(fresh = false) {
   });
   html += `</div>`;
 
+  html += `<div class="lib-section"><div class="lib-head"><span>LINKED FILES · ${(lib.linked || []).length}</span>
+    <button class="ghost lib-link-choose" title="Choose existing files to use in Umbra without copying them">+ LINK FILES</button></div>
+    <p class="lib-note">Link ZIM archives, PDFs and text files where they already live. Keep the original files available; Umbra never moves them.</p>
+    <div class="lib-link-entry"><input class="lib-link-path" type="text" placeholder="Or paste a full file path" aria-label="Full path to a library file">
+      <button class="ghost lib-link-add">LINK PATH</button></div>
+    <p class="lib-note lib-link-error" hidden></p>`;
+  (lib.linked || []).forEach((x, i) => {
+    html += `<div class="lib-row lib-linked"><span class="${x.available ? "mark-ok" : "mark-new"}">${x.available ? "✓" : "!"}</span>
+      <span class="lname">${escapeHtml(x.name)} <small class="lsize">· ${x.kind.toUpperCase()}</small></span>
+      <button class="ghost lib-unlink" data-link-i="${i}" title="Remove this link; leave the original file untouched">UNLINK</button>
+      <span class="ldesc">${x.available ? escapeHtml(x.path) : "File unavailable: " + escapeHtml(x.path)}</span></div>`;
+  });
+  html += `</div>`;
+
   for (const cat of Object.keys(CATEGORY)) {
     const items = lib.available.filter((x) => x.category === cat);
     if (!items.length) continue;
@@ -580,6 +616,22 @@ async function renderLibrary(fresh = false) {
     renderLibrary();
     if (window.UmbraDownloads) UmbraDownloads.refresh();
   }));
+  const linkError = body.querySelector(".lib-link-error");
+  const linkRequest = async (route, payload = {}) => {
+    try {
+      const r = await fetch("/api/library/" + route, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const out = await r.json();
+      if (!r.ok) throw new Error(out.error || "Could not link that file");
+      renderLibrary();
+    } catch (e) { linkError.textContent = e.message; linkError.hidden = false; Sound.error(); }
+  };
+  body.querySelector(".lib-link-choose").addEventListener("click", () => linkRequest("choose"));
+  body.querySelector(".lib-link-add").addEventListener("click", () => {
+    const path = body.querySelector(".lib-link-path").value.trim();
+    if (path) linkRequest("link", { paths: [path] });
+  });
+  body.querySelector(".lib-link-path").addEventListener("keydown", (e) => { if (e.key === "Enter") body.querySelector(".lib-link-add").click(); });
+  body.querySelectorAll(".lib-unlink").forEach((b) => b.addEventListener("click", () => linkRequest("unlink", { path: lib.linked[+b.dataset.linkI].path })));
   // Keep the progress moving while the panel is open.
   clearTimeout(libraryTimer);
   if (dl.library.active) libraryTimer = setTimeout(() => { if (!$("#library").hidden) renderLibrary(); }, 2500);
@@ -1480,7 +1532,7 @@ function showPop(s, anchor) {
   if (locked) return;
   $("#pop-n").textContent = s.n;
   const kind = $("#pop-kind");
-  kind.textContent = s.kind === "manual" ? "FIELD MANUAL" : s.kind === "local" ? "LOCAL ARCHIVE" : "WIKIPEDIA ↗";
+  kind.textContent = s.kind === "manual" ? "FIELD MANUAL" : s.kind === "local" ? "LOCAL ARCHIVE" : s.kind === "linked" ? "LINKED FILE" : "WIKIPEDIA ↗";
   kind.className = "pop-kind " + s.kind;
   $("#pop-title").textContent = s.title;
   $("#pop-archive").textContent = s.kind === "wiki" ? "Opens in your browser" : s.archive;
@@ -1614,6 +1666,7 @@ function openSource(s) {
   if (window.track) track("sources");
   if (s.kind === "manual") openManual(String(s.url).replace(/^manual:/, ""));
   else if (s.kind === "local") openReader(s);
+  else if (s.kind === "linked") fetch("/api/library/open-linked", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: s.url }) });
   else fetch("/api/open", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: s.url }) });
 }
 
@@ -1631,7 +1684,7 @@ function renderSources(card, sources) {
     row.innerHTML = `<span class="n">${s.n}</span><span class="t"></span><span class="kind"></span>`;
     row.querySelector(".t").textContent = s.title;
     const kind = row.querySelector(".kind");
-    kind.textContent = s.kind === "manual" ? "MANUAL" : s.kind === "local" ? "LOCAL" : "WIKIPEDIA ↗";
+    kind.textContent = s.kind === "manual" ? "MANUAL" : s.kind === "local" ? "LOCAL" : s.kind === "linked" ? "LINKED FILE" : "WIKIPEDIA ↗";
     kind.classList.add(s.kind);
     bindSource(row, s);
     list.appendChild(row);
@@ -2390,6 +2443,8 @@ function applyZoom(z, announce = false) {
       else document.documentElement.style.zoom = z === 1 ? "" : String(z);   // a plain browser tab
     }
   }
+  if (window.prefs) window.prefs.zoom = z;
+  document.dispatchEvent(new CustomEvent("umbra-zoom", { detail: z }));
   if (announce) {
     let t = $(".zoom-toast");
     if (!t) { t = document.createElement("div"); t.className = "zoom-toast"; document.body.appendChild(t); }
@@ -2527,5 +2582,3 @@ if (manualParam) setTimeout(() => openManual(manualParam), 700);
 // umbra-wiki "question" passes it as ?q= to ask on open.
 const initial = new URLSearchParams(location.search).get("q");
 if (initial) ask(initial);
-
-

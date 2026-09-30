@@ -68,7 +68,7 @@ cat <<'INTRO'
 INTRO
 ask "Continue? [Y/n]" y || exit 130
 
-packages=(ollama python-gobject webkit2gtk-4.1 gst-plugins-good kiwix-tools jq curl
+packages=(ollama python-gobject webkit2gtk-4.1 gst-plugins-good kiwix-tools poppler jq curl
   pciutils pipewire-audio xdg-utils xdg-user-dirs libnotify gtk-update-icon-cache)
 
 # Use the graphics card for the AI when it has a supported one.

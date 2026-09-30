@@ -230,7 +230,7 @@ INTRO
   fc-list 2>/dev/null | grep -qi "JetBrainsMono Nerd" || font_pkg=ttf-jetbrains-mono-nerd
 
   echo "Installing packages…"
-  omarchy-pkg-add ollama $gpu_pkg python-gobject webkit2gtk-4.1 gst-plugins-good kiwix-tools jq curl \
+  omarchy-pkg-add ollama $gpu_pkg python-gobject webkit2gtk-4.1 gst-plugins-good kiwix-tools poppler jq curl \
     pciutils pipewire-audio xdg-utils libnotify gtk-update-icon-cache $font_pkg ||
     { echo "Could not install the packages."; exit 1; }
   echo "Starting the Ollama service…"
