@@ -283,7 +283,6 @@
       let i = 0;
       const show = () => {
         const [sel, title, text] = steps[i];
-        if ($(sel).closest(".controls")) $(sel).scrollIntoView({ block: "nearest", inline: "center" });
         const r = $(sel).getBoundingClientRect();
         const pad = 6;
         Object.assign(spot.style, { left: r.left - pad + "px", top: r.top - pad + "px", width: r.width + pad * 2 + "px", height: r.height + pad * 2 + "px" });

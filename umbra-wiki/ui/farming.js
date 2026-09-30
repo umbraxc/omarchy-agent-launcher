@@ -41,93 +41,16 @@
     }
     return sum;
   }
-  const art = `        .  *       .      |      .       *  .
-      *      .            |            .
-             \\  |  /     |     \\  |  /
-          ----  ☼  ----   |   ----  ☼  ----
-             /  |  \\     |     /  |  \\
-      _________           |           _________
-     /  /  /  /\\       __|__       /\\  \\  \\  \\
-    /__/__/__/__\\     /  _  \\     /__\\__\\__\\__\\
-     || || || ||       |  | |  |       || || || ||
-  ___||_||_||_||_______|__|_|__|_______||_||_||_||___`;
-  const cropArt = {
-    wheat:["    <\\ | />", "     <\\|/>", "      /|", "     / |", "   ___|___"],
-    maize:["      /|", "    |/ ||", "   (###)||", "    |  ||", "   _|__||_"],
-    potato:["    /|  |/", "      ||", "   .--||--.", "  ( o    o )", "   '------'"],
-    carrot:["    /| | |/", "     ( | )", "      ( )", "       V", "       |"],
-    tomato:["     /|  |/", "      |  |", "    (o) (o)", "      |  |", "    __|__|__"],
-    pumpkin:["      /|", "    .--|--.", "   /  | |  |", "  (   | |   )", "   '-----'"],
-    sunflower:["     @@@@@", "    @ (o) @", "     @@@@@", "       ||", "     __||__"],
-    strawberry:["     /| |/", "     (o o)", "    (o o o)", "     '---'", "      ||"],
-  };
-  // Every bundled crop has its own field mark. The same template family can
-  // show related anatomy while the canopy, fruit and root remain item specific.
-  const cropMarks = {
-    wheat:["grain","<\\|/>"], rice:["grain","/\\|/"], maize:["grain","[###]"], barley:["grain","<*|*>"],
-    sorghum:["grain","{***}"], millet:["grain",".:|:."], quinoa:["grain","o:|:o"],
-    potato:["root","(o  o)"], "sweet-potato":["root","(oo oo)"], cassava:["root","(Y  Y)"],
-    carrot:["root","  \\/  "], beet:["root"," (###) "], turnip:["root"," (___) "], radish:["root","  (o)  "],
-    onion:["root"," (   ) "], garlic:["root"," (o-o) "],
-    "dry-bean":["vine","(o) (o)"], lentil:["vine","(.) (.)"], chickpea:["vine","(@) (@)"],
-    soybean:["vine","(8) (8)"], pea:["vine","(O) (O)"], peanut:["root","(o)(o)"],
-    sunflower:["flower","@ (O) @"], tomato:["vine","(O) (O)"], pepper:["vine","<O> <O>"],
-    cucumber:["vine","[====]"], pumpkin:["vine","(____)"], zucchini:["vine","<====>"],
-    eggplant:["vine","(____>"], cabbage:["leaf","(~~~~)"], broccoli:["leaf","{####}"],
-    cauliflower:["leaf","{oooo}"], kale:["leaf","{/\\/}"], spinach:["leaf","(/\\/)"],
-    lettuce:["leaf","(oooo)"], chard:["leaf","{\\||/}"], strawberry:["vine","(v) (v)"],
-  };
-  const animalForms = {
-    Chicken:["    ,~.","   (o  )>","   /|  |", "    /  |", "  _/____|_"],
-    Duck:["    __", " __(o )__", "/   >    )","(_______/","   /    |"],
-    Pig:["   .------.","  /  o  o  |"," (    (oo)   )","  (________)","   /|    |"],
-    Cow:["  /|      |/"," (  )____(  )"," |  o    o  |"," |   (__)   |","  (________)"],
-    Goat:["  /|  |/"," (  |__/  )"," |  o  o  |","  (  --  )","   /|____|"],
-    Sheep:["  .-~~~~~~-."," (  o    o  )","(   (____)   )"," '._      _.'","   /|____|"],
-    Rabbit:["   /|  |/","  /  |/  |"," (  o  o  )","  (  ^^  )","   /____|"],
-    Turkey:["  | | | //"," --(o o)--","   (  >  )","    /| |","   /_| |_"],
-    Goose:["    __"," __/o )","/   __/","(____)~~","  /  |"],
-    Quail:["  .-~~~-."," ( o   o )","  (  >  )","   '---'","   /   |"],
-    Carp:["   /|","<===( o)>","   |/"],
-    Tilapia:["    /|___","<===( o  )>","    |/~~~"],
-    "Water buffalo":["  /|      |/"," /  |____/  |","|   o    o   |","|    (__)    |"," (__________)"],
-  };
-  function itemArt(d, crop, frame = 0) {
-    let shape;
-    if (crop) {
-      const [family, mark] = cropMarks[d.id] || ["leaf", "(****)"];
-      const stem = frame % 2 ? "       /|" : "      |\\";
-      shape = family === "grain" ? ["      \\ | /", "     " + mark, stem, "      ||", "   ___||___"]
-        : family === "root" ? ["     \\ | /", "      \\|/", "       ||", "    " + mark, "   ___/  \\___"]
-        : family === "flower" ? ["     .-*-.", "    " + mark, "     '-*-'", stem, "   ___||___"]
-        : family === "leaf" ? ["    /\\  /\\", "   " + mark, "      \\|/", stem, "   ___||___"]
-        : ["   /\\     /\\", "  " + mark, "     \\ | /", stem, "   ___||___"];
-      if (cropArt[d.id]) shape = cropArt[d.id].slice();
-      if (frame % 2) shape[0] = " " + shape[0];
-    } else {
-      shape = (animalForms[d.name] || animalForms.Cow).slice();
-      if (frame % 4 === 3) shape = shape.map((line) => line.replace(/o/g, "-"));
-      if (frame % 2) shape[0] = " " + shape[0];
-      shape.push(d.product.toLowerCase().includes("egg") ? "   (o)   (o)   (o)" :
-        d.product.toLowerCase().includes("milk") ? "    [  MILK  ]" : "    [  HERD  ]");
-    }
-    const sky = frame % 2 ? ["     .      *         .", "          \\ | /", "      .    ☼      ."]
-                          : ["    *         .      *", "          \\ | /", "       .   ☼    ."];
-    const ground = crop ? ["  ___..____..____..___", "  :::::  FIELD  ::::::"]
-                        : ["  __|__|______|__|___", "  ::::  PASTURE  ::::"];
-    return [...sky, ...shape, ...ground, "  [ " + d.name.toUpperCase() + " ]"].join("\n");
-  }
-
   function build() {
     const panel = document.createElement("div");
     panel.id = "farming"; panel.className = "loadout fm"; panel.hidden = true;
     panel.innerHTML = `<div class="lo-head fm-head"><span class="lo-title"><span class="g">&#xF0073;</span> FARMING</span>
       <span class="fm-head-note">OFFLINE FIELD PLANNER</span><button class="ghost fm-close" title="Close Farming · Esc">CLOSE ✕</button></div>
-      <div class="fm-body"><aside class="fm-catalog"><div class="fm-cat-head"><b>THE FIELD BOOK</b><small>Bundled crops & livestock</small></div>
+      <div class="fm-body"><aside class="fm-catalog"><div class="fm-cat-head"><b>THE FIELD BOOK</b><button class="fm-overview-btn" type="button" title="See the farm overview">VIEW FARM ▸</button></div>
         <input class="fm-search" type="search" placeholder="Search crops or animals…" aria-label="Search farming catalog">
         <div class="fm-filter"><button data-kind="all" class="on">ALL</button><button data-kind="crop">CROPS</button><button data-kind="stock">LIVESTOCK</button></div>
-        <div class="fm-catalog-list"></div></aside><main class="fm-main"><div class="fm-hero"><pre class="fm-art" aria-hidden="true"></pre>
-        <div><small class="fm-hero-kicker">UMBRA // AGRICULTURE</small><h2 class="fm-hero-name">Plan your food production.</h2><p class="fm-hero-desc">Select a crop or animal to see its needs, then add it to your plan.</p></div></div>
+        <div class="fm-catalog-list"></div></aside><main class="fm-main"><div class="fm-hero fm-overview"><canvas class="fm-art" role="img" aria-label="Summer farm with cabin and animals"></canvas>
+        <div class="fm-hero-copy"><small class="fm-hero-kicker">UMBRA // THE FARM</small><h2 class="fm-hero-name">A place to grow.</h2><p class="fm-hero-desc">Choose a crop or animal from the Field Book to explore its needs and add it to your plan.</p></div></div>
         <details class="fm-comparison"><summary>HOUSEHOLD CALORIE COMPARISON · OPTIONAL</summary><div class="fm-target"><label>PEOPLE IN PLAN <input class="fm-people" type="number" min="1" max="100" step="1"></label>
           <label>COMPARISON TARGET · KCAL / PERSON / DAY <input class="fm-target-kcal" type="number" min="500" max="5000" step="50"></label>
           <span>Choose your own reference target. This is a planning comparison, not nutritional advice.</span></div></details>
@@ -135,12 +58,12 @@
           <section class="fm-detail"><div class="fm-title"><b>FIELD NOTES & ESTIMATES</b></div><div class="fm-detail-inner"></div></section></div>
         <details class="fm-method"><summary>DATA, SOURCES & LIMITS</summary><div class="fm-method-inner"></div></details></main></div>`;
     document.body.appendChild(panel);
-    $f(".fm-art").textContent = art;
-    let artFrame = 0;
+    UmbraFarmArt.hero($f(".fm-art"), null, 0);
     setInterval(() => {
-      if (panel.hidden || document.hidden || document.body.classList.contains("reduce-motion") || !chosen) return;
-      const d = item(chosen); if (d) $f(".fm-art").textContent = itemArt(d, isCrop(chosen), ++artFrame);
-    }, 1050);
+      if (panel.hidden || document.hidden || document.body.classList.contains("reduce-motion")) return;
+      UmbraFarmArt.hero($f(".fm-art"), item(chosen), performance.now());
+    }, 180);
+    $f(".fm-overview-btn").addEventListener("click", () => { chosen = ""; renderCatalog(); renderPlan(); renderDetail(); Sound.click(); });
     $f(".fm-close").addEventListener("click", () => toggle(false));
     $f(".fm-search").addEventListener("input", (e) => { query = e.target.value.trim().toLowerCase(); renderCatalog(); });
     $f(".fm-filter").addEventListener("click", (e) => {
@@ -234,9 +157,10 @@
     ].filter((x) => !query || (x.name + " " + x.group + " " + (x.product || "")).toLowerCase().includes(query));
     $f(".fm-catalog-list").innerHTML = entries.length ? entries.map((x) => {
       const added = plan.items.some((p) => p.id === x.id);
-      return `<button data-id="${safe(x.id)}" class="fm-catalog-item${x.id === chosen ? " on" : ""}"><span class="fm-type">${x.type === "crop" ? "✣" : "◇"}</span>
+      return `<button data-id="${safe(x.id)}" class="fm-catalog-item${x.id === chosen ? " on" : ""}"><canvas class="fm-mini-art" data-art="${safe(x.id)}" width="64" height="64" aria-hidden="true"></canvas>
         <span><b>${safe(x.name)}</b><small>${safe(x.group)}${x.product ? " · " + safe(x.product) : ""}</small></span><em>${added ? "IN PLAN" : "VIEW"}</em></button>`;
     }).join("") : `<p class="lib-note">No match in the bundled catalog.</p>`;
+    $f(".fm-catalog-list").querySelectorAll(".fm-mini-art").forEach((canvas) => UmbraFarmArt.mini(canvas, item(canvas.dataset.art)));
   }
   function renderStats() {
     const t = totals(), need = (plan.people || 1) * (plan.targetKcal || 2000) * 365;
@@ -251,10 +175,11 @@
   function renderPlan() {
     $f(".fm-rows").innerHTML = plan.items.length ? plan.items.map((entry) => {
       const data = item(entry.id), p = projection(entry), crop = isCrop(entry.id);
-      return `<div class="fm-plan-row${chosen === entry.id ? " on" : ""}" data-id="${safe(entry.id)}"><span class="fm-type">${crop ? "✣" : "◇"}</span>
+      return `<div class="fm-plan-row${chosen === entry.id ? " on" : ""}" data-id="${safe(entry.id)}"><canvas class="fm-mini-art" data-art="${safe(entry.id)}" width="64" height="64" aria-hidden="true"></canvas>
         <span><b>${safe(data.name)}</b><small>${crop ? "" : safe(data.product) + " · "}${n(entry.amount, 1)} ${crop ? "m²" : "head"} · ${n(entry.cycles, 1)} cycle${entry.cycles === 1 ? "" : "s"}/year${p.overYear ? " · CHECK TIMING" : ""}</small></span>
         <strong>${n(p.outputKcal)} kcal</strong><button class="ghost fm-remove" title="Remove from plan">✕</button></div>`;
     }).join("") : `<p class="fm-blank">Choose crops or livestock in the Field Book to build your plan. Your numbers save on this computer.</p>`;
+    $f(".fm-rows").querySelectorAll(".fm-mini-art").forEach((canvas) => UmbraFarmArt.mini(canvas, item(canvas.dataset.art)));
     renderStats();
   }
   const input = (title, field, value, unit, min, max, step) => `<label class="fm-edit"><span>${title}</span><div><input type="number" data-field="${field}" value="${value}" min="${min}" max="${max}" step="${step}"><small>${unit}</small></div></label>`;
@@ -278,9 +203,17 @@
   }
   function renderDetail() {
     const d = item(chosen), box = $f(".fm-detail-inner");
-    if (!d) { box.innerHTML = `<p class="fm-blank">Choose a crop or animal in the Field Book to preview it. Nothing is added until you choose Add to plan.</p>`; return; }
+    $f(".fm-hero").classList.toggle("fm-overview", !d);
+    $f(".fm-art").setAttribute("aria-label", d ? `Animated ASCII portrait of ${d.name}` : "Summer farm with cabin and animals");
+    UmbraFarmArt.hero($f(".fm-art"), d, 0);
+    if (!d) {
+      $f(".fm-hero-kicker").textContent = "UMBRA // THE FARM";
+      $f(".fm-hero-name").textContent = "A place to grow.";
+      $f(".fm-hero-desc").textContent = "Choose a crop or animal from the Field Book to explore its needs and add it to your plan.";
+      box.innerHTML = `<p class="fm-blank">Choose a crop or animal in the Field Book to preview it. Nothing is added until you choose Add to plan.</p>`;
+      return;
+    }
     const crop = isCrop(chosen), entry = plan.items.find((x) => x.id === chosen);
-    $f(".fm-art").textContent = itemArt(d, crop);
     $f(".fm-hero-kicker").textContent = crop ? "CROP / " + d.group.toUpperCase() : "LIVESTOCK / " + d.group.toUpperCase();
     $f(".fm-hero-name").textContent = d.name;
     $f(".fm-hero-desc").textContent = crop ? `${d.days} days to first harvest · ${d.soil} · ${d.water} water` : `${d.product} · ${d.climate}`;
