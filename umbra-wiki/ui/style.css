@@ -1968,6 +1968,7 @@ body.reduce-motion .pf-scan { display: none; }
 .mp-ctx button .g { color: var(--signal); font-size: 13px; text-align: center; }
 .mp-ctx button:hover { background: var(--signal-soft); border-left-color: var(--signal); color: var(--fg-bright); }
 .mp-ctx kbd { font-size: 9px; color: var(--faint); }
+.mp-wp-preview-note { color: var(--dim); font-size: 10px; line-height: 1.45; }
 .mp-wp-preview { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
 .mp-wp-preview canvas { flex: none; }
 .mp-wp-preview input { margin: 0 !important; }

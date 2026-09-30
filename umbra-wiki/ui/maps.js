@@ -31,7 +31,7 @@
   let W = 0, H = 0, dpr = 1;
   let style = "topo", showGrid = true, tool = "", target = null, measure = [];
   let status = null;                 // /api/maps: the areas on this computer
-  let waypoints = [];
+  let waypoints = [], draftWaypoint = null;
   const scale = () => 256 * Math.pow(2, view.z);
   const minZ = () => Math.log2(Math.max(H, 256) / 256);
   const toScreen = (x, y) => [(x - view.x) * scale() + W / 2, (y - view.y) * scale() + H / 2];
@@ -506,7 +506,10 @@
     const g = ctx, font = css("--font") || "monospace", ink = pal.ink;
     const halo = style === "topo" ? "#f7f1df" : pal.sea;
     drawRings(g, font, ink, halo);
-    for (const w of waypoints) {
+    const visibleWaypoints = draftWaypoint
+      ? [...waypoints.filter((w) => w.id !== draftWaypoint.id), draftWaypoint]
+      : waypoints;
+    for (const w of visibleWaypoints) {
       const [x, y] = toScreen(projX(w.lon), projY(w.lat));
       if (x < -30 || x > W + 30 || y < -30 || y > H + 30) continue;
       const m = markOf(w), col = colorOf(w, pal), cy = y - 12;
@@ -1322,9 +1325,15 @@
 
     // Drag to pan (with a little momentum), wheel or touchpad to zoom
     // smoothly, double-click to zoom in, click for tools.
-    let drag = null;
+    let drag = null, dismissContextClick = false;
     canvas.addEventListener("pointerdown", (e) => {
       if (e.button !== 0) return;
+      const menu = $("#maps .mp-ctx");
+      if (menu && !menu.hidden) {
+        menu.hidden = true;
+        dismissContextClick = true;
+        return;
+      }
       canvas.setPointerCapture(e.pointerId);
       flight = zoomTo = fling = null;
       drag = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, moved: false, hist: [[e.clientX, e.clientY, performance.now()]] };
@@ -1343,6 +1352,7 @@
       frame();
     });
     canvas.addEventListener("pointerup", (e) => {
+      if (dismissContextClick) { dismissContextClick = false; return; }
       const d = drag; drag = null;
       if (!d) return;
       if (d.moved) {
@@ -1359,6 +1369,7 @@
       const r = canvas.getBoundingClientRect();
       click(e.clientX - r.left, e.clientY - r.top);
     });
+    canvas.addEventListener("pointercancel", () => { dismissContextClick = false; drag = null; });
     canvas.addEventListener("pointerleave", () => readout());
     canvas.addEventListener("wheel", (e) => {
       if (e.ctrlKey) return;   // Ctrl + wheel zooms the whole window (app.js)
@@ -1405,6 +1416,7 @@
 
   // The info card for a place, a spot, a waypoint or a measurement.
   function showCard(t) {
+    if (draftWaypoint) { draftWaypoint = null; frame(); }
     const card = $("#maps .mp-card");
     card.innerHTML = `<div class="mp-card-kind">${escapeHtml(t.label || "PLACE")}${t.wp ? ` · ${ICON_NAMES[t.wp.icon].toUpperCase()}` : ""}</div>
       ${t.name ? `<div class="mp-card-name"></div>` : ""}
@@ -1454,7 +1466,7 @@
     const draft = { ...w };
     if (draft.icon === "medical") draft.icon = "medic";
     if (!MARK[draft.icon]) draft.icon = "pin";
-    card.innerHTML = `<div class="mp-card-kind">${w.id ? "EDIT WAYPOINT" : "NEW WAYPOINT"}${w.created ? " · NOTED " + new Date(w.created).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).toUpperCase() : ""}</div>
+    card.innerHTML = `<div class="mp-card-kind">${w.id ? "EDIT WAYPOINT" : "NEW WAYPOINT"} · LIVE PREVIEW${w.created ? " · NOTED " + new Date(w.created).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).toUpperCase() : ""}</div>
       <div class="mp-wp-preview"><canvas width="64" height="64"></canvas><input class="mp-wp-name" maxlength="40" placeholder="Name, e.g. Water source"></div>
       <div class="mp-wp-t">MARKER</div>
       <div class="mp-wp-types">${Object.entries(MARK).map(([k, m]) => `<button type="button" class="mp-wp-type" data-i="${k}" title="${m[0]}"><canvas width="28" height="28"></canvas></button>`).join("")}</div>
@@ -1470,6 +1482,7 @@
         `<button type="button" class="mp-wp-color" data-c="${c}" title="${c}" style="--mc:${MCOLOR[c] || "var(--fg-bright)"}"><i></i></button>`).join("")}</div>
       <textarea class="mp-wp-note" maxlength="200" rows="2" placeholder="A note (optional): what's here, how many, when to check it"></textarea>
       <div class="mp-card-coords">${fmtLat(w.lat)} · ${fmtLon(w.lon)}<br>MGRS ${toMGRS(w.lat, w.lon)}</div>
+      <p class="mp-wp-preview-note">The marker updates on the map now. Save to keep your changes.</p>
       <div class="mp-card-actions"><button class="ghost mp-wp-cancel">CANCEL</button><button class="solid mp-wp-save">SAVE ◆</button></div>`;
     card.hidden = false;
     const name = card.querySelector(".mp-wp-name"), note = card.querySelector(".mp-wp-note");
@@ -1484,6 +1497,10 @@
       g.font = `${Math.round(r * 1.2)}px ${css("--font")}`; g.textAlign = "center"; g.textBaseline = "middle";
       g.fillStyle = light(col) ? "#111" : "#fff";
       if (!draft.sym || !drawSym(g, draft.sym, size / 2, size / 2 + (m[1] === "tri" ? r * 0.2 : 0), r * 1.3, g.fillStyle)) g.fillText(m[2], size / 2, size / 2 + (m[1] === "tri" ? r * 0.2 : 0));
+    };
+    const preview = () => {
+      draftWaypoint = { ...draft, name: name.value.trim() || (draft.sym && window.UmbraIcons?.[draft.sym]?.[0]) || MARK[draft.icon][0], note: note.value.trim() };
+      frame();
     };
     const show = () => {
       card.querySelectorAll(".mp-wp-type").forEach((b) => { b.classList.toggle("on", b.dataset.i === draft.icon); paint(b.querySelector("canvas"), b.dataset.i, draft.color, 8.5); });
@@ -1501,6 +1518,7 @@
       card.querySelector(".mp-wp-auto").textContent = draft.color ? "" : "· " + MARK[draft.icon][3].toUpperCase();
       paint(card.querySelector(".mp-wp-preview canvas"), draft.icon, draft.color, 20);
       if (!name.value || Object.values(ICON_NAMES).includes(name.placeholder)) name.placeholder = MARK[draft.icon][0];
+      preview();
     };
     card.querySelectorAll(".mp-wp-type").forEach((b) => b.addEventListener("click", () => { draft.icon = b.dataset.i; show(); Sound.click(); }));
     card.querySelectorAll(".mp-wp-color").forEach((b) => b.addEventListener("click", () => { draft.color = b.dataset.c; show(); Sound.click(); }));
@@ -1509,6 +1527,8 @@
       if (draft.sym && (!name.value || Object.values(ICON_NAMES).includes(name.value))) name.placeholder = UmbraIcons[draft.sym][0];
       show(); Sound.click();
     }));
+    name.addEventListener("input", preview);
+    note.addEventListener("input", preview);
     show();
     setTimeout(() => name.focus(), 30);
     const saveIt = async () => {
@@ -1516,6 +1536,7 @@
       draft.note = note.value.trim();
       if (!draft.id) { draft.id = Math.random().toString(36).slice(2, 12).padEnd(6, "0"); draft.created = Date.now(); waypoints.push(draft); }
       else waypoints = waypoints.map((x) => (x.id === draft.id ? draft : x));
+      draftWaypoint = null;
       await saveWaypoints();
       if (tool === "waypoint") setTool("waypoint");
       showCard({ ...draft, kind: "waypoint", wp: draft, label: "WAYPOINT" });
@@ -1524,7 +1545,7 @@
     };
     card.querySelector(".mp-wp-save").addEventListener("click", saveIt);
     name.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveIt(); } });
-    card.querySelector(".mp-wp-cancel").addEventListener("click", () => { card.hidden = true; Sound.click(); });
+    card.querySelector(".mp-wp-cancel").addEventListener("click", () => { draftWaypoint = null; card.hidden = true; frame(); Sound.click(); });
   }
 
   // ------------------------------------------------- right-click menu
@@ -1847,6 +1868,7 @@
     const el = $("#maps");
     if (!show) {
       if (el.hidden) return;
+      draftWaypoint = null;
       if (fullOn) fullscreen();
       el.hidden = true; $("#maps-btn").classList.remove("on"); save();
       if (!quiet) Sound.click();
@@ -1904,6 +1926,7 @@
     if (e.key === "Escape") {
       e.stopImmediatePropagation();
       if ($("#maps .mp-ctx") && !$("#maps .mp-ctx").hidden) $("#maps .mp-ctx").hidden = true;
+      else if (draftWaypoint) { draftWaypoint = null; $("#maps .mp-card").hidden = true; frame(); }
       else if (!$("#maps .mp-first").hidden) { $("#maps .mp-first-x").click(); }
       else if (!$("#maps .mp-cfile").hidden) closeCountry();
       else if (!$("#maps .mp-card").hidden && !tool) { $("#maps .mp-card").hidden = true; target = null; frame(); }
