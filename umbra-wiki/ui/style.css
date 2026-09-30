@@ -2912,7 +2912,9 @@ body.farming-open > :not(#farming):not(.modal):not(.ac-toast):not(.wipe):not(.ti
 .fm-hero.fm-overview { display: block; padding: 0; }
 .fm-hero.fm-overview .fm-art { height: 260px; }
 .fm-hero.fm-overview .fm-hero-copy { position: absolute; right: 0; top: 0; width: min(38%, 300px); box-sizing: border-box; padding: 18px 20px;
-  background: linear-gradient(90deg, transparent, rgba(6, 11, 9, .86) 16%, rgba(6, 11, 9, .94)); }
+  background: rgba(6, 11, 9, .94); }
+.fm-hero.fm-overview .fm-hero-copy::before { content: ""; position: absolute; right: 100%; top: 0; bottom: 0;
+  width: clamp(64px, 12vw, 130px); background: linear-gradient(90deg, transparent, rgba(6, 11, 9, .94)); pointer-events: none; }
 .fm-hero small { color: var(--signal); font-size: 10px; letter-spacing: .25em; }
 .fm-hero h2 { margin: 6px 0 8px; color: var(--fg-bright); font-size: clamp(17px, 2vw, 26px); line-height: 1.2; }
 .fm-hero p { margin: 0; color: var(--dim); font-size: 11px; line-height: 1.55; max-width: 500px; }
