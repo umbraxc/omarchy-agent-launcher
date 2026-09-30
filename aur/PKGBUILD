@@ -15,7 +15,8 @@ optdepends=('pipewire-audio: sounds and voice recording'
             'ollama-cuda: run the AI on an NVIDIA graphics card'
             'ollama-rocm: run the AI on an AMD graphics card'
             'networkmanager: Wi-Fi networks on the Signals & Radar screen (iwd works too)'
-            'bluez-utils: Bluetooth devices on the Signals & Radar screen')
+            'bluez-utils: Bluetooth devices on the Signals & Radar screen'
+            'poppler: read text from linked PDF files')
 install=umbra-wiki.install
 source=("$pkgname-$pkgver-$pkgrel.tar.gz::https://github.com/umbraxc/omarchy-umbra/archive/$_commit.tar.gz")
 sha256sums=('56a035bf18c8926a6ff94ac5346519fc084edd414e71b23c2128fa308d4ae945')
@@ -26,7 +27,7 @@ package() {
 
   install -d "$app"
   cp -r ui sounds "$app/"
-  install -m644 server.py maps.py pmtiles.py radar.py manuals.json facts.json fieldmanual.json knowledge.json library.json packs.json achievements.json farming.json "$app/"
+  install -m644 server.py maps.py pmtiles.py radar.py transfers.py linked_library.py manuals.json facts.json fieldmanual.json knowledge.json library.json packs.json achievements.json farming.json "$app/"
   install -Dm644 maps/world.mbtiles maps/countries.json maps/atlas.json -t "$app/maps/"
   install -m755 fetch-archive.sh uninstall.sh "$app/"
 

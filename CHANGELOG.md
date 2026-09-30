@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.1.5
+
+### Highlights
+
+- New conversations start fresh, and Umbra chats more naturally across its personalities. It looks back at older chats when you ask it to.
+- The new Farming planner helps you plan crops and livestock using your household and available land, with animated artwork for each choice.
+- Six longer offline radio channels and a new Sound panel let you set the atmosphere while you use Umbra.
+- Search the current conversation with Ctrl+F, and hold Ctrl for conversation tools. Quick Actions remain one Tab away.
+- More built-in knowledge helps Umbra understand everyday phrases, abbreviations and a wider range of questions, even offline.
+- The welcome tour, Omarchy widget and profile have richer animated art and clearer information, including the active AI.
+- New achievements and locked orbs reward exploring and using Umbra's tools.
+- Downloads, narrow-window layouts, scrolling, daily training progress and the moving status strip work more smoothly.
+
 ## 3.1.4
 
 ### Highlights
