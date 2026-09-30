@@ -293,14 +293,66 @@ function setMuted(value, save = true) {
   Sound.muted = value;
   $("#sound-icon").textContent = value ? "󰖁" : "󰕾";
   $("#sound").classList.toggle("off", value);
-  $("#sound").title = value ? "Sound off (click to unmute)" : "Sound on (click to mute)";
+  $("#sound").title = value ? "Sound off · open sound controls" : "Sound on · open sound controls";
   if (save) postSettings({ muted: value });
+  document.dispatchEvent(new Event("umbra-sound-change"));
 }
-$("#sound").addEventListener("click", () => {
-  const next = !Sound.muted;
-  setMuted(next);
-  if (!next) Sound.click();
-});
+(() => {
+  const button = $("#sound");
+  const panel = document.createElement("div");
+  panel.id = "sound-pop";
+  panel.className = "sound-pop";
+  panel.hidden = true;
+  panel.innerHTML = `<div class="snd-head"><b>◆ SOUND</b><button class="ghost snd-close" title="Close sound controls">✕</button></div>
+    <label class="snd-switch"><span>Sound effects<small>Clicks, alerts and startup</small></span><input class="snd-on" type="checkbox"></label>
+    <label class="snd-range"><span>Effects volume <output class="snd-vol-value"></output></span><input class="snd-volume" type="range" min="0" max="1" step="0.05"></label>
+    <label class="snd-range"><span>Notification volume <output class="snd-notify-value"></output></span><input class="snd-notify" type="range" min="0" max="1" step="0.05"></label>
+    <label class="snd-switch"><span>Hover sounds<small>Soft blips over controls</small></span><input class="snd-hover" type="checkbox"></label>
+    <div class="snd-previews"><small>PREVIEW EFFECTS</small><div><button data-sample="click">CLICK</button><button data-sample="achieve">NOTIFY</button><button data-sample="error">ALERT</button></div></div>
+    <div class="snd-radio"></div>`;
+  document.body.appendChild(panel);
+  button.setAttribute("aria-controls", "sound-pop");
+  button.setAttribute("aria-expanded", "false");
+  const q = (s) => panel.querySelector(s);
+  const value = (key, fallback) => window.prefs && typeof prefs[key] === "number" ? prefs[key] : fallback;
+  const sync = () => {
+    q(".snd-on").checked = !Sound.muted;
+    q(".snd-hover").checked = !window.prefs || prefs.hoverSounds !== false;
+    for (const [sel, out, amount] of [[".snd-volume", ".snd-vol-value", value("volume", 0.9)],
+                                      [".snd-notify", ".snd-notify-value", value("notifyVolume", 0.5)]]) {
+      q(sel).value = amount;
+      q(out).textContent = Math.round(amount * 100) + "%";
+    }
+  };
+  const close = () => { panel.hidden = true; button.setAttribute("aria-expanded", "false"); };
+  const place = () => {
+    const r = button.getBoundingClientRect();
+    panel.style.left = Math.max(12, Math.min(innerWidth - panel.offsetWidth - 12, r.left + r.width / 2 - panel.offsetWidth / 2)) + "px";
+    panel.style.top = r.bottom + 8 + "px";
+  };
+  button.addEventListener("click", () => {
+    if (!panel.hidden) { close(); return; }
+    sync(); panel.hidden = false; button.setAttribute("aria-expanded", "true"); place(); Sound.click();
+  });
+  q(".snd-close").addEventListener("click", close);
+  q(".snd-on").addEventListener("change", (e) => { setMuted(!e.target.checked); if (e.target.checked) Sound.click(); });
+  q(".snd-hover").addEventListener("change", (e) => {
+    if (window.prefs) prefs.hoverSounds = e.target.checked;
+    postSettings({ hoverSounds: e.target.checked });
+    if (e.target.checked) Sound.hover();
+  });
+  for (const [sel, out, key] of [[".snd-volume", ".snd-vol-value", "volume"], [".snd-notify", ".snd-notify-value", "notifyVolume"]]) {
+    const slider = q(sel);
+    slider.addEventListener("input", () => { if (window.prefs) prefs[key] = Number(slider.value); q(out).textContent = Math.round(Number(slider.value) * 100) + "%"; });
+    slider.addEventListener("change", () => { postSettings({ [key]: Number(slider.value) }); Sound.click(); });
+  }
+  q(".snd-previews").addEventListener("click", (e) => { const sample = e.target.closest("button[data-sample]"); if (sample) Sound[sample.dataset.sample](); });
+  document.addEventListener("pointerdown", (e) => { if (!panel.hidden && !panel.contains(e.target) && !button.contains(e.target)) close(); }, true);
+  document.addEventListener("keydown", (e) => { if (!panel.hidden && (e.key === "Escape" || e.ctrlKey || e.metaKey)) close(); }, true);
+  document.addEventListener("umbra-sound-change", sync);
+  window.addEventListener("resize", () => { if (!panel.hidden) place(); });
+  window.UmbraSoundMenu = { panel, sync, close };
+})();
 
 // ----------------------------------------------------------------- themes
 

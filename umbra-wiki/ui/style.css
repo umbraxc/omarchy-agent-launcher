@@ -155,6 +155,24 @@ button.cell {
 .nav-callout small { display: block; color: var(--dim); font-size: 10px; line-height: 1.4; }
 @keyframes nav-reveal { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 body.reduce-motion .nav-callout { animation: none; }
+.sound-pop { position: fixed; z-index: 145; width: min(330px, calc(100vw - 24px)); padding: 12px 14px; background: var(--bg-1);
+  border: 1px solid var(--signal); box-shadow: 0 16px 32px rgba(0, 0, 0, .5); animation: nav-reveal .18s ease-out both; }
+.snd-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--line); padding-bottom: 7px; }
+.snd-head b { color: var(--signal); letter-spacing: .22em; font-size: 10px; }
+.snd-head button { padding: 2px 7px; }
+.snd-switch, .snd-range { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; color: var(--fg-bright); font-size: 11px; }
+.snd-switch small { display: block; color: var(--dim); font-size: 9px; margin-top: 2px; }
+.snd-switch input { accent-color: var(--signal); width: 16px; height: 16px; }
+.snd-range { display: block; }
+.snd-range span { display: flex; justify-content: space-between; gap: 8px; }
+.snd-range output { color: var(--signal); }
+.snd-range input { width: 100%; margin: 7px 0 0; accent-color: var(--signal); }
+.snd-previews { border-top: 1px dashed var(--line); padding-top: 10px; margin-top: 4px; }
+.snd-previews small { color: var(--dim); font-size: 9px; letter-spacing: .16em; }
+.snd-previews > div { display: flex; gap: 6px; margin-top: 7px; }
+.snd-previews button { flex: 1; padding: 6px 4px; border: 1px solid var(--line); color: var(--signal); background: var(--bg-2); font: 700 9px var(--font); cursor: pointer; }
+.snd-previews button:hover { border-color: var(--signal); background: var(--signal-soft); }
+body.reduce-motion .sound-pop { animation: none; }
 /* Header buttons hidden from Settings glitch out, then their space closes;
    showing one plays the same in reverse. */
 .ctl.gone { display: none; }
