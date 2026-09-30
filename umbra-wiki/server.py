@@ -162,6 +162,8 @@ UMBRA_GUIDE = (
     "and read); CARDS tab that prints pocket cards and an ID and medical card. "
     "MAPS (Ctrl+G): offline world map, downloadable detailed areas, search, coordinates and MGRS, "
     "waypoints, measuring, clickable country files with facts, and safety levels per country. "
+    "FARMING: an offline planner with edible crops and common livestock, editable estimates for output, "
+    "calories, seed, feed, work, climate and soil. Its bundled figures are rough planning defaults, not local advice. "
     "SIGNALS & RADAR (Ctrl+J): nearby Wi-Fi and Bluetooth signals on a radar, INTEL, a DEVICES list that "
     "remembers every device heard and marks new ones, the device's vitals, and a KILL SWITCH that turns all radios off at once. "
     "DOWNLOADS (maps, library, AI model, manuals) can be paused and resumed from the button at the top. "
@@ -178,13 +180,13 @@ UMBRA_GUIDE = (
     "Ctrl+P Profile, Ctrl+O Loadout, Ctrl+T Themes, Ctrl+, Settings, F1 all shortcuts, and Ctrl + mouse wheel (or Ctrl + plus / "
     "minus, Ctrl+0 to reset) to zoom every screen (also Settings, Zoom); never invent others. The Calendar, Vault, "
     "Medic, Supplies and Training are tabs inside the Field Kit; to add a reminder, open the Field Kit, go to CALENDAR and "
-    "click a day. MAPS, SIGNALS & RADAR, LIBRARY, HISTORY, THEMES and SETTINGS are their own screens, each opened with its "
+    "click a day. MAPS, FARMING, SIGNALS & RADAR, LIBRARY, HISTORY, THEMES and SETTINGS are their own screens, each opened with its "
     "button in the top bar (not in the Field Kit). You cannot change anything in the app yourself: never say you "
     "added, saved or changed something; tell the user where to do it."
 )
 ABOUT_UMBRA = re.compile(r"\b(umbra|this app|the app|your (features|tools|functions)|what can you do|"
                          r"what can you help me with|how can you help me|what are you|who are you|"
-                         r"how do (i|you) use|field kit|medic tab|vault|radar|sun (and|&) moon|pocket cards?|morse trainer|"
+                         r"how do (i|you) use|field kit|farming (tab|screen|planner)|medic tab|vault|radar|sun (and|&) moon|pocket cards?|morse trainer|"
                          r"settings|shortcut|offline map|waypoint|calendar|reminder|manuals?|radar|kill switch|theme|tour|download|backup|"
                          r"profile|achievement|help me with the app)\b", re.I)
 
@@ -501,6 +503,53 @@ def save_supplies(data):
              "target": int(num(data.get("target"), 1, 365)) or 14, "items": items}
     write_json(SUPPLIES_FILE, clean)
     return clean
+
+
+# ------------------------------------------------------------- farm planner
+
+FARM_FILE = os.path.join(DATA_DIR, "farm.json")
+FARM_LOCK = threading.Lock()
+
+
+def farm_catalog():
+    with open(os.path.join(APP_DIR, "farming.json"), encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def get_farm():
+    return read_json(FARM_FILE, {"items": [], "people": 1, "targetKcal": 2000})
+
+
+def save_farm(data):
+    if not isinstance(data, dict) or not isinstance(data.get("items"), list) or len(data["items"]) > 80:
+        raise ValueError("bad farm plan")
+    catalog = farm_catalog()
+    known = {x["id"] for x in catalog["crops"] + catalog["livestock"]}
+    def number(value, default, low, high):
+        if value is None:
+            return default
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not low <= value <= high:
+            raise ValueError("farm number outside its range")
+        return round(float(value), 3)
+    clean, seen = [], set()
+    for item in data["items"]:
+        if not isinstance(item, dict) or not isinstance(item.get("id"), str) or item["id"] not in known:
+            raise ValueError("unknown farm item")
+        if item["id"] in seen:
+            raise ValueError("duplicate farm item")
+        seen.add(item["id"])
+        entry = {"id": item["id"], "amount": number(item.get("amount"), 1, 0, 100000),
+                 "cycles": number(item.get("cycles"), 1, 0, 12)}
+        for key, high in (("yieldKg", 10000), ("kcalKg", 10000), ("seedKgM2", 10),
+                          ("feedKgDay", 1000), ("feedKcalKg", 10000), ("workHours", 1000)):
+            if key in item:
+                entry[key] = number(item[key], 0, 0, high)
+        clean.append(entry)
+    plan = {"items": clean, "people": number(data.get("people"), 1, 1, 100),
+            "targetKcal": number(data.get("targetKcal"), 2000, 500, 5000)}
+    with FARM_LOCK:
+        write_json(FARM_FILE, plan)
+    return plan
 
 
 # ------------------------------------------------------------ pocket cards
@@ -2439,7 +2488,7 @@ def reset_umbra():
     the library and config.json (model, library folder) are kept."""
     MANUAL_DOWNLOADS.control("cancel")
     for path in (SETTINGS_FILE, PROFILE_FILE, CUSTOM_THEMES_FILE, PERSONALITIES_FILE, SCENARIOS_FILE, LOCK_FILE, ACH_FILE,
-                 WAYPOINTS_FILE, SUPPLIES_FILE, SAFETY_FILE, FOLDERS_FILE, VAULT_FILE, radar.KNOWN_FILE, CALENDAR_FILE, MANUALS_STATE, STYLE_FILE):
+                 WAYPOINTS_FILE, SUPPLIES_FILE, FARM_FILE, SAFETY_FILE, FOLDERS_FILE, VAULT_FILE, radar.KNOWN_FILE, CALENDAR_FILE, MANUALS_STATE, STYLE_FILE):
         try:
             os.remove(path)
         except OSError:
@@ -2843,7 +2892,7 @@ def backup(include_history, target=""):
         "umbraBackup": 1, "created": int(time.time() * 1000),
         "settings": read_json(SETTINGS_FILE, {}), "profile": get_profile(),
         "themes": custom_themes(), "personalities": custom_personalities(), "scenarios": custom_scenarios(),
-        "achievements": read_json(ACH_FILE, {}), "waypoints": get_waypoints(), "supplies": get_supplies(),
+        "achievements": read_json(ACH_FILE, {}), "waypoints": get_waypoints(), "supplies": get_supplies(), "farm": get_farm(),
         "safety": get_safety()["levels"], "folders": get_folders()["folders"], "vault": get_vault(), "calendar": get_calendar()["events"],
         "history": [read_json(history_path(i["id"]), {}) for i in history_list()["items"]] if include_history else [],
     }
@@ -2865,6 +2914,11 @@ def restore(data):
     if isinstance(data.get("supplies"), dict) and data["supplies"]:
         try:
             save_supplies(data["supplies"])
+        except (ValueError, TypeError):
+            pass
+    if isinstance(data.get("farm"), dict) and isinstance(data["farm"].get("items"), list):
+        try:
+            save_farm(data["farm"])
         except (ValueError, TypeError):
             pass
     if isinstance(data.get("calendar"), list) and data["calendar"]:
@@ -3408,6 +3462,8 @@ class Handler(BaseHTTPRequestHandler):
                                    "history": short(HISTORY_DIR), "packaged": PACKAGED, "installKind": install_kind()})
         if path == "/api/profile":
             return self.send_json(get_profile())
+        if path == "/api/farm":
+            return self.send_json({"catalog": farm_catalog(), "plan": get_farm()})
         if path == "/api/greeting":
             return self.send_json(greeting())
         if path == "/api/starters":
@@ -3652,6 +3708,11 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/profile":
             try:
                 return self.send_json(save_profile(self.read_json()))
+            except (ValueError, TypeError) as e:
+                return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/farm":
+            try:
+                return self.send_json(save_farm(self.read_json()))
             except (ValueError, TypeError) as e:
                 return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/attention":

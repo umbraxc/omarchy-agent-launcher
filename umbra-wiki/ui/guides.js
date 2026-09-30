@@ -6,6 +6,7 @@
 window.UmbraGuide = (() => {
   const G = {
     maps: ["MAPS", ["Drag to move, scroll to zoom; click a country's name for its file.", "Right-click anywhere for waypoints, measuring, coordinates and range rings.", "The download button (top right) gets detailed maps that work offline."]],
+    farming: ["FARMING", ["Choose edible crops or livestock from the Field Book and set area or animal count.", "The yearly food, seed, feed and work estimates update as you edit. Your plan saves locally and joins Umbra backups.", "Catalog numbers are starting estimates; check local growing conditions and adjust them." ]],
     core: ["CORE", ["Every system's condition at a glance, and what to do when one isn't right.", "Download, switch or remove AI models here. A download keeps your current model answering; compatible computers can add an optional second opinion."]],
     "lo-locker": ["LOCKER", ["Rewards for your achievements: orbs for the start screen, titles and name effects.", "Earn points to rank up; ranks and certain achievements unlock more. Click one to equip it."]],
     radar: ["SIGNALS & RADAR", ["The Wi-Fi and Bluetooth signals around you: nearer the centre means stronger.", "Click a blip or a row for its details. DEVICES remembers what the radar has heard and marks new ones.", "The KILL SWITCH turns all radios off at once. F for full screen."]],
@@ -64,6 +65,7 @@ window.UmbraGuide = (() => {
     const vis = (sel) => { const e = document.querySelector(sel); return e && !e.hidden ? e : null; };
     let key = "", host = null, e;
     if ((e = vis("#maps"))) { key = "maps"; host = e.querySelector(".mp-body"); }
+    else if ((e = vis("#farming"))) { key = "farming"; host = e; }
     else if ((e = vis("#radar"))) { key = "radar"; host = e.querySelector(".rd-center"); }
     else if ((e = vis("#core"))) { key = "core"; host = e; }
     else if ((e = vis("#fieldkit"))) { const t = e.querySelector(".lo-tabs button.on"); key = t ? "fk-" + t.dataset.tab : ""; host = e; }

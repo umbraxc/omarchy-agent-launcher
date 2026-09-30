@@ -1,0 +1,993 @@
+{
+  "version": 1,
+  "crops": [
+    {
+      "id": "wheat",
+      "name": "Wheat",
+      "group": "Grains",
+      "kcalKg": 3400,
+      "yieldKgM2": 0.4,
+      "days": 120,
+      "tempC": [
+        12,
+        25
+      ],
+      "ph": [
+        6.0,
+        7.5
+      ],
+      "soil": "Well-drained loam",
+      "water": "medium",
+      "seedKgM2": 0.02,
+      "workHours10M2": 1.5,
+      "note": "Dry grain; thresh and dry before storage"
+    },
+    {
+      "id": "rice",
+      "name": "Rice",
+      "group": "Grains",
+      "kcalKg": 3600,
+      "yieldKgM2": 0.5,
+      "days": 130,
+      "tempC": [
+        20,
+        35
+      ],
+      "ph": [
+        5.0,
+        6.5
+      ],
+      "soil": "Wet clay or irrigated loam",
+      "water": "high",
+      "seedKgM2": 0.03,
+      "workHours10M2": 2.8,
+      "note": "Water method and variety strongly change yield"
+    },
+    {
+      "id": "maize",
+      "name": "Maize (dry grain)",
+      "group": "Grains",
+      "kcalKg": 3650,
+      "yieldKgM2": 0.75,
+      "days": 110,
+      "tempC": [
+        18,
+        32
+      ],
+      "ph": [
+        5.8,
+        7.0
+      ],
+      "soil": "Deep fertile loam",
+      "water": "medium",
+      "seedKgM2": 0.004,
+      "workHours10M2": 1.8,
+      "note": "Dry kernels; sweetcorn has far fewer kcal/kg"
+    },
+    {
+      "id": "barley",
+      "name": "Barley",
+      "group": "Grains",
+      "kcalKg": 3540,
+      "yieldKgM2": 0.35,
+      "days": 105,
+      "tempC": [
+        10,
+        24
+      ],
+      "ph": [
+        6.0,
+        8.0
+      ],
+      "soil": "Well-drained loam",
+      "water": "low",
+      "seedKgM2": 0.02,
+      "workHours10M2": 1.3,
+      "note": "Dry grain"
+    },
+    {
+      "id": "sorghum",
+      "name": "Sorghum",
+      "group": "Grains",
+      "kcalKg": 3300,
+      "yieldKgM2": 0.4,
+      "days": 115,
+      "tempC": [
+        22,
+        35
+      ],
+      "ph": [
+        5.5,
+        7.5
+      ],
+      "soil": "Well-drained loam",
+      "water": "low",
+      "seedKgM2": 0.012,
+      "workHours10M2": 1.4,
+      "note": "Dry grain; heat tolerant"
+    },
+    {
+      "id": "millet",
+      "name": "Millet",
+      "group": "Grains",
+      "kcalKg": 3780,
+      "yieldKgM2": 0.3,
+      "days": 100,
+      "tempC": [
+        22,
+        34
+      ],
+      "ph": [
+        5.5,
+        7.5
+      ],
+      "soil": "Light well-drained soil",
+      "water": "low",
+      "seedKgM2": 0.008,
+      "workHours10M2": 1.3,
+      "note": "Dry grain"
+    },
+    {
+      "id": "quinoa",
+      "name": "Quinoa",
+      "group": "Grains",
+      "kcalKg": 3680,
+      "yieldKgM2": 0.25,
+      "days": 120,
+      "tempC": [
+        10,
+        24
+      ],
+      "ph": [
+        6.0,
+        8.0
+      ],
+      "soil": "Well-drained loam",
+      "water": "low",
+      "seedKgM2": 0.006,
+      "workHours10M2": 2.0,
+      "note": "Dry seed; rinse before cooking"
+    },
+    {
+      "id": "potato",
+      "name": "Potato",
+      "group": "Roots & tubers",
+      "kcalKg": 770,
+      "yieldKgM2": 2.5,
+      "days": 110,
+      "tempC": [
+        12,
+        22
+      ],
+      "ph": [
+        5.0,
+        6.5
+      ],
+      "soil": "Loose well-drained loam",
+      "water": "medium",
+      "seedKgM2": 0.25,
+      "workHours10M2": 2.6,
+      "note": "Seed tubers are counted as planting input"
+    },
+    {
+      "id": "sweet-potato",
+      "name": "Sweet potato",
+      "group": "Roots & tubers",
+      "kcalKg": 860,
+      "yieldKgM2": 1.8,
+      "days": 130,
+      "tempC": [
+        21,
+        30
+      ],
+      "ph": [
+        5.5,
+        6.8
+      ],
+      "soil": "Loose sandy loam",
+      "water": "medium",
+      "seedKgM2": 0.0,
+      "workHours10M2": 2.5,
+      "note": "Usually planted from slips, not edible seed"
+    },
+    {
+      "id": "cassava",
+      "name": "Cassava",
+      "group": "Roots & tubers",
+      "kcalKg": 1600,
+      "yieldKgM2": 2.0,
+      "days": 300,
+      "tempC": [
+        25,
+        35
+      ],
+      "ph": [
+        5.5,
+        7.0
+      ],
+      "soil": "Well-drained light soil",
+      "water": "low",
+      "seedKgM2": 0.0,
+      "workHours10M2": 3.0,
+      "note": "Requires correct processing; raw cassava is unsafe"
+    },
+    {
+      "id": "carrot",
+      "name": "Carrot",
+      "group": "Roots & tubers",
+      "kcalKg": 410,
+      "yieldKgM2": 2.2,
+      "days": 80,
+      "tempC": [
+        10,
+        24
+      ],
+      "ph": [
+        6.0,
+        7.0
+      ],
+      "soil": "Deep stone-free loam",
+      "water": "medium",
+      "seedKgM2": 0.002,
+      "workHours10M2": 2.8,
+      "note": "Harvest size and spacing change yield"
+    },
+    {
+      "id": "beet",
+      "name": "Beetroot",
+      "group": "Roots & tubers",
+      "kcalKg": 430,
+      "yieldKgM2": 2.5,
+      "days": 65,
+      "tempC": [
+        10,
+        24
+      ],
+      "ph": [
+        6.0,
+        7.5
+      ],
+      "soil": "Deep fertile loam",
+      "water": "medium",
+      "seedKgM2": 0.004,
+      "workHours10M2": 2.4,
+      "note": "Roots counted; leaves can also be edible"
+    },
+    {
+      "id": "turnip",
+      "name": "Turnip",
+      "group": "Roots & tubers",
+      "kcalKg": 280,
+      "yieldKgM2": 2.0,
+      "days": 60,
+      "tempC": [
+        10,
+        22
+      ],
+      "ph": [
+        6.0,
+        7.5
+      ],
+      "soil": "Well-drained loam",
+      "water": "medium",
+      "seedKgM2": 0.002,
+      "workHours10M2": 2.0,
+      "note": "Roots counted"
+    },
+    {
+      "id": "radish",
+      "name": "Radish",
+      "group": "Roots & tubers",
+      "kcalKg": 160,
+      "yieldKgM2": 1.5,
+      "days": 35,
+      "tempC": [
+        10,
+        24
+      ],
+      "ph": [
+        6.0,
+        7.0
+      ],
+      "soil": "Loose well-drained soil",
+      "water": "medium",
+      "seedKgM2": 0.003,
+      "workHours10M2": 1.8,
+      "note": "Short cycle; several plantings possible"
+    },
+    {
+      "id": "onion",
+      "name": "Onion",
+      "group": "Alliums",
+      "kcalKg": 400,
+      "yieldKgM2": 2.0,
+      "days": 120,
+      "tempC": [
+        13,
+        27
+      ],
+      "ph": [
+        6.0,
+        7.0
+      ],
+      "soil": "Fertile well-drained loam",
+      "water": "medium",
+      "seedKgM2": 0.003,
+      "workHours10M2": 2.4,
+      "note": "Dry before long storage"
+    },
+    {
+      "id": "garlic",
+      "name": "Garlic",
+      "group": "Alliums",
+      "kcalKg": 1490,
+      "yieldKgM2": 0.9,
+      "days": 210,
+      "tempC": [
+        10,
+        25
+      ],
+      "ph": [
+        6.0,
+        7.5
+      ],
+      "soil": "Loose well-drained loam",
+      "water": "low",
+      "seedKgM2": 0.15,
+      "workHours10M2": 2.5,
+      "note": "Planting cloves counted as input"
+    },
+    {
+      "id": "dry-bean",
+      "name": "Dry bean",
+      "group": "Legumes",
+      "kcalKg": 3330,
+      "yieldKgM2": 0.25,
+      "days": 100,
+      "tempC": [
+        16,
+        28
+      ],
+      "ph": [
+        6.0,
+        7.5
+      ],
+      "soil": "Well-drained loam",
+      "water": "medium",
+      "seedKgM2": 0.012,
+      "workHours10M2": 2.0,
+      "note": "Dry seed yield"
+    },
+    {
+      "id": "lentil",
+      "name": "Lentil",
+      "group": "Legumes",
+      "kcalKg": 3530,
+      "yieldKgM2": 0.2,
+      "days": 105,
+      "tempC": [
+        12,
+        27
+      ],
+      "ph": [
+        6.0,
+        8.0
+      ],
+      "soil": "Well-drained light soil",
+      "water": "low",
+      "seedKgM2": 0.012,
+      "workHours10M2": 1.5,
+      "note": "Dry seed yield"
+    },
+    {
+      "id": "chickpea",
+      "name": "Chickpea",
+      "group": "Legumes",
+      "kcalKg": 3640,
+      "yieldKgM2": 0.22,
+      "days": 110,
+      "tempC": [
+        15,
+        30
+      ],
+      "ph": [
+        6.0,
+        8.0
+      ],
+      "soil": "Well-drained loam",
+      "water": "low",
+      "seedKgM2": 0.015,
+      "workHours10M2": 1.6,
+      "note": "Dry seed yield"
+    },
+    {
+      "id": "soybean",
+      "name": "Soybean",
+      "group": "Legumes",
+      "kcalKg": 4460,
+      "yieldKgM2": 0.3,
+      "days": 125,
+      "tempC": [
+        18,
+        30
+      ],
+      "ph": [
+        6.0,
+        7.5
+      ],
+      "soil": "Fertile well-drained loam",
+      "water": "medium",
+      "seedKgM2": 0.016,
+      "workHours10M2": 1.7,
+      "note": "Dry mature beans; cook fully"
+    },
+    {
+      "id": "pea",
+      "name": "Garden pea",
+      "group": "Legumes",
+      "kcalKg": 810,
+      "yieldKgM2": 0.8,
+      "days": 75,
+      "tempC": [
+        10,
+        22
+      ],
+      "ph": [
+        6.0,
+        7.5
+      ],
+      "soil": "Well-drained loam",
+      "water": "medium",
+      "seedKgM2": 0.018,
+      "workHours10M2": 2.2,
+      "note": "Fresh shelled peas"
+    },
+    {
+      "id": "peanut",
+      "name": "Peanut",
+      "group": "Legumes",
+      "kcalKg": 5670,
+      "yieldKgM2": 0.25,
+      "days": 140,
+      "tempC": [
+        22,
+        32
+      ],
+      "ph": [
+        5.8,
+        7.0
+      ],
+      "soil": "Loose sandy loam",
+      "water": "medium",
+      "seedKgM2": 0.012,
+      "workHours10M2": 2.2,
+      "note": "Dry shelled nuts; dry carefully to limit mould"
+    },
+    {
+      "id": "sunflower",
+      "name": "Sunflower seed",
+      "group": "Oilseeds",
+      "kcalKg": 5840,
+      "yieldKgM2": 0.22,
+      "days": 120,
+      "tempC": [
+        18,
+        30
+      ],
+      "ph": [
+        6.0,
+        7.5
+      ],
+      "soil": "Well-drained loam",
+      "water": "medium",
+      "seedKgM2": 0.005,
+      "workHours10M2": 1.7,
+      "note": "Edible dry kernels only; hulls excluded"
+    },
+    {
+      "id": "tomato",
+      "name": "Tomato",
+      "group": "Fruit vegetables",
+      "kcalKg": 180,
+      "yieldKgM2": 3.0,
+      "days": 90,
+      "tempC": [
+        18,
+        30
+      ],
+      "ph": [
+        6.0,
+        7.0
+      ],
+      "soil": "Fertile well-drained loam",
+      "water": "medium",
+      "seedKgM2": 0.0,
+      "workHours10M2": 3.8,
+      "note": "Pruning/support and variety change labour"
+    },
+    {
+      "id": "pepper",
+      "name": "Pepper",
+      "group": "Fruit vegetables",
+      "kcalKg": 260,
+      "yieldKgM2": 2.0,
+      "days": 105,
+      "tempC": [
+        20,
+        30
+      ],
+      "ph": [
+        6.0,
+        7.0
+      ],
+      "soil": "Fertile well-drained loam",
+      "water": "medium",
+      "seedKgM2": 0.0,
+      "workHours10M2": 3.5,
+      "note": "Sweet pepper default"
+    },
+    {
+      "id": "cucumber",
+      "name": "Cucumber",
+      "group": "Fruit vegetables",
+      "kcalKg": 150,
+      "yieldKgM2": 2.5,
+      "days": 65,
+      "tempC": [
+        20,
+        30
+      ],
+      "ph": [
+        6.0,
+        7.0
+      ],
+      "soil": "Fertile well-drained soil",
+      "water": "high",
+      "seedKgM2": 0.0,
+      "workHours10M2": 3.0,
+      "note": "Repeated harvest within one cycle"
+    },
+    {
+      "id": "pumpkin",
+      "name": "Pumpkin",
+      "group": "Fruit vegetables",
+      "kcalKg": 260,
+      "yieldKgM2": 2.0,
+      "days": 110,
+      "tempC": [
+        18,
+        30
+      ],
+      "ph": [
+        6.0,
+        7.5
+      ],
+      "soil": "Fertile well-drained soil",
+      "water": "medium",
+      "seedKgM2": 0.004,
+      "workHours10M2": 2.4,
+      "note": "Large vines need spacing"
+    },
+    {
+      "id": "zucchini",
+      "name": "Zucchini",
+      "group": "Fruit vegetables",
+      "kcalKg": 170,
+      "yieldKgM2": 3.0,
+      "days": 60,
+      "tempC": [
+        18,
+        30
+      ],
+      "ph": [
+        6.0,
+        7.5
+      ],
+      "soil": "Fertile well-drained soil",
+      "water": "high",
+      "seedKgM2": 0.0,
+      "workHours10M2": 3.0,
+      "note": "Repeated harvest within one cycle"
+    },
+    {
+      "id": "eggplant",
+      "name": "Eggplant",
+      "group": "Fruit vegetables",
+      "kcalKg": 250,
+      "yieldKgM2": 2.2,
+      "days": 100,
+      "tempC": [
+        20,
+        32
+      ],
+      "ph": [
+        5.5,
+        7.0
+      ],
+      "soil": "Fertile well-drained soil",
+      "water": "medium",
+      "seedKgM2": 0.0,
+      "workHours10M2": 3.4,
+      "note": "Warm season crop"
+    },
+    {
+      "id": "cabbage",
+      "name": "Cabbage",
+      "group": "Brassicas",
+      "kcalKg": 250,
+      "yieldKgM2": 3.0,
+      "days": 100,
+      "tempC": [
+        10,
+        24
+      ],
+      "ph": [
+        6.0,
+        7.5
+      ],
+      "soil": "Fertile moisture-retentive loam",
+      "water": "high",
+      "seedKgM2": 0.0,
+      "workHours10M2": 3.0,
+      "note": "Heads counted; heavy feeder"
+    },
+    {
+      "id": "broccoli",
+      "name": "Broccoli",
+      "group": "Brassicas",
+      "kcalKg": 340,
+      "yieldKgM2": 1.5,
+      "days": 90,
+      "tempC": [
+        10,
+        22
+      ],
+      "ph": [
+        6.0,
+        7.0
+      ],
+      "soil": "Fertile moisture-retentive loam",
+      "water": "high",
+      "seedKgM2": 0.0,
+      "workHours10M2": 3.3,
+      "note": "Heads and side shoots vary"
+    },
+    {
+      "id": "cauliflower",
+      "name": "Cauliflower",
+      "group": "Brassicas",
+      "kcalKg": 250,
+      "yieldKgM2": 1.2,
+      "days": 95,
+      "tempC": [
+        12,
+        22
+      ],
+      "ph": [
+        6.0,
+        7.5
+      ],
+      "soil": "Fertile moisture-retentive loam",
+      "water": "high",
+      "seedKgM2": 0.0,
+      "workHours10M2": 3.4,
+      "note": "Heat stress can prevent heads"
+    },
+    {
+      "id": "kale",
+      "name": "Kale",
+      "group": "Leafy greens",
+      "kcalKg": 490,
+      "yieldKgM2": 1.5,
+      "days": 70,
+      "tempC": [
+        8,
+        24
+      ],
+      "ph": [
+        5.5,
+        7.0
+      ],
+      "soil": "Fertile well-drained loam",
+      "water": "medium",
+      "seedKgM2": 0.0,
+      "workHours10M2": 3.0,
+      "note": "Several cuts within one cycle"
+    },
+    {
+      "id": "spinach",
+      "name": "Spinach",
+      "group": "Leafy greens",
+      "kcalKg": 230,
+      "yieldKgM2": 1.2,
+      "days": 50,
+      "tempC": [
+        8,
+        20
+      ],
+      "ph": [
+        6.0,
+        7.0
+      ],
+      "soil": "Fertile moisture-retentive loam",
+      "water": "medium",
+      "seedKgM2": 0.0,
+      "workHours10M2": 2.5,
+      "note": "Bolts in heat"
+    },
+    {
+      "id": "lettuce",
+      "name": "Lettuce",
+      "group": "Leafy greens",
+      "kcalKg": 150,
+      "yieldKgM2": 1.8,
+      "days": 55,
+      "tempC": [
+        10,
+        22
+      ],
+      "ph": [
+        6.0,
+        7.0
+      ],
+      "soil": "Fertile moisture-retentive loam",
+      "water": "medium",
+      "seedKgM2": 0.0,
+      "workHours10M2": 2.4,
+      "note": "Multiple heads or cuts"
+    },
+    {
+      "id": "chard",
+      "name": "Swiss chard",
+      "group": "Leafy greens",
+      "kcalKg": 190,
+      "yieldKgM2": 1.5,
+      "days": 60,
+      "tempC": [
+        10,
+        25
+      ],
+      "ph": [
+        6.0,
+        7.5
+      ],
+      "soil": "Fertile well-drained loam",
+      "water": "medium",
+      "seedKgM2": 0.0,
+      "workHours10M2": 2.6,
+      "note": "Repeat harvest within one cycle"
+    },
+    {
+      "id": "strawberry",
+      "name": "Strawberry",
+      "group": "Fruit",
+      "kcalKg": 320,
+      "yieldKgM2": 0.8,
+      "days": 150,
+      "tempC": [
+        10,
+        26
+      ],
+      "ph": [
+        5.5,
+        6.5
+      ],
+      "soil": "Well-drained organic loam",
+      "water": "medium",
+      "seedKgM2": 0.0,
+      "workHours10M2": 3.5,
+      "note": "Perennial bed; annual yield once established"
+    }
+  ],
+  "livestock": [
+    {
+      "id": "hen-eggs",
+      "name": "Laying hen",
+      "group": "Eggs",
+      "product": "Eggs",
+      "kcalKg": 1430,
+      "outputKgCycle": 11.0,
+      "cycleDays": 365,
+      "feedKgDay": 0.13,
+      "feedKcalKg": 2800,
+      "housingM2": 1.0,
+      "workHoursWeek": 0.5,
+      "defaultCycles": 1.0,
+      "climate": "Temperate; dry ventilated shelter",
+      "note": "Output is edible egg mass, about 180-220 eggs"
+    },
+    {
+      "id": "duck-eggs",
+      "name": "Laying duck",
+      "group": "Eggs",
+      "product": "Eggs",
+      "kcalKg": 1850,
+      "outputKgCycle": 14.0,
+      "cycleDays": 365,
+      "feedKgDay": 0.16,
+      "feedKcalKg": 2700,
+      "housingM2": 1.5,
+      "workHoursWeek": 0.6,
+      "defaultCycles": 1.0,
+      "climate": "Temperate; clean water and dry shelter",
+      "note": "Output is edible egg mass"
+    },
+    {
+      "id": "broiler",
+      "name": "Broiler chicken",
+      "group": "Meat",
+      "product": "Chicken meat",
+      "kcalKg": 1650,
+      "outputKgCycle": 1.7,
+      "cycleDays": 56,
+      "feedKgDay": 0.1,
+      "feedKcalKg": 3000,
+      "housingM2": 0.5,
+      "workHoursWeek": 0.3,
+      "defaultCycles": 4.0,
+      "climate": "Sheltered; protect from heat and cold",
+      "note": "One grow-out cycle per group"
+    },
+    {
+      "id": "turkey",
+      "name": "Turkey",
+      "group": "Meat",
+      "product": "Turkey meat",
+      "kcalKg": 1900,
+      "outputKgCycle": 5.0,
+      "cycleDays": 140,
+      "feedKgDay": 0.3,
+      "feedKcalKg": 3000,
+      "housingM2": 1.5,
+      "workHoursWeek": 0.5,
+      "defaultCycles": 1.0,
+      "climate": "Temperate; dry ventilated shelter",
+      "note": "One grow-out cycle"
+    },
+    {
+      "id": "rabbit",
+      "name": "Meat rabbit",
+      "group": "Meat",
+      "product": "Rabbit meat",
+      "kcalKg": 1730,
+      "outputKgCycle": 1.2,
+      "cycleDays": 90,
+      "feedKgDay": 0.16,
+      "feedKcalKg": 2500,
+      "housingM2": 0.6,
+      "workHoursWeek": 0.4,
+      "defaultCycles": 2.0,
+      "climate": "Cool/temperate; shaded dry housing",
+      "note": "Feed and output per raised animal"
+    },
+    {
+      "id": "goat-milk",
+      "name": "Dairy goat",
+      "group": "Milk",
+      "product": "Goat milk",
+      "kcalKg": 690,
+      "outputKgCycle": 500.0,
+      "cycleDays": 365,
+      "feedKgDay": 2.0,
+      "feedKcalKg": 900,
+      "housingM2": 2.0,
+      "workHoursWeek": 1.5,
+      "defaultCycles": 1.0,
+      "climate": "Temperate; dry shelter and suitable forage",
+      "note": "Milk volume varies greatly with breed and lactation"
+    },
+    {
+      "id": "goat-meat",
+      "name": "Meat goat",
+      "group": "Meat",
+      "product": "Goat meat",
+      "kcalKg": 1430,
+      "outputKgCycle": 18.0,
+      "cycleDays": 300,
+      "feedKgDay": 1.5,
+      "feedKcalKg": 900,
+      "housingM2": 2.0,
+      "workHoursWeek": 0.7,
+      "defaultCycles": 1.0,
+      "climate": "Temperate/warm; browse and shelter",
+      "note": "Edible meat estimate per animal"
+    },
+    {
+      "id": "sheep-meat",
+      "name": "Meat sheep",
+      "group": "Meat",
+      "product": "Lamb meat",
+      "kcalKg": 2500,
+      "outputKgCycle": 20.0,
+      "cycleDays": 300,
+      "feedKgDay": 2.0,
+      "feedKcalKg": 900,
+      "housingM2": 2.0,
+      "workHoursWeek": 0.7,
+      "defaultCycles": 1.0,
+      "climate": "Temperate; dry shelter and grazing",
+      "note": "Edible meat estimate per animal"
+    },
+    {
+      "id": "pig",
+      "name": "Market pig",
+      "group": "Meat",
+      "product": "Pork",
+      "kcalKg": 2420,
+      "outputKgCycle": 70.0,
+      "cycleDays": 180,
+      "feedKgDay": 2.5,
+      "feedKcalKg": 3200,
+      "housingM2": 2.0,
+      "workHoursWeek": 0.8,
+      "defaultCycles": 1.0,
+      "climate": "Shelter from heat/cold; dry bedding",
+      "note": "Feed rises as animal grows; this is a cycle average"
+    },
+    {
+      "id": "cow-milk",
+      "name": "Dairy cow",
+      "group": "Milk",
+      "product": "Cow milk",
+      "kcalKg": 610,
+      "outputKgCycle": 4000.0,
+      "cycleDays": 365,
+      "feedKgDay": 20.0,
+      "feedKcalKg": 850,
+      "housingM2": 8.0,
+      "workHoursWeek": 5.0,
+      "defaultCycles": 1.0,
+      "climate": "Temperate; pasture and shelter",
+      "note": "Smallholder milk estimate; housing space excludes pasture"
+    },
+    {
+      "id": "beef",
+      "name": "Beef cattle",
+      "group": "Meat",
+      "product": "Beef",
+      "kcalKg": 2500,
+      "outputKgCycle": 200.0,
+      "cycleDays": 540,
+      "feedKgDay": 14.0,
+      "feedKcalKg": 850,
+      "housingM2": 8.0,
+      "workHoursWeek": 1.5,
+      "defaultCycles": 0.5,
+      "climate": "Temperate; grazing and shelter",
+      "note": "One long grow-out cycle; housing space excludes pasture"
+    }
+  ],
+  "sources": [
+    {
+      "title": "USDA FoodData Central",
+      "url": "https://fdc.nal.usda.gov/data-documentation/",
+      "use": "Rounded food-energy values for raw edible foods; dry grains and pulses use dry edible mass."
+    },
+    {
+      "title": "FAO ECOCROP",
+      "url": "https://www.fao.org/geospatial/data-and-tools/data-portals/ecocrop/",
+      "use": "Broad crop temperature, soil and pH envelopes; local varieties and seasons differ."
+    },
+    {
+      "title": "FAO Crop Calendar",
+      "url": "https://cropcalendar.review.fao.org/",
+      "use": "Crop timing varies by country and agroecological zone; calendar days here are starting estimates."
+    },
+    {
+      "title": "University of Minnesota Extension crop and field planning",
+      "url": "https://extension.umn.edu/vegetable-growing-guides-farmers/crop-and-field-planning-tools-vegetable-farmers",
+      "use": "Garden-scale vegetable yield and planting reference; values rounded for planning."
+    },
+    {
+      "title": "University of Kentucky Cooperative Extension poultry feeding",
+      "url": "https://poultry.extension.org/articles/feeds-and-feeding-of-poultry/feeding-chickens-for-egg-production/",
+      "use": "Hen feed intake and egg-production context; other livestock feeds are adjustable scenarios."
+    },
+    {
+      "title": "FAO Roots and Tubers in Human Nutrition",
+      "url": "https://www.fao.org/4/t0207e/t0207e08.htm",
+      "use": "Cassava processing safety context."
+    }
+  ],
+  "method": "Illustrative offline planning defaults assembled for Umbra, not direct record-by-record extracts or local agronomic predictions. Rounded kcal/kg refer to edible food mass; dry grains and pulses use dry edible mass. Yields, days, labour, feed and growing conditions vary by cultivar, weather and management. Replace defaults with local observations and extension advice."
+}

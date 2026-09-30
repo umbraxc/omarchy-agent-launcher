@@ -243,6 +243,7 @@
     ["#library-btn", "LIBRARY", "The offline collections I read from, and my built-in Field Manual: the critical basics, always available. Download more collections here."],
     ["#maps-btn", "MAPS", "Offline maps with a military look, down to street level: download a country or any area, search towns, streets, water and coordinates. Right-click for waypoints (15 marker types), measuring and range rings. Click a country's name for its file and your own safety level."],
     ["#fieldkit-btn", "FIELD KIT", "Tools that matter in an emergency. MEDIC: CPR metronome, timers, triage, coma scale, burns and child-dose calculators, a patient chart with handover reports. SUN & MOON with a live Earth. SUPPLIES. A CALENDAR that also shows when water and food run out. The VAULT for your arsenal and valuables. TRAINING: Morse, radio, grid references, compass, and field manuals to download. Printable CARDS."],
+    ["#farming-btn", "FARMING", "An offline field planner for edible crops and common livestock. Compare growing conditions, food output, feed, seed and work with numbers you can adjust."],
     ["#radar-btn", "SIGNALS & RADAR", "The Wi-Fi networks and Bluetooth devices around you on a radar, nearer the centre when stronger; click one for its details. Plus your device's vitals. No internet needed."],
     ["#dl-btn", "DOWNLOADS", "Shows while something downloads (maps, library, AI model): pause, resume or cancel it here. Downloads go on after a restart."],
     ["#theme-btn", "THEMES", "Pick a colour theme, follow your Omarchy theme, or design your own."],

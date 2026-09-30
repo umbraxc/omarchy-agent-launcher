@@ -11,7 +11,7 @@
 (() => {
   const G = {   // icons (JetBrains Mono Nerd Font)
     medic: "\u{F02E0}", sky: "\u{F0599}", box: "\u{F03D6}", vault: "\u{F0A6A}", school: "\u{F0474}", card: "\u{F0B78}",
-    map: "\u{F034D}", radar: "\u{F0437}", book: "\u{F125F}", page: "\u{F0219}", reply: "\u{F045A}", ask: "\u{F1738}",
+    map: "\u{F034D}", radar: "\u{F0437}", farm: "\u{F0073}", book: "\u{F125F}", page: "\u{F0219}", reply: "\u{F045A}", ask: "\u{F1738}",
   };
   const kit = (tab, sub) => () => window.UmbraFieldKit && UmbraFieldKit.open(tab, sub);
   // id: [name, what it does, icon, words that call for it, open]
@@ -33,6 +33,9 @@
     maps: ["Maps", "Offline maps, search, MGRS, waypoints and country files", G.map,
       /\b(map|maps|coordinates?|mgrs|grid reference|latitude|longitude|navigate|navigation|compass bearing|waypoint|route|evacuat|where is|topograph)/i,
       () => window.toggleMaps && toggleMaps(true)],
+    farming: ["Farming", "Offline crops, livestock and food production planner", G.farm,
+      /\b(farm|farming|crop|crops|grow(ing)? (food|vegetables?|wheat|rice)|livestock|planting|harvest|soil fertility|garden yield)/i,
+      () => window.toggleFarming && toggleFarming(true)],
     radar: ["Signals & radar", "Nearby Wi-Fi and Bluetooth signals around you, and your device's vitals", G.radar,
       /\b(wi-?fi|bluetooth|wireless|signal strength|nearby (networks|devices)|scan(ning)? for|radar|hotspot|access point)/i,
       () => window.toggleRadar && toggleRadar(true)],

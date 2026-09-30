@@ -1199,6 +1199,9 @@
     document.body.appendChild(el);
     canvas = el.querySelector(".mp-canvas");
     ctx = canvas.getContext("2d");
+    el.querySelector(".mp-panel").addEventListener("click", (e) => {
+      if (e.target.closest(".mp-panel-x")) togglePanel(panel);
+    });
     wire(el);
     new ResizeObserver(resize).observe(el.querySelector(".mp-body"));
   }
@@ -1632,7 +1635,7 @@
     if (!panel) return;
     const top = box.scrollTop;
     if (panel === "points") {
-      box.innerHTML = `<div class="lib-head"><span>WAYPOINTS · ${waypoints.length}</span></div>` + (waypoints.length
+      box.innerHTML = `<div class="mp-panel-head"><b>WAYPOINTS · ${waypoints.length}</b><button class="ghost mp-panel-x" title="Close waypoints">CLOSE ✕</button></div>` + (waypoints.length
         ? waypoints.map((w) => `<div class="mp-pt" data-id="${w.id}" title="Fly to it"><span class="g" style="color:${colorOf(w)}">${ICON[w.icon] || ICON.pin}</span><span><b></b><small>${fmtLat(w.lat)} ${fmtLon(w.lon)}</small></span><button class="ghost mp-del" title="Remove this waypoint">✕</button></div>`).join("")
         : `<p class="lib-note">No waypoints yet. Use the pin tool (W) and click the map: camps, water, dangers, rally points, caches…</p>`);
       box.querySelectorAll(".mp-pt").forEach((b) => {
@@ -1652,7 +1655,8 @@
       box.scrollTop = top;
       return;
     }
-    if (!status) { box.innerHTML = `<p class="lib-note">Reading maps…</p>`; return; }
+    const header = `<div class="mp-panel-head"><b>OFFLINE MAPS</b><button class="ghost mp-panel-x" title="Close downloads">CLOSE ✕</button></div>`;
+    if (!status) { box.innerHTML = header + `<p class="lib-note">Reading maps…</p>`; return; }
     const job = status.job || {};
     const plan = job.plan && chosen && job.plan.name === chosen.name ? job.plan : null;
     let html = `<p class="lib-note">Maps are OpenStreetMap, updated daily, and work fully offline once downloaded.
@@ -1700,7 +1704,7 @@
     if (job.phase === "failed") html += `<p class="lib-note mp-err">${escapeHtml(job.error || "Something went wrong.")} Check the connection and try again.</p>`;
     html += `</div><p class="lib-note mp-lic">Map data © OpenStreetMap contributors (ODbL), from the Protomaps daily build.
       Elevation: Terrain Tiles (AWS open data: SRTM, GMTED, ETOPO and others).</p>`;
-    box.innerHTML = html;
+    box.innerHTML = header + html;
     if (window.UmbraDownloads) UmbraDownloads.wire(box, async () => { await refreshStatus(); renderPanel(); pollJob(); });
     const sel = box.querySelector(".mp-country");
     if (chosen && chosen.i != null) sel.value = String(chosen.i);

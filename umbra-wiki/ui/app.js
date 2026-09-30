@@ -180,6 +180,55 @@ const Sound = (() => {
   return api;
 })();
 
+// In a maximized/full-screen main window, identify the compact navigation
+// icons without covering a tool panel. The label stays inside Umbra's frame.
+(() => {
+  const labels = {
+    "loadout-btn": ["PROFILE & LOADOUT", "Identity, scenario and personality"],
+    "history-btn": ["HISTORY", "Your saved conversations"],
+    "library-btn": ["LIBRARY", "Offline knowledge and manuals"],
+    "maps-btn": ["MAPS", "Offline maps and waypoints"],
+    "fieldkit-btn": ["FIELD KIT", "Medic, sky, supplies and training"],
+    "farming-btn": ["FARMING", "Crops, livestock and food production"],
+    "radar-btn": ["SIGNALS & RADAR", "Nearby signals and device status"],
+    "theme-btn": ["THEMES", "Choose Umbra's look"],
+    "sound": ["SOUND", "Interface audio"],
+    "lock": ["LOCK", "Secure this window"],
+    "settings-btn": ["SETTINGS", "Adjust Umbra"],
+  };
+  const card = document.createElement("div");
+  card.className = "nav-callout";
+  card.hidden = true;
+  card.innerHTML = "<b></b><small></small>";
+  document.body.appendChild(card);
+  const wide = () => !!document.fullscreenElement ||
+    (screen.width > 0 && screen.height > 0 &&
+     innerWidth >= Math.min(screen.availWidth || screen.width, screen.width) - 40 &&
+     innerHeight >= Math.min(screen.availHeight || screen.height, screen.height) - 80);
+  const mainVisible = () => !document.body.classList.contains("touring") && !document.body.classList.contains("locked") &&
+    !["#maps", "#fieldkit", "#farming", "#radar", "#loadout", "#history", "#library", "#themes", "#settings", "#core"].some((s) => {
+      const el = $(s); return el && !el.hidden;
+    });
+  const hide = () => { card.hidden = true; };
+  Object.entries(labels).forEach(([id, [title, hint]]) => {
+    const button = document.getElementById(id);
+    if (!button) return;
+    const show = () => {
+      if (!wide() || !mainVisible() || button.hidden || button.classList.contains("gone")) return;
+      card.querySelector("b").textContent = title;
+      card.querySelector("small").textContent = hint;
+      card.hidden = false;
+      Sound.hover();
+    };
+    button.addEventListener("mouseenter", show);
+    button.addEventListener("focus", show);
+    button.addEventListener("mouseleave", hide);
+    button.addEventListener("blur", hide);
+  });
+  document.addEventListener("click", hide, true);
+  window.addEventListener("resize", () => { if (!wide()) hide(); });
+})();
+
 // A soft hover blip on the rows and buttons of the tools, like elsewhere.
 document.addEventListener("mouseover", (e) => {
   const b = e.target.closest(".cal-day, .cal-urow, .rd-row, .rd-krow, .v-row, .v-libi, .tr-mcard, .hist-row .hopen, .hf, .fk-subnav button, .fk-subtabs button, .mp-pt, .tm-item, .set-chip, .manual-page");
@@ -194,7 +243,7 @@ let hoverLast = null;
 // (Morse keys, the metronome's tap).
 document.addEventListener("click", (e) => {
   const b = e.target.closest("button, .mp-pt, label.mp-opt, .set-chip");
-  if (!b || b.disabled || !b.closest("#maps, #fieldkit, #radar, #loadout, #history, #library, #themes, #dl-pop, #settings, .news, .dl-toast, .toolrow, .tabguide, .hist-edit, .hist-move")) return;
+  if (!b || b.disabled || !b.closest("#maps, #fieldkit, #farming, #radar, #loadout, #history, #library, #themes, #dl-pop, #settings, .news, .dl-toast, .toolrow, .tabguide, .hist-edit, .hist-move")) return;
   if (b.closest("[data-quiet], .fk-chart, .fk-key, .fk-tap")) return;
   setTimeout(Sound.tap, 30);
 });
@@ -682,6 +731,7 @@ function goHome() {
   if (window.closeLoadout) window.closeLoadout(true);
   if (window.closeMaps) window.closeMaps();
   if (window.closeFieldKit) window.closeFieldKit();
+  if (window.closeFarming) window.closeFarming();
   if (window.closeRadar) window.closeRadar();
   toggleThemes(false, true);
   $("#library").hidden = true;
