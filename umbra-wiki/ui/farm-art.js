@@ -130,35 +130,9 @@
     const halo=g.createRadialGradient(w*.5,h*.48,1,w*.5,h*.48,w*.5);halo.addColorStop(0,mix(s.main,"#151b16",.78));halo.addColorStop(1,"#101711");
     g.fillStyle=halo;g.fillRect(0,0,w,h);glyphs(g,s.cells,(w-W*step)/2,(h-H*step)/2,step);
   }
-  function scene(g,w,h,t) {
-    const sky=g.createLinearGradient(0,0,0,h);sky.addColorStop(0,"#314b55");sky.addColorStop(.5,"#738d73");sky.addColorStop(1,"#253c28");
-    g.fillStyle=sky;g.fillRect(0,0,w,h);
-    const sun=g.createRadialGradient(w*.72,h*.2,3,w*.72,h*.2,w*.43);sun.addColorStop(0,"rgba(255,210,123,.62)");sun.addColorStop(1,"transparent");g.fillStyle=sun;g.fillRect(0,0,w,h);
-    g.fillStyle="rgba(255,223,156,.7)";g.beginPath();g.arc(w*.72,h*.2,8,0,Math.PI*2);g.fill();
-    const cell=Math.min(14,Math.max(5,(w-20)/74)),dy=cell*1.18,ox=(w-74*cell)/2,base=h*.78;
-    const draw=(lines,x,y,color,light)=>{g.font=`700 ${cell*1.2}px monospace`;g.textBaseline="middle";g.textAlign="left";
-      lines.forEach((row,j)=>[...row].forEach((ch,i)=>{if(ch===" ")return;g.fillStyle=ch==="o"?"#ffd083":ch==="%"?"#6f563e":ch==="^"?light||"#72965d":color;
-        g.fillText(ch,ox+(x+i)*cell,y+j*dy);}));};
-    draw(["     .---.           .---.        .--.","   _(     )_       (     )_     (    )", "     `---'           `---'        `--'"],1,h*.17,"#c0c9ad");
-    draw(["      /\\       /\\                   /\\"],7,h*.22,"#d8d9b0");
-    draw(["        /\\                    /\\                    /\\", "       /##\\       /\\         /##\\        /\\        /##\\", "      /####\\     /##\\       /####\\      /##\\      /####\\", "     /######\\   /####\\     /######\\    /####\\    /######\\", "        ||         ||            ||          ||          ||"],0,base-6*dy,"#4b7456","#638c5f");
-    const cabin=["            ||", "         ___||___", "        /%%%%%%%\\", "       /%%%%%%%%%\\", "      /_____________\\", "      |  o      o  |", "      |      __     |", "      |  o  |  | o  |", "      |_____|__|____|", "       /_/      \\_\\"];
-    const cx=Math.max(15,Math.round(74*.32));
-    const hearth=g.createRadialGradient(ox+(cx+8)*cell,base-4*dy,2,ox+(cx+8)*cell,base-4*dy,cell*19);
-    hearth.addColorStop(0,`rgba(245,171,75,${.23+.04*Math.sin(t*.003)})`);hearth.addColorStop(1,"transparent");g.fillStyle=hearth;g.fillRect(0,0,w,h);
-    draw(cabin,cx,base-9*dy,"#c1a77c");
-    for(let i=0;i<3;i++){const drift=Math.sin(t*.0005+i)*1.5,up=(t*.012+i*3)%11;draw([i%2?"°":"~"],cx+12+drift,base-(10+up)*dy,"#8b9b91");}
-    draw(["  /\\        .   .     /\\", " /##\\              /##\\", "   ||    _|_|_|_      ||"],1,base-3*dy,"#6d955f");
-    const wander=Math.sin(t*.0005)*1.7;
-    draw([" (o)>  "," /|\\  "],56+wander,base-2*dy,"#d2b783");
-    draw([" .-~~-. ","( o  o )", " /|  |\\"],64-wander,base-3*dy,"#d5d0b3");
-    g.fillStyle="rgba(28,53,31,.52)";g.fillRect(0,base+dy*.2,w,h-base);
-    draw(["__._..__..____.._._..____.__.._..____.._._..____.._..____.._"],0,base,"#b1bf75");
-    for(let row=1;row<5;row++)draw([row%2?"\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\":"/////////////////////////////////////////////"],2,base+row*dy*.88,row%2?"#779b59":"#a6aa61");
-  }
   function hero(canvas,item,frame=0) {
     const {g,w,h}=setup(canvas);g.clearRect(0,0,w,h);
-    if(!item){scene(g,w,h,frame);return;}
+    if(!item){window.UmbraLandscape.draw(canvas,"farm",frame);return;}
     const s=sprite(item,Math.floor(frame/350));
     const bg=g.createLinearGradient(0,0,w,h);bg.addColorStop(0,"#101b1b");bg.addColorStop(1,"#182019");g.fillStyle=bg;g.fillRect(0,0,w,h);
     const halo=g.createRadialGradient(w*.5,h*.43,2,w*.5,h*.43,w*.42);halo.addColorStop(0,mix(s.main,"#182019",.68));halo.addColorStop(1,"transparent");g.fillStyle=halo;g.fillRect(0,0,w,h);

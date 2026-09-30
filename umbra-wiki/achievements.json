@@ -900,6 +900,151 @@
    "category": "questions"
   },
   {
+   "id": "field-steward",
+   "name": "Field Steward",
+   "description": "Add 12 distinct crops or livestock to a Farming plan.",
+   "icon": "♧",
+   "tier": "gold",
+   "points": 50,
+   "stat": "farmItems",
+   "goal": 12,
+   "category": "tools"
+  },
+  {
+   "id": "living-farm",
+   "name": "Living Farm",
+   "description": "Add 8 crops and 4 livestock to a Farming plan.",
+   "icon": "✳",
+   "tier": "gold",
+   "points": 75,
+   "stat": "farmDiversity",
+   "goal": 1,
+   "category": "tools"
+  },
+  {
+   "id": "six-frequencies",
+   "name": "Six Frequencies",
+   "description": "Play all 6 bundled offline radio tracks.",
+   "icon": "◉",
+   "tier": "gold",
+   "points": 50,
+   "stat": "radioTracks",
+   "goal": 6,
+   "category": "tools"
+  },
+  {
+   "id": "trail-network",
+   "name": "Trail Network",
+   "description": "Create 20 distinct map waypoints.",
+   "icon": "⌖",
+   "tier": "gold",
+   "points": 75,
+   "stat": "waypoints",
+   "goal": 20,
+   "category": "maps"
+  },
+  {
+   "id": "manual-scholar",
+   "name": "Manual Scholar",
+   "description": "Read 15 distinct field manual pages.",
+   "icon": "▤",
+   "tier": "gold",
+   "points": 75,
+   "stat": "manualsRead",
+   "goal": 15,
+   "category": "knowledge"
+  },
+  {
+   "id": "field-veteran",
+   "name": "Field Veteran",
+   "description": "Complete 25 field-kit drills.",
+   "icon": "⚑",
+   "tier": "gold",
+   "points": 75,
+   "stat": "drills",
+   "goal": 25,
+   "category": "fieldkit"
+  },
+  {
+   "id": "skykeeper",
+   "name": "Skykeeper",
+   "description": "Check the Sun or Moon tools 20 times.",
+   "icon": "☼",
+   "tier": "gold",
+   "points": 50,
+   "stat": "sunChecks",
+   "goal": 20,
+   "category": "fieldkit"
+  },
+  {
+   "id": "many-lives",
+   "name": "Many Lives",
+   "description": "Try 10 distinct scenarios.",
+   "icon": "◈",
+   "tier": "gold",
+   "points": 50,
+   "stat": "scenarios",
+   "goal": 10,
+   "category": "style"
+  },
+  {
+   "id": "model-explorer",
+   "name": "Model Explorer",
+   "description": "Use 4 distinct local AI models.",
+   "icon": "✧",
+   "tier": "gold",
+   "points": 75,
+   "stat": "modelsTried",
+   "goal": 4,
+   "category": "tools"
+  },
+  {
+   "id": "vault-warden",
+   "name": "Vault Warden",
+   "description": "Open the protected Vault 10 times.",
+   "icon": "▣",
+   "tier": "gold",
+   "points": 50,
+   "stat": "vault",
+   "goal": 10,
+   "category": "tools"
+  },
+  {
+   "id": "umbra-complete",
+   "name": "Umbra Complete",
+   "description": "Meet all 11 deep-use milestones across chat, manuals, maps, medicine, drills, sky, Farming, radio, themes, Vault and map packs.",
+   "icon": "✦",
+   "tier": "legendary",
+   "points": 100,
+   "stat": "expeditionBreadth",
+   "goal": 11,
+   "category": "legend"
+  },
+  {
+   "id": "quiet-discovery",
+   "name": "Quiet Discovery",
+   "description": "Find the hidden landscape after tucking away the start-screen questions.",
+   "icon": "✧",
+   "tier": "silver",
+   "points": 25,
+   "stat": "quietScene",
+   "goal": 1,
+   "category": "journey",
+   "secret": true
+  },
+  {
+   "id": "impossible-pulse",
+   "name": "Impossible Pulse",
+   "description": "Keep the pulse tapper near 500 BPM for 10 seconds.",
+   "icon": "♥",
+   "tier": "legendary",
+   "points": 100,
+   "stat": "pulse500",
+   "goal": 1,
+   "category": "fieldkit",
+   "secret": true
+  },
+  {
    "id": "legend",
    "name": "Legend of the Wasteland",
    "description": "Earn every other achievement.",
@@ -907,7 +1052,7 @@
    "tier": "legendary",
    "points": 100,
    "stat": "allOthers",
-   "goal": 74,
+   "goal": 87,
    "category": "legend"
   }
  ],
@@ -1034,6 +1179,42 @@
    "description": "A star exploding, over and over. The rarest of all.",
    "unlock": {
     "achievement": "legend"
+   }
+  },
+  {
+   "id": "terrarium",
+   "kind": "orb",
+   "name": "Terrarium",
+   "description": "A tiny living world of soil, leaves and warm daylight.",
+   "unlock": {
+    "achievement": "living-farm"
+   }
+  },
+  {
+   "id": "beacon",
+   "kind": "orb",
+   "name": "Beacon",
+   "description": "A rotating light sweeps through a layered signal sphere.",
+   "unlock": {
+    "achievement": "six-frequencies"
+   }
+  },
+  {
+   "id": "wayfinder",
+   "kind": "orb",
+   "name": "Wayfinder",
+   "description": "A luminous route winds across a shaded globe.",
+   "unlock": {
+    "achievement": "trail-network"
+   }
+  },
+  {
+   "id": "constellation",
+   "kind": "orb",
+   "name": "Constellation",
+   "description": "An orbiting field of stars connected into a living map.",
+   "unlock": {
+    "achievement": "umbra-complete"
    }
   },
   {

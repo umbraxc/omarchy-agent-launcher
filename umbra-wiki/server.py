@@ -553,6 +553,8 @@ def save_farm(data):
             "targetKcal": number(data.get("targetKcal"), 2000, 500, 5000)}
     with FARM_LOCK:
         write_json(FARM_FILE, plan)
+    if clean:
+        record("farmItems", [entry["id"] for entry in clean])
     return plan
 
 
@@ -1211,6 +1213,8 @@ def radio_control(request):
         old_proc.terminate()
     if stop:
         threading.Thread(target=_radio_loop, args=(track, command, stop), daemon=True, name="umbra-radio").start()
+    if track:
+        record("radioTracks", track)
     return radio_state()
 
 
@@ -1801,8 +1805,21 @@ def _stat(st, stat):
     if stat == "streak":
         return max(_streak(st["days"]), counts.get("bestStreak", 0))
     if stat in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
-                "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries", "modelsTried", "medicTools"):
+                "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries", "modelsTried", "medicTools", "radioTracks"):
         return len(sets.get(stat, []))
+    if stat == "farmItems":
+        return len(set(sets.get("farmItems", [])) | {e["id"] for e in get_farm().get("items", []) if isinstance(e, dict) and e.get("id")})
+    if stat == "farmDiversity":
+        catalog = farm_catalog()
+        crops = {x["id"] for x in catalog["crops"]}
+        animals = {x["id"] for x in catalog["livestock"]}
+        used = set(sets.get("farmItems", [])) | {e["id"] for e in get_farm().get("items", []) if isinstance(e, dict) and e.get("id")}
+        return int(len(used & crops) >= 8 and len(used & animals) >= 4)
+    if stat == "expeditionBreadth":
+        pillars = ("questions", "manualsRead", "waypoints", "medicTools", "drills", "sunChecks", "farmItems",
+                   "radioTracks", "themes", "vault", "mapPacks")
+        goals = (50, 8, 8, 4, 12, 10, 10, 6, 5, 1, 2)
+        return sum(_stat(st, key) >= need for key, need in zip(pillars, goals))
     if stat == "radarDevices":
         try:
             return len(radar.known_devices())
@@ -1870,13 +1887,18 @@ def record(event, value=None, **info):
             counts["longestConversation"] = max(counts.get("longestConversation", 0), int(info.get("turn") or 1))
         elif event in ("suggestions", "sources", "stops", "voice", "backups", "usbExports", "tour", "password",
                        "cprMinutes", "morseLetters", "drills", "timers", "sunChecks", "cards", "quartermaster",
-                       "coreOpened", "radarOpened", "killSwitch", "vault", "quickActions", "measures", "exports"):
+                       "coreOpened", "radarOpened", "killSwitch", "vault", "quickActions", "measures", "exports",
+                       "quietScene", "pulse500"):
             counts[event] = counts.get(event, 0) + 1
         elif event in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
-                       "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries", "modelsTried", "medicTools"):
-            item = str(value or "")[:60]
-            if item and item not in sets.get(event, []):
-                sets[event] = sets.get(event, []) + [item]
+                       "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries", "modelsTried", "medicTools", "farmItems", "radioTracks"):
+            values = value if event == "farmItems" and isinstance(value, list) else [value]
+            known = set(sets.get(event, []))
+            for raw in values[:80]:
+                item = str(raw or "")[:60]
+                if item and item not in known:
+                    sets.setdefault(event, []).append(item)
+                    known.add(item)
         _award(st)
         write_json(ACH_FILE, st)
 
@@ -4116,8 +4138,12 @@ class Handler(BaseHTTPRequestHandler):
                 value = re.sub(r"[^a-z-]", "", str(value or ""))[:20]
                 if not value:
                     return self.send_json({"error": "unknown tool"}, 400)
+            elif event == "radioTracks":
+                if value not in {x["id"] for x in radio_catalog()}:
+                    return self.send_json({"error": "unknown track"}, 400)
             elif event not in ("suggestions", "sources", "stops", "voice", "cprMinutes", "morseLetters", "drills",
-                               "timers", "sunChecks", "cards", "coreOpened", "radarOpened", "quickActions", "measures"):
+                               "timers", "sunChecks", "cards", "coreOpened", "radarOpened", "quickActions", "measures",
+                               "quietScene", "pulse500"):
                 return self.send_json({"error": "unknown event"}, 400)
             record(event, value)
             return self.send_json({"ok": True})

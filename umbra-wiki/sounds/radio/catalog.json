@@ -1,6 +1,8 @@
 [
-  {"id":"forest","title":"FOREST DAWN","kind":"NATURE","line":"Moving breeze, leaves, brook and varied distant birds","seconds":112},
-  {"id":"rain","title":"RAIN SHELTER","kind":"AMBIENCE","line":"Shifting rain, roof drops and distant rumbles","seconds":108},
-  {"id":"jazz","title":"MIDNIGHT JAZZ","kind":"INSTRUMENTAL","line":"Original electric piano lines, walking bass and brushes","seconds":107},
-  {"id":"grid","title":"GRID PULSE","kind":"ELECTRONIC","line":"Evolving original low synths and a measured pulse","seconds":96}
+  {"id":"forest","title":"FOREST DAWN","kind":"NATURE","line":"Birds, brook and an unfolding plucked melody","seconds":191},
+  {"id":"rain","title":"RAIN SHELTER","kind":"AMBIENCE","line":"Changing rain beneath a gentle piano theme","seconds":213},
+  {"id":"jazz","title":"MIDNIGHT JAZZ","kind":"INSTRUMENTAL","line":"Piano phrases, counterlines, walking bass and brushes","seconds":196},
+  {"id":"grid","title":"GRID PULSE","kind":"ELECTRONIC","line":"A changing synth theme over a measured electronic beat","seconds":172},
+  {"id":"ember","title":"EMBER TRAIL","kind":"INSTRUMENTAL","line":"Warm plucked strings, bells and a travelling melody","seconds":182},
+  {"id":"lunar","title":"LUNAR TIDE","kind":"AMBIENCE","line":"Slow bells and a spacious night-time melody","seconds":213}
 ]

@@ -177,16 +177,25 @@
 
   input.addEventListener("keydown", (e) => {
     if (isOpen()) {
-      if (e.key === "ArrowDown" || (e.key === "Tab" && !e.shiftKey)) { e.preventDefault(); e.stopImmediatePropagation(); sel = (sel + 1) % items.length; mark(); Sound.hover(); return; }
-      if (e.key === "ArrowUp" || (e.key === "Tab" && e.shiftKey)) { e.preventDefault(); e.stopImmediatePropagation(); sel = (sel - 1 + items.length) % items.length; mark(); Sound.hover(); return; }
+      if (e.key === "ArrowDown") { e.preventDefault(); e.stopImmediatePropagation(); sel = (sel + 1) % items.length; mark(); Sound.hover(); return; }
+      if (e.key === "ArrowUp") { e.preventDefault(); e.stopImmediatePropagation(); sel = (sel - 1 + items.length) % items.length; mark(); Sound.hover(); return; }
       if (e.key === "Enter") { e.preventDefault(); e.stopImmediatePropagation(); pick(sel); return; }
       if (e.key === "Escape") { e.preventDefault(); e.stopImmediatePropagation(); hide(); return; }
       hide();
       return;
     }
-    if (e.key === "Tab" && !e.shiftKey && !input.value && !document.body.classList.contains("touring")) {
-      if (show()) { e.preventDefault(); e.stopImmediatePropagation(); }
-    }
+  }, true);
+  // Tab belongs to Quick Actions throughout the main conversation, including
+  // after scrolling or clicking a header control. Panels keep normal Tab focus.
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Tab" || e.ctrlKey || e.altKey || e.metaKey || locked || !$("#modal").hidden || document.body.classList.contains("touring")) return;
+    const panels = ["reader", "library", "history", "settings", "loadout", "themes", "maps", "fieldkit", "radar", "core", "farming"];
+    if (panels.some((id) => { const p = document.getElementById(id); return p && !p.hidden; })) return;
+    if (!isOpen() && e.shiftKey) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    input.focus({ preventScroll: true });
+    if (!isOpen()) show();
+    else { sel = (sel + (e.shiftKey ? -1 : 1) + items.length) % items.length; mark(); Sound.hover(); }
   }, true);
   input.addEventListener("blur", () => setTimeout(hide, 120));
 

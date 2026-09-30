@@ -61,7 +61,9 @@
     UmbraFarmArt.hero($f(".fm-art"), null, 0);
     setInterval(() => {
       if (panel.hidden || document.hidden || document.body.classList.contains("reduce-motion")) return;
-      UmbraFarmArt.hero($f(".fm-art"), item(chosen), performance.now());
+      const art = $f(".fm-art"), view = art.getBoundingClientRect();
+      if (view.bottom < 0 || view.top > innerHeight) return;
+      UmbraFarmArt.hero(art, item(chosen), performance.now());
     }, 180);
     $f(".fm-overview-btn").addEventListener("click", () => { chosen = ""; renderCatalog(); renderPlan(); renderDetail(); Sound.click(); });
     $f(".fm-close").addEventListener("click", () => toggle(false));
@@ -144,7 +146,7 @@
     cropMap.clear(); stockMap.clear();
     catalog.crops.forEach((x) => cropMap.set(x.id, x));
     catalog.livestock.forEach((x) => stockMap.set(x.id, x));
-    chosen = plan.items[0]?.id || "";
+    chosen = "";
     $f(".fm-people").value = plan.people || 1;
     $f(".fm-target-kcal").value = plan.targetKcal || 2000;
     $f(".fm-method-inner").innerHTML = `<p>${safe(catalog.method)}</p><p>Food calories mean edible food mass. Animal feed energy is feed energy, not food for people. Housing area excludes pasture. Planting, feed, fuel, soil nutrients, losses and nutrition quality need local checks.</p>
@@ -277,6 +279,7 @@
     toggleThemes(false, true);
     $("#library").hidden = true; $("#library-btn").classList.remove("on");
     panel.hidden = false; document.body.classList.add("farming-open"); $("#farming-btn").classList.add("on");
+    chosen = "";
     if (!catalog) {
       $f(".fm-catalog-list").innerHTML = `<p class="lib-note">Opening the field book…</p>`;
       load().then(render).catch(() => { $f(".fm-catalog-list").innerHTML = `<p class="lib-note">The local field book could not be loaded. Close and open Farming to try again.</p>`; });

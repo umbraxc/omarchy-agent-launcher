@@ -52,6 +52,7 @@
     if (id && !catalog.some((x) => x.id === id)) return;
     if (current === id) { current = ""; error = ""; playback(""); paintState(); return; }
     current = id; error = "";
+    if (id && windows && window.track) track("radioTracks", id);
     if (Sound.muted) setMuted(false); // this event starts the selected track
     else playback(id);
     paintState();
@@ -75,7 +76,7 @@
   };
   function render() {
     host.innerHTML = `<div class="snd-radio-head"><b>OFFLINE RADIO</b><button class="ghost snd-radio-stop" type="button">STOP ■</button></div>
-      <p class="snd-radio-note">Original loops bundled with Umbra. They keep playing as you move between screens.</p>
+      <p class="snd-radio-note">Six original offline instrumentals, each with a full arrangement. They keep playing as you move between screens.</p>
       <div class="snd-radio-list">${catalog.map((x) => `<button type="button" data-track="${safe(x.id)}" aria-pressed="false"><span class="snd-radio-mark">${x.kind === "NATURE" || x.kind === "AMBIENCE" ? "◈" : "♫"}</span><span><b>${safe(x.title)}</b><small>${safe(x.line)}</small></span><em>${safe(x.kind)}</em></button>`).join("")}</div>
       <label class="snd-range snd-radio-volume"><span>Radio volume <output>${Math.round(volume * 100)}%</output></span><input type="range" min="0" max="1" step="0.05" value="${volume}"></label>
       <div class="snd-radio-state" role="status"></div>`;

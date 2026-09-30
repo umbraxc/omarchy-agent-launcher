@@ -1,8 +1,8 @@
 # Umbra offline radio
 
-These four longer, evolving loops are original audio generated for Umbra from the numeric
-synthesis code in `scripts/generate-radio.py`. They contain no external samples,
-recordings, melodies or third-party audio. They are distributed under Umbra's
+These six long, evolving pieces are original audio generated for Umbra from the numeric
+synthesis code and authored melodies in `scripts/generate-radio.py`. They contain no external samples,
+recordings or third-party audio. They are distributed under Umbra's
 MIT license. Run the generator with Python and NumPy to reproduce the WAV files;
 NumPy is only a build-time dependency and is not needed by Umbra users.
 

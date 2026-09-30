@@ -1150,14 +1150,41 @@ function asciiWipe(swap, { covered = false, welcome = "" } = {}) {
 // brings the logo and the questions back, like one long page. Its animated
 // background only runs while it's on screen and Umbra isn't answering.
 let introVisible = false;
+let easterTimer = 0, easterLoop = 0;
+function clearEaster(remove = false) {
+  clearTimeout(easterTimer); clearInterval(easterLoop);
+  easterTimer = easterLoop = 0;
+  if (remove) document.querySelector("#intro .intro-easter")?.remove();
+}
+function armEaster() {
+  clearTimeout(easterTimer);
+  const intro = $("#intro");
+  if (!intro || !introVisible || !document.body.classList.contains("prompts-hidden") || chat.length || document.hidden || intro.querySelector(".intro-easter")) return;
+  easterTimer = setTimeout(() => {
+    if (!intro.isConnected || !introVisible || !document.body.classList.contains("prompts-hidden") || chat.length || document.hidden) return;
+    const card = document.createElement("div");
+    card.className = "intro-easter";
+    card.innerHTML = '<span>UMBRA // FOUND A QUIET PLACE</span><canvas role="img" aria-label="Animated morning landscape"></canvas>';
+    intro.querySelector(".prompts")?.after(card);
+    const canvas = card.querySelector("canvas");
+    const draw = () => UmbraLandscape.draw(canvas, "dawn", performance.now());
+    draw();
+    easterLoop = setInterval(() => {
+      if (!card.isConnected) { clearInterval(easterLoop); easterLoop = 0; return; }
+      if (introVisible && !document.hidden && !document.body.classList.contains("reduce-motion")) draw();
+    }, 180);
+    if (window.track) track("quietScene");
+  }, 45000);
+}
 const introWatch = new IntersectionObserver(([e]) => {
   introVisible = e.isIntersecting;
-  if (introVisible) startRain(); else stopRain();
+  if (introVisible) { startRain(); armEaster(); } else { stopRain(); clearTimeout(easterTimer); }
 });
 
 // Puts the start screen back (for a new conversation, or at the top of an
 // opened one: without the greeting) and starts its motion.
 function showIntro(first = false, { greet = true } = {}) {
+  clearEaster();
   if (!first) {
     stopRain();
     feed.innerHTML = "";
@@ -1175,6 +1202,10 @@ function showIntro(first = false, { greet = true } = {}) {
   });
   showStarters();
 }
+for (const event of ["pointermove", "keydown", "wheel"]) document.addEventListener(event, () => {
+  if (easterTimer) armEaster();
+}, { passive: true });
+document.addEventListener("visibilitychange", () => { if (!document.hidden) armEaster(); });
 
 // The suggested questions can be tucked away (remembered on this computer).
 function setPromptsHidden(hide, animate = true) {
@@ -1185,6 +1216,7 @@ function setPromptsHidden(hide, animate = true) {
     b.dataset.tip = hide ? "Show the questions|Bring the suggested questions back." : "Hide the questions|Tuck the suggested questions away; show them again any time.";
   });
   try { localStorage.setItem("umbra-prompts-hidden", hide ? "1" : ""); } catch {}
+  if (hide) armEaster(); else clearEaster(true);
 }
 document.addEventListener("click", (e) => {
   if (!e.target.closest(".prompts-toggle")) return;
@@ -2693,44 +2725,7 @@ function updatePromptBar() {
 setInterval(updatePromptBar, 200);
 updatePromptBar();
 
-// ------------------------------------------------------------ block cursor
-
-// The prompt's cursor is a thick block, like a terminal's. The native one is
-// made invisible (so there's only ever one); this one is placed with a hidden
-// mirror of the text. Solid while typing, blinking when idle.
-const fakeCaret = document.createElement("span");
-fakeCaret.className = "fake-caret";
-fakeCaret.hidden = true;
-form.appendChild(fakeCaret);
-const mirror = document.createElement("div");
-mirror.setAttribute("aria-hidden", "true");
-Object.assign(mirror.style, { position: "absolute", visibility: "hidden", whiteSpace: "pre-wrap", wordWrap: "break-word", top: "0", left: "-9999px" });
-document.body.appendChild(mirror);
-let caretIdle = 0;
-function placeCaret() {
-  if (document.activeElement !== input || input.selectionStart !== input.selectionEnd || locked) { fakeCaret.hidden = true; return; }
-  const cs = getComputedStyle(input);
-  for (const p of ["fontFamily", "fontSize", "fontWeight", "lineHeight", "letterSpacing", "paddingTop", "paddingLeft", "paddingRight", "borderLeftWidth", "boxSizing"]) mirror.style[p] = cs[p];
-  mirror.style.width = input.clientWidth + "px";
-  mirror.textContent = input.value.slice(0, input.selectionStart);
-  const mark = document.createElement("span");
-  mark.textContent = input.value.slice(input.selectionStart, input.selectionStart + 1).replace("\n", "") || " ";
-  mirror.appendChild(mark);
-  const lineH = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.5;
-  fakeCaret.style.left = input.offsetLeft + mark.offsetLeft + "px";
-  fakeCaret.style.top = input.offsetTop + mark.offsetTop - input.scrollTop + (lineH - parseFloat(cs.fontSize) * 1.2) / 2 + "px";
-  fakeCaret.style.width = Math.max(7, mark.offsetWidth || parseFloat(cs.fontSize) * 0.6) + "px";
-  fakeCaret.style.height = parseFloat(cs.fontSize) * 1.2 + "px";
-  fakeCaret.hidden = false;
-  fakeCaret.classList.add("steady");
-  clearTimeout(caretIdle);
-  caretIdle = setTimeout(() => fakeCaret.classList.remove("steady"), 600);
-}
-["input", "focus", "blur", "click", "keyup", "scroll", "select"].forEach((ev) => input.addEventListener(ev, placeCaret));
-input.addEventListener("keydown", () => requestAnimationFrame(placeCaret));
-document.addEventListener("selectionchange", () => { if (document.activeElement === input) placeCaret(); });
-addEventListener("resize", placeCaret);
-setTimeout(placeCaret, 300);
+// The textarea's native caret follows text wrapping, selection and scrolling.
 
 // umbra-wiki --manual <page> opens a field-manual page.
 const manualParam = new URLSearchParams(location.search).get("manual");

@@ -1,6 +1,6 @@
-"""Render Umbra's original offline radio loops. Build-time only: needs numpy.
+"""Render Umbra's original offline radio pieces. Build-time only: needs numpy.
 
-No recordings, samples, melodies, or third-party audio are used. Output is
+Every melody is written here; no recordings or third-party audio are used. Output is
 stereo 22.05 kHz PCM WAV so the Linux backend can loop it without a decoder.
 """
 from pathlib import Path
@@ -49,6 +49,17 @@ def tone(freq, seconds, kind="soft", decay=0):
     elif kind == "synth":
         s = .62 * np.sin(2 * np.pi * freq * t) + .22 * np.sin(2 * np.pi * freq * 1.005 * t)
         s += .16 * np.sin(2 * np.pi * 2 * freq * t)
+    elif kind == "bell":
+        s = np.sin(2 * np.pi * freq * t) + .28 * np.sin(2 * np.pi * freq * 2.01 * t)
+        s += .12 * np.sin(2 * np.pi * freq * 3.91 * t)
+        s *= np.exp(-2.2 * t / max(.2, seconds))
+    elif kind == "pluck":
+        s = np.sin(2 * np.pi * freq * t) + .4 * np.sin(2 * np.pi * 2 * freq * t)
+        s += .16 * np.sin(2 * np.pi * 3 * freq * t)
+        s *= np.exp(-3.4 * t / max(.2, seconds))
+    elif kind == "pad":
+        s = .55 * np.sin(2 * np.pi * freq * t) + .25 * np.sin(2 * np.pi * freq * 1.003 * t)
+        s += .08 * np.sin(2 * np.pi * freq * 2 * t)
     else:
         s = np.sin(2 * np.pi * freq * t) * (1 + .12 * np.sin(2 * np.pi * .17 * t))
     if decay: s *= np.exp(-decay * t)
@@ -72,7 +83,7 @@ def bird(seconds, base):
 
 
 def forest():
-    sec = 112; out = mix(sec); n = len(out); t = np.arange(n) / RATE
+    sec = 192; out = mix(sec); n = len(out); t = np.arange(n) / RATE
     breeze = noise(sec, 40); breeze /= max(.01, np.max(np.abs(breeze)))
     sway = .35 + .1 * np.sin(2 * np.pi * t / 17) + .05 * np.sin(2 * np.pi * t / 9)
     add(out, 0, breeze * sway, .5, -.2)
@@ -89,11 +100,12 @@ def forest():
                 bird(float(rng.uniform(.18, .63)), float(rng.uniform(950, 2300))),
                 float(rng.uniform(.035, .085)), float(rng.uniform(-.85, .85)))
         p += float(rng.uniform(3, 9))
+    score(out, 80, 64, [45, 52, 48, 50], FOREST_MOTIFS, "pluck", .038, "ambient")
     return out
 
 
 def rain():
-    sec = 108; out = mix(sec); n = len(out); t = np.arange(n) / RATE
+    sec = 640 / 3; out = mix(sec); n = len(out); t = np.arange(n) / RATE
     broad = noise(sec, 4); broad /= max(.01, np.max(np.abs(broad)))
     add(out, 0, broad * (.25 + .035 * np.sin(2 * np.pi * t / 19)), .7, -.25)
     patter = noise(sec); patter /= max(.01, np.max(np.abs(patter)))
@@ -105,6 +117,7 @@ def rain():
     for p in [17, 48, 79]:
         rumble = noise(4, 250); rumble /= max(.01, np.max(np.abs(rumble)))
         add(out, p, rumble * env(len(rumble), 1.5, 1.5), .1, -.35)
+    score(out, 72, 64, [48, 43, 45, 41], RAIN_MOTIFS, "piano", .038, "ambient")
     return out
 
 
@@ -112,69 +125,147 @@ def hz(midi):
     return 440 * 2 ** ((midi - 69) / 12)
 
 
+# Four authored phrases per station, 16 scale offsets each. Sections combine
+# them in a different order; the accompaniment changes density and voicing.
+FOREST_MOTIFS = [
+    [0, 4, 7, 9, 7, 4, 2, 0, 4, 7, 12, 9, 7, 4, 2, 4],
+    [7, 9, 12, 14, 12, 9, 7, 4, 2, 4, 7, 9, 7, 4, 2, 0],
+    [4, 7, 9, 12, 9, 7, 4, 2, 0, 2, 4, 7, 9, 7, 4, 2],
+    [12, 9, 7, 4, 7, 9, 4, 2, 0, 4, 7, 9, 12, 9, 7, 4],
+]
+RAIN_MOTIFS = [
+    [0, 3, 7, 10, 7, 3, 0, -2, 0, 5, 7, 10, 7, 5, 3, 0],
+    [5, 7, 10, 12, 10, 7, 5, 3, 0, 3, 5, 7, 5, 3, 0, -2],
+    [7, 10, 12, 15, 12, 10, 7, 5, 3, 5, 7, 10, 7, 5, 3, 0],
+    [3, 0, -2, 0, 3, 5, 7, 10, 12, 10, 7, 5, 3, 0, -2, 0],
+]
+JAZZ_MOTIFS = [
+    [0, 4, 7, 11, 9, 7, 4, 2, 0, 2, 4, 7, 9, 7, 4, 2],
+    [7, 9, 11, 14, 11, 9, 7, 4, 2, 4, 7, 9, 11, 9, 7, 4],
+    [4, 7, 9, 11, 14, 11, 9, 7, 4, 2, 0, 2, 4, 7, 9, 11],
+    [12, 11, 9, 7, 4, 7, 9, 11, 14, 11, 9, 7, 4, 2, 0, 4],
+]
+GRID_MOTIFS = [
+    [0, 7, 12, 15, 12, 7, 3, 7, 0, 3, 7, 10, 12, 10, 7, 3],
+    [12, 15, 19, 15, 12, 10, 7, 3, 0, 3, 7, 12, 15, 12, 10, 7],
+    [7, 10, 12, 15, 19, 15, 12, 10, 7, 3, 0, 3, 7, 10, 12, 15],
+    [15, 12, 10, 7, 12, 15, 19, 15, 12, 7, 3, 0, 3, 7, 10, 12],
+]
+EMBER_MOTIFS = [
+    [0, 4, 7, 12, 9, 7, 4, 0, 2, 4, 7, 9, 7, 4, 2, 0],
+    [7, 12, 14, 12, 9, 7, 4, 2, 4, 7, 9, 12, 9, 7, 4, 2],
+    [0, 2, 4, 7, 12, 9, 7, 4, 2, 4, 7, 9, 12, 14, 12, 9],
+    [12, 9, 7, 4, 2, 0, 2, 4, 7, 9, 12, 14, 12, 9, 7, 4],
+]
+LUNAR_MOTIFS = [
+    [0, 2, 7, 9, 7, 2, 0, -3, 0, 5, 7, 9, 12, 9, 7, 5],
+    [7, 9, 12, 14, 12, 9, 7, 5, 2, 5, 7, 9, 12, 9, 7, 2],
+    [0, 5, 7, 12, 14, 12, 9, 7, 5, 7, 9, 12, 14, 17, 14, 12],
+    [14, 12, 9, 7, 5, 2, 0, 2, 5, 7, 9, 12, 9, 7, 5, 2],
+]
+
+
+def score(out, bpm, bars, roots, motifs, instrument, level, style):
+    beat = 60 / bpm
+    sections = [0, 1, 2, 0, 3, 2, 1, 3, 0]
+    for bar in range(bars):
+        start = bar * 4 * beat
+        section = min(8, bar // 8)
+        root = roots[(bar // 4 + (1 if section in (3, 5) else 0)) % len(roots)]
+        phrase = motifs[sections[section]]
+        lift = 12 if section in (4, 6) and bar % 4 == 3 else 0
+        density = .35 if section == 0 else .65 if section in (5, 8) else 1
+        chord = [root, root + 7, root + 12, root + (16 if style != "electronic" else 15)]
+        for i, note in enumerate(chord):
+            at = start + (.08 if i % 2 else 0)
+            add(out, at, tone(hz(note), 3.7 * beat, "pad" if style != "jazz" else "piano"),
+                level * (.48 if style == "ambient" else .8) * density, -.35 + i * .23)
+        if bar % 2 == 0 or style != "ambient":
+            for b in range(4):
+                note = root - 12 + [0, 7, 12, 7][b]
+                if style == "ambient" and b % 2: continue
+                add(out, start + b * beat, tone(hz(note), .88 * beat, "bass"),
+                    level * (1.1 if style == "jazz" else .68) * density, -.25)
+        for m in range(2):
+            if section in (0, 8) and (bar + m) % 3: continue
+            ix = (bar % 8) * 2 + m
+            note = root + 12 + phrase[ix] + lift
+            at = start + (0.5 if m == 0 else 2.25 + (bar % 2) * .15) * beat
+            add(out, at, tone(hz(note), (1.4 if m == 0 else .9) * beat, instrument),
+                level * (1.1 if section in (4, 6) else .9) * density, .25 if m == 0 else -.2)
+        if style in ("jazz", "electronic", "acoustic"):
+            for b in range(4):
+                if style == "electronic":
+                    dur=.25; tt=np.arange(round(dur*RATE))/RATE
+                    f=95*np.exp(-13*tt)+48
+                    kick=np.sin(2*np.pi*np.cumsum(f)/RATE)*np.exp(-17*tt)
+                    add(out,start+b*beat,kick,.12*density)
+                elif b in (1,3):
+                    brush=noise(.16,8)*env(round(.16*RATE),.002,.13)
+                    add(out,start+b*beat,brush,.018*density,.3)
+                if style != "acoustic":
+                    hat=noise(.07,3)*env(round(.07*RATE),.001,.05)
+                    add(out,start+(b+.5)*beat,hat,.008*density,.55)
+
+
 def jazz():
-    bpm = 90; beat = 60 / bpm; sec = 160 * beat; out = mix(sec)
-    # Original small-combo progression. Gentle electric-piano voicings,
-    # walking bass and brush taps; no sampled jazz recording or melody.
-    chords = [(50, [57, 60, 64, 69]), (55, [59, 62, 65, 69]),
-              (48, [55, 59, 64, 69]), (53, [57, 60, 64, 69]),
-              (50, [57, 60, 64, 69]), (55, [59, 62, 65, 69]),
-              (48, [55, 59, 64, 67]), (48, [55, 59, 64, 69])]
-    melody = [69, 72, 76, 74, 69, 67, 65, 64, 67, 69, 72, 69, 65, 64, 62, 60]
-    for bar in range(40):
-        root, notes = chords[bar % len(chords)]; start = bar * 4 * beat
-        if 16 <= bar < 24:
-            root, notes = chords[(bar + 3) % len(chords)]
-        for ix in ([0, 2.5] if bar % 4 else [0, 1.75, 3.25]):
-            for note in notes:
-                add(out, start + ix * beat, tone(hz(note), 1.75 * beat, "piano"), .028, (-.45 if ix == 0 else .3))
-        if bar % 8 not in (0, 7):
-            for m in range(2 if bar % 3 else 3):
-                note = melody[(bar * 3 + m) % len(melody)]
-                at = start + (1.45 + m * .82) * beat
-                add(out, at, tone(hz(note), .75 * beat, "piano"), .022, .4)
-        for b in range(4):
-            bass_note = root - 12 + ([0, 7, 10, 7] if bar % 4 else [0, 4, 7, 11])[b]
-            add(out, start + b * beat, tone(hz(bass_note), .88 * beat, "bass"), .1, -.25)
-            hiss = noise(.12, 3) * env(round(.12 * RATE), .002, .09)
-            add(out, start + b * beat, hiss, .014, .55)
-            if b in (1, 3):
-                brush = noise(.18, 8) * env(round(.18 * RATE), .002, .14)
-                add(out, start + b * beat, brush, .038, .3)
-            add(out, start + (b + .5) * beat, noise(.06, 3) * env(round(.06 * RATE), .002, .04), .011, .55)
+    bpm = 88; bars = 72; out = mix(bars * 4 * 60 / bpm)
+    score(out, bpm, bars, [50, 55, 48, 53, 45, 50, 43, 48], JAZZ_MOTIFS, "piano", .058, "jazz")
+    # Eight-bar solo passages answer the main melody with syncopated phrases.
+    beat = 60 / bpm
+    for bar in range(16, 64):
+        if bar // 8 not in (2, 4, 7): continue
+        root = [50, 55, 48, 53, 45, 50, 43, 48][(bar // 4) % 8]
+        line = JAZZ_MOTIFS[(bar // 8) % 4]
+        for i, offset in enumerate([.35, 1.2, 2.65, 3.4]):
+            note = root + 24 + line[(bar * 3 + i) % 16]
+            add(out, (bar * 4 + offset) * beat, tone(hz(note), .55 * beat, "piano"), .018, .55)
     return out
 
 
 def grid():
-    bpm = 100; beat = 60 / bpm; sec = 160 * beat; out = mix(sec)
-    # Original restrained electronic pulse: low drones, gated notes and a
-    # steady beat. It evokes a digital atmosphere without copying a score.
-    roots = [45, 41, 48, 43]
-    for bar in range(40):
-        start = bar * 4 * beat; root = roots[(bar // 4) % 4]
-        for note in [root, root + 7, root + 12]:
-            add(out, start, tone(hz(note), 4 * beat, "synth"), .046, -.15 if note == root else .25)
-        pattern = ([0, 7, 12, 7, 3, 7, 10, 7] if bar % 8 < 4 else [0, 3, 7, 12, 10, 7, 3, 7])
-        for step in range(8):
-            note = root + pattern[step]
-            add(out, start + step * beat / 2, tone(hz(note + 12), beat * .36, "synth", 6),
-                .024 + .012 * (bar % 4 == 3), (-.35 if step % 2 else .35))
-        if bar % 8 >= 4:
-            add(out, start + 1.5 * beat, tone(hz(root + 24), 2 * beat, "soft"), .016, .6)
-        for b in range(4):
-            dur = .3; t = np.arange(round(dur * RATE)) / RATE
-            f = 90 * np.exp(-12 * t) + 48
-            kick = np.sin(2 * np.pi * np.cumsum(f) / RATE) * np.exp(-18 * t)
-            add(out, start + b * beat, kick, .19, 0)
-            hat = noise(.08) * env(round(.08 * RATE), .001, .065)
-            add(out, start + (b + .5) * beat, hat, .018, .5)
+    bpm = 100; bars = 72; out = mix(bars * 4 * 60 / bpm)
+    score(out, bpm, bars, [45, 41, 48, 43], GRID_MOTIFS, "synth", .058, "electronic")
+    beat = 60 / bpm
+    for bar in range(bars):
+        root = [45, 41, 48, 43][(bar // 4) % 4]
+        if bar // 8 in (0, 5, 8): continue
+        for step, iv in enumerate(([0, 7, 12, 7, 3, 7, 10, 7] if bar % 2 else [0, 3, 7, 12, 10, 7, 3, 7])):
+            add(out, (bar * 4 + step * .5) * beat, tone(hz(root + 24 + iv), .32 * beat, "synth", 6), .023, -.35 if step % 2 else .35)
+    return out
+
+
+def ember():
+    bpm = 84; bars = 64; out = mix(bars * 4 * 60 / bpm)
+    score(out, bpm, bars, [50, 57, 53, 55], EMBER_MOTIFS, "pluck", .055, "acoustic")
+    # A soft counterline enters late, then recedes for the outro.
+    beat = 60 / bpm
+    for bar in range(24, 56):
+        root = [50, 57, 53, 55][(bar // 4) % 4]
+        for step, note in enumerate([0, 7, 4, 9]):
+            add(out, (bar * 4 + step) * beat, tone(hz(root + 24 + note), .75 * beat, "bell"), .014, .55)
+    return out
+
+
+def lunar():
+    bpm = 72; bars = 64; out = mix(bars * 4 * 60 / bpm)
+    score(out, bpm, bars, [41, 48, 45, 43], LUNAR_MOTIFS, "bell", .055, "ambient")
+    beat = 60 / bpm
+    for bar in range(8, 56):
+        root = [41, 48, 45, 43][(bar // 4) % 4]
+        if bar % 2: continue
+        add(out, bar * 4 * beat, tone(hz(root + 19), 7.5 * beat, "pad"), .027, -.55)
     return out
 
 
 def write(name, data):
-    # Blend the end into the beginning so a repeated file has no edge click.
+    # Join the tail to the head across a short overlap. The file's last sample
+    # then continues into its first sample, instead of jumping at the loop.
     fade = round(.7 * RATE)
-    data[:fade] = data[:fade] * np.linspace(0, 1, fade)[:, None] + data[-fade:] * np.linspace(1, 0, fade)[:, None]
+    head, tail = data[:fade].copy(), data[-fade:].copy()
+    data = data[:-fade].copy()
+    blend = np.linspace(0, 1, fade, dtype=np.float32)[:, None]
+    data[:fade] = tail * (1 - blend) + head * blend
     peak = max(.001, float(np.max(np.abs(data))))
     data = np.clip(data * (.72 / peak), -.9, .9)
     pcm = (data * 32767).astype('<i2').tobytes()
@@ -184,5 +275,5 @@ def write(name, data):
     print(name, path.stat().st_size, 'bytes')
 
 
-for name, render in [('forest', forest), ('rain', rain), ('jazz', jazz), ('grid', grid)]:
+for name, render in [('forest', forest), ('rain', rain), ('jazz', jazz), ('grid', grid), ('ember', ember), ('lunar', lunar)]:
     write(name, render())

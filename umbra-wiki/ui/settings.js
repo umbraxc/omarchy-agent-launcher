@@ -354,7 +354,7 @@
         <label class="set-row"><span class="set-text"><b>Notification sounds</b><small>Pop-ups, first-look notes, achievements and finished downloads. All the way left turns them off</small></span>
           <span class="set-audio-range"><input type="range" class="set-notify-volume" min="0" max="1" step="0.05"><output></output></span></label>
         ${toggle("hoverSounds", "Hover sounds", "Soft blips when the mouse moves over buttons")}
-        <label class="set-row"><span class="set-text"><b>Offline radio</b><small>Bundled loops play while you move between screens</small></span>
+        <label class="set-row"><span class="set-text"><b>Offline radio</b><small>Six bundled pieces play while you move between screens</small></span>
           <select class="set-radio-tracks" aria-label="Offline radio track"><option value="">Stopped</option></select></label>
         <label class="set-row"><span class="set-text"><b>Radio volume</b><small>Separate from interface effects</small></span>
           <span class="set-audio-range"><input type="range" class="set-radio-volume" min="0" max="1" step="0.05"><output></output></span></label>

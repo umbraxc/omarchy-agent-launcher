@@ -262,6 +262,62 @@ window.UmbraOrbs = (() => {
         return hash(u * 27, v * 27, 9) > 0.985 ? ["·", c.p.fg, 0.5] : null;
       },
     },
+    terrarium: {
+      under: (c) => { c.glow(c.cx, c.cy, c.R * 1.18, "#85bd72", .22); c.glow(c.cx-c.R*.35,c.cy-c.R*.4,c.R*.45,"#f7d494",.16); },
+      cell(u,v,r,t,c) {
+        if(r>1.03)return null;
+        const light=clamp(.8-.52*u-.28*v+Math.sqrt(Math.max(0,1-r*r))*.3);
+        if(r>.96)return ["o",c.p.fgBright,.22+.55*light];
+        const earth=v>.33;
+        if(earth)return [ramp(.2+fbm(u*8,v*8,1)*.55),v>.68?"#80664a":"#a48959",.35+.58*light];
+        const stem=Math.abs(u-.06*Math.sin(t*.7+v*4))<.047&&v>-.58;
+        const leaf=Math.hypot((u-.28)*1.5,v+.33)<.26||Math.hypot((u+.25)*1.5,v+.16)<.22;
+        if(leaf)return [ramp(.4+light*.55),u<0?"#6c9d69":"#9bc77d",.48+.5*light];
+        if(stem)return ["|","#a2ca7d",.8];
+        return hash(u*37,v*37,3)>.985?["·",c.p.fgBright,.25]:null;
+      },
+    },
+    beacon: {
+      under: (c) => c.glow(c.cx,c.cy,c.R*1.25,c.p.net,.18),
+      cell(u,v,r,t,c) {
+        if(r>1.08)return null;
+        const angle=Math.atan2(v,u),sweep=((angle-t*.9)%TAU+TAU)%TAU;
+        const beam=sweep<.4?1-sweep/.4:0;
+        if(r>.97)return [ramp(.25+beam*.65),beam>.15?c.p.fgBright:c.p.net,.3+beam*.65];
+        const cylinder=Math.abs(u)<.15&&v>-.42&&v<.55;
+        const lens=Math.hypot(u,v+.45)<.25;
+        if(lens)return [ramp(.4+beam*.6),beam>.2?c.p.fgBright:c.p.signal,.45+.5*beam];
+        if(cylinder)return ["#",u<0?c.p.shade2:c.p.signal,.55+.35*(1-u)];
+        if(Math.abs(v-.58)<.045&&Math.abs(u)<.43)return ["=",c.p.fgBright,.8];
+        return beam>.12&&r>.26?[beam>.55?"*":"·",c.p.net,.18+beam*.65]:null;
+      },
+    },
+    wayfinder: {
+      under: (c) => c.glow(c.cx,c.cy,c.R*1.2,c.p.signal,.15),
+      cell(u,v,r,t,c) {
+        if(r>1.04)return null;
+        const s=sphere(u,v,t*.18),light=clamp(.77-.48*u-.25*v+.25*s.w);
+        const route=Math.abs(Math.sin(s.lon*.07+s.lat*.04+t*.12))<.075&&Math.abs(s.lat)<64;
+        const target=Math.hypot(u-.28*Math.cos(t*.25),v+.12)<.09;
+        if(target)return ["◆",c.p.fgBright,1];
+        if(route)return ["✦",c.p.accent,.55+.45*light];
+        const land=isLand(s.lat,s.lon);
+        return [land?(light>.5?"#":"+"):"·",land?c.p.signal:c.p.net,.24+.6*light];
+      },
+    },
+    constellation: {
+      under: (c) => {c.glow(c.cx,c.cy,c.R*1.22,c.p.net,.17);c.glow(c.cx,c.cy,c.R*.35,c.p.fgBright,.12);},
+      cell(u,v,r,t,c) {
+        if(r>1.1)return null;
+        const a=Math.atan2(v,u)-t*.14,rr=Math.hypot(u,v),twist=a+rr*3;
+        const star=hash(Math.round(Math.cos(twist)*rr*27),Math.round(Math.sin(twist)*rr*27),7);
+        const ring=Math.abs(Math.sin(twist*5+rr*14))<.1&&rr>.24&&rr<.95;
+        if(star>.965)return [star>.993?"✦":"*",star>.993?c.p.fgBright:c.p.signal,.65+.35*star];
+        if(ring)return ["·",c.p.net,.18+.4*(1-rr)];
+        if(rr<.2)return [ramp(.4+fbm(u*12,v*12,t*.1)*.6),c.p.fgBright,.45+.5*(1-rr/.2)];
+        return null;
+      },
+    },
   };
 
   // ---------------------------------------------------------- the canvas

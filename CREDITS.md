@@ -14,7 +14,7 @@ under which terms.
 | Sounds: interface, sci-fi and UI audio packs (`umbra-wiki/sounds/`) | [Kenney](https://kenney.nl) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) (public domain); see `sounds/LICENSE-kenney.txt` |
 | `boot.ogg`, `shutdown.ogg` | umbraxc, mixed from the Kenney sounds above | CC0 1.0 |
 | `beep.ogg`, `glitch.ogg`, `achieve.ogg`, `complete.ogg` | umbraxc, synthesized | CC0 1.0 |
-| Offline radio loops (`umbra-wiki/sounds/radio/`) | umbraxc, synthesized for Umbra from original code in `scripts/generate-radio.py`; no external recordings or samples | MIT |
+| Offline radio pieces (`umbra-wiki/sounds/radio/`) | umbraxc, synthesized for Umbra from original code and melodies in `scripts/generate-radio.py`; no external recordings or samples | MIT |
 
 ## Map symbols
 

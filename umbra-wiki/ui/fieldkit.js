@@ -317,7 +317,7 @@
 
   // Tap along with the pulse or the breaths; the rate comes from the gaps.
   function setupPulse(body) {
-    let mode = "pulse", taps = [];
+    let mode = "pulse", taps = [], fastSince = 0, fastLast = 0, speedAwarded = false;
     const RANGES = {
       pulse: [["Adult", "60–100"], ["Child 1–10", "70–120"], ["Infant", "100–160"], ["Very fit adult at rest", "40–60"]],
       breath: [["Adult", "12–20"], ["Child 1–10", "20–30"], ["Infant", "30–60"]],
@@ -327,15 +327,20 @@
       body.querySelector(".fk-tap").textContent = mode === "pulse" ? "TAP WITH EACH BEAT" : "TAP WITH EACH BREATH IN";
       body.querySelector(".fk-ranges").innerHTML = RANGES[mode].map(([w, r]) => `<tr><td>${w}</td><td>${r}</td></tr>`).join("");
     };
-    body.querySelectorAll(".fk-pmode button").forEach((b) => b.addEventListener("click", () => { mode = b.dataset.p; taps = []; body.querySelector(".fk-rate b").textContent = "—"; show(); Sound.click(); }));
+    body.querySelectorAll(".fk-pmode button").forEach((b) => b.addEventListener("click", () => { mode = b.dataset.p; taps = []; fastSince = fastLast = 0; body.querySelector(".fk-rate b").textContent = "—"; show(); Sound.click(); }));
     body.querySelector(".fk-tap").addEventListener("pointerdown", () => {
       const now = performance.now();
       if (taps.length && now - taps[taps.length - 1] > (mode === "pulse" ? 3000 : 12000)) taps = [];
       taps.push(now);
       if (taps.length > 12) taps.shift();
       const gaps = taps.slice(1).map((t, i) => t - taps[i]).sort((a, b) => a - b);
-      if (gaps.length >= (mode === "pulse" ? 4 : 2)) body.querySelector(".fk-rate b").textContent = Math.round(60000 / gaps[Math.floor(gaps.length / 2)]);
-      else body.querySelector(".fk-rate b").textContent = "…";
+      const rate = gaps.length >= (mode === "pulse" ? 4 : 2) ? Math.round(60000 / gaps[Math.floor(gaps.length / 2)]) : 0;
+      body.querySelector(".fk-rate b").textContent = rate || "…";
+      if (mode === "pulse" && rate >= 480 && rate <= 520 && (!fastLast || now - fastLast <= 180)) {
+        if (!fastSince) fastSince = now;
+        fastLast = now;
+        if (!speedAwarded && now - fastSince >= 10000) { speedAwarded = true; if (window.track) track("pulse500"); }
+      } else { fastSince = fastLast = 0; }
       Sound.key();
     });
     show();

@@ -370,8 +370,9 @@ skips Umbra's extra AI work and keeps answers short, automatically when you
 unplug if you like.
 
 The speaker button opens sound controls beneath it: mute, effects and
-notification volume, hover sounds, and an offline radio. Its four original,
-longer evolving tracks include nature, rain, instrumental jazz and electronic ambience.
+notification volume, hover sounds, and an offline radio. Its six original,
+longer melodic tracks include nature, rain, instrumental jazz, electronic ambience,
+warm plucked strings and slow bells.
 The radio continues while you move among Umbra's screens; Stop ends it.
 
 ![Settings](docs/settings.png)
