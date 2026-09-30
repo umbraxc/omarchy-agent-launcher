@@ -3,8 +3,23 @@
 (() => {
   const tape = document.querySelector("#signal-tape");
   const track = tape.querySelector(".signal-tape-track");
-  const groups = tape.querySelectorAll(".signal-tape-group");
+  const first = tape.querySelector(".signal-tape-group");
   let status = {}, farm = {}, radio = {}, downloads = {}, lastMarkup = "";
+  function fitTrack() {
+    const width = first.getBoundingClientRect().width;
+    if (!width || !tape.clientWidth) return;
+    // One complete sequence must be followed by enough identical copies to
+    // cover the viewport throughout the loop, including after maximization.
+    const count = Math.max(2, Math.ceil(tape.clientWidth / width) + 1);
+    while (track.children.length < count) {
+      const copy = first.cloneNode(true);
+      copy.setAttribute("aria-hidden", "true");
+      track.appendChild(copy);
+    }
+    while (track.children.length > count) track.lastElementChild.remove();
+    track.style.setProperty("--tape-shift", `${-width}px`);
+    track.style.setProperty("--tape-duration", `${Math.max(20, width / 42)}s`);
+  }
   const safe = (v) => escapeHtml(String(v == null ? "" : v));
   const item = (art, tag, value, tone = "signal", extra = "") => `<span class="tape-item tape-${tone}"><span class="tape-art ${extra}" aria-hidden="true">${art}</span><small>${tag}</small><b>${safe(value)}</b></span>`;
   function farmArea() {
@@ -35,9 +50,9 @@
       + transfer;
     if (markup === lastMarkup) return;
     lastMarkup = markup;
-    groups.forEach((g) => { g.innerHTML = markup; });
+    [...track.children].forEach((g) => { g.innerHTML = markup; });
     tape.setAttribute("aria-label", `Umbra local status: ${status.model || "AI checking"}, ${status.archives ?? 0} archives, ${items.length} farm plan items`);
-    requestAnimationFrame(() => { track.style.setProperty("--tape-duration", `${Math.max(20, groups[0].scrollWidth / 42)}s`); });
+    requestAnimationFrame(fitTrack);
   }
   async function refresh() {
     if (document.hidden) return;
@@ -47,6 +62,9 @@
   }
   setInterval(refresh, 20000);
   setInterval(draw, 1000);
+  new ResizeObserver(fitTrack).observe(tape);
+  new ResizeObserver(fitTrack).observe(first);
+  document.fonts?.ready.then(fitTrack);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
   refresh();
 })();

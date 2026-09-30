@@ -281,15 +281,15 @@ body.maps-open > #signal-tape.signal-tape, body.radar-open > #signal-tape.signal
 .signal-tape:hover .signal-tape-track { animation-play-state: paused; }
 .signal-tape-group { display: flex; flex: none; align-items: center; gap: 28px; height: 100%; padding-right: 28px; }
 .tape-item { display: inline-flex; align-items: center; gap: 5px; font: 700 9px var(--font); letter-spacing: .07em; white-space: nowrap; }
-.tape-item small { color: var(--dim); font-size: 8px; letter-spacing: .13em; }
-.tape-item b { color: var(--signal); font-weight: 700; }
+.tape-item small { color: var(--dim); font: inherit; }
+.tape-item b { color: var(--signal); font: inherit; }
 .tape-art { display: inline-block; width: 16px; color: var(--signal); font-size: 12px; text-align: center; }
 .tape-green b, .tape-green .tape-art { color: var(--net); }
 .tape-alert b, .tape-alert .tape-art { color: var(--red); }
 .tape-accent b, .tape-accent .tape-art { color: var(--accent); }
 .tape-muted b, .tape-muted .tape-art { color: var(--dim); }
 .tape-live { animation: tape-pulse 2.8s ease-in-out infinite; }
-@keyframes tape-travel { to { transform: translateX(-50%); } }
+@keyframes tape-travel { to { transform: translate3d(var(--tape-shift, -1000px), 0, 0); } }
 @keyframes tape-pulse { 50% { opacity: .55; transform: scale(.9); } }
 body.reduce-motion .signal-tape-track { animation: none; }
 body.reduce-motion .tape-live { animation: none; }
@@ -587,17 +587,22 @@ body.reduce-motion .command-stack .ask { transition: none; }
 
 /* The status line above the prompt: short, mechanical, typed in. */
 .promptbar {
-  display: flex; justify-content: space-between; gap: 16px; margin: 0 2px 6px; min-height: 14px;
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center;
+  gap: 8px; margin: 0 0 6px; min-height: 14px;
   font-size: 9.5px; letter-spacing: .28em; color: var(--faint); white-space: nowrap; overflow: hidden;
 }
 .promptbar .pb-left { color: var(--dim); }
 .promptbar .pb-left.hot { color: var(--signal); }
-.promptbar .pb-right { overflow: hidden; text-overflow: ellipsis; }
+.promptbar .pb-right { min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: right; }
 /* The Tab hint, in the colour of the suggested replies, gently pulsing. */
-.promptbar .pb-tab { margin-right: auto; margin-left: 18px; color: var(--hint); font-style: italic; font-weight: 600; opacity: .9; animation: pb-tab 3.2s ease-in-out infinite; white-space: nowrap; }
+.promptbar .pb-tab { min-width: 0; overflow: hidden; text-overflow: ellipsis; justify-self: start; color: var(--hint); font-style: italic; font-weight: 600; opacity: .9; animation: pb-tab 3.2s ease-in-out infinite; white-space: nowrap; }
 @keyframes pb-tab { 50% { opacity: .45; } }
 body.reduce-motion .promptbar .pb-tab { animation: none; }
 body.locked .promptbar { visibility: hidden; }
+@media (max-width: 700px) {
+  .promptbar { grid-template-columns: minmax(0, 1fr) auto; row-gap: 2px; font-size: 9px; letter-spacing: .13em; }
+  .promptbar .pb-tab { grid-column: 1 / -1; grid-row: 2; }
+}
 
 /* The native caret tracks wrapping, selection, IME input and scrolling. */
 #q { caret-color: var(--signal); }
@@ -1414,6 +1419,9 @@ body.touring .intro { display: none; }
 .tour-card:hover { border-color: var(--muted); }
 /* The tour's opening: an ASCII emblem, then three ways in. */
 .tour-emblem { margin: 0 0 16px; color: var(--signal); font: 12px/1.35 var(--font); white-space: pre; overflow-x: auto; }
+.tour-scene { width: 100%; margin: 14px 0 4px; border: 1px solid var(--line); border-left: 2px solid var(--signal); background: var(--bg-1); overflow: hidden; }
+.tour-scene span { display: block; padding: 6px 10px; border-bottom: 1px solid var(--line); color: var(--dim); font: 9px var(--font); letter-spacing: .16em; }
+.tour-scene canvas { display: block; width: 100%; height: clamp(140px, 24vw, 205px); }
 .tour-modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 16px; }
 .tour-mode { display: flex; flex-direction: column; gap: 6px; text-align: left; padding: 14px 16px; cursor: pointer;
   background: var(--bg-1); border: 1px solid var(--line); color: var(--fg); font-family: var(--font); transition: border-color .15s, background .15s; }

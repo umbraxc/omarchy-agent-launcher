@@ -184,8 +184,8 @@ const Sound = (() => {
   return api;
 })();
 
-// In a maximized/full-screen main window, identify the compact navigation
-// icons without covering a tool panel. The label stays inside Umbra's frame.
+// Identify the compact navigation icons on the main screen without covering
+// a tool panel. These callouts replace duplicate cursor-adjacent tips.
 (() => {
   const labels = {
     "loadout-btn": ["PROFILE & LOADOUT", "Identity, scenario and personality"],
@@ -205,10 +205,6 @@ const Sound = (() => {
   card.hidden = true;
   card.innerHTML = "<b></b><small></small>";
   document.body.appendChild(card);
-  const wide = () => !!document.fullscreenElement ||
-    (screen.width > 0 && screen.height > 0 &&
-     innerWidth >= Math.min(screen.availWidth || screen.width, screen.width) - 40 &&
-     innerHeight >= Math.min(screen.availHeight || screen.height, screen.height) - 80);
   const mainVisible = () => !document.body.classList.contains("touring") && !document.body.classList.contains("locked") &&
     !["#maps", "#fieldkit", "#farming", "#radar", "#loadout", "#history", "#library", "#themes", "#settings", "#core"].some((s) => {
       const el = $(s); return el && !el.hidden;
@@ -219,7 +215,7 @@ const Sound = (() => {
     if (!button) return;
     button.title = `${title}|${hint}`;
     const show = () => {
-      if (!wide() || !mainVisible() || button.hidden || button.classList.contains("gone")) return;
+      if (!mainVisible() || button.hidden || button.classList.contains("gone")) return;
       card.querySelector("b").textContent = title;
       card.querySelector("small").textContent = hint;
       card.hidden = false;
@@ -230,7 +226,7 @@ const Sound = (() => {
     button.addEventListener("blur", hide);
   });
   document.addEventListener("click", hide, true);
-  window.addEventListener("resize", () => { if (!wide()) hide(); });
+  window.addEventListener("resize", hide);
 })();
 
 // Header controls have the same soft hover response as the tools. After a
@@ -1782,7 +1778,7 @@ document.addEventListener("mouseover", (e) => {
   const el = e.target.closest("[data-tip]");
   if (el === tipFor) return;
   hideTip();
-  if (!el || locked) return;
+  if (!el || locked || el.matches(".controls .ctl")) return;
   tipFor = el;
   tipTimer = setTimeout(() => {
     if (!el.isConnected || !el.dataset.tip) return;
@@ -2713,10 +2709,10 @@ function promptBarState() {
   if (voice.state === "transcribing") return ["◌ TRANSCRIBING", "", true];
   if (controller) return ["▸ UMBRA IS WORKING", "ESC ABORT", true];
   const n = input.value.length;
-  if (n) return [`▸ COMPOSING · ${n} ${n === 1 ? "CHAR" : "CHARS"}`, "⏎ TRANSMIT · ⇧⏎ NEW LINE · CTRL+Z UNDO", false];
+  if (n) return [`▸ COMPOSING · ${n} ${n === 1 ? "CHAR" : "CHARS"}`, "⏎ SEND · ⇧⏎ NEW LINE", false];
   const f9 = voice.unsupported ? "" : " · F9 VOICE";
-  if (suggestion) return ["▸ SUGGESTIONS READY", "⏎ TRANSMIT" + f9, true];
-  return [`▸ AWAITING INPUT${online ? " · LINK ONLINE" : ""}${window.offgrid ? " · OFF-GRID" : ""}`, "⏎ TRANSMIT" + f9 + " · F1 KEYS", false];
+  if (suggestion) return ["▸ SUGGESTIONS READY", "⏎ SEND" + f9, true];
+  return [`▸ AWAITING INPUT${online ? " · ONLINE" : ""}${window.offgrid ? " · OFF-GRID" : ""}`, "⏎ SEND" + f9, false];
 }
 function updatePromptBar() {
   // The Tab hint, in the reply colour, beside the status while the prompt is empty.

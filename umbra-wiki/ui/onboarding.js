@@ -481,6 +481,19 @@
       ["skip", "SKIP", "Straight in", "Set your continent later in Profile, and the AI in Core (click STATUS). Each screen explains itself the first time."],
     ];
     return new Promise((resolve, reject) => {
+      const scene = document.createElement("div");
+      scene.className = "tour-scene";
+      scene.setAttribute("role", "img");
+      scene.setAttribute("aria-label", "Animated ASCII landscape of a homestead in a mountain valley");
+      scene.innerHTML = '<span>UMBRA // YOUR JOURNEY BEGINS</span><canvas aria-hidden="true"></canvas>';
+      answer.appendChild(scene);
+      const canvas = scene.querySelector("canvas");
+      const drawScene = () => window.UmbraLandscape?.draw(canvas, "valley", performance.now());
+      requestAnimationFrame(drawScene);
+      const sceneTimer = setInterval(() => {
+        if (!scene.isConnected) { clearInterval(sceneTimer); return; }
+        if (!document.hidden && !document.body.classList.contains("reduce-motion")) drawScene();
+      }, 180);
       const grid = document.createElement("div");
       grid.className = "tour-modes";
       MODES.forEach(([id, title, time, line, star]) => {
@@ -491,11 +504,11 @@
         b.querySelector("em").textContent = time;
         b.querySelector("small").textContent = line;
         b.addEventListener("mouseenter", Sound.hover);
-        b.addEventListener("click", () => { grid.remove(); Sound.click(); resolve(id); });
+        b.addEventListener("click", () => { scene.remove(); grid.remove(); Sound.click(); resolve(id); });
         grid.appendChild(b);
       });
       answer.appendChild(grid);
-      skipHooks.push(() => reject(SKIP));
+      skipHooks.push(() => { scene.remove(); clearInterval(sceneTimer); reject(SKIP); });
       wake();
       // ?autotour=full plays the full briefing; plain ?autotour the quick start.
       const want = new URLSearchParams(location.search).get("autotour");
