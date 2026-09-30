@@ -188,7 +188,7 @@
   // Tab belongs to Quick Actions throughout the main conversation, including
   // after scrolling or clicking a header control. Panels keep normal Tab focus.
   document.addEventListener("keydown", (e) => {
-    if (e.key !== "Tab" || e.ctrlKey || e.altKey || e.metaKey || locked || !$("#modal").hidden || document.body.classList.contains("touring")) return;
+    if (e.key !== "Tab" || e.ctrlKey || e.altKey || e.metaKey || locked || !$("#modal").hidden || document.body.classList.contains("touring") || document.querySelector(".nav-overflow-menu:not([hidden])")) return;
     const panels = ["reader", "library", "history", "settings", "loadout", "themes", "maps", "fieldkit", "radar", "core", "farming"];
     if (panels.some((id) => { const p = document.getElementById(id); return p && !p.hidden; })) return;
     if (!isOpen() && e.shiftKey) return;

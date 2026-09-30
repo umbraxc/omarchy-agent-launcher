@@ -37,12 +37,15 @@ Panel {
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
 
   property var agents: []
+  property var onlineChoices: [{id: "all", name: "All installed", installed: true}]
+  property string selectedOnline: "all"
   // Umbra Wiki at a glance (agents.sh umbra-info): model, archives, sound,
   // off-grid, downloads and the latest conversations.
   property var info: ({})
   // The header's little globe and its typed title, animated only while open.
   property real orbPhase: 0
   property string orbText: ""
+  property string sceneText: ""
   property string headerTitle: ""
   readonly property string headerTarget: "UMBRA // " + (umbraRunning || info.backend ? "ONLINE" : "STANDBY")
   readonly property bool umbraRunning: agents.some(function(a) { return a.id === "umbra-wiki" && a.running > 0 })
@@ -53,8 +56,10 @@ Panel {
   readonly property bool umbraInstalled: agents.some(function(a) { return a.id === "umbra-wiki" })
   readonly property var localAgents: agents.filter(function(a) { return a.section === "local" })
   readonly property var onlineAgents: agents.filter(function(a) { return a.section !== "local" })
+  readonly property var shownOnlineAgents: onlineAgents.filter(function(a) { return selectedOnline === "all" || a.id === selectedOnline })
+  readonly property var chosenOnline: onlineChoices.find(function(a) { return a.id === selectedOnline })
   // Keyboard order follows the screen: local rows first.
-  readonly property var ordered: localAgents.concat(onlineAgents)
+  readonly property var ordered: localAgents.concat(shownOnlineAgents)
   property int cursorIndex: -1
   readonly property int totalRunning: {
     var n = 0
@@ -88,6 +93,16 @@ Panel {
       if (y < h - 1) out += "\n"
     }
     return out
+  }
+
+  function sceneFrame(t) {
+    var light = Math.sin(t * 2) > 0 ? "✦" : "·"
+    var smoke = Math.sin(t * 3) > 0 ? "~" : "°"
+    return "       " + light + "       .  .       \n"
+      + "  /\\       /\\   " + smoke + "          \n"
+      + " /##\\  /\\ /##\\  /\\   /\\    \n"
+      + " |[]| /__\\|[]| /__\\  ||    \n"
+      + "_'__'__|__|_'__'__|__|__||_"
   }
 
   function setUmbra(key, value) {
@@ -139,7 +154,7 @@ Panel {
   }
 
   onOpenedChanged: {
-    if (opened) { cursorIndex = -1; refresh(); headerTitle = ""; typeTimer.restart() }
+    if (opened) { cursorIndex = -1; refresh(); if (!choicesProc.running) choicesProc.running = true; headerTitle = ""; typeTimer.restart() }
   }
 
   Process {
@@ -168,13 +183,25 @@ Panel {
     }
   }
 
+  Process {
+    id: choicesProc
+    command: [root.script, "choices"]
+    stdout: StdioCollector {
+      onStreamFinished: {
+        var list = []
+        String(text || "").split("\n").forEach(function(line) { try { if (line.trim()) list.push(JSON.parse(line)) } catch (e) {} })
+        if (list.length) root.onlineChoices = list
+      }
+    }
+  }
+
   // The globe turns and the title types in only while the panel is open.
   Timer {
     interval: 90
     running: root.opened && root.umbraInstalled
     repeat: true
     triggeredOnStart: true
-    onTriggered: { root.orbPhase += 0.07; root.orbText = root.orbFrame(root.orbPhase) }
+    onTriggered: { root.orbPhase += 0.07; root.orbText = root.orbFrame(root.orbPhase); root.sceneText = root.sceneFrame(root.orbPhase) }
   }
   Timer {
     id: typeTimer
@@ -405,6 +432,34 @@ Panel {
               }
             }
           }
+        }
+
+        Text {
+          visible: root.umbraInstalled
+          width: parent.width
+          text: root.sceneText
+          horizontalAlignment: Text.AlignHCenter
+          color: root.online
+          opacity: 0.65
+          font.family: root.fontFamily
+          font.pixelSize: Math.max(7, Math.round(Style.font.caption * 0.8))
+          lineHeight: 0.86
+        }
+
+        Text {
+          visible: root.umbraInstalled
+          width: parent.width
+          text: {
+            var i = root.info
+            var model = String(i.model || "AI pending").replace(":", " ").toUpperCase()
+            var radio = i.radioPlaying ? "RADIO " + String(i.radio).toUpperCase() : "RADIO OFF"
+            return "AI  " + model + (i.backend ? (i.modelReady ? "  READY" : "  LOADING") : "  STANDBY") + "\n" +
+                   "LIBRARY  " + (i.archives || 0) + "   FARM  " + (i.farmItems || 0) + "   " + radio
+          }
+          color: root.dim
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+          lineHeight: 1.2
         }
 
         PanelSectionHeader {
@@ -663,6 +718,47 @@ Panel {
           fontFamily: root.fontFamily
         }
 
+        ComboBox {
+          id: agentPicker
+          width: parent.width
+          model: root.onlineChoices
+          textRole: "name"
+          currentIndex: Math.max(0, root.onlineChoices.findIndex(function(a) { return a.id === root.selectedOnline }))
+          onActivated: root.selectedOnline = root.onlineChoices[currentIndex].id
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.bodySmall
+          contentItem: Text {
+            text: agentPicker.displayText + "  ▾"
+            color: root.foreground
+            font: agentPicker.font
+            verticalAlignment: Text.AlignVCenter
+            leftPadding: Style.space(10)
+            elide: Text.ElideRight
+          }
+          background: Rectangle {
+            color: agentPicker.hovered ? Qt.rgba(root.online.r, root.online.g, root.online.b, 0.12) : "transparent"
+            border.width: 1
+            border.color: root.online
+          }
+          delegate: ItemDelegate {
+            required property var modelData
+            width: agentPicker.width
+            text: modelData.name + (modelData.installed ? "" : " · not installed")
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.bodySmall
+          }
+        }
+
+        Text {
+          visible: root.chosenOnline && root.selectedOnline !== "all" && !root.chosenOnline.installed
+          width: parent.width
+          text: "To add " + (root.chosenOnline ? root.chosenOnline.name : "this agent") + ", run: omarchy default agent " + root.selectedOnline
+          color: root.dim
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+          wrapMode: Text.WordWrap
+        }
+
         Text {
           visible: root.onlineAgents.length === 0
           width: parent.width
@@ -674,7 +770,7 @@ Panel {
         }
 
         Repeater {
-          model: root.onlineAgents
+          model: root.shownOnlineAgents
 
           AgentRow {
             required property var modelData
@@ -846,6 +942,7 @@ Panel {
     }
 
     MouseArea {
+      id: agentMouse
       anchors.fill: parent
       hoverEnabled: true
       cursorShape: Qt.PointingHandCursor
@@ -896,8 +993,9 @@ Panel {
 
         Text {
           Layout.fillWidth: true
-          text: agentRow.agent ? agentRow.agent.name + (agentRow.agent.isDefault ? "  ·  default" : "") : ""
-          color: agentRow.isSetup ? root.online : root.foreground
+          text: agentRow.agent ? (agentRow.isRunning || !agentMouse.containsMouse ? agentRow.agent.name : "Launch " + agentRow.agent.name) + (agentRow.agent.isDefault ? "  ·  default" : "") : ""
+          color: agentRow.isSetup || agentMouse.containsMouse ? root.online : root.foreground
+          Behavior on color { ColorAnimation { duration: 180 } }
           font.family: root.fontFamily
           font.pixelSize: Style.font.body
           elide: Text.ElideRight
@@ -916,7 +1014,8 @@ Panel {
       Text {
         Layout.alignment: Qt.AlignVCenter
         text: agentRow.isSetup ? "󰁔" : "󰐕"
-        color: root.dim
+        color: agentMouse.containsMouse ? root.online : root.dim
+        Behavior on color { ColorAnimation { duration: 180 } }
         font.family: root.fontFamily
         font.pixelSize: Style.font.heading
       }

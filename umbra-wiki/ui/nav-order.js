@@ -11,10 +11,29 @@
     for (const id of arranged) { const el = document.getElementById(id); if (el) bar.insertBefore(el, pinned); }
   }
   let dragging = null, startX = 0, startY = 0, moved = false, suppress = false;
+  const note = document.createElement("div");
+  note.className = "nav-order-note";
+  note.textContent = "HOLD SHIFT + DRAG TO REARRANGE";
+  note.hidden = true;
+  document.body.appendChild(note);
+  let noteTimer = 0;
+  const hideNote = () => { clearTimeout(noteTimer); note.hidden = true; };
+  const showNote = () => {
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(() => {
+      const r = bar.getBoundingClientRect();
+      note.style.top = `${r.bottom + 8}px`;
+      note.style.right = `${Math.max(8, innerWidth - r.right)}px`;
+      note.hidden = false;
+    }, 650);
+  };
+  bar.addEventListener("mouseover", (e) => { if (movable(e.target.closest(".ctl"))) showNote(); });
+  bar.addEventListener("mouseout", (e) => { if (!bar.contains(e.relatedTarget)) hideNote(); });
   bar.addEventListener("pointerdown", (e) => {
     const el = e.target.closest(".ctl");
     if (!e.shiftKey || e.button !== 0 || !movable(el) || document.body.classList.contains("touring")) return;
     dragging = el; startX = e.clientX; startY = e.clientY; moved = false;
+    hideNote();
     e.preventDefault();
   });
   window.addEventListener("pointermove", (e) => {
@@ -43,9 +62,5 @@
   window.addEventListener("pointerup", end);
   window.addEventListener("pointercancel", end);
   bar.addEventListener("click", (e) => { if (suppress) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
-  for (const id of ids) {
-    const el = document.getElementById(id);
-    if (el) el.title += "|Hold Shift and drag to rearrange top tabs";
-  }
   window.UmbraNavOrder = { apply, order };
 })();

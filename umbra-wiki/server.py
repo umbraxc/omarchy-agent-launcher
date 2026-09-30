@@ -520,7 +520,7 @@ def farm_catalog():
 
 
 def get_farm():
-    return read_json(FARM_FILE, {"items": [], "people": 1, "targetKcal": 2000})
+    return read_json(FARM_FILE, {"items": [], "people": 1, "targetKcal": 2000, "comparisonMode": "household"})
 
 
 def save_farm(data):
@@ -549,8 +549,11 @@ def save_farm(data):
             if key in item:
                 entry[key] = number(item[key], 0, 0, high)
         clean.append(entry)
+    mode = data.get("comparisonMode", "manual")
+    if mode not in ("household", "manual"):
+        raise ValueError("unknown farm comparison mode")
     plan = {"items": clean, "people": number(data.get("people"), 1, 1, 100),
-            "targetKcal": number(data.get("targetKcal"), 2000, 500, 5000)}
+            "targetKcal": number(data.get("targetKcal"), 2000, 500, 5000), "comparisonMode": mode}
     with FARM_LOCK:
         write_json(FARM_FILE, plan)
     if clean:

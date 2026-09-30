@@ -865,47 +865,58 @@
     ["The recovery position is for someone who:", ["Is breathing but unresponsive", "Has no pulse", "Is choking", "Is awake and talking"], 0, "Breathing but unresponsive: on their side, head tilted to keep the airway open."],
   ];
   function drillTab(box) {
-    const day = new Date().toISOString().slice(0, 10);
+    const localDay = (stamp) => { const d = new Date(stamp); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+    const day = localDay(Date.now());
     const seed = [...day].reduce((a, c) => a * 31 + c.charCodeAt(0), 7);
     const order = QUIZ.map((_, i) => i).sort((a, b) => ((a * 9301 + seed) % 233) - ((b * 9301 + seed) % 233)).slice(0, 5);
-    const done = store.get("drill-day", "") === day;
-    let i = 0, score = 0;
+    const saved = store.get("drill-progress", {});
+    const done = store.get("drill-day", "") === day || (saved.day === day && saved.completed);
+    let i = saved.day === day ? Math.min(order.length, Math.max(0, Number(saved.index) || 0)) : 0;
+    let score = saved.day === day ? Math.min(order.length, Math.max(0, Number(saved.score) || 0)) : 0;
+    let selected = saved.day === day && Number.isInteger(saved.selected) ? saved.selected : null;
     const streak = store.get("drill-streak", 0);
     box.innerHTML = `<section class="fk-card fk-drill"><div class="fk-h"><span class="g">${I.school}</span> DAILY DRILL · ${day}</div>
-      <p class="lib-note">Five questions a day. ${done ? "You've done today's drill; you can still practise it." : ""} Streak: <b>${streak} ${streak === 1 ? "day" : "days"}</b></p>
+      <p class="lib-note">Five questions a day. ${done ? "Today's drill is complete. A new one opens tomorrow." : "Your place saves after each answer."} Streak: <b>${streak} ${streak === 1 ? "day" : "days"}</b></p>
       <div class="fk-q"></div></section>`;
     const show = () => {
       const qbox = box.querySelector(".fk-q");
-      if (i >= order.length) {
-        qbox.innerHTML = `<div class="fk-done"><b>${score} / ${order.length}</b><span>${score === 5 ? "Perfect. Sharp as a knife." : score >= 3 ? "Well done. Come back tomorrow for a new drill." : "Keep at it: each day builds the habit."}</span></div>`;
+      if (done || i >= order.length) {
+        qbox.innerHTML = `<div class="fk-done"><b>${done && saved.day !== day ? "DONE" : `${score} / ${order.length}`}</b><span>${done && saved.day !== day ? "Come back tomorrow for a new drill." : score === 5 ? "Perfect. Sharp as a knife." : score >= 3 ? "Well done. Come back tomorrow for a new drill." : "Keep at it: each day builds the habit."}</span></div>`;
         if (!done) {
-          const yesterday = new Date(Date.now() - dayMs).toISOString().slice(0, 10);
+          const yesterday = localDay(Date.now() - dayMs);
           store.set("drill-streak", store.get("drill-last", "") === yesterday ? streak + 1 : 1);
           store.set("drill-last", day); store.set("drill-day", day);
+          store.set("drill-progress", { day, index: order.length, score, completed: true });
           if (window.track) track("drills");
         }
-        Sound.found();
+        if (!done) Sound.found();
         return;
       }
       const [question, answers, right, why] = QUIZ[order[i]];
       qbox.innerHTML = `<div class="fk-qn">QUESTION ${i + 1} OF ${order.length}</div><h3></h3><div class="fk-answers">${answers.map((a, k) => `<button class="ghost" data-k="${k}"></button>`).join("")}</div><p class="fk-why lib-note" hidden></p>`;
       qbox.querySelector("h3").textContent = question;
+      const reveal = (choice) => {
+        qbox.querySelector(".fk-answers").classList.add("answered");
+        qbox.querySelector(`[data-k="${choice}"]`).classList.add(choice === right ? "right" : "wrong");
+        qbox.querySelector(`[data-k="${right}"]`).classList.add("right");
+        const w = qbox.querySelector(".fk-why"); w.hidden = false; w.textContent = why;
+        const next = document.createElement("button"); next.className = "solid fk-next"; next.textContent = i + 1 < order.length ? "NEXT ▸" : "FINISH ▸";
+        next.addEventListener("click", () => { i++; selected = null; store.set("drill-progress", { day, index: i, score }); show(); });
+        qbox.appendChild(next);
+      };
       qbox.querySelectorAll(".fk-answers button").forEach((b) => {
         b.textContent = answers[+b.dataset.k];
         b.addEventListener("click", () => {
           if (qbox.querySelector(".fk-answers").classList.contains("answered")) return;
-          qbox.querySelector(".fk-answers").classList.add("answered");
           const ok = +b.dataset.k === right;
           if (ok) score++;
-          b.classList.add(ok ? "right" : "wrong");
-          qbox.querySelector(`[data-k="${right}"]`).classList.add("right");
-          const w = qbox.querySelector(".fk-why"); w.hidden = false; w.textContent = why;
+          selected = +b.dataset.k;
+          store.set("drill-progress", { day, index: i, score, selected });
+          reveal(selected);
           ok ? Sound.found() : Sound.error();
-          const next = document.createElement("button"); next.className = "solid fk-next"; next.textContent = i + 1 < order.length ? "NEXT ▸" : "FINISH ▸";
-          next.addEventListener("click", () => { i++; show(); });
-          qbox.appendChild(next);
         });
       });
+      if (selected !== null && selected >= 0 && selected < answers.length) reveal(selected);
     };
     show();
   }

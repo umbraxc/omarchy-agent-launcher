@@ -15,6 +15,7 @@
 #   agents.sh setup-local   Guided install of Umbra Wiki (run by the widget).
 #   agents.sh umbra-info    Umbra Wiki at a glance, as JSON: model, archives,
 #                           sound, off-grid, downloads, recent conversations.
+#   agents.sh choices       Available online agent names and install state.
 #   agents.sh set <key> <v> Change muted (true/false) or offgrid (off/on/auto).
 #   agents.sh open-conversation <id>  Open Umbra Wiki on a saved conversation.
 
@@ -102,6 +103,16 @@ status() {
     running=$(count_sessions "$agent")
     [[ $agent == "$default" ]] && is_default=true || is_default=false
     entry "$agent" "$(agent_name "$agent")" online "$running" "$is_default" "" false
+  done
+}
+
+choices() {
+  local agent present
+  jq -nc '{id: "all", name: "All installed", installed: true}'
+  for agent in "${known_agents[@]}"; do
+    if installed "$agent"; then present=true; else present=false; fi
+    jq -nc --arg id "$agent" --arg name "$(agent_name "$agent")" --argjson installed "$present" \
+      '{id: $id, name: $name, installed: $installed}'
   done
 }
 
@@ -261,15 +272,18 @@ INTRO
 # backend when it answers.
 umbra_info() {
   local data_dir=${XDG_DATA_HOME:-$HOME/.local/share}/umbra-wiki
-  local settings='{}' config='{}' live='null' downloads='null' recent='[]' archives=0 library
+  local settings='{}' config='{}' live='null' downloads='null' radio='null' farm='{}' recent='[]' archives=0 library
   [[ -f $umbra_config/settings.json ]] && settings=$(cat "$umbra_config/settings.json")
   [[ -f $umbra_config/config.json ]] && config=$(cat "$umbra_config/config.json")
   live=$(curl -s -m 0.6 http://127.0.0.1:8766/api/status 2>/dev/null)
   if [[ -n $live ]]; then
     downloads=$(curl -s -m 0.6 http://127.0.0.1:8766/api/downloads 2>/dev/null)
+    radio=$(curl -s -m 0.6 http://127.0.0.1:8766/api/radio 2>/dev/null)
   fi
   [[ -n $live ]] || live=null
   [[ -n $downloads ]] || downloads=null
+  [[ -n $radio ]] || radio=null
+  [[ -f $data_dir/farm.json ]] && farm=$(cat "$data_dir/farm.json")
   library=$(jq -r '.libraryDir // empty' <<<"$config")
   library=${library:-$HOME/UmbraWiki/library}
   archives=$(find "${library/#\~/$HOME}" -maxdepth 1 -name '*.zim' 2>/dev/null | wc -l)
@@ -278,8 +292,10 @@ umbra_info() {
       "$data_dir"/history/c-*.json 2>/dev/null || echo '[]')
   fi
   jq -n -c --argjson s "$settings" --argjson c "$config" --argjson live "$live" --argjson dl "$downloads" \
-    --argjson recent "$recent" --argjson archives "$archives" '{
+    --argjson radio "$radio" --argjson farm "$farm" --argjson recent "$recent" --argjson archives "$archives" '{
       backend: ($live != null), model: ($live.model // $c.model // "gemma3:4b"),
+      modelReady: ($live.modelReady // false), farmItems: (($farm.items // []) | length),
+      radio: ($radio.track // ""), radioPlaying: ($radio.playing // false),
       archives: ($live.archives // $archives), muted: ($s.muted // false), offgrid: ($s.offgrid // "off"),
       library: ($dl.library // null), pull: ($dl.model // null), recent: $recent}'
 }
@@ -302,6 +318,7 @@ set_setting() {
 
 case "${1:-}" in
 status) status ;;
+choices) choices ;;
 umbra-info) umbra_info ;;
 set) set_setting "${2:-}" "${3:-}" ;;
 open-conversation)
@@ -317,7 +334,7 @@ ask) exec setsid uwsm-app -- umbra-wiki "${2:-}" ;;
 theme) set_theme "${2:-}" ;;
 setup-local) setup_local ;;
 *)
-  echo "Usage: agents.sh status | launch <id> | themes | theme <id> | loadout | open-loadout | fact | ask <text> | setup-local | umbra-info | set <key> <value> | open-conversation <id>" >&2
+  echo "Usage: agents.sh status | choices | launch <id> | themes | theme <id> | loadout | open-loadout | fact | ask <text> | setup-local | umbra-info | set <key> <value> | open-conversation <id>" >&2
   exit 1
   ;;
 esac

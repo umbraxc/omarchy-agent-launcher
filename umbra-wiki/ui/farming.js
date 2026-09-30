@@ -2,7 +2,7 @@
 // with Umbra; a plan is saved by the local backend and included in backups.
 "use strict";
 (() => {
-  let catalog = null, plan = null, chosen = "", kind = "all", query = "", saveTimer = 0, revision = 0;
+  let catalog = null, plan = null, household = null, householdClimate = "temperate", householdActivity = "moderate", chosen = "", kind = "all", query = "", saveTimer = 0, revision = 0;
   let saveChain = Promise.resolve();
   const $f = (s) => document.querySelector("#farming " + s);
   const n = (v, digits = 0) => Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: digits });
@@ -11,6 +11,23 @@
   const isCrop = (id) => cropMap.has(id);
   const numeric = (entry, key, fallback) => entry[key] === undefined ? fallback : entry[key];
   const safe = (v) => escapeHtml(String(v == null ? "" : v));
+  const householdRates = { adults: 2200, teens: 2400, children: 1700, toddlers: 1100, infants: 700, elderly: 1800 };
+  function comparison() {
+    const groups = Object.entries(household || {}).filter(([key, count]) => householdRates[key] && Number(count) > 0);
+    const persons = groups.reduce((sum, [, count]) => sum + Number(count), 0);
+    const base = groups.reduce((sum, [key, count]) => sum + Number(count) * householdRates[key], 0);
+    const kcal = base * ({ rest: .9, moderate: 1, heavy: 1.3 }[householdActivity] || 1) * (householdClimate === "cold" ? 1.15 : 1);
+    const linked = plan.comparisonMode === "household" && persons > 0;
+    return { persons: linked ? persons : plan.people || 1, kcal: linked ? kcal : (plan.people || 1) * (plan.targetKcal || 2000), linked, groups };
+  }
+  async function refreshHousehold() {
+    try {
+      const supplies = await fetch("/api/supplies").then((r) => r.json());
+      household = supplies.household || {}; householdClimate = supplies.climate || "temperate"; householdActivity = supplies.activity || "moderate";
+    }
+    catch { household = {}; }
+    if (plan) renderStats();
+  }
 
   function projection(entry) {
     const data = item(entry.id), crop = isCrop(entry.id);
@@ -45,15 +62,15 @@
     const panel = document.createElement("div");
     panel.id = "farming"; panel.className = "loadout fm"; panel.hidden = true;
     panel.innerHTML = `<div class="lo-head fm-head"><span class="lo-title"><span class="g">&#xF0073;</span> FARMING</span>
-      <span class="fm-head-note">OFFLINE FIELD PLANNER</span><button class="ghost fm-close" title="Close Farming · Esc">CLOSE ✕</button></div>
+      <span class="fm-head-note">OFFLINE FIELD PLANNER</span><button class="ghost fm-household" title="Edit your household in Field Kit Supplies">HOUSEHOLD ↗</button><button class="ghost fm-close" title="Close Farming · Esc">CLOSE ✕</button></div>
       <div class="fm-body"><aside class="fm-catalog"><div class="fm-cat-head"><b>THE FIELD BOOK</b><button class="fm-overview-btn" type="button" title="See the farm overview">VIEW FARM ▸</button></div>
         <input class="fm-search" type="search" placeholder="Search crops or animals…" aria-label="Search farming catalog">
         <div class="fm-filter"><button data-kind="all" class="on">ALL</button><button data-kind="crop">CROPS</button><button data-kind="stock">LIVESTOCK</button></div>
         <div class="fm-catalog-list"></div></aside><main class="fm-main"><div class="fm-hero fm-overview"><canvas class="fm-art" role="img" aria-label="Summer farm with cabin and animals"></canvas>
         <div class="fm-hero-copy"><small class="fm-hero-kicker">UMBRA // THE FARM</small><h2 class="fm-hero-name">A place to grow.</h2><p class="fm-hero-desc">Choose a crop or animal from the Field Book to explore its needs and add it to your plan.</p></div></div>
-        <details class="fm-comparison"><summary>HOUSEHOLD CALORIE COMPARISON · OPTIONAL</summary><div class="fm-target"><label>PEOPLE IN PLAN <input class="fm-people" type="number" min="1" max="100" step="1"></label>
+        <details class="fm-comparison"><summary>HOUSEHOLD CALORIE COMPARISON</summary><div class="fm-target"><div class="fm-compare-modes"><button type="button" data-mode="household">USE HOUSEHOLD</button><button type="button" data-mode="manual">MANUAL TARGET</button></div><p class="fm-household-note"></p><div class="fm-manual-target"><label>PEOPLE IN PLAN <input class="fm-people" type="number" min="1" max="100" step="1"></label>
           <label>COMPARISON TARGET · KCAL / PERSON / DAY <input class="fm-target-kcal" type="number" min="500" max="5000" step="50"></label>
-          <span>Choose your own reference target. This is a planning comparison, not nutritional advice.</span></div></details>
+          </div><span>These are planning estimates, not individual nutrition advice. Household counts come from Field Kit Supplies.</span></div></details>
         <div class="fm-stats"></div><div class="fm-content"><section class="fm-plan"><div class="fm-title"><b>YOUR PRODUCTION PLAN</b><small class="fm-save-state"></small></div><div class="fm-rows"></div></section>
           <section class="fm-detail"><div class="fm-title"><b>FIELD NOTES & ESTIMATES</b></div><div class="fm-detail-inner"></div></section></div>
         <details class="fm-method"><summary>DATA, SOURCES & LIMITS</summary><div class="fm-method-inner"></div></details></main></div>`;
@@ -67,6 +84,12 @@
     }, 180);
     $f(".fm-overview-btn").addEventListener("click", () => { chosen = ""; renderCatalog(); renderPlan(); renderDetail(); Sound.click(); });
     $f(".fm-close").addEventListener("click", () => toggle(false));
+    $f(".fm-household").addEventListener("click", () => { toggle(false, true); window.UmbraFieldKit?.open("supplies"); Sound.click(); });
+    $f(".fm-compare-modes").addEventListener("click", (e) => {
+      const mode = e.target.closest("button[data-mode]")?.dataset.mode;
+      if (!mode || !plan) return;
+      plan.comparisonMode = mode; renderStats(); scheduleSave(); Sound.click();
+    });
     $f(".fm-search").addEventListener("input", (e) => { query = e.target.value.trim().toLowerCase(); renderCatalog(); });
     $f(".fm-filter").addEventListener("click", (e) => {
       const button = e.target.closest("button[data-kind]"); if (!button) return;
@@ -143,6 +166,7 @@
     if (catalog && plan) return;
     const response = await fetch("/api/farm").then((r) => r.json());
     catalog = response.catalog; plan = response.plan;
+    if (!plan.comparisonMode) plan.comparisonMode = plan.people !== 1 || plan.targetKcal !== 2000 ? "manual" : "household";
     cropMap.clear(); stockMap.clear();
     catalog.crops.forEach((x) => cropMap.set(x.id, x));
     catalog.livestock.forEach((x) => stockMap.set(x.id, x));
@@ -165,8 +189,14 @@
     $f(".fm-catalog-list").querySelectorAll(".fm-mini-art").forEach((canvas) => UmbraFarmArt.mini(canvas, item(canvas.dataset.art)));
   }
   function renderStats() {
-    const t = totals(), need = (plan.people || 1) * (plan.targetKcal || 2000) * 365;
-    const days = t.outputKcal / ((plan.people || 1) * (plan.targetKcal || 2000));
+    const t = totals(), target = comparison(), need = target.kcal * 365;
+    const days = target.kcal ? t.outputKcal / target.kcal : 0;
+    $f(".fm-compare-modes").querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.mode === plan.comparisonMode));
+    $f(".fm-manual-target").hidden = target.linked;
+    $f(".fm-household-note").textContent = target.linked
+      ? `${n(target.persons)} people in Field Kit · ${n(target.kcal)} kcal/day household estimate. Changes in Field Kit update this comparison.`
+      : plan.comparisonMode === "household" ? "Add people in Field Kit Supplies to link this estimate. Showing your manual target for now."
+      : `Manual target · ${n(target.persons)} people × ${n(plan.targetKcal || 2000)} kcal/day.`;
     $f(".fm-stats").innerHTML = `<div><small>FOOD / DAY · AVERAGE</small><b>${n(t.outputKg / 365, 2)} <em>kg</em></b><span>${n(t.outputKcal / 365)} kcal · seasonal output averaged</span></div>
       <div><small>FOOD / WEEK · AVERAGE</small><b>${n(t.outputKg / 52, 2)} <em>kg</em></b><span>${n(t.outputKcal / 52)} kcal · ${n(days, 1)} household target days/year</span></div>
       <div><small>FOOD / YEAR</small><b>${n(t.outputKg, 1)} <em>kg</em></b><span>${n(t.outputKcal)} kcal · ${n(need ? 100 * t.outputKcal / need : 0, 1)}% of comparison target</span></div>
@@ -282,8 +312,8 @@
     chosen = "";
     if (!catalog) {
       $f(".fm-catalog-list").innerHTML = `<p class="lib-note">Opening the field book…</p>`;
-      load().then(render).catch(() => { $f(".fm-catalog-list").innerHTML = `<p class="lib-note">The local field book could not be loaded. Close and open Farming to try again.</p>`; });
-    } else render();
+      load().then(() => { render(); refreshHousehold(); }).catch(() => { $f(".fm-catalog-list").innerHTML = `<p class="lib-note">The local field book could not be loaded. Close and open Farming to try again.</p>`; });
+    } else { render(); refreshHousehold(); }
     if (!quiet) Sound.click();
   }
   build();

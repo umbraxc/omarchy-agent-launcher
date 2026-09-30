@@ -217,12 +217,12 @@ const Sound = (() => {
   Object.entries(labels).forEach(([id, [title, hint]]) => {
     const button = document.getElementById(id);
     if (!button) return;
+    button.title = `${title}|${hint}`;
     const show = () => {
       if (!wide() || !mainVisible() || button.hidden || button.classList.contains("gone")) return;
       card.querySelector("b").textContent = title;
       card.querySelector("small").textContent = hint;
       card.hidden = false;
-      Sound.hover();
     };
     button.addEventListener("mouseenter", show);
     button.addEventListener("focus", show);
@@ -231,6 +231,34 @@ const Sound = (() => {
   });
   document.addEventListener("click", hide, true);
   window.addEventListener("resize", () => { if (!wide()) hide(); });
+})();
+
+// Header controls have the same soft hover response as the tools. After a
+// quiet minute on the main screen, one gentle signal crosses their icons.
+(() => {
+  const bar = document.querySelector(".controls");
+  const panels = ["maps", "fieldkit", "farming", "radar", "loadout", "history", "library", "themes", "settings", "core"];
+  const atHome = () => !document.hidden && !document.body.classList.contains("locked") &&
+    !document.body.classList.contains("touring") && panels.every((id) => document.getElementById(id)?.hidden !== false);
+  let idle = 0, wave = 0;
+  const arm = () => {
+    clearTimeout(idle); clearTimeout(wave); bar.classList.remove("nav-idle-wave");
+    idle = setTimeout(() => {
+      if (!atHome() || document.body.classList.contains("reduce-motion")) return;
+      [...bar.querySelectorAll(".ctl:not([hidden]):not(.overflowed)")].forEach((b, i) => b.style.setProperty("--nav-index", i));
+      bar.classList.add("nav-idle-wave");
+      wave = setTimeout(arm, 3400);
+    }, 60000);
+  };
+  bar.addEventListener("mouseover", (e) => {
+    const button = e.target.closest(".ctl");
+    if (button && !button.contains(e.relatedTarget)) Sound.hover();
+  });
+  for (const event of ["pointerdown", "keydown", "wheel"]) document.addEventListener(event, arm, { passive: true });
+  let lastMove = 0;
+  document.addEventListener("pointermove", () => { const now = performance.now(); if (now - lastMove > 1000) { lastMove = now; arm(); } }, { passive: true });
+  document.addEventListener("visibilitychange", arm);
+  arm();
 })();
 
 // A soft hover blip on the rows and buttons of the tools, like elsewhere.
