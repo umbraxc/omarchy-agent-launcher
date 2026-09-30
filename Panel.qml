@@ -287,15 +287,13 @@ Panel {
     iconComponent: Component {
       UmbraMark {
         // Lights up in the theme colour while an answer is waiting.
-        color: root.attention ? root.online
+        color: root.attention || root.umbraRunning ? root.online
           : root.totalRunning > 0 ? root.barForeground : Qt.darker(root.barForeground, 1.55)
         Behavior on color { ColorAnimation { duration: 900; easing.type: Easing.InOutQuad } }
       }
     }
     tooltipText: root.attention ? "Umbra Wiki: a new answer is waiting"
-      : root.totalRunning === 0
-      ? "Agents: none running"
-      : "Agents: " + root.totalRunning + " running"
+      : "Umbra widget · " + (root.info.model || "AI status") + " · click for details"
     onPressed: function(buttonCode) {
       if (buttonCode === Qt.MiddleButton) root.refresh()
       else root.toggle()

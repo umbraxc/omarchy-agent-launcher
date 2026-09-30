@@ -552,8 +552,10 @@ def save_farm(data):
     mode = data.get("comparisonMode", "manual")
     if mode not in ("household", "manual"):
         raise ValueError("unknown farm comparison mode")
+    available_land = data.get("availableLandM2")
     plan = {"items": clean, "people": number(data.get("people"), 1, 1, 100),
-            "targetKcal": number(data.get("targetKcal"), 2000, 500, 5000), "comparisonMode": mode}
+            "targetKcal": number(data.get("targetKcal"), 2000, 500, 5000), "comparisonMode": mode,
+            "availableLandM2": None if available_land is None else number(available_land, 0, 0, 1000000000)}
     with FARM_LOCK:
         write_json(FARM_FILE, plan)
     if clean:

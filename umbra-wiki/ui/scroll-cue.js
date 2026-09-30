@@ -3,7 +3,7 @@
 (() => {
   const cue = document.createElement("div");
   cue.className = "scroll-cue"; cue.hidden = true; cue.setAttribute("aria-hidden", "true");
-  cue.innerHTML = Array.from({ length: 5 }, (_, i) => `<i style="--line-index:${i}"></i>`).join("");
+  cue.innerHTML = '<span class="scroll-cue-arrow">↓</span>';
   document.body.appendChild(cue);
   let active = null, queued = false;
   const hide = (value) => { if (cue.hidden !== value) cue.hidden = value; };

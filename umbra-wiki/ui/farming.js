@@ -68,6 +68,7 @@
         <div class="fm-filter"><button data-kind="all" class="on">ALL</button><button data-kind="crop">CROPS</button><button data-kind="stock">LIVESTOCK</button></div>
         <div class="fm-catalog-list"></div></aside><main class="fm-main"><div class="fm-hero fm-overview"><canvas class="fm-art" role="img" aria-label="Summer farm with cabin and animals"></canvas>
         <div class="fm-hero-copy"><small class="fm-hero-kicker">UMBRA // THE FARM</small><h2 class="fm-hero-name">A place to grow.</h2><p class="fm-hero-desc">Choose a crop or animal from the Field Book to explore its needs and add it to your plan.</p></div></div>
+        <section class="fm-land"><label for="fm-available-land">LAND AVAILABLE <small>m²</small></label><input id="fm-available-land" class="fm-available-land" type="number" min="0" max="1000000000" step="any" placeholder="Enter your land area" aria-label="Land available in square metres"><span class="fm-land-result" aria-live="polite"></span></section>
         <details class="fm-comparison"><summary>HOUSEHOLD CALORIE COMPARISON</summary><div class="fm-target"><div class="fm-compare-modes"><button type="button" data-mode="household">USE HOUSEHOLD</button><button type="button" data-mode="manual">MANUAL TARGET</button></div><p class="fm-household-note"></p><div class="fm-manual-target"><label>PEOPLE IN PLAN <input class="fm-people" type="number" min="1" max="100" step="1"></label>
           <label>COMPARISON TARGET · KCAL / PERSON / DAY <input class="fm-target-kcal" type="number" min="500" max="5000" step="50"></label>
           </div><span>These are planning estimates, not individual nutrition advice. Household counts come from Field Kit Supplies.</span></div></details>
@@ -85,6 +86,13 @@
     $f(".fm-overview-btn").addEventListener("click", () => { chosen = ""; renderCatalog(); renderPlan(); renderDetail(); Sound.click(); });
     $f(".fm-close").addEventListener("click", () => toggle(false));
     $f(".fm-household").addEventListener("click", () => { toggle(false, true); window.UmbraFieldKit?.open("supplies"); Sound.click(); });
+    $f(".fm-available-land").addEventListener("input", (e) => {
+      if (!plan) return;
+      const raw = e.target.value.trim();
+      if (raw && (!e.target.validity.valid || !Number.isFinite(e.target.valueAsNumber))) return;
+      plan.availableLandM2 = raw ? e.target.valueAsNumber : null;
+      renderStats(); scheduleSave();
+    });
     $f(".fm-compare-modes").addEventListener("click", (e) => {
       const mode = e.target.closest("button[data-mode]")?.dataset.mode;
       if (!mode || !plan) return;
@@ -173,6 +181,7 @@
     chosen = "";
     $f(".fm-people").value = plan.people || 1;
     $f(".fm-target-kcal").value = plan.targetKcal || 2000;
+    $f(".fm-available-land").value = plan.availableLandM2 == null ? "" : plan.availableLandM2;
     $f(".fm-method-inner").innerHTML = `<p>${safe(catalog.method)}</p><p>Food calories mean edible food mass. Animal feed energy is feed energy, not food for people. Housing area excludes pasture. Planting, feed, fuel, soil nutrients, losses and nutrition quality need local checks.</p>
       ${catalog.sources.map((s) => `<div><b>${safe(s.title)}</b><small>${safe(s.use)}</small><code>${safe(s.url)}</code></div>`).join("")}`;
   }
@@ -191,6 +200,12 @@
   function renderStats() {
     const t = totals(), target = comparison(), need = target.kcal * 365;
     const days = target.kcal ? t.outputKcal / target.kcal : 0;
+    const used = t.land + t.housing, available = plan.availableLandM2;
+    const landResult = $f(".fm-land-result");
+    landResult.classList.toggle("short", available != null && used > available);
+    landResult.textContent = available == null
+      ? `${n(used, 1)} m² planned · enter your land area to compare.`
+      : `${n(used, 1)} m² planned · ${n(Math.abs(available - used), 1)} m² ${used > available ? "over available land" : "remaining"}. Outdoor range and pasture are additional.`;
     $f(".fm-compare-modes").querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.mode === plan.comparisonMode));
     $f(".fm-manual-target").hidden = target.linked;
     $f(".fm-household-note").textContent = target.linked
