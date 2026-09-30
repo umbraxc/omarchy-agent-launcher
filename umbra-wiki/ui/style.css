@@ -192,6 +192,7 @@ body.online .ask .caret { color: var(--net); }
 
 main {
   flex: 1; min-height: 0; overflow-y: auto;
+  overflow-anchor: none;
   padding: 26px max(26px, calc((100% - 860px) / 2)) 36px;
 }
 main::-webkit-scrollbar { width: 8px; }
@@ -352,6 +353,7 @@ body.prompts-hidden .prompts { max-height: 0; opacity: 0; margin-top: 0; filter:
 }
 
 .notice { margin: 0 0 12px; font-size: 11.5px; color: var(--accent); letter-spacing: .06em; }
+.context-note { margin: 0 0 10px; font-size: 10.5px; color: var(--faint); letter-spacing: .04em; }
 
 /* One quiet sources line; the list folds out on click. */
 .srcline {

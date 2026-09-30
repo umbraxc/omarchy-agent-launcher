@@ -18,7 +18,10 @@
                     green: "color-mix(in oklab, #4fb86a 80%, var(--fg))", violet: "color-mix(in oklab, #a77ce8 80%, var(--fg))", dim: "var(--dim)" };
   const fcolor = (f) => FCOLORS[(f && f.color) || "signal"];
   // Umbra reads the folder's brief for the conversation on screen.
-  const syncFolder = () => { window.currentFolder = convo ? convo.folder || "" : view; };
+  const syncFolder = () => {
+    window.currentFolder = convo ? convo.folder || "" : view;
+    window.currentConversationId = convo ? convo.id : "";
+  };
 
   const pad = (n) => String(n).padStart(2, "0");
   const newId = () => {
@@ -32,7 +35,10 @@
 
   // app.js calls this when an answer finishes.
   window.recordTurn = async (rec) => {
-    if (!convo) convo = { id: newId(), title: (rec.shown || rec.question).slice(0, 120), messages: [], folder: view };
+    if (!convo) {
+      convo = { id: newId(), title: (rec.shown || rec.question).slice(0, 120), messages: [], folder: view };
+      syncFolder();
+    }
     convo.messages.push(rec);
     const [scenario = "", personality = ""] = ($("#loadout-chip").textContent || "").split(" · ");
     try {
@@ -324,7 +330,7 @@
     if (last) suggestFor(last);
     toggle(false, true);
     Sound.theme();
-    requestAnimationFrame(() => { feed.scrollTop = feed.scrollHeight; });
+    followChatBottom();
     input.focus();
   }
 
@@ -336,6 +342,7 @@
     suggestToken++;
     setSuggestion("");
     showIntro();
+    resetChatScroll();
     toggle(false, true);
     Sound.theme();
     input.focus();

@@ -1054,6 +1054,7 @@ function showIntro(first = false, { greet = true } = {}) {
     feed.innerHTML = "";
     feed.appendChild(introTemplate.cloneNode(true));
     if (document.body.classList.contains("prompts-hidden")) setPromptsHidden(true, false);
+    if (greet) greeting = null;
     if (greet) showGreeting(); else $("#intro .greet")?.remove();
   }
   introWatch.disconnect();
@@ -1083,11 +1084,11 @@ document.addEventListener("click", (e) => {
 });
 try { if (localStorage.getItem("umbra-prompts-hidden")) setPromptsHidden(true, false); } catch {}
 
-// The start screen's suggested questions: the scenario's own starters at
-// once, then a few written for you (from your profile and conversations),
+// The start screen's suggested questions: general chat and scenario starters
+// at once, then a few written from the profile,
 // marked ✦, when the local AI has them ready. Every 100 seconds a fresh
 // set rotates in; every so often a slow wave runs through the text.
-let starterPool = { personal: [], scenario: [] }, starterShown = [], starterTurn = 0;
+let starterPool = { personal: [], general: [], scenario: [] }, starterShown = [], starterTurn = 0;
 async function showStarters() {
   const box = $("#intro .prompts");
   if (!box) return;
@@ -1095,7 +1096,7 @@ async function showStarters() {
   try {
     const quick = await (await fetch("/api/starters?personal=0")).json();
     if (token !== startersToken || !box.isConnected) return;
-    starterPool = { personal: [], scenario: quick.scenario || [] };
+    starterPool = { personal: [], general: quick.general || [], scenario: quick.scenario || [] };
     starterTurn = 0;
     if (starterPool.scenario.length) renderStarters(false);
     if (window.offgrid) return;   // off-grid: no extra AI work
@@ -1112,14 +1113,15 @@ async function showStarters() {
 // Up to four personal questions (rotating through them), the rest from the
 // scenario's pool, avoiding what was just on screen.
 function pickStarters() {
-  const { personal, scenario } = starterPool;
+  const { personal, general, scenario } = starterPool;
   const n = Math.min(4, personal.length);
   const mine = Array.from({ length: n }, (_, i) => personal[(starterTurn * n + i) % personal.length]);
   starterTurn++;
+  const social = general.length ? [general[(starterTurn - 1) % general.length]] : [];
   const fresh = scenario.filter((t) => !starterShown.includes(t) && !mine.includes(t));
-  const pool = (fresh.length >= 6 - n ? fresh : scenario.filter((t) => !mine.includes(t))).slice();
+  const pool = (fresh.length >= 6 - n - social.length ? fresh : scenario.filter((t) => !mine.includes(t))).slice();
   for (let i = pool.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [pool[i], pool[j]] = [pool[j], pool[i]]; }
-  return [...mine.map((t) => [t, true]), ...pool.slice(0, 6 - n).map((t) => [t, false])];
+  return [...social.map((t) => [t, false]), ...mine.map((t) => [t, true]), ...pool.slice(0, 6 - n - social.length).map((t) => [t, false])];
 }
 
 // The key words of a question are highlighted: its two most telling words
@@ -1184,7 +1186,7 @@ function scheduleSwaps() {
 function swapChip(chip) {
   const mine = chip.classList.contains("mine");
   const onScreen = [...chip.parentNode.children].map((c) => c.dataset.text);
-  const pool = (mine ? starterPool.personal : starterPool.scenario).filter((t) => !onScreen.includes(t));
+  const pool = (mine ? starterPool.personal : [...starterPool.general, ...starterPool.scenario]).filter((t) => !onScreen.includes(t));
   if (!pool.length) return;
   const text = pool[(Math.random() * pool.length) | 0];
   chip.classList.add("leaving");
@@ -1227,8 +1229,7 @@ Promise.all([
   asciiWipe(() => {}, { covered: true, welcome });
 });
 
-// A welcome on the start screen: your name, and a line in the current
-// personality's voice that picks up from the last conversation.
+// A short welcome for this opening. New conversations get a new line.
 let greeting = null;
 async function showGreeting() {
   const box = $("#intro .greet");
@@ -1501,6 +1502,14 @@ function typewriter(render) {
 // read; coming back to the bottom resumes following. The loop sleeps when
 // there is nothing to catch up on.
 let follow = true, followRaf = 0;
+function pinBottom() { feed.scrollTop = Math.max(0, feed.scrollHeight - feed.clientHeight); }
+function resetChatScroll() {
+  follow = false;
+  cancelAnimationFrame(followRaf);
+  followRaf = 0;
+  feed.scrollTop = 0;
+}
+function followChatBottom() { follow = true; pinBottom(); requestAnimationFrame(pinBottom); }
 function wake() { if (!followRaf) followRaf = requestAnimationFrame(followLoop); }
 function followLoop() {
   followRaf = 0;
@@ -1511,19 +1520,30 @@ function followLoop() {
     followRaf = requestAnimationFrame(followLoop);
   }
 }
-// Any move up (wheel, touchpad, scrollbar, keys) stops following, even the
-// small steps a touchpad makes near the bottom; only moving back down to
-// the end resumes it.
-let lastTop = 0, lastHeight = 0;
+// Only a user's scroll gesture can stop following. Layout changes and browser
+// scroll anchoring can move scrollTop without the user asking to read above.
+let lastTop = 0, touchY = null, draggingScroll = false;
 feed.addEventListener("wheel", (e) => { if (e.deltaY < 0) follow = false; }, { passive: true });
+feed.addEventListener("touchstart", (e) => { touchY = e.touches[0]?.clientY ?? null; }, { passive: true });
+feed.addEventListener("touchmove", (e) => {
+  const y = e.touches[0]?.clientY;
+  if (y != null && touchY != null && y > touchY) follow = false;
+  touchY = y;
+}, { passive: true });
+feed.addEventListener("pointerdown", (e) => {
+  draggingScroll = e.clientX >= feed.getBoundingClientRect().right - 16;
+  if (draggingScroll) follow = false;
+});
+document.addEventListener("pointerup", () => { draggingScroll = false; });
 feed.addEventListener("keydown", (e) => { if (["ArrowUp", "PageUp", "Home"].includes(e.key)) follow = false; });
 feed.addEventListener("scroll", () => {
-  const top = feed.scrollTop, height = feed.scrollHeight;
-  if (top < lastTop - 1 && height >= lastHeight) follow = false;
-  else if (top > lastTop && height - feed.clientHeight - top < 40) follow = true;
+  const top = feed.scrollTop;
+  if (draggingScroll && top < lastTop - 1) follow = false;
+  if (top > lastTop && feed.scrollHeight - feed.clientHeight - top < 40) follow = true;
   lastTop = top;
-  lastHeight = height;
 }, { passive: true });
+new ResizeObserver(() => { if (follow && !locked) requestAnimationFrame(pinBottom); }).observe(feed);
+window.addEventListener("resize", () => { if (follow) requestAnimationFrame(pinBottom); });
 
 // ----------------------------------------------------------- source popups
 
@@ -1727,6 +1747,12 @@ function paintAnswer(answerEl, shown, sourceByN, live = false) {
 function finishAnswer(msg, rec) {
   const answerEl = msg.querySelector(".answer");
   const card = msg.querySelector(".card");
+  if (rec.contextNote && !card.querySelector(".context-note")) {
+    const n = document.createElement("div");
+    n.className = "context-note";
+    n.textContent = rec.contextNote;
+    card.prepend(n);
+  }
   const byN = {};
   rec.sources.forEach((s) => (byN[s.n] = s));
   paintAnswer(answerEl, rec.answer, byN);
@@ -1805,6 +1831,8 @@ async function ask(question, shownAs = "") {
   const answerEl = msg.querySelector(".answer");
   showWaiting(answerEl);
   follow = true;
+  pinBottom();
+  requestAnimationFrame(pinBottom);
   wake();
   Sound.searchstart();
   Sound.hum(true);
@@ -1817,7 +1845,7 @@ async function ask(question, shownAs = "") {
   startTimer();
   setPhase("search");
 
-  let text = "", sources = [], next = "", meta = null, stopped = false, writing = false;
+  let text = "", sources = [], next = "", meta = null, stopped = false, writing = false, contextNote = "";
   const sourceByN = {};
   const typer = typewriter((shown) => paintAnswer(answerEl, shown, sourceByN, true));
 
@@ -1825,7 +1853,7 @@ async function ask(question, shownAs = "") {
     const res = await fetch("/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, history: chat, online, offgrid: !!window.offgrid, folder: window.currentFolder || "", context: localContext(), attachments }),
+      body: JSON.stringify({ question, history: chat, conversation: window.currentConversationId || "", online, offgrid: !!window.offgrid, folder: window.currentFolder || "", context: localContext(), attachments }),
       signal: controller.signal,
     });
     const reader = res.body.getReader();
@@ -1847,6 +1875,12 @@ async function ask(question, shownAs = "") {
           const n = document.createElement("div");
           n.className = "notice";
           n.textContent = "⚠ " + e.message;
+          card.prepend(n);
+        } else if (e.type === "context") {
+          contextNote = e.message;
+          const n = document.createElement("div");
+          n.className = "context-note";
+          n.textContent = e.message;
           card.prepend(n);
         } else if (e.type === "sources") {
           sources = e.sources;
@@ -1880,7 +1914,7 @@ async function ask(question, shownAs = "") {
   } else if (stopped) shown += "\n\n*[transmission stopped]*";
   if (!stopped) { typer.set(shown); await typer.drained(); }
   const rec = {
-    question, shown: shownAs, answer: shown, offer: stopped ? "" : next, sources, online,
+    question, shown: shownAs, answer: shown, offer: stopped ? "" : next, sources, online, contextNote,
     persona: window.loadoutPersona || "",
     meta: meta ? `${meta.tokens} TOKENS · ${meta.seconds}s · ${sources.length} SOURCES · ${online ? "ONLINE" : "OFFLINE"}` : "",
   };
