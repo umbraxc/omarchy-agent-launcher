@@ -371,7 +371,8 @@ function setMuted(value, save = true) {
   };
   const close = () => { panel.hidden = true; button.setAttribute("aria-expanded", "false"); };
   const place = () => {
-    const r = button.getBoundingClientRect();
+    const anchor = button.getClientRects().length ? button : document.querySelector("#nav-more");
+    const r = anchor.getBoundingClientRect();
     panel.style.left = Math.max(12, Math.min(innerWidth - panel.offsetWidth - 12, r.left + r.width / 2 - panel.offsetWidth / 2)) + "px";
     panel.style.top = r.bottom + 8 + "px";
   };
@@ -393,7 +394,9 @@ function setMuted(value, save = true) {
   }
   q(".snd-previews").addEventListener("click", (e) => { const sample = e.target.closest("button[data-sample]"); if (sample) Sound[sample.dataset.sample](); });
   document.addEventListener("pointerdown", (e) => { if (!panel.hidden && !panel.contains(e.target) && !button.contains(e.target)) close(); }, true);
-  document.addEventListener("click", (e) => { if (!panel.hidden && !panel.contains(e.target) && !button.contains(e.target)) close(); }, true);
+  // A menu item activates on pointer press; its trailing click still targets
+  // the menu row after the sound panel has opened.
+  document.addEventListener("click", (e) => { if (!panel.hidden && !panel.contains(e.target) && !button.contains(e.target) && !e.target.closest("#nav-overflow")) close(); }, true);
   document.addEventListener("keydown", (e) => { if (!panel.hidden && (e.key === "Escape" || e.ctrlKey || e.metaKey)) close(); }, true);
   document.addEventListener("umbra-sound-change", sync);
   document.addEventListener("umbra-audio-prefs", sync);
@@ -1439,8 +1442,8 @@ showGreeting();
 
 // ------------------------------------------------------------------ dialog
 
-// Resolves true for the confirm button, false for cancel / Esc / backdrop.
-function confirmDialog({ kind, tag, title, body, ok, cancel }) {
+// Resolves true for confirm, false for cancel, or "instant" when offered.
+function confirmDialog({ kind, tag, title, body, ok, cancel, instant }) {
   return new Promise((resolve) => {
     const modal = $("#modal");
     const dialog = modal.querySelector(".dialog");
@@ -1450,6 +1453,8 @@ function confirmDialog({ kind, tag, title, body, ok, cancel }) {
     $("#modal-body").textContent = body;
     $("#modal-ok").textContent = ok || "";
     $("#modal-ok").hidden = !ok;
+    $("#modal-instant").textContent = instant || "";
+    $("#modal-instant").hidden = !instant;
     $("#modal-cancel").textContent = cancel;
     modal.hidden = false;
     (ok ? $("#modal-ok") : $("#modal-cancel")).focus();
@@ -1457,13 +1462,14 @@ function confirmDialog({ kind, tag, title, body, ok, cancel }) {
 
     const done = (value) => {
       modal.hidden = true;
-      $("#modal-ok").onclick = $("#modal-cancel").onclick = modal.onclick = null;
+      $("#modal-ok").onclick = $("#modal-cancel").onclick = $("#modal-instant").onclick = modal.onclick = null;
       document.removeEventListener("keydown", onKey, true);
       input.focus();
       resolve(value);
     };
     const onKey = (e) => { if (e.key === "Escape") { e.stopPropagation(); done(false); } };
     $("#modal-ok").onclick = () => done(true);
+    $("#modal-instant").onclick = () => done("instant");
     $("#modal-cancel").onclick = () => done(false);
     modal.onclick = (e) => { if (e.target === modal) done(false); };
     document.addEventListener("keydown", onKey, true);
@@ -2268,14 +2274,14 @@ let exitAsked = false, exiting = false;
 function closeWindow() {
   if (!window.umbraNative("close")) window.close();
 }
-async function leaveUmbra() {
+async function leaveUmbra(instant = false) {
   if (exiting) return;
   exiting = true;
   if (controller) controller.abort();
   Sound.hum(false);
   $("#modal").hidden = true;
   const calm = document.body.classList.contains("reduce-motion");
-  if (!calm) {
+  if (!instant && !calm) {
     const name = (window.UmbraProfile && window.UmbraProfile.data.name) || "";
     await asciiOutro(name ? `SEE YOU SOON, ${name}` : "SEE YOU SOON, SURVIVOR");
   }
@@ -2296,8 +2302,8 @@ window.umbraExit = () => {
     kind: "to-local", tag: "LEAVE", title: "LEAVE UMBRA?",
     body: "Everything is saved on this computer: your conversations stay in History, and your settings and profile " +
       "stay as they are." + (controller ? "\n\nThe answer in progress will stop." : ""),
-    ok: "LEAVE", cancel: "STAY",
-  }).then((ok) => { exitAsked = false; if (ok) leaveUmbra(); });
+    ok: "LEAVE", cancel: "STAY", instant: "INSTANT EXIT",
+  }).then((choice) => { exitAsked = false; if (choice) leaveUmbra(choice === "instant"); });
   return "ok";
 };
 

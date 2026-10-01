@@ -146,7 +146,8 @@ window.UmbraLandscape = (() => {
     const dpr=Math.min(2,devicePixelRatio||1),w=canvas.clientWidth||650,h=canvas.clientHeight||205;
     const px=Math.round(w*dpr),py=Math.round(h*dpr);
     if(canvas.width!==px||canvas.height!==py){canvas.width=px;canvas.height=py;}
-    const g=canvas.getContext("2d");g.setTransform(px/820,0,0,py/260,0,0);
+    const g=canvas.getContext("2d"),scale=Math.max(px/820,py/260);
+    g.setTransform(scale,0,0,scale,(px-820*scale)/2,(py-260*scale)/2);
     const sky=g.createLinearGradient(0,0,0,170);sky.addColorStop(0,p.sky[0]);sky.addColorStop(1,p.sky[1]);g.fillStyle=sky;g.fillRect(0,0,820,260);
     const lightX=kind==="stars"?674:500,lightY=kind==="stars"?49:47;
     const glow=g.createRadialGradient(lightX,lightY,2,lightX,lightY,210);

@@ -287,11 +287,19 @@
           restore.push([el, previous]); el.hidden = false; el.classList.remove("gone");
         }
       }
-      const compact = document.querySelector(".top")?.classList.contains("compact-nav");
+      const nav = window.UmbraNavOverflow;
+      nav?.fill();
       const source = outpostOnly ? SPOTS.filter(([sel]) => sel === "#outpost-btn") : SPOTS.filter(([sel]) => !quick || QUICK_SPOTS.includes(sel));
-      const shown = compact ? source.filter(([sel]) => !sel.startsWith("#") || !document.querySelector(".controls")?.contains($(sel))) : source;
-      if (compact) shown.unshift(["#nav-more", outpostOnly ? "UMBRA OUTPOST" : "ALL TABS · UMBRA OUTPOST", "Open this menu for every tab, including Umbra Outpost. Outpost is a fictional settlement with eight resources, camp upgrades and two expedition stories."]);
+      const menuSpots = new Map(source.filter(([sel]) => document.querySelector(".controls")?.contains($(sel))).map(spot => [spot[0].slice(1), spot]));
+      const menuSteps = [...(nav?.menu.querySelectorAll("button[data-for]") || [])]
+        .filter(row => menuSpots.has(row.dataset.for))
+        .map(row => [`#nav-overflow [data-for="${row.dataset.for}"]`, ...menuSpots.get(row.dataset.for).slice(1)]);
+      const shown = source.filter(([sel]) => !document.querySelector(".controls")?.contains($(sel)));
+      const promptStart = shown.findIndex(([sel]) => ["#q", "#mic", "#send"].includes(sel));
+      const menuStart = promptStart < 0 ? shown.length : promptStart;
+      shown.splice(menuStart, 0, ["#nav-more", "ALL TABS", "Open the tab menu. The next hints follow each item in the same order it appears here."], ...menuSteps);
       const steps = shown.filter(([sel]) => {
+        if (sel.startsWith("#nav-overflow ")) return true;
         const el = $(sel);
         return el && el.getClientRects().length && el.getBoundingClientRect().width > 0;
       });
@@ -306,6 +314,9 @@
       let i = 0;
       const show = () => {
         const [sel, title, text] = steps[i];
+        if (sel.startsWith("#nav-overflow ") && nav?.menu.hidden) nav.open();
+        else nav?.close();
+        if (sel.startsWith("#nav-overflow ")) $(sel).scrollIntoView({ block: "nearest" });
         const r = $(sel).getBoundingClientRect();
         const pad = 6;
         Object.assign(spot.style, { left: r.left - pad + "px", top: r.top - pad + "px", width: r.width + pad * 2 + "px", height: r.height + pad * 2 + "px" });
@@ -320,7 +331,7 @@
         card.style.top = Math.max(12, Math.min(innerHeight - h - 12, below ? r.bottom + pad + 14 : r.top - pad - 14 - h)) + "px";
         card.classList.remove("in"); void card.offsetWidth; card.classList.add("in");
       };
-      const finish = (ok) => { shade.remove(); removeEventListener("resize", show); for (const [el, previous] of restore) { el.hidden = previous.hidden; el.classList.toggle("gone", previous.gone); } ok ? resolve() : reject(SKIP); };
+      const finish = (ok) => { shade.remove(); nav?.close(); removeEventListener("resize", show); for (const [el, previous] of restore) { el.hidden = previous.hidden; el.classList.toggle("gone", previous.gone); } ok ? resolve() : reject(SKIP); };
       shade.querySelector(".spot-next").addEventListener("click", () => {
         Sound.click();
         if (i === steps.length - 1) finish(true); else { i++; show(); }

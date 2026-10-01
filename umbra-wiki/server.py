@@ -95,7 +95,7 @@ MODEL = os.environ.get("UMBRA_MODEL") or CONFIG.get("model") or "gemma3:4b"
 
 WIKI_API = "https://en.wikipedia.org/w/api.php"
 # Wikimedia asks API clients to name themselves with a contact URL.
-VERSION = "3.1.5"
+VERSION = "3.1.6"
 WEB_HEADERS = {"User-Agent": f"UmbraWiki/{VERSION} (https://github.com/umbraxc/omarchy-umbra; offline survival assistant)"}
 
 # Gemma reads context at ~25 tokens/s on this CPU, so the prompt budget is
@@ -1834,6 +1834,31 @@ def _streak(days):
 
 def _stat(st, stat):
     counts, sets = st["counts"], st["sets"]
+    if stat.startswith("outpost:"):
+        game = read_json(OUTPOST_FILE, {})
+        stations = game.get("stations", {}) if isinstance(game, dict) else {}
+        resources = game.get("resources", {}) if isinstance(game, dict) else {}
+        completed = game.get("completed", []) if isinstance(game, dict) else []
+        if not isinstance(stations, dict) or not isinstance(resources, dict) or not isinstance(completed, list):
+            return 0
+        key = stat[8:]
+        levels = [max(0, min(5, stations.get(name, 0))) for name in outpost.STATIONS
+                  if type(stations.get(name, 0)) is int]
+        if key == "stations":
+            return sum(level > 0 for level in levels)
+        if key == "upgrades":
+            return max(0, sum(levels) - 3)  # three stations start at level one
+        if key == "mastered":
+            return sum(level == 5 for level in levels)
+        if key == "stockpile":
+            return sum(resources.get(name, 0) >= 50 for name in outpost.RESOURCES)
+        if key == "stories":
+            return len(set(completed) & set(outpost.ROUTES))
+        if key.startswith("route:"):
+            return int(key[6:] in completed)
+        if key.startswith("station:"):
+            return max(0, min(5, stations.get(key[8:], 0))) if key[8:] in outpost.STATIONS else 0
+        return 0
     if stat.startswith("topic:"):
         return st["topics"].get(stat[6:], 0)
     if stat == "topicsCovered":
@@ -4040,7 +4065,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/outpost":
             try:
-                return self.send_json(outpost.interact(OUTPOST_FILE, self.read_json()))
+                result = outpost.interact(OUTPOST_FILE, self.read_json())
+                record("outpost")
+                return self.send_json(result)
             except (ValueError, TypeError) as e:
                 return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/attention":

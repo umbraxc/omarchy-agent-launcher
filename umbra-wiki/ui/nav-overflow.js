@@ -1,4 +1,4 @@
-// Collapse the entire tab row when its natural width would crowd the header.
+// Keep the tab row in one predictable menu at every window size.
 "use strict";
 (() => {
   const top = document.querySelector(".top"), bar = document.querySelector(".controls");
@@ -30,27 +30,20 @@
       return `<button type="button" role="menuitem" data-for="${el.id}" class="${active ? "on" : ""}">${el.querySelector(".g")?.outerHTML || ""}<span>${escapeHtml(label)}</span>${progress ? `<small>${escapeHtml(progress)}</small>` : ""}</button>`;
     }).join("");
   }
+  function open() {
+    if (document.body.classList.contains("locked")) return;
+    fill(); menu.hidden = false; more.classList.add("on"); more.setAttribute("aria-expanded", "true"); place();
+  }
   function layout() {
-    // Measure the complete visible tab row before choosing a mode. scrollWidth
-    // catches the LINK/STATUS collision even when the outer header doesn't scroll.
-    top.classList.remove("compact-nav");
-    more.hidden = true;
-    const brand = top.querySelector(".brand"), telemetry = top.querySelector(".telemetry");
-    const style = getComputedStyle(top);
-    const available = top.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-    const need = brand.scrollWidth + telemetry.scrollWidth + parseFloat(style.columnGap || style.gap || 0);
-    const compact = need > available - 5 || top.scrollWidth > top.clientWidth + 1 ||
-      brand.getBoundingClientRect().right > telemetry.getBoundingClientRect().left - 5;
-    if (compact) { top.classList.add("compact-nav"); more.hidden = false; if (menu.hidden) fill(); }
-    else close();
+    top.classList.add("compact-nav"); more.hidden = false;
+    if (menu.hidden) fill();
+    else place();
     if (document.body.classList.contains("locked")) close();
-    if (!menu.hidden) place();
   }
   more.addEventListener("click", event => {
     event.stopPropagation();
     if (!menu.hidden) { close(); return; }
-    fill(); menu.hidden = false; more.classList.add("on"); more.setAttribute("aria-expanded", "true");
-    place(); menu.querySelector("button")?.focus(); Sound.click();
+    open(); menu.querySelector("button")?.focus(); Sound.click();
   });
   const activate = row => {
     const tab = document.getElementById(row.dataset.for);
@@ -67,7 +60,7 @@
     if (row && !menu.hidden) activate(row);  // keyboard / accessibility activation
   });
   document.addEventListener("pointerdown", event => {
-    if (!menu.hidden && !menu.contains(event.target) && !more.contains(event.target)) close();
+    if (!menu.hidden && !document.querySelector(".spot-shade") && !menu.contains(event.target) && !more.contains(event.target)) close();
   });
   document.addEventListener("keydown", event => {
     if (menu.hidden) return;
@@ -86,5 +79,6 @@
   new MutationObserver(records => { if (records.some(record => record.target !== more)) queue(); })
     .observe(bar, { childList: true, attributes: true, subtree: true, attributeFilter: ["hidden", "class"] });
   new MutationObserver(queue).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+  window.UmbraNavOverflow = { open, close, fill, menu, more };
   queue();
 })();

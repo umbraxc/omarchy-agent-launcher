@@ -1467,7 +1467,7 @@ body.touring .intro { display: none; }
 .tour-sw { display: flex; gap: 3px; margin-bottom: 5px; }
 .tour-sw i { width: 14px; height: 14px; border: 1px solid rgba(128, 128, 128, .35); }
 
-.spot-shade { position: fixed; inset: 0; z-index: 95; }
+.spot-shade { position: fixed; inset: 0; z-index: 150; }
 .spot {
   position: fixed; border: 2px solid var(--signal); box-shadow: 0 0 0 9999px rgba(0, 0, 0, .66);
   transition: left .35s ease, top .35s ease, width .35s ease, height .35s ease; pointer-events: none;
@@ -1744,9 +1744,11 @@ body.locked main { overflow: hidden; }
 }
 .dialog h2 { margin: 14px 0 8px; font-size: 15px; letter-spacing: .14em; color: var(--fg-bright); }
 .dialog p { margin: 0 0 18px; color: var(--fg); font-size: 13px; line-height: 1.65; white-space: pre-line; }
-.dialog-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.dialog-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
 .dialog .ghost { color: var(--dim); border-color: var(--muted); }
 .dialog .ghost:hover { background: var(--bg-3); color: var(--fg-bright); }
+.dialog .instant-exit { color: var(--red); border-color: color-mix(in srgb, var(--red) 70%, var(--line)); }
+.dialog .instant-exit:hover, .dialog .instant-exit:focus-visible { color: var(--bg); background: var(--red); border-color: var(--red); }
 .solid { border-color: var(--dlg, var(--signal)); background: var(--dlg, var(--signal)); }
 .solid:hover { filter: brightness(1.15); }
 
@@ -2775,8 +2777,13 @@ body.reduce-motion .fx-scan, body.reduce-motion .fx-static { animation: none; }
   box-shadow: 0 12px 30px rgba(0, 0, 0, .45); font-size: 10.5px; color: var(--fg); }
 .dos-card.glitch { animation: cf-glitch .5s steps(1, end) both; }
 body.reduce-motion .dos-card.glitch { animation: fade .2s ease-out both; }
-.dos-head { display: flex; justify-content: space-between; align-items: center; margin: 0 -14px 12px; padding: 7px 12px;
+.dos-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 0 -14px 12px; padding: 7px 12px;
   background: var(--signal); color: var(--bg); font-size: 9.5px; letter-spacing: .2em; font-weight: 800; }
+.dos-state { margin-left: auto; }
+.dos-size { display: none; flex: none; padding: 2px 3px; border: 1px solid color-mix(in srgb, var(--bg) 55%, transparent); background: transparent;
+  color: var(--bg); font: 800 8px var(--font); letter-spacing: .1em; cursor: pointer; }
+.dossier.can-dock .dos-size { display: inline-flex; }
+.dos-size:hover, .dos-size:focus-visible { background: var(--bg); color: var(--signal); outline: 1px solid var(--bg); }
 .dos-state { font-size: 9px; letter-spacing: .16em; }
 .dossier[data-state="thinking"] .dos-state::after { content: "…"; animation: dos-dots 1s steps(3) infinite; display: inline-block; width: 1.2em; overflow: hidden; vertical-align: bottom; }
 @keyframes dos-dots { from { width: 0; } to { width: 1.2em; } }

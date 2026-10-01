@@ -118,7 +118,9 @@ Umbra's card stands on one side of the conversation and yours on the other:
 its personality's portrait and what it's doing (standing by, thinking,
 transmitting), your character, title and rank (typing, sent). Your messages
 sit on the right. On a narrower window the cards fold into slim bars at the
-edges that open when you hover over them.
+edges that open when you hover over them. In fullscreen, use **MINIMIZE** on
+either card to fold it into the same edge bar; hover to peek or choose
+**RESTORE** to keep it open again.
 
 ### An Umbra that adapts to you
 
@@ -161,13 +163,13 @@ Vault) private.
 
 ### Achievements
 
-75 achievements in four tiers (bronze, silver, gold and legendary), each with
+99 achievements in four tiers (bronze, silver, gold and legendary), each with
 its own badge, in the Loadout's **ACHIEVEMENTS** tab: your first question and
 the welcome tour, 10 to 500 questions, the ten survival topics (water, fire,
 shelter, first aid, food, navigation, power, radio, repairs, disasters),
 reading the whole field manual, a full library, off-grid answers, backups to
 a USB stick, day streaks, maps and waypoints, the Field Kit, the radar, the vault, the calendar, the Core panel,
-trying themes and personalities, creating your own, and a few secret ones. Progress bars show how far along you are; a chime and
+trying themes and personalities, building Umbra Outpost and completing its stories, creating your own, and a few secret ones. Progress bars show how far along you are; a chime and
 a pop-up celebrate each new one. Points raise your rank from Recruit to
 Legend.
 
@@ -178,10 +180,10 @@ your saved conversations once, so earlier use counts too.
 
 ![Achievements](docs/achievements.png)
 
-**The Locker** (Profile → LOCKER) turns them into rewards: 14 orbs for the start
+**The Locker** (Profile → LOCKER) turns them into rewards: 23 orbs for the start
 screen, drawn in colour (radar scope, compass, moon phases, ringed world, the
 watcher, black sun, and for the hardest achievements a galaxy, an aurora, an
-atom, a black hole and a supernova), 12
+atom, a black hole and a supernova, plus five Outpost scenes), 12
 titles shown with your name, and 5 name effects. Ranks and particular
 achievements unlock them; a note tells you when one does. Achievements start
 counting once the welcome tour is done.
@@ -364,8 +366,9 @@ campfire embers and a radar sweep.
 ![Backgrounds](docs/backgrounds.png)
 
 Every launch boots with **UMBRA // ONLINE**, a welcome by name and Umbra's
-boot chime; closing asks first and signs off with **UMBRA // OFFLINE**. Eight
-transition styles to choose from, with previews in Settings.
+boot chime; closing asks first and signs off with **UMBRA // OFFLINE**. Choose
+**INSTANT EXIT** in that prompt to close at once without the goodbye animation.
+Eight transition styles are available, with previews in Settings.
 
 ![Boot and goodbye](docs/transitions.png)
 

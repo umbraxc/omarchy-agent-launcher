@@ -318,6 +318,69 @@ window.UmbraOrbs = (() => {
         return null;
       },
     },
+    ember: {
+      under: c => c.glow(c.cx, c.cy, c.R * 1.2, "#ec813d", .2),
+      cell(u, v, r, t) {
+        if (r > 1.08) return null;
+        const swirl = Math.atan2(v, u) + r * 3 - t * .5;
+        if (r > .8) return Math.abs(Math.sin(swirl * 8)) > .9 ? ["·", "#ab6d56", .5] : null;
+        const flame = .48 + .2 * Math.sin(swirl * 3 + t * 2) + .12 * noise(u * 6, v * 6, t * .5);
+        if (r > flame) return hash(Math.round(u * 31), Math.round(v * 31), 8) > .96 ? ["·", "#aa5b3d", .45] : null;
+        return [ramp(1 - r * .8), r < .25 ? "#fff0ae" : r < .48 ? "#f5aa56" : "#d7653d", .65 + .3 * Math.sin(t * 3 + u * 5)];
+      },
+    },
+    greenhouse: {
+      under: c => c.glow(c.cx, c.cy, c.R * 1.15, "#65bd87", .16),
+      cell(u, v, r, t) {
+        if (r > 1) return null;
+        const glass = Math.abs(u) > .86 || Math.abs(v) > .87 || Math.abs(u) < .025 || Math.abs(v + .15) < .025;
+        if (glass) return ["+", "#a8e8d8", .45 + .25 * (1 - r)];
+        const stem = Math.abs(u - .09 * Math.sin(v * 5 + t * .5)) < .04 && v > -.55 && v < .7;
+        const leaf = [[-.32,-.2],[.33,.1],[-.38,.36]].some(([x,y]) => Math.hypot((u-x)*1.5,(v-y)*2.2) < .25);
+        if (stem) return ["|", "#81c970", .85];
+        if (leaf) return ["✿", "#a5de78", .65 + .25 * Math.sin(t + u * 3)];
+        return v > .72 ? ["-", "#997254", .6] : hash(Math.round(u*25),Math.round(v*25),3) > .985 ? ["·", "#d9f7ba", .5] : null;
+      },
+    },
+    stormglass: {
+      under: c => c.glow(c.cx, c.cy, c.R * 1.2, "#789ad7", .15),
+      cell(u, v, r, t) {
+        if (r > 1.03) return null;
+        if (r > .92) return ["·", "#aac6e8", .55];
+        const cloud = fbm(u * 5 + t * .15, v * 5, 4) > .47 && v < .35;
+        const bolt = Math.abs(u - .18 * Math.sin(v * 9 + Math.floor(t * 2))) < .055 && v > -.45 && v < .67 && Math.sin(t * 2.8) > .68;
+        if (bolt) return ["ϟ", "#f6f1c0", 1];
+        if (cloud) return ["#", "#8ca7cd", .35 + .4 * (1-r)];
+        return hash(Math.round(u*35), Math.round(v*35), 5) > .972 ? ["·", "#bdd8ee", .5] : null;
+      },
+    },
+    sundial: {
+      under: c => c.glow(c.cx, c.cy, c.R * 1.25, "#e8bc5e", .19),
+      cell(u, v, r, t) {
+        if (r > 1.06) return null;
+        const a = Math.atan2(v,u) - t * .3;
+        if (r < .34) return [ramp(1-r), r < .18 ? "#fff3be" : "#edc873", .95];
+        const panel = Math.abs(Math.sin(a * 4)) < .63 && r > .42 && r < .91;
+        if (panel) return [Math.abs(Math.sin(r * 22)) < .12 ? "+" : "#", "#8ab7c1", .45 + .4 * Math.max(0,Math.cos(a-t))];
+        if (r < .43 || (r > .94 && r < 1.02)) return ["·", "#d3ab67", .6];
+        return null;
+      },
+    },
+    outpost: {
+      under: c => c.glow(c.cx, c.cy, c.R * 1.18, "#d5a36a", .13),
+      cell(u, v, r, t) {
+        if (r > 1.06) return null;
+        const lights = [[-.52,-.25],[-.22,-.4],[.18,-.35],[.55,-.2],[-.49,.2],[-.16,.29],[.22,.23],[.51,.26]];
+        for (let i=0;i<lights.length;i++) {
+          const [x,y]=lights[i],d=Math.hypot(u-x,v-y);
+          if (d < .075) return ["✦", i%2 ? "#f4c67a" : "#a9dcbb", .8 + .2*Math.sin(t*2+i)];
+          if (d < .14) return ["·", "#c9aa76", .26];
+        }
+        if (v > .5 && r < 1) return ["-", "#736d62", .4];
+        if (Math.abs(v + .12 - .1*Math.sin(u*6)) < .025 && Math.abs(u)<.75) return ["·", "#8f8a75", .4];
+        return hash(Math.round(u*34),Math.round(v*34),6) > .986 ? ["·", "#dce8d5", .5] : null;
+      },
+    },
   };
 
   // ---------------------------------------------------------- the canvas

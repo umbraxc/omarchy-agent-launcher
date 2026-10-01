@@ -77,6 +77,9 @@
         <details class="fm-method"><summary>DATA, SOURCES & LIMITS</summary><div class="fm-method-inner"></div></details></main></div>`;
     document.body.appendChild(panel);
     UmbraFarmArt.hero($f(".fm-art"), null, 0);
+    new ResizeObserver(() => {
+      if (!panel.hidden) UmbraFarmArt.hero($f(".fm-art"), item(chosen), performance.now());
+    }).observe($f(".fm-art"));
     setInterval(() => {
       if (panel.hidden || document.hidden || document.body.classList.contains("reduce-motion")) return;
       const art = $f(".fm-art"), view = art.getBoundingClientRect();

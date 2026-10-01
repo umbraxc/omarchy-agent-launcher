@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.1.6
+
+### Highlights
+
+- Umbra Outpost adds an offline settlement with eight resources, eight upgradeable camps and two short expedition stories. Progress continues while Umbra is closed.
+- Eleven new Outpost achievements unlock five animated ASCII orbs in the Locker.
+- The top tabs now stay in one clear menu at every window size. The visual tour opens that menu and introduces its tabs in menu order.
+- Farming and other ASCII scenes keep their proportions when the window or fullscreen size changes, with less unnecessary canvas work.
+- Conversations retain local message times and can show an animated offline constellation atlas when you ask about the night sky.
+- Compact-menu actions, chat rank labels and follow-up replies are more reliable.
+- Sound controls open and stay open from the tab menu. Fullscreen conversation cards can be minimized into edge tabs and restored individually.
+- The leave prompt offers Instant Exit to close immediately without playing the goodbye animation.
+
 ## 3.1.5
 
 ### Highlights

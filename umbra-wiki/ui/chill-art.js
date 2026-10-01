@@ -25,8 +25,10 @@
     let visible=false;
     const observer=new IntersectionObserver(entries=>{visible=!!entries[0]?.isIntersecting;if(visible)draw();});
     observer.observe(card);
+    const resized = new ResizeObserver(() => { if (visible) draw(); });
+    resized.observe(canvas);
     const timer=setInterval(()=>{
-      if(!card.isConnected){clearInterval(timer);observer.disconnect();return;}
+      if(!card.isConnected){clearInterval(timer);observer.disconnect();resized.disconnect();return;}
       if(visible&&!document.hidden&&!document.body.classList.contains("reduce-motion"))draw();
     },180);
   }

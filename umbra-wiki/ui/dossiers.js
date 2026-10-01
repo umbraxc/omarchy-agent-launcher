@@ -18,7 +18,7 @@
     el.className = `dossier ${side}`;
     el.hidden = true;
     el.innerHTML = `<button class="dos-tab" type="button" title="${side === "left" ? "Umbra|Who you're talking to." : "You|How Umbra sees you."}"><span>${side === "left" ? "UMBRA" : "YOU"}</span><i></i></button>
-      <div class="dos-card"><div class="dos-head"><span class="dos-kind">${side === "left" ? "◆ AI · DOSSIER" : "◆ YOU · DOSSIER"}</span><b class="dos-state"></b></div>
+      <div class="dos-card"><div class="dos-head"><span class="dos-kind">${side === "left" ? "◆ AI · DOSSIER" : "◆ YOU · DOSSIER"}</span><b class="dos-state"></b><button class="dos-size" type="button" aria-label="Minimize ${side === "left" ? "Umbra" : "your"} dossier">MINIMIZE ▸</button></div>
         <div class="dos-portrait"><pre class="dos-face"></pre><span class="dos-mood"></span></div>
         <div class="dos-name"></div><div class="dos-sub"></div>
         <pre class="dos-line"></pre>
@@ -202,7 +202,11 @@
     for (const el of [ai, me]) {
       const was = el.hidden;
       el.hidden = !chatting;
-      el.classList.toggle("docked", wide);
+      el.classList.toggle("can-dock", wide);
+      el.classList.toggle("docked", wide && !el.classList.contains("minimized"));
+      const size = el.querySelector(".dos-size");
+      size.textContent = el.classList.contains("minimized") ? "RESTORE ◂" : "MINIMIZE ▸";
+      size.setAttribute("aria-label", `${el.classList.contains("minimized") ? "Restore" : "Minimize"} ${el === ai ? "Umbra" : "your"} dossier`);
       if (!wide && el.hidden) el.classList.remove("open");
       if (was && !el.hidden && wide) pop(el);
     }
@@ -220,6 +224,10 @@
     el.addEventListener("mouseenter", () => { clearTimeout(closeTimer); if (!el.classList.contains("open")) { set(true); Sound.hover(); } });
     el.addEventListener("mouseleave", () => { if (!pinned) closeTimer = setTimeout(() => set(false), 350); });
     tab.addEventListener("click", () => { pinned = !el.classList.contains("open") || !pinned; set(pinned); Sound.click(); });
+    el.querySelector(".dos-size").addEventListener("click", () => {
+      pinned = false; el.classList.remove("open");
+      el.classList.toggle("minimized"); layout(); Sound.click();
+    });
   }
 
   // Only while the cards can be seen (not behind the map, the radar or another window).

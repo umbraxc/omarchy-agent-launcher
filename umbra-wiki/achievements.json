@@ -41,6 +41,10 @@
    "TOOLS & GEAR"
   ],
   [
+   "outpost",
+   "UMBRA OUTPOST"
+  ],
+  [
    "legend",
    "LEGEND"
   ]
@@ -903,7 +907,7 @@
    "id": "field-steward",
    "name": "Field Steward",
    "description": "Add 12 distinct crops or livestock to a Farming plan.",
-   "icon": "♧",
+   "icon": "\u2667",
    "tier": "gold",
    "points": 50,
    "stat": "farmItems",
@@ -914,7 +918,7 @@
    "id": "living-farm",
    "name": "Living Farm",
    "description": "Add 8 crops and 4 livestock to a Farming plan.",
-   "icon": "✳",
+   "icon": "\u2733",
    "tier": "gold",
    "points": 75,
    "stat": "farmDiversity",
@@ -925,7 +929,7 @@
    "id": "six-frequencies",
    "name": "Six Frequencies",
    "description": "Play all 6 bundled offline radio tracks.",
-   "icon": "◉",
+   "icon": "\u25c9",
    "tier": "gold",
    "points": 50,
    "stat": "radioTracks",
@@ -936,7 +940,7 @@
    "id": "trail-network",
    "name": "Trail Network",
    "description": "Create 20 distinct map waypoints.",
-   "icon": "⌖",
+   "icon": "\u2316",
    "tier": "gold",
    "points": 75,
    "stat": "waypoints",
@@ -947,7 +951,7 @@
    "id": "manual-scholar",
    "name": "Manual Scholar",
    "description": "Read 15 distinct field manual pages.",
-   "icon": "▤",
+   "icon": "\u25a4",
    "tier": "gold",
    "points": 75,
    "stat": "manualsRead",
@@ -958,7 +962,7 @@
    "id": "field-veteran",
    "name": "Field Veteran",
    "description": "Complete 25 field-kit drills.",
-   "icon": "⚑",
+   "icon": "\u2691",
    "tier": "gold",
    "points": 75,
    "stat": "drills",
@@ -969,7 +973,7 @@
    "id": "skykeeper",
    "name": "Skykeeper",
    "description": "Check the Sun or Moon tools 20 times.",
-   "icon": "☼",
+   "icon": "\u263c",
    "tier": "gold",
    "points": 50,
    "stat": "sunChecks",
@@ -980,7 +984,7 @@
    "id": "many-lives",
    "name": "Many Lives",
    "description": "Try 10 distinct scenarios.",
-   "icon": "◈",
+   "icon": "\u25c8",
    "tier": "gold",
    "points": 50,
    "stat": "scenarios",
@@ -991,7 +995,7 @@
    "id": "model-explorer",
    "name": "Model Explorer",
    "description": "Use 4 distinct local AI models.",
-   "icon": "✧",
+   "icon": "\u2727",
    "tier": "gold",
    "points": 75,
    "stat": "modelsTried",
@@ -1002,7 +1006,7 @@
    "id": "vault-warden",
    "name": "Vault Warden",
    "description": "Open the protected Vault 10 times.",
-   "icon": "▣",
+   "icon": "\u25a3",
    "tier": "gold",
    "points": 50,
    "stat": "vault",
@@ -1013,7 +1017,7 @@
    "id": "umbra-complete",
    "name": "Umbra Complete",
    "description": "Meet all 11 deep-use milestones across chat, manuals, maps, medicine, drills, sky, Farming, radio, themes, Vault and map packs.",
-   "icon": "✦",
+   "icon": "\u2726",
    "tier": "legendary",
    "points": 100,
    "stat": "expeditionBreadth",
@@ -1024,7 +1028,7 @@
    "id": "quiet-discovery",
    "name": "Quiet Discovery",
    "description": "Find the hidden landscape after tucking away the start-screen questions.",
-   "icon": "✧",
+   "icon": "\u2727",
    "tier": "silver",
    "points": 25,
    "stat": "quietScene",
@@ -1036,13 +1040,134 @@
    "id": "impossible-pulse",
    "name": "Impossible Pulse",
    "description": "Keep the pulse tapper near 500 BPM for 10 seconds.",
-   "icon": "♥",
+   "icon": "\u2665",
    "tier": "legendary",
    "points": 100,
    "stat": "pulse500",
    "goal": 1,
    "category": "fieldkit",
    "secret": true
+  },
+  {
+   "id": "lamplighter",
+   "name": "Lamplighter",
+   "description": "Light the first new camp at Umbra Outpost.",
+   "icon": "\u2726",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "outpost:stations",
+   "goal": 4,
+   "category": "outpost"
+  },
+  {
+   "id": "eight-fires",
+   "name": "Eight Fires",
+   "description": "Bring all eight Outpost stations to life.",
+   "icon": "\u2723",
+   "tier": "silver",
+   "points": 25,
+   "stat": "outpost:stations",
+   "goal": 8,
+   "category": "outpost"
+  },
+  {
+   "id": "hands-at-work",
+   "name": "Hands at Work",
+   "description": "Make five station upgrades.",
+   "icon": "\u2692",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "outpost:upgrades",
+   "goal": 5,
+   "category": "outpost"
+  },
+  {
+   "id": "settlement-builder",
+   "name": "Settlement Builder",
+   "description": "Make twenty station upgrades.",
+   "icon": "\u25a4",
+   "tier": "gold",
+   "points": 50,
+   "stat": "outpost:upgrades",
+   "goal": 20,
+   "category": "outpost"
+  },
+  {
+   "id": "master-craft",
+   "name": "Master Craft",
+   "description": "Raise one Outpost station to its final level.",
+   "icon": "\u25c6",
+   "tier": "silver",
+   "points": 25,
+   "stat": "outpost:mastered",
+   "goal": 1,
+   "category": "outpost"
+  },
+  {
+   "id": "all-hands",
+   "name": "All Hands",
+   "description": "Raise every Outpost station to its final level.",
+   "icon": "\u273a",
+   "tier": "legendary",
+   "points": 100,
+   "stat": "outpost:mastered",
+   "goal": 8,
+   "category": "outpost"
+  },
+  {
+   "id": "sun-fed",
+   "name": "Sun Fed",
+   "description": "Raise the Solar station to level three.",
+   "icon": "\u263c",
+   "tier": "silver",
+   "points": 25,
+   "stat": "outpost:station:solar",
+   "goal": 3,
+   "category": "outpost"
+  },
+  {
+   "id": "stores-for-winter",
+   "name": "Stores for Winter",
+   "description": "Hold at least 50 of four different resources at once.",
+   "icon": "\u25c8",
+   "tier": "silver",
+   "points": 25,
+   "stat": "outpost:stockpile",
+   "goal": 4,
+   "category": "outpost"
+  },
+  {
+   "id": "ridge-runner",
+   "name": "Ridge Runner",
+   "description": "Finish The Silent Weather Station story.",
+   "icon": "\u2301",
+   "tier": "silver",
+   "points": 25,
+   "stat": "outpost:route:weather",
+   "goal": 1,
+   "category": "outpost"
+  },
+  {
+   "id": "keeper-of-seeds",
+   "name": "Keeper of Seeds",
+   "description": "Finish The Glasshouse Signal story.",
+   "icon": "\u2740",
+   "tier": "silver",
+   "points": 25,
+   "stat": "outpost:route:glasshouse",
+   "goal": 1,
+   "category": "outpost"
+  },
+  {
+   "id": "two-horizons",
+   "name": "Two Horizons",
+   "description": "Finish both Outpost expedition stories.",
+   "icon": "\u2727",
+   "tier": "gold",
+   "points": 50,
+   "stat": "outpost:stories",
+   "goal": 2,
+   "category": "outpost"
   },
   {
    "id": "legend",
@@ -1052,7 +1177,7 @@
    "tier": "legendary",
    "points": 100,
    "stat": "allOthers",
-   "goal": 87,
+   "goal": 98,
    "category": "legend"
   }
  ],
@@ -1215,6 +1340,51 @@
    "description": "An orbiting field of stars connected into a living map.",
    "unlock": {
     "achievement": "umbra-complete"
+   }
+  },
+  {
+   "id": "ember",
+   "kind": "orb",
+   "name": "Hearth Ember",
+   "description": "A warm living ember inside a shelter of turning ash.",
+   "unlock": {
+    "achievement": "lamplighter"
+   }
+  },
+  {
+   "id": "greenhouse",
+   "kind": "orb",
+   "name": "Glasshouse",
+   "description": "A tiny glass world with growing leaves and a breathing lantern.",
+   "unlock": {
+    "achievement": "keeper-of-seeds"
+   }
+  },
+  {
+   "id": "stormglass",
+   "kind": "orb",
+   "name": "Stormglass",
+   "description": "A storm sealed in glass, with lightning following the old weather route.",
+   "unlock": {
+    "achievement": "ridge-runner"
+   }
+  },
+  {
+   "id": "sundial",
+   "kind": "orb",
+   "name": "Sun Array",
+   "description": "Eight bright panels around a solar core that tracks the light.",
+   "unlock": {
+    "achievement": "sun-fed"
+   }
+  },
+  {
+   "id": "outpost",
+   "kind": "orb",
+   "name": "The Outpost",
+   "description": "A miniature settlement under stars, with eight glowing camp lights.",
+   "unlock": {
+    "achievement": "two-horizons"
    }
   },
   {

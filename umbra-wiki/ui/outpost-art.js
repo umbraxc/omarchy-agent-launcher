@@ -31,8 +31,11 @@ window.UmbraOutpostArt = (() => {
     let sites = [];
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
-      W = rect.width; H = rect.height; dpr = Math.min(2, devicePixelRatio || 1);
+      const nextDpr = Math.min(2, devicePixelRatio || 1);
+      if (W === rect.width && H === rect.height && dpr === nextDpr) return;
+      W = rect.width; H = rect.height; dpr = nextDpr;
       canvas.width = Math.max(1, Math.round(W * dpr)); canvas.height = Math.max(1, Math.round(H * dpr));
+      frame();
     };
     new ResizeObserver(resize).observe(canvas); resize();
     const glyph = (char, x, y, color, alpha = 1, size = 11) => {
@@ -166,7 +169,9 @@ window.UmbraOutpostArt = (() => {
     canvas.addEventListener("pointermove", event => {
       const box = canvas.getBoundingClientRect(), x = event.clientX - box.left, y = event.clientY - box.top;
       const site = sites.find(s => Math.abs(x - s.x) < s.width * .55 && y > s.y - s.height && y < s.y + 40);
-      hovered = site?.key || null; tip.hidden = !hovered;
+      const next = site?.key || null;
+      if (next === hovered) return;
+      hovered = next; tip.hidden = !hovered;
       canvas.style.cursor = hovered ? "help" : "default";
       frame();
     });
