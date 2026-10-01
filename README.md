@@ -254,6 +254,16 @@ silent weather station and the glasshouse. Each story
 has two choices when the team returns. The save stays on this device and is
 included in Umbra backups; it never changes your real Farming plan or supplies.
 
+### Offline night sky
+
+Ask about constellations or accept an offer to see them, and Umbra opens an
+animated ASCII sky atlas in the conversation. The bundled reference has all
+88 [IAU constellations](https://iauarchive.eso.org/public/themes/constellations/)
+and 448 [IAU named stars](https://iauarchive.eso.org/public/themes/naming_stars/)
+with coordinates. Set latitude and longitude in the chart for stars above
+your horizon; until then it clearly labels its 52°N, 5°E example view.
+Daylight, weather and obstructions affect what you can actually see.
+
 ### Field Kit
 
 The tools that can matter between life and death, all offline (Ctrl+K):

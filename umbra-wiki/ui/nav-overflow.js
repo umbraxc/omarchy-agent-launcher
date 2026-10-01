@@ -41,7 +41,7 @@
     const need = brand.scrollWidth + telemetry.scrollWidth + parseFloat(style.columnGap || style.gap || 0);
     const compact = need > available - 5 || top.scrollWidth > top.clientWidth + 1 ||
       brand.getBoundingClientRect().right > telemetry.getBoundingClientRect().left - 5;
-    if (compact) { top.classList.add("compact-nav"); more.hidden = false; fill(); }
+    if (compact) { top.classList.add("compact-nav"); more.hidden = false; if (menu.hidden) fill(); }
     else close();
     if (document.body.classList.contains("locked")) close();
     if (!menu.hidden) place();
@@ -52,9 +52,19 @@
     fill(); menu.hidden = false; more.classList.add("on"); more.setAttribute("aria-expanded", "true");
     place(); menu.querySelector("button")?.focus(); Sound.click();
   });
+  const activate = row => {
+    const tab = document.getElementById(row.dataset.for);
+    close(); tab?.click();
+  };
+  // A press must survive unrelated header mutations while the menu is open.
+  menu.addEventListener("pointerdown", event => {
+    const row = event.target.closest("button[data-for]");
+    if (!row || event.button !== 0) return;
+    event.preventDefault(); event.stopPropagation(); activate(row);
+  });
   menu.addEventListener("click", event => {
-    const row = event.target.closest("button[data-for]"); if (!row) return;
-    close(); document.getElementById(row.dataset.for)?.click();
+    const row = event.target.closest("button[data-for]");
+    if (row && !menu.hidden) activate(row);  // keyboard / accessibility activation
   });
   document.addEventListener("pointerdown", event => {
     if (!menu.hidden && !menu.contains(event.target) && !more.contains(event.target)) close();

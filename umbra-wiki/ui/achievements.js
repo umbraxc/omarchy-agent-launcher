@@ -44,6 +44,7 @@
 
   async function load() {
     try { data = await (await fetch("/api/achievements")).json(); } catch { data = null; }
+    window.updateChatRank?.();
     return data;
   }
 
@@ -246,6 +247,7 @@
     try {
       const r = await (await fetch("/api/achievements/unseen")).json();
       data = r;
+      window.updateChatRank?.();
       r.unseen.forEach((id) => { const a = r.achievements.find((x) => x.id === id); if (a) toast(a); });
       (r.newRewards || []).forEach((id) => { const w = r.rewards.find((x) => x.id === id); if (w) toast({ reward: true, ...w }); });
       if (r.unseen.length && window.refreshLoadoutTab) window.refreshLoadoutTab("achievements");

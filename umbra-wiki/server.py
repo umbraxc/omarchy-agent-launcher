@@ -34,6 +34,7 @@ import maps  # noqa: E402  (offline maps: maps.py next to this file)
 import transfers
 import linked_library
 import outpost
+import sky
 import radar  # noqa: E402  (signals & radar: radar.py next to this file)
 
 # The Windows app (built from windows/): its own places, tools and readings.
@@ -2884,6 +2885,10 @@ def apply_settings(update):
             settings["zoom"] = round(max(0.5, min(2.0, float(update["zoom"]))), 2)
         if type(update.get("clockOffsetMinutes")) is int and -720 <= update["clockOffsetMinutes"] <= 720:
             settings["clockOffsetMinutes"] = update["clockOffsetMinutes"]
+        for key, low, high in (("skyLatitude", -89, 89), ("skyLongitude", -180, 180)):
+            value = update.get(key)
+            if type(value) in (int, float) and math.isfinite(value) and low <= value <= high:
+                settings[key] = round(value, 4)
         for kind, slot in REWARD_SLOTS.items():
             if slot in update:
                 rewards, _ = reward_status()
@@ -3377,6 +3382,10 @@ def history_save(conv, keep_time=False):
             "meta": str(m.get("meta", ""))[:200],
             "online": bool(m.get("online")),
             "persona": str(m.get("persona", ""))[:40],
+            "userAt": m.get("userAt") if type(m.get("userAt")) is int and 0 < m["userAt"] < 4102444800000 else None,
+            "answerAt": m.get("answerAt") if type(m.get("answerAt")) is int and 0 < m["answerAt"] < 4102444800000 else None,
+            "clockOffsetMinutes": m.get("clockOffsetMinutes") if type(m.get("clockOffsetMinutes")) is int and -720 <= m["clockOffsetMinutes"] <= 720 else 0,
+            "sky": bool(m.get("sky")),
             "scene": str(m.get("scene", ""))[:20] if m.get("scene") in ("dawn", "forest", "shore", "stars") else "",
             "sources": sources,
         })
@@ -4469,9 +4478,20 @@ def message_parts(question):
     return pieces[:3] + ([" ".join(pieces[3:])] if len(pieces) > 3 else [])
 
 
+def offer_context(question, history):
+    """Resolve short assent against the latest assistant offer, if any."""
+    previous = next((str(turn.get("content", "")) for turn in reversed(history)
+                     if isinstance(turn, dict) and turn.get("role") == "assistant"), "")
+    assent = bool(re.match(r"(?i)^\s*(?:yes|yeah|yep|sure|absolutely|okay|ok|please|i(?:'d| would) love(?: that| to)?|sounds good)\b", question))
+    follows_offer = assent and bool(previous) and ("?" in previous[-280:] or re.search(r"\b(?:would you like|if you want|i can show)\b", previous[-350:], re.I))
+    sky_request = bool(re.search(r"\b(?:constellations?|night sky|star chart|stargaz\w*|stars? (?:visible|tonight|overhead))\b", question, re.I)) or (follows_offer and bool(re.search(r"\b(?:constellations?|night sky|stars?)\b", previous[-500:], re.I)))
+    return previous, bool(follows_offer), sky_request
+
+
 def answer(req, emit):
     question = str(req.get("question", "")).strip()
     history = req.get("history") or []
+    previous, follows_offer, sky_request = offer_context(question, history)
     online = bool(req.get("online"))
     # Off-grid mode saves battery: the AI writes shorter answers.
     offgrid = bool(req.get("offgrid"))
@@ -4506,14 +4526,17 @@ def answer(req, emit):
         return
 
     answer_model = MODEL
-    chatting = is_small_talk(question)
+    chatting = is_small_talk(question) and not sky_request
     parts = message_parts(question)
     wants_fun_fact = bool(re.search(r"\b(?:fun|interesting|random) facts?\b|\banother fact\b|\bdid you know\b", question, re.I))
     topic_fact = re.search(r"\b(?:(?:fun|interesting|random) facts?|another fact) (?:about|on)\b", question, re.I)
     fact = fun_fact_source(history, question if topic_fact else "") if wants_fun_fact else None
     learn_style(question)
     emit({"type": "phase", "phase": "search"})
-    if chatting:
+    if sky_request:
+        sources, notice = [], ""
+        emit({"type": "sky"})
+    elif chatting:
         sources, notice = ([fact] if fact else []), ""
     elif parts:
         sources, notice, seen = [], "", set()
@@ -4545,6 +4568,17 @@ def answer(req, emit):
     ]})
 
     system = build_system_prompt(online, question, chatting)
+    if follows_offer:
+        system += (" The user's affirmative reply accepts your immediately previous offer. Fulfil that specific offer now. "
+                   "Do not restart the prior topic, describe your day again, or ask a new unrelated question. "
+                   "Your offer was: " + previous[-650:])
+    if sky_request:
+        current_settings = read_json(SETTINGS_FILE, {})
+        lat, lon = current_settings.get("skyLatitude"), current_settings.get("skyLongitude")
+        if type(lat) not in (int, float) or type(lon) not in (int, float):
+            lat = lon = None
+        system += " OFFLINE SKY ATLAS: " + sky.overview(lat, lon)
+        system += " A shaded animated star chart will appear with the reply; mention it naturally. Answer the user's astronomy question directly."
     if re.search(r"\b(?:fresh|drinking|safe|clean|purif\w*|treat\w*)?\s*water\b", question, re.I) and not chatting:
         system += (" WATER SAFETY: Fresh or clear-looking water is not necessarily safe to drink. "
                    "Keep finding/collecting water distinct from making it safe. Settling or cloth filtering "
@@ -4591,9 +4625,10 @@ def answer(req, emit):
     for i, turn in enumerate(recent):
         role = "assistant" if turn.get("role") == "assistant" else "user"
         content = str(turn.get("content", ""))
-        if chatting and role == "assistant" and (len(content) > 300 or re.search(r"(?m)^\s*(?:\d+[.)]|[-*])\s", content)):
+        latest_assistant = role == "assistant" and i == len(recent) - 1
+        if chatting and role == "assistant" and not (follows_offer and latest_assistant) and (len(content) > 300 or re.search(r"(?m)^\s*(?:\d+[.)]|[-*])\s", content)):
             continue  # a previous long or list-like answer should not steer a new chat topic
-        keep = 320 if chatting else 900 if i >= len(recent) - 2 else 250
+        keep = 900 if follows_offer and latest_assistant else 320 if chatting else 900 if i >= len(recent) - 2 else 250
         messages.append({"role": role, "content": content[:keep]})
     if chatting:
         messages.append({"role": "user", "content": question})

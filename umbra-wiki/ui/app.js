@@ -1829,12 +1829,21 @@ function addUser(text, wasOnline = online, stamp = Date.now(), offset) {
   const fx = (window.prefs && window.prefs.nameFx) || "plain";
   el.querySelector(".who").classList.add("fx-" + fx);
   const title = window.prefs && window.prefs.title;
-  const titled = title && title !== "none" && window.UmbraAchievements && UmbraAchievements.data && (UmbraAchievements.data.rewards || []).find((r) => r.id === title);
-  if (titled) el.querySelector(".who").insertAdjacentHTML("beforebegin", `<span class="title-tag">${escapeHtml(titled.name.toUpperCase())}</span>`);
+  const achievements = window.UmbraAchievements?.data;
+  const titled = title && title !== "none" && achievements && (achievements.rewards || []).find((r) => r.id === title);
+  if (titled) {
+    const rankTitle = !!titled.unlock?.rank;
+    const label = rankTitle ? achievements.rank : titled.name;
+    el.querySelector(".who").insertAdjacentHTML("beforebegin", `<span class="title-tag${rankTitle ? " rank-tag" : ""}">${escapeHtml(label.toUpperCase())}</span>`);
+  }
   if (me.picture) el.querySelector(".avatar").src = me.picture;
   el.querySelector(".body").textContent = text;
   feed.appendChild(el);
 }
+window.updateChatRank = () => {
+  const rank = window.UmbraAchievements?.data?.rank;
+  if (rank) document.querySelectorAll(".msg.user .rank-tag").forEach(el => { el.textContent = rank.toUpperCase(); });
+};
 
 // UMBRA, plus which personality is talking, so a conversation shows who
 // said what even when the loadout changes midway.
@@ -1948,6 +1957,7 @@ function finishAnswer(msg, rec) {
   rec.sources.forEach((s) => (byN[s.n] = s));
   paintAnswer(answerEl, rec.answer, byN);
   if (rec.scene && window.UmbraChill && !msg.querySelector(".chat-scene")) UmbraChill.render(card, rec.scene);
+  if (rec.sky && window.UmbraSky) UmbraSky.render(card);
   msg.querySelector(".label .spin")?.remove();
   renderSources(card, rec.sources);
   if (rec.offer) renderNext(answerEl, rec.offer);
@@ -2040,7 +2050,7 @@ async function ask(question, shownAs = "") {
   startTimer();
   setPhase("search");
 
-  let text = "", sources = [], next = "", meta = null, stopped = false, writing = false, contextNote = "";
+  let text = "", sources = [], next = "", meta = null, stopped = false, writing = false, contextNote = "", skyRequested = false;
   const sourceByN = {};
   const typer = typewriter((shown) => paintAnswer(answerEl, shown, sourceByN, true));
 
@@ -2077,6 +2087,8 @@ async function ask(question, shownAs = "") {
           let n = card.querySelector(".context-note");
           if (!n) { n = document.createElement("div"); n.className = "context-note"; card.prepend(n); }
           n.textContent = contextNote;
+        } else if (e.type === "sky") {
+          skyRequested = true;
         } else if (e.type === "sources") {
           sources = e.sources;
           sources.forEach((s) => (sourceByN[s.n] = s));
@@ -2110,7 +2122,7 @@ async function ask(question, shownAs = "") {
   if (!stopped) { typer.set(shown); await typer.drained(); }
   const rec = {
     question, shown: shownAs, answer: shown, offer: stopped ? "" : next, sources, online, contextNote,
-    userAt, answerAt: Date.now(), clockOffsetMinutes,
+    userAt, answerAt: Date.now(), clockOffsetMinutes, sky: skyRequested,
     scene: !stopped && window.UmbraChill ? UmbraChill.select(question, chat.length / 2) : "",
     persona: window.loadoutPersona || "",
     meta: meta ? `${meta.tokens} TOKENS · ${meta.seconds}s · ${sources.length} SOURCES · ${online ? "ONLINE" : "OFFLINE"}` : "",

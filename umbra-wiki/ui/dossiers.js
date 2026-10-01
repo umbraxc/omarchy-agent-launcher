@@ -122,7 +122,7 @@
       who.right.frames = P.art(d.character || {});
       const title = window.prefs && prefs.title, t = A && title && title !== "none" && (A.rewards || []).find((r) => r.id === title);
       me.querySelector(".dos-name").innerHTML = `<span class="fx-${escapeHtml((window.prefs && prefs.nameFx) || "plain")}"${d.color ? ` style="color:var(--${d.color})"` : ""}>${escapeHtml((d.name || "YOU").toUpperCase())}</span>`;
-      me.querySelector(".dos-sub").innerHTML = (d.callsign ? escapeHtml(d.callsign) : "") + (t ? ` <span class="title-tag">${escapeHtml(t.name.toUpperCase())}</span>` : "");
+      me.querySelector(".dos-sub").innerHTML = (d.callsign ? escapeHtml(d.callsign) : "") + (t ? ` <span class="title-tag">${escapeHtml((t.unlock?.rank ? A.rank : t.name).toUpperCase())}</span>` : "");
       // Rank, with how far to the next one.
       if (A) {
         const ranks = A.ranks || [], cur = [...ranks].reverse().find((r) => A.points >= r[0]) || [0, A.rank];

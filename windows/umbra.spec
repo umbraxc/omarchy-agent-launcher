@@ -29,7 +29,7 @@ a = Analysis(
     [os.path.join(ROOT, "windows", "umbra_win.py")],
     pathex=[APP],
     datas=datas,
-    hiddenimports=["server", "maps", "pmtiles", "radar", "transfers", "linked_library", "outpost", "winplat", "psutil", "pypdf"],
+    hiddenimports=["server", "maps", "pmtiles", "radar", "transfers", "linked_library", "outpost", "sky", "winplat", "psutil", "pypdf"],
     excludes=["tkinter"],
 )
 pyz = PYZ(a.pure)

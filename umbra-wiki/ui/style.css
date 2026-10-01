@@ -178,7 +178,7 @@ button.cell {
 .nav-overflow-menu button:focus-visible { outline: 1px solid var(--signal); outline-offset: -2px; }
 .nav-overflow-menu button.on { color: var(--signal); background: var(--signal-soft); }
 .nav-overflow-menu button small { margin-left: auto; color: var(--signal); }
-.nav-overflow-menu .g { color: var(--signal); font-size: 15px; }
+.nav-overflow-menu .g { display: grid; place-items: center; flex: 0 0 21px; width: 21px; height: 21px; color: var(--signal); font-size: 16px; line-height: 1; text-align: center; }
 body.locked .top.compact-nav .controls #lock { display: grid !important; opacity: 1; pointer-events: auto; }
 @media (max-width: 500px) { .nav-overflow-menu { width: min(260px, calc(100vw - 20px)); grid-template-columns: 1fr; } }
 #outpost-btn .op-nav-mark { display: block; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -406,6 +406,16 @@ body.prompts-hidden .prompts { max-height: 0; opacity: 0; margin-top: 0; filter:
 .msg .label::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .msg .msg-time { color: var(--dim); font-size: 9px; letter-spacing: .07em; white-space: nowrap; font-weight: 400; }
 .msg .msg-time:empty { display: none; }
+.sky-card { margin: 16px 0 8px; border: 1px solid var(--line); border-left: 2px solid var(--signal); background: var(--bg-1); overflow: hidden; }
+.sky-head { display: flex; justify-content: space-between; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--line); font: 10px var(--font); letter-spacing: .12em; }
+.sky-head b { color: var(--signal); } .sky-place { color: var(--dim); text-align: right; }
+.sky-stage { position: relative; } .sky-stage canvas { display: block; width: 100%; height: clamp(260px, 40vw, 380px); }
+.sky-hover { position: absolute; pointer-events: none; padding: 6px 8px; border: 1px solid var(--signal); color: var(--fg-bright); background: var(--bg-1); font: 9px var(--font); white-space: nowrap; }
+.sky-constellations { padding: 8px 12px; color: var(--signal); border-top: 1px solid var(--line); font: 9px/1.5 var(--font); letter-spacing: .08em; }
+.sky-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 9px 12px; border-top: 1px solid var(--line); color: var(--dim); font: 10px var(--font); }
+.sky-controls label { display: flex; align-items: center; gap: 5px; } .sky-controls input { width: 70px; padding: 5px; color: var(--fg); background: var(--bg-2); border: 1px solid var(--line); font: 10px var(--font); }
+.sky-controls button { padding: 6px 8px; font-size: 9px; } .sky-note { display: block; padding: 0 12px 10px; color: var(--dim); font: 9px/1.5 var(--font); }
+.sky-note a { color: var(--signal); } .sky-note a:hover { color: var(--fg-bright); }
 .home-clock { display: block; width: max-content; margin: 8px auto 0; color: var(--dim); font: 10px var(--font); letter-spacing: .14em; opacity: .8; }
 
 .msg.user .body {
