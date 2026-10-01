@@ -47,6 +47,7 @@
   });
   const activate = row => {
     const tab = document.getElementById(row.dataset.for);
+    if (tab?.id !== "sound") window.UmbraSoundMenu?.close();
     close(); tab?.click();
   };
   // A press must survive unrelated header mutations while the menu is open.

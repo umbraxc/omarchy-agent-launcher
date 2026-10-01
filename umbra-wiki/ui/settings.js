@@ -936,6 +936,7 @@
     panel.hidden = !show;
     $("#settings-btn").classList.toggle("on", show);
     if (show) {
+      window.UmbraSoundMenu?.close();
       if (window.closeCore) window.closeCore();
       toggleThemes(false, true);
       $("#library").hidden = true;

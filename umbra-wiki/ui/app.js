@@ -346,15 +346,16 @@ function setMuted(value, save = true) {
   const button = $("#sound");
   const panel = document.createElement("div");
   panel.id = "sound-pop";
-  panel.className = "sound-pop";
+  panel.className = "themes sound-panel";
   panel.hidden = true;
-  panel.innerHTML = `<div class="snd-head lib-head"><b>◆ SOUND</b><button class="ghost snd-close" title="Close sound controls">✕</button></div>
+  panel.innerHTML = `<div class="themes-head"><span class="themes-title"><span class="spin" data-spin>✻</span> SOUND</span><button class="ghost snd-close" title="Close (Esc)">CLOSE ✕</button></div>
+    <div class="library-body sound-body">
     <label class="snd-switch"><span>All sound<small>Effects and offline radio</small></span><input class="snd-on" type="checkbox"></label>
     <label class="snd-range"><span>Effects volume <output class="snd-vol-value"></output></span><input class="snd-volume" type="range" min="0" max="1" step="0.05"></label>
     <label class="snd-range"><span>Notification volume <output class="snd-notify-value"></output></span><input class="snd-notify" type="range" min="0" max="1" step="0.05"></label>
     <label class="snd-switch"><span>Hover sounds<small>Soft blips over controls</small></span><input class="snd-hover" type="checkbox"></label>
     <div class="snd-previews"><small>PREVIEW EFFECTS</small><div><button data-sample="click">CLICK</button><button data-sample="achieve">NOTIFY</button><button data-sample="error">ALERT</button></div></div>
-    <div class="snd-radio"></div>`;
+    <div class="snd-radio"></div></div>`;
   document.body.appendChild(panel);
   button.setAttribute("aria-controls", "sound-pop");
   button.setAttribute("aria-expanded", "false");
@@ -370,15 +371,12 @@ function setMuted(value, save = true) {
     }
   };
   const close = () => { panel.hidden = true; button.setAttribute("aria-expanded", "false"); };
-  const place = () => {
-    const anchor = button.getClientRects().length ? button : document.querySelector("#nav-more");
-    const r = anchor.getBoundingClientRect();
-    panel.style.left = Math.max(12, Math.min(innerWidth - panel.offsetWidth - 12, r.left + r.width / 2 - panel.offsetWidth / 2)) + "px";
-    panel.style.top = r.bottom + 8 + "px";
-  };
   button.addEventListener("click", () => {
     if (!panel.hidden) { close(); return; }
-    sync(); panel.hidden = false; button.setAttribute("aria-expanded", "true"); place(); Sound.click();
+    window.closeSettings?.();
+    window.closeCore?.();
+    toggleThemes(false, true);
+    sync(); panel.hidden = false; button.setAttribute("aria-expanded", "true"); Sound.click();
   });
   q(".snd-close").addEventListener("click", close);
   q(".snd-on").addEventListener("change", (e) => { setMuted(!e.target.checked); if (e.target.checked) Sound.click(); });
@@ -393,14 +391,9 @@ function setMuted(value, save = true) {
     slider.addEventListener("change", () => { postSettings({ [key]: Number(slider.value) }); Sound.click(); });
   }
   q(".snd-previews").addEventListener("click", (e) => { const sample = e.target.closest("button[data-sample]"); if (sample) Sound[sample.dataset.sample](); });
-  document.addEventListener("pointerdown", (e) => { if (!panel.hidden && !panel.contains(e.target) && !button.contains(e.target)) close(); }, true);
-  // A menu item activates on pointer press; its trailing click still targets
-  // the menu row after the sound panel has opened.
-  document.addEventListener("click", (e) => { if (!panel.hidden && !panel.contains(e.target) && !button.contains(e.target) && !e.target.closest("#nav-overflow")) close(); }, true);
-  document.addEventListener("keydown", (e) => { if (!panel.hidden && (e.key === "Escape" || e.ctrlKey || e.metaKey)) close(); }, true);
+  document.addEventListener("keydown", (e) => { if (!panel.hidden && e.key === "Escape") { e.stopImmediatePropagation(); close(); } }, true);
   document.addEventListener("umbra-sound-change", sync);
   document.addEventListener("umbra-audio-prefs", sync);
-  window.addEventListener("resize", () => { if (!panel.hidden) place(); });
   window.UmbraSoundMenu = { panel, sync, close };
 })();
 

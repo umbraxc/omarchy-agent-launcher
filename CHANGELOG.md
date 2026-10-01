@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.1.7
+
+### Highlights
+
+- Sound controls now open as a full side panel, matching Settings. They stay open when chosen from the three-bar tab menu and close with CLOSE or Escape.
+
 ## 3.1.6
 
 ### Highlights

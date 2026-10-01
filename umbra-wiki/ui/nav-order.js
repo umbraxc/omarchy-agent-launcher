@@ -18,7 +18,7 @@
   document.body.appendChild(note);
   let hideTimer = 0;
   const hideNote = () => { clearTimeout(hideTimer); note.hidden = true; };
-  const busy = () => !!document.querySelector(".nav-callout:not([hidden]), .ac-toast:not([hidden]), .dl-toast:not([hidden]), .tip:not([hidden]), .sound-pop:not([hidden])");
+  const busy = () => !!document.querySelector(".nav-callout:not([hidden]), .ac-toast:not([hidden]), .dl-toast:not([hidden]), .tip:not([hidden]), .sound-panel:not([hidden])");
   const showNote = () => {
     const panels = ["maps", "fieldkit", "farming", "outpost", "radar", "loadout", "history", "library", "themes", "settings", "core"];
     if (document.hidden || document.body.classList.contains("locked") || document.body.classList.contains("touring") || busy() ||
