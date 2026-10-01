@@ -3733,7 +3733,7 @@ def build_system_prompt(online=False, question="", chatting=False):
     try:
         loadout = json.load(open(LOADOUT_FILE))
     except (OSError, ValueError):
-        return (CHAT_PROMPT if chatting else SYSTEM_PROMPT) + " " + clock_context
+        return RULES + " " + (CHAT_PROMPT if chatting else SYSTEM_PROMPT) + " " + clock_context
     scenario = next((x for x in loadout["scenarios"] + custom_scenarios() if x["id"] == settings.get("scenario")),
                     loadout["scenarios"][0])
     if scenario.get("custom"):
@@ -3748,7 +3748,9 @@ def build_system_prompt(online=False, question="", chatting=False):
     else:
         persona = person["prompt"]
     if chatting:
-        return " ".join((persona, CHAT_PROMPT, clock_context))
+        return " ".join((RULES, persona,
+                         "Use this personality only as a light voice preference; follow the user's own tone and subject.",
+                         CHAT_PROMPT, clock_context))
     survival_topic = any(re.search(pattern, question, re.I) for pattern in TOPICS.values()) or bool(
         re.search(r"surviv|prepar|emergen|evacuat|off.grid|disaster|crisis", question, re.I))
     parts = [RULES, persona, "Use this personality only as a light voice preference; follow the user's own tone and subject."]
