@@ -322,8 +322,8 @@
     showIntro(false, { greet: false });   // the start screen sits above the conversation
     chat.length = 0;
     for (const m of convo.messages) {
-      addUser(m.shown || m.question, m.online);
-      finishAnswer(addBot(m.persona || ""), m);
+      addUser(m.shown || m.question, m.online, m.userAt || NaN, m.clockOffsetMinutes);
+      finishAnswer(addBot(m.persona || "", m.answerAt || NaN, m.clockOffsetMinutes), m);
       chat.push({ role: "user", content: m.question }, { role: "assistant", content: m.answer });
     }
     const last = convo.messages[convo.messages.length - 1];

@@ -32,7 +32,7 @@
   function draw() {
     // Keep the track mounted while panels open, so neither layout nor travel resets.
     if (tape.hidden) tape.hidden = false;
-    const now = new Date().toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    const now = window.umbraClockLabel ? umbraClockLabel() : new Date().toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
     const plan = farm.plan || {}, items = plan.items || [];
     const land = Number(plan.availableLandM2), used = farmArea();
     const radioTrack = (radio.catalog || []).find((x) => x.id === radio.track);

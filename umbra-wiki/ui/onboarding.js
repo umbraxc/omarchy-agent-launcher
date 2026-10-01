@@ -100,6 +100,24 @@
     });
   }
 
+  function timeField(answer) {
+    return new Promise((resolve, reject) => {
+      const box = document.createElement("div");
+      box.className = "tour-field";
+      box.innerHTML = '<input type="time" aria-label="Your local time"><button class="solid" type="button">SET LOCAL TIME ▸</button>';
+      const input = box.querySelector("input"), now = umbraNow();
+      input.value = [now.getHours(), now.getMinutes()].map(n => String(n).padStart(2, "0")).join(":");
+      box.querySelector("button").addEventListener("click", () => {
+        const offset = umbraOffsetFor(input.value);
+        if (offset === null) return;
+        box.remove(); Sound.click(); resolve(offset);
+      });
+      input.addEventListener("keydown", event => { if (event.key === "Enter") box.querySelector("button").click(); });
+      answer.appendChild(box); skipLine(answer); skipHooks.push(() => reject(SKIP)); wake();
+      if (AUTO) autoClick(box.querySelector("button"));
+    });
+  }
+
   // Long lists of cards show a first few and a MORE button that unfolds the
   // rest (and folds them away again), so the tour never floods the screen.
   function foldCards(grid, keep = 6) {
@@ -260,7 +278,7 @@
   // explanatory steps outside the header.
   const QUICK_SPOTS = [".cell.status", "#loadout-btn", "#history-btn", "#library-btn", "#maps-btn", "#fieldkit-btn", "#farming-btn", "#outpost-btn", "#radar-btn", "#dl-btn", "#theme-btn", "#sound", "#lock", "#settings-btn", "#q"];
 
-  function spotlight(quick = false) {
+  function spotlight(quick = false, outpostOnly = false) {
     return new Promise((resolve, reject) => {
       const restore = [];
       for (const el of document.querySelectorAll(".controls .ctl")) {
@@ -269,7 +287,11 @@
           restore.push([el, previous]); el.hidden = false; el.classList.remove("gone");
         }
       }
-      const steps = SPOTS.filter(([sel]) => !quick || QUICK_SPOTS.includes(sel)).filter(([sel]) => {
+      const compact = document.querySelector(".top")?.classList.contains("compact-nav");
+      const source = outpostOnly ? SPOTS.filter(([sel]) => sel === "#outpost-btn") : SPOTS.filter(([sel]) => !quick || QUICK_SPOTS.includes(sel));
+      const shown = compact ? source.filter(([sel]) => !sel.startsWith("#") || !document.querySelector(".controls")?.contains($(sel))) : source;
+      if (compact) shown.unshift(["#nav-more", outpostOnly ? "UMBRA OUTPOST" : "ALL TABS · UMBRA OUTPOST", "Open this menu for every tab, including Umbra Outpost. Outpost is a fictional settlement with eight resources, camp upgrades and two expedition stories."]);
+      const steps = shown.filter(([sel]) => {
         const el = $(sel);
         return el && el.getClientRects().length && el.getBoundingClientRect().width > 0;
       });
@@ -479,6 +501,7 @@
     const MODES = [
       ["quick", "QUICK START", "About a minute", "Your name, continent, my AI, the library and a look. The basics, then straight in.", true],
       ["full", "FULL BRIEFING", "About five minutes", "Everything: your continent and profile, health notes and ID card, a password, scenarios, personalities, comfort and power, and every tool on screen."],
+      ["outpost", "OUTPOST TRAIL", "A short game tour", "Set your local clock, see the eight camps and resources, and learn how upgrades and expedition stories work."],
       ["skip", "SKIP", "Straight in", "Set your continent later in Profile, and the AI in Core (click STATUS). Each screen explains itself the first time."],
     ];
     return new Promise((resolve, reject) => {
@@ -537,6 +560,28 @@
     let a = await introCard();
     mode = await pickMode(a);
     if (mode === "skip") throw SKIP;
+    a = await say("**What is your local time?** Check the time below and adjust it if needed. I'll use it for the on-screen clock, message timestamps and time-aware replies. You can change it later in Settings.");
+    const clockOffsetMinutes = await timeField(a);
+    await postSettings({ clockOffsetMinutes });
+    if (window.prefs) window.prefs.clockOffsetMinutes = clockOffsetMinutes;
+    if (mode === "outpost") {
+      a = await say("**Umbra Outpost** is a small fictional world beside your real tools. Eight camps gather resources while you're away; upgrade them to grow faster. Two short expeditions reveal stories through choices.");
+      await choose(a, [["SHOW ME THE OUTPOST ▸", "go", true]]);
+      await spotlight(false, true);
+      a = await say("Open the Outpost now. Hover the camps to see live production; watch the resource bars; explore the upgrades and the two expedition stories. **Close the Outpost tab** when you're ready to finish the tour.");
+      await choose(a, [["OPEN OUTPOST ▸", "open", true]]);
+      document.getElementById("outpost-btn")?.click();
+      if (AUTO) setTimeout(() => window.closeOutpost?.(), 1700);
+      while (!document.getElementById("outpost")?.hidden) {
+        if (skipped) throw SKIP;
+        await wait(250);
+      }
+      a = await say("The Outpost will keep growing while Umbra is closed. You can return to it from the tab menu any time.");
+      await choose(a, [["FINISH TOUR ▸", "done", true]]);
+      window.closeOutpost?.();
+      completed = true;
+      return;
+    }
     const full = mode === "full";
 
     // The rest of the profile is optional and saved as it grows.
@@ -745,7 +790,7 @@
     skip.remove();
     document.querySelector(".spot-shade")?.remove();
     document.body.classList.remove("touring");
-    if (mode !== "skip" && !skipped && !continentChosen) return;  // retry after a failed save
+    if (mode !== "skip" && !skipped && !continentChosen && mode !== "outpost") return;  // retry after a failed save
     // The tour covers what's new, so the "what's new" note waits for the next update.
     const version = (await fetch("/api/whatsnew").then((r) => r.json()).catch(() => ({}))).version;
     // A tour played to the end earns the first achievement; a skipped one doesn't.

@@ -116,6 +116,25 @@ let timer = null;
 let online = false;          // every launch starts LOCAL
 let locked = false;
 
+window.umbraNow = () => new Date(Date.now() + (Number(window.prefs?.clockOffsetMinutes) || 0) * 60000);
+window.umbraClockLabel = (stamp = Date.now(), offset = Number(window.prefs?.clockOffsetMinutes) || 0) => new Date(stamp + offset * 60000)
+  .toLocaleTimeString(undefined, {hour: "2-digit", minute: "2-digit"});
+window.umbraOffsetFor = value => {
+  const match = /^(\d{2}):(\d{2})$/.exec(value || "");
+  if (!match || Number(match[1]) > 23 || Number(match[2]) > 59) return null;
+  const now = new Date(), entered = Number(match[1]) * 60 + Number(match[2]);
+  let delta = entered - now.getHours() * 60 - now.getMinutes();
+  if (delta > 720) delta -= 1440;
+  if (delta < -720) delta += 1440;
+  return delta;
+};
+function updateHomeClock() {
+  const el = document.getElementById("home-clock");
+  if (el) el.textContent = "◷ " + umbraClockLabel();
+}
+setInterval(updateHomeClock, 1000);
+document.addEventListener("DOMContentLoaded", updateHomeClock);
+
 async function postSettings(update) {
   try {
     await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(update) });
@@ -1798,11 +1817,12 @@ document.addEventListener("mouseout", (e) => { if (tipFor && !tipFor.contains(e.
 
 // ------------------------------------------------------------------- feed
 
-function addUser(text, wasOnline = online) {
+function addUser(text, wasOnline = online, stamp = Date.now(), offset) {
   const el = document.createElement("div");
   el.className = "msg user";
   const me = (window.UmbraProfile && window.UmbraProfile.data) || {};
-  el.innerHTML = `<div class="label">${me.picture ? '<img class="avatar" alt="">' : ""}<span class="who"></span>${wasOnline ? " · ONLINE" : ""}</div><div class="body"></div>`;
+  el.innerHTML = `<div class="label">${me.picture ? '<img class="avatar" alt="">' : ""}<span class="who"></span><time class="msg-time"></time>${wasOnline ? " · ONLINE" : ""}</div><div class="body"></div>`;
+  el.querySelector(".msg-time").textContent = Number.isFinite(stamp) ? umbraClockLabel(stamp, offset) : "";
   el.querySelector(".who").textContent = (me.name || "YOU") + (me.callsign ? ` · ${me.callsign}` : "");
   if (me.color) el.querySelector(".who").style.color = `var(--${me.color})`;
   // Rewards from the Locker: a name effect and a title.
@@ -1818,12 +1838,13 @@ function addUser(text, wasOnline = online) {
 
 // UMBRA, plus which personality is talking, so a conversation shows who
 // said what even when the loadout changes midway.
-function addBot(persona = window.loadoutPersona || "") {
+function addBot(persona = window.loadoutPersona || "", stamp = Date.now(), offset) {
   const el = document.createElement("div");
   el.className = "msg bot";
   const who = persona && persona.toLowerCase() !== "umbra" ? ` <span class="persona"></span>` : "";
-  el.innerHTML = `<div class="label"><span class="spin" data-spin>✻</span> UMBRA${who}</div>
+  el.innerHTML = `<div class="label"><span class="spin" data-spin>✻</span> UMBRA${who}<time class="msg-time"></time></div>
     <div class="card"><div class="answer"></div></div>`;
+  el.querySelector(".msg-time").textContent = Number.isFinite(stamp) ? umbraClockLabel(stamp, offset) : "";
   if (who) el.querySelector(".persona").textContent = `(${persona.toUpperCase()})`;
   feed.appendChild(el);
   return el;
@@ -1997,7 +2018,9 @@ async function ask(question, shownAs = "") {
   setSuggestion("");
   // Files from the paperclip go along with this question (their names show under it).
   const attachments = window.UmbraAttach ? UmbraAttach.take() : [];
-  addUser((shownAs || question) + (attachments.length ? "\n" + attachments.map((a) => `\u{F03E2} ${a.name}`).join("   ") : ""));
+  const userAt = Date.now();
+  const clockOffsetMinutes = Number(window.prefs?.clockOffsetMinutes) || 0;
+  addUser((shownAs || question) + (attachments.length ? "\n" + attachments.map((a) => `\u{F03E2} ${a.name}`).join("   ") : ""), online, userAt, clockOffsetMinutes);
   const msg = addBot();
   const card = msg.querySelector(".card");
   const answerEl = msg.querySelector(".answer");
@@ -2087,11 +2110,13 @@ async function ask(question, shownAs = "") {
   if (!stopped) { typer.set(shown); await typer.drained(); }
   const rec = {
     question, shown: shownAs, answer: shown, offer: stopped ? "" : next, sources, online, contextNote,
+    userAt, answerAt: Date.now(), clockOffsetMinutes,
     scene: !stopped && window.UmbraChill ? UmbraChill.select(question, chat.length / 2) : "",
     persona: window.loadoutPersona || "",
     meta: meta ? `${meta.tokens} TOKENS · ${meta.seconds}s · ${sources.length} SOURCES · ${online ? "ONLINE" : "OFFLINE"}` : "",
   };
   finishAnswer(msg, rec);
+  msg.querySelector(".msg-time").textContent = umbraClockLabel(rec.answerAt, clockOffsetMinutes);
   chat.push({ role: "user", content: question }, { role: "assistant", content: shown });
   if (window.recordTurn) window.recordTurn(rec);
   if (!document.hasFocus() && (!window.prefs || window.prefs.barAlert !== false)) setAttention(true);

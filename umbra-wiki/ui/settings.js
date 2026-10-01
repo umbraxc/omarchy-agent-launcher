@@ -384,6 +384,8 @@
         ${toggle("reduceMotion", "Reduce motion", "Calm the animations; good for slow computers")}
       </section>
       <section class="set-section"><div class="lib-head">CONVERSATION</div>
+        <label class="set-row"><span class="set-text"><b>Your local time</b><small>Set the clock Umbra shows and uses when time matters. Change it here if your computer clock differs.</small></span>
+          <input class="set-local-time" type="time" aria-label="Your local time"></label>
         ${toggle("greeting", "Personal greeting", "Welcome you on the start screen, picking up from last time")}
         ${toggle("suggestions", "Suggested replies", "Offer a likely reply after each answer (Tab to use it)")}
         ${toggle("adaptive", "Adapt to how I write", "Umbra matches your tone (formal or casual), remembers what you ask for, like shorter answers or no lists, and keeps its wording fresh. Its personality stays")}
@@ -554,6 +556,12 @@
       });
     });
     const ts = body.querySelector(".set-textsize");
+    const localTime = body.querySelector(".set-local-time");
+    localTime.value = [umbraNow().getHours(), umbraNow().getMinutes()].map(n => String(n).padStart(2, "0")).join(":");
+    localTime.addEventListener("change", () => {
+      const offset = umbraOffsetFor(localTime.value);
+      if (offset !== null) { save({ clockOffsetMinutes: offset }); Sound.click(); }
+    });
     ts.value = String(prefs.textScale || 1);
     if (!ts.value) ts.value = "1";
     ts.addEventListener("change", () => { save({ textScale: Number(ts.value) }); Sound.click(); });

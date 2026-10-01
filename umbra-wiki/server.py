@@ -2882,6 +2882,8 @@ def apply_settings(update):
             settings["textScale"] = max(0.8, min(1.4, float(update["textScale"])))
         if isinstance(update.get("zoom"), (int, float)) and not isinstance(update.get("zoom"), bool):
             settings["zoom"] = round(max(0.5, min(2.0, float(update["zoom"]))), 2)
+        if type(update.get("clockOffsetMinutes")) is int and -720 <= update["clockOffsetMinutes"] <= 720:
+            settings["clockOffsetMinutes"] = update["clockOffsetMinutes"]
         for kind, slot in REWARD_SLOTS.items():
             if slot in update:
                 rewards, _ = reward_status()
@@ -3666,10 +3668,15 @@ def user_context(question="", client=None):
 def build_system_prompt(online=False, question="", chatting=False):
     """Persona + scenario + trait style + the user's profile + the fixed rules."""
     settings = read_json(SETTINGS_FILE, {})
+    offset = settings.get("clockOffsetMinutes", 0)
+    if type(offset) is not int or not -720 <= offset <= 720:
+        offset = 0
+    local_now = time.strftime("%A, %Y-%m-%d %H:%M", time.localtime(time.time() + offset * 60))
+    clock_context = f"Current local date and time for the user: {local_now}. Use it when time is relevant; do not guess a different current time."
     try:
         loadout = json.load(open(LOADOUT_FILE))
     except (OSError, ValueError):
-        return CHAT_PROMPT if chatting else SYSTEM_PROMPT
+        return (CHAT_PROMPT if chatting else SYSTEM_PROMPT) + " " + clock_context
     scenario = next((x for x in loadout["scenarios"] + custom_scenarios() if x["id"] == settings.get("scenario")),
                     loadout["scenarios"][0])
     if scenario.get("custom"):
@@ -3684,7 +3691,7 @@ def build_system_prompt(online=False, question="", chatting=False):
     else:
         persona = person["prompt"]
     if chatting:
-        return " ".join((persona, CHAT_PROMPT))
+        return " ".join((persona, CHAT_PROMPT, clock_context))
     survival_topic = any(re.search(pattern, question, re.I) for pattern in TOPICS.values()) or bool(
         re.search(r"surviv|prepar|emergen|evacuat|off.grid|disaster|crisis", question, re.I))
     parts = [persona, "Use this personality as a light voice preference; follow the user's own tone."]
@@ -3692,7 +3699,7 @@ def build_system_prompt(online=False, question="", chatting=False):
         parts += [trait_lines(person.get("stats", {}), bool(scenario.get("noHumor"))),
                   "SELECTED LOADOUT (a preference for relevant advice, not proof this is happening now): "
                   + scenario["prompt"] + " Follow the user's account of their actual situation."]
-    parts += [MODE_ONLINE if online else MODE_LOCAL, profile_prompt(question), RULES]
+    parts += [MODE_ONLINE if online else MODE_LOCAL, profile_prompt(question), clock_context, RULES]
     return " ".join(x for x in parts if x)
 
 

@@ -164,10 +164,11 @@ button.cell {
 .ctl:hover { color: var(--signal); border-color: var(--signal); background: var(--signal-soft); }
 #settings-btn { color: var(--signal); border: 2px solid color-mix(in srgb, var(--signal) 58%, var(--line)); background: var(--bg-1); }
 #settings-btn:hover { color: var(--fg-bright); border-color: var(--signal); background: var(--signal-soft); }
-#nav-more { color: var(--signal); }
+#nav-more { color: var(--signal); border: 2px solid color-mix(in srgb, var(--signal) 58%, var(--line)); background: var(--bg-1); }
+#nav-more:hover, #nav-more.on { color: var(--fg-bright); border-color: var(--signal); background: var(--signal-soft); }
 .top.compact-nav .controls .ctl:not(#nav-more) { display: none !important; }
 .top.compact-nav .controls { flex: none; }
-#nav-more .g { font-size: 17px; font-weight: 900; line-height: 1; }
+#nav-more .g { display: grid; place-items: center; width: 100%; height: 100%; font-size: 18px; font-weight: 700; line-height: 1; }
 .nav-overflow-menu { position: fixed; z-index: 145; width: min(420px, calc(100vw - 20px)); max-height: min(78vh, 620px); overflow-y: auto;
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
   padding: 7px; background: var(--bg-1); border: 1px solid var(--signal); box-shadow: 0 16px 32px rgba(0,0,0,.45); animation: nav-reveal .18s ease-out both; }
@@ -180,8 +181,8 @@ button.cell {
 .nav-overflow-menu .g { color: var(--signal); font-size: 15px; }
 body.locked .top.compact-nav .controls #lock { display: grid !important; opacity: 1; pointer-events: auto; }
 @media (max-width: 500px) { .nav-overflow-menu { width: min(260px, calc(100vw - 20px)); grid-template-columns: 1fr; } }
-#outpost-btn .op-nav-mark { display: block; width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
-.nav-overflow-menu .op-nav-mark { display: block; width: 18px; height: 18px; fill: none; stroke: var(--signal); stroke-width: 2.7; stroke-linecap: round; stroke-linejoin: round; }
+#outpost-btn .op-nav-mark { display: block; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.nav-overflow-menu .op-nav-mark { display: block; width: 17px; height: 17px; fill: none; stroke: var(--signal); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 body.model-pending .controls { box-shadow: inset 0 -2px var(--signal); animation: model-tab-invite 2.4s ease-in-out 3; }
 @keyframes model-tab-invite { 50% { box-shadow: inset 0 -3px var(--signal), 0 8px 20px var(--signal-soft); } }
 body.reduce-motion.model-pending .controls { animation: none; }
@@ -403,6 +404,9 @@ body.prompts-hidden .prompts { max-height: 0; opacity: 0; margin-top: 0; filter:
   display: flex; align-items: center; gap: 10px;
 }
 .msg .label::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.msg .msg-time { color: var(--dim); font-size: 9px; letter-spacing: .07em; white-space: nowrap; font-weight: 400; }
+.msg .msg-time:empty { display: none; }
+.home-clock { display: block; width: max-content; margin: 8px auto 0; color: var(--dim); font: 10px var(--font); letter-spacing: .14em; opacity: .8; }
 
 .msg.user .body {
   color: var(--fg); font-size: calc(15px * var(--ts, 1));
@@ -1359,6 +1363,7 @@ body.reduce-motion .mp-cfile.glitch .mp-cf-name::after { animation: fade .2s eas
 .set-row input[type="checkbox"]:checked { border-color: var(--signal); background: var(--signal-soft); }
 .set-row input[type="checkbox"]:checked::after { transform: translateX(16px); background: var(--signal); }
 .set-row input[type="range"] { accent-color: var(--signal); width: 140px; flex: none; }
+.set-row input[type="time"] { color: var(--fg-bright); background: var(--bg-2); border: 1px solid var(--line); padding: 7px 9px; font: 12px var(--font); color-scheme: dark; }
 .set-row select {
   font: 12px var(--font); color: var(--fg-bright); background: var(--bg-2); border: 1px solid var(--line);
   padding: 6px 8px; outline: 0; flex: none; max-width: 180px;
