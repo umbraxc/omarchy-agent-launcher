@@ -248,8 +248,9 @@ Settings tab stays anchored. Your tab order is saved on this computer.
 
 The **Umbra Outpost** tab is a separate fictional game. Food, water, wood,
 scrap, energy, medicine, knowledge and morale support a small settlement.
-Build and upgrade stations to gather resources while Umbra is closed, then
-send expeditions to the silent weather station and the glasshouse. Each story
+Build and upgrade stations to gather resources while Umbra is closed. Hover
+the animated camp sites for live production, then send expeditions to the
+silent weather station and the glasshouse. Each story
 has two choices when the team returns. The save stays on this device and is
 included in Umbra backups; it never changes your real Farming plan or supplies.
 
