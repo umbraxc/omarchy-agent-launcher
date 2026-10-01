@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.1.8
+
+### Highlights
+
+- Build Umbra Outpost: grow eight camps, gather resources and play two short expedition stories. Your settlement keeps progressing while Umbra is closed.
+- Earn Outpost achievements and animated orbs for your Locker.
+- Explore the night sky with an animated offline constellation atlas in chat.
+- Find your way around with one clear tab menu at every window size, an updated tour, a local clock and message timestamps.
+- Sound opens in a full side panel; fullscreen conversation cards can be tucked away, and Instant Exit skips the closing animation.
+- Conversations follow your latest question more closely, with better archive matches and clearer recovery when a reply is interrupted.
+
 ## 3.1.7
 
 ### Highlights
