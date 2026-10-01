@@ -10,6 +10,7 @@
   const list = $("#hist-list");
   const filter = $("#hist-filter");
   let convo = null;     // { id, title, messages, folder } of the conversation on screen
+  let saveQueue = Promise.resolve();
   let items = [];
   let dir = "";
   let folders = [];     // [{ id, name, color, brief }]
@@ -34,20 +35,30 @@
   // ---------------------------------------------------------- saving
 
   // app.js calls this when an answer finishes.
-  window.recordTurn = async (rec) => {
+  window.recordTurn = (rec) => {
     if (!convo) {
       convo = { id: newId(), title: (rec.shown || rec.question).slice(0, 120), messages: [], folder: view };
       syncFolder();
     }
     convo.messages.push(rec);
     const [scenario = "", personality = ""] = ($("#loadout-chip").textContent || "").split(" · ");
-    try {
-      await fetch("/api/history", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...convo, scenario, personality, ...(convo.messages.length === 1 ? { folder: convo.folder || "" } : {}) }),
-      });
-    } catch {}
+    const payload = JSON.stringify({ ...convo, scenario, personality,
+      ...(convo.messages.length === 1 ? { folder: convo.folder || "" } : {}) });
+    // A backend restart can end an answer just as History saves it. Preserve
+    // turn order and retry briefly instead of silently losing the conversation.
+    saveQueue = saveQueue.then(async () => {
+      for (const delay of [0, 1000, 3000, 7000]) {
+        if (delay) await new Promise(resolve => setTimeout(resolve, delay));
+        try {
+          const response = await fetch("/api/history", {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: payload,
+          });
+          if (response.ok && (await response.json()).ok) return;
+          if (response.status < 500) break;
+        } catch {}
+      }
+      console.warn("Umbra could not save the latest conversation turn.");
+    });
     if (!panel.hidden) load();
   };
 
@@ -324,7 +335,7 @@
     for (const m of convo.messages) {
       addUser(m.shown || m.question, m.online, m.userAt || NaN, m.clockOffsetMinutes);
       finishAnswer(addBot(m.persona || "", m.answerAt || NaN, m.clockOffsetMinutes), m);
-      chat.push({ role: "user", content: m.question }, { role: "assistant", content: m.answer });
+      chat.push({ role: "user", content: m.question }, { role: "assistant", content: m.rawAnswer || m.answer });
     }
     const last = convo.messages[convo.messages.length - 1];
     if (last) suggestFor(last);

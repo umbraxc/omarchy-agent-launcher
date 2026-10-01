@@ -2049,7 +2049,7 @@ async function ask(question, shownAs = "") {
   startTimer();
   setPhase("search");
 
-  let text = "", sources = [], next = "", meta = null, stopped = false, writing = false, contextNote = "", skyRequested = false;
+  let text = "", sources = [], next = "", meta = null, completed = false, failure = "", stopped = false, writing = false, contextNote = "", skyRequested = false;
   const sourceByN = {};
   const typer = typewriter((shown) => paintAnswer(answerEl, shown, sourceByN, true));
 
@@ -2100,14 +2100,16 @@ async function ask(question, shownAs = "") {
           next = e.text;
         } else if (e.type === "done") {
           meta = e;
+        } else if (e.type === "complete") {
+          completed = true;
         } else if (e.type === "error") {
-          text += `\n\n**Error:** ${e.message}`;
+          failure = e.message || "The answer was interrupted.";
         }
       }
     }
   } catch (err) {
     stopped = err.name === "AbortError";
-    if (!stopped) text += `\n\n**Error:** ${err.message}`;
+    if (!stopped) failure = err.message || "The connection was interrupted.";
   }
 
   Sound.hum(false);
@@ -2116,23 +2118,27 @@ async function ask(question, shownAs = "") {
   if (!shown) {
     shown = stopped
       ? "*Stopped.*"
+      : !completed || failure ? "*Reply interrupted before I could answer. Please try again.*"
       : "Sorry, I lost my train of thought there. Could you ask that again, maybe in a few more words?";
   } else if (stopped) shown += "\n\n*[transmission stopped]*";
+  else if (!completed || failure) shown += "\n\n*Reply interrupted. Ask me to continue and I’ll pick up from here.*";
   if (!stopped) { typer.set(shown); await typer.drained(); }
   const rec = {
-    question, shown: shownAs, answer: shown, offer: stopped ? "" : next, sources, online, contextNote,
+    question, shown: shownAs, answer: shown, rawAnswer: text || shown,
+    offer: stopped || !completed || failure ? "" : next, sources, online, contextNote,
     userAt, answerAt: Date.now(), clockOffsetMinutes, sky: skyRequested,
     scene: !stopped && window.UmbraChill ? UmbraChill.select(question, chat.length / 2) : "",
     persona: window.loadoutPersona || "",
-    meta: meta ? `${meta.tokens} TOKENS · ${meta.seconds}s · ${sources.length} SOURCES · ${online ? "ONLINE" : "OFFLINE"}` : "",
+    meta: stopped ? "" : !completed || failure ? "INTERRUPTED · " + (online ? "ONLINE" : "OFFLINE")
+      : meta ? `${meta.tokens} TOKENS · ${meta.seconds}s · ${sources.length} SOURCES · ${online ? "ONLINE" : "OFFLINE"}` : "",
   };
   finishAnswer(msg, rec);
   msg.querySelector(".msg-time").textContent = umbraClockLabel(rec.answerAt, clockOffsetMinutes);
-  chat.push({ role: "user", content: question }, { role: "assistant", content: shown });
+  chat.push({ role: "user", content: question }, { role: "assistant", content: text || shown });
   if (window.recordTurn) window.recordTurn(rec);
   if (!document.hasFocus() && (!window.prefs || window.prefs.barAlert !== false)) setAttention(true);
-  if (!stopped) suggestFor(rec);
-  stopped ? Sound.error() : Sound.done();
+  if (!stopped && completed && !failure) suggestFor(rec);
+  stopped || !completed || failure ? Sound.error() : Sound.done();
   stopWorking();
   wake();
 }

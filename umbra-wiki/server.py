@@ -113,6 +113,9 @@ HISTORY_TURNS = 5
 # How Umbra answers, whatever the loadout. The personality supplies the
 # voice and the scenario the situation; these rules always apply.
 RULES = (
+    "The latest user message decides the subject and what to answer. Earlier conversation, the selected loadout, "
+    "personality and retrieved sources are context, never a reason to answer a different question. "
+    "The personality changes only how you phrase the answer, not its topic, facts, or requested format. "
     "Follow the user's actual request and tone. If they correct your topic, length or format, adjust immediately. "
     "Answer ordinary questions in natural prose. Do not turn a question into a checklist, assessment, "
     "emergency plan, quotation or lecture unless the user asks for one. Never repeat a stock opening. "
@@ -1065,7 +1068,26 @@ def relevant(source, terms):
     return in_title >= 1 or in_body >= max(2, min(3, len(set(topical))))
 
 
+def pet_choice_question(question):
+    """A request to choose a companion animal, rather than control a pest."""
+    q = question.lower()
+    return bool(re.search(r"\b(?:pet|animal|companion)\b", q) and
+                re.search(r"\b(?:suggest|recommend|choose|pick|adopt|keep|get|best|suitable|manageable)\b", q) and
+                re.search(r"\b(?:apartment|flat|home|house|bedroom|small space|limited space)\b", q))
+
+
 def find_sources(question, online):
+    if pet_choice_question(question):
+        # Natural questions like "a manageable animal for a small apartment"
+        # used to match squirrels, pest-control advice and an Animal vacuum.
+        # Search all installed archives with the intended pet-care terms, then
+        # keep only actual pet-care sources. Own knowledge is better than a
+        # misleading citation if no suitable archive page was found.
+        terms = ["small", "pet", "space"] if re.search(r"\b(?:small|limited|tiny|bedroom)\b", question, re.I) else ["pet", "apartment"]
+        found = local_sources(terms, LOCAL_SOURCES * 3) if kiwix_proc else []
+        care = [s for s in found if s["archive"].lower() == "pets q&a"
+                and re.search(r"\b(?:pets?|animals?|cats?|dogs?|rodents?|hamsters?|gerbils?|rabbits?|birds?|fish)\b", s["title"], re.I)]
+        return care[:LOCAL_SOURCES], ""
     terms = keywords(question) or question.split()
     sources = manual_sources(terms)
     try:
@@ -3402,6 +3424,7 @@ def history_save(conv, keep_time=False):
             "question": str(m.get("question", ""))[:4000],
             "shown": str(m.get("shown", ""))[:4000],
             "answer": str(m.get("answer", ""))[:20000],
+            "rawAnswer": str(m.get("rawAnswer", ""))[:20000],
             "offer": str(m.get("offer", ""))[:400],
             "contextNote": str(m.get("contextNote", ""))[:160],
             "meta": str(m.get("meta", ""))[:200],
@@ -3728,12 +3751,12 @@ def build_system_prompt(online=False, question="", chatting=False):
         return " ".join((persona, CHAT_PROMPT, clock_context))
     survival_topic = any(re.search(pattern, question, re.I) for pattern in TOPICS.values()) or bool(
         re.search(r"surviv|prepar|emergen|evacuat|off.grid|disaster|crisis", question, re.I))
-    parts = [persona, "Use this personality as a light voice preference; follow the user's own tone."]
+    parts = [RULES, persona, "Use this personality only as a light voice preference; follow the user's own tone and subject."]
     if survival_topic:
         parts += [trait_lines(person.get("stats", {}), bool(scenario.get("noHumor"))),
                   "SELECTED LOADOUT (a preference for relevant advice, not proof this is happening now): "
                   + scenario["prompt"] + " Follow the user's account of their actual situation."]
-    parts += [MODE_ONLINE if online else MODE_LOCAL, profile_prompt(question), clock_context, RULES]
+    parts += [MODE_ONLINE if online else MODE_LOCAL, profile_prompt(question), clock_context]
     return " ".join(x for x in parts if x)
 
 
@@ -4307,6 +4330,7 @@ class Handler(BaseHTTPRequestHandler):
             ANSWER_COUNT += 1
         try:
             answer(req, self.emit)
+            self.emit({"type": "complete"})
         except (BrokenPipeError, ConnectionResetError):
             pass  # the user pressed stop
         except Exception as e:
@@ -4343,11 +4367,14 @@ def status():
         ollama_ok = True
     except Exception:
         model_ok = ollama_ok = False
+    with ANSWER_LOCK:
+        active_answers = ANSWER_COUNT
     return {
         "archives": len(set(glob.glob(os.path.join(LIBRARY_DIR, "*.zim")) + LINKS.zims())),
         "model": MODEL,
         "ollama": ollama_ok,
         "modelReady": model_ok,
+        "activeAnswers": active_answers,
         "version": VERSION,
         "platform": "windows" if WINDOWS else "linux",
     }
@@ -4519,6 +4546,12 @@ def answer(req, emit):
     question = str(req.get("question", "")).strip()
     history = req.get("history") or []
     previous, follows_offer, sky_request = offer_context(question, history)
+    repair_request = bool(previous and (
+        re.search(r"\b(?:did(?:n'?t| not) finish|cut (?:off|short)|"
+                  r"finish (?:your|that|the) (?:sentence|answer|thought)|"
+                  r"continue (?:your|that|the) (?:sentence|answer|thought)|"
+                  r"you (?:stopped|were saying))\b", question, re.I)
+        or re.fullmatch(r"\s*(?:please\s+)?(?:continue|go on|finish it)[.!?]?\s*", question, re.I)))
     online = bool(req.get("online"))
     # Off-grid mode saves battery: the AI writes shorter answers.
     offgrid = bool(req.get("offgrid"))
@@ -4599,6 +4632,9 @@ def answer(req, emit):
         system += (" The user's affirmative reply accepts your immediately previous offer. Fulfil that specific offer now. "
                    "Do not restart the prior topic, describe your day again, or ask a new unrelated question. "
                    "Your offer was: " + previous[-650:])
+    if repair_request:
+        system += (" The user is asking you to finish your immediately previous answer. Continue its last unfinished "
+                   "thought on the same subject. Do not guess a new subject or restart with a generic introduction.")
     if sky_request:
         current_settings = read_json(SETTINGS_FILE, {})
         lat, lon = current_settings.get("skyLatitude"), current_settings.get("skyLongitude")
@@ -4611,6 +4647,10 @@ def answer(req, emit):
                    "Keep finding/collecting water distinct from making it safe. Settling or cloth filtering "
                    "removes visible particles, not microbes. Use treatment only as described in the supplied "
                    "source; do not invent a settling time or call untreated water potable.")
+    if pet_choice_question(question):
+        system += (" PET CHOICE: Recommend a companion animal suited to the user's actual home and time for care. "
+                   "A small body does not mean a tiny enclosure is humane; account for exercise, social needs, "
+                   "noise, ongoing costs and any building rules. Do not turn this into pest-control advice.")
     language = knowledge_matches(question, "language", 2)
     if language:
         system += (" LANGUAGE CONTEXT (use only if this sense fits the user's words): "
@@ -4653,15 +4693,18 @@ def answer(req, emit):
         role = "assistant" if turn.get("role") == "assistant" else "user"
         content = str(turn.get("content", ""))
         latest_assistant = role == "assistant" and i == len(recent) - 1
-        if chatting and role == "assistant" and not (follows_offer and latest_assistant) and (len(content) > 300 or re.search(r"(?m)^\s*(?:\d+[.)]|[-*])\s", content)):
+        if chatting and role == "assistant" and not ((follows_offer or repair_request) and latest_assistant) and (len(content) > 300 or re.search(r"(?m)^\s*(?:\d+[.)]|[-*])\s", content)):
             continue  # a previous long or list-like answer should not steer a new chat topic
-        keep = 900 if follows_offer and latest_assistant else 320 if chatting else 900 if i >= len(recent) - 2 else 250
-        messages.append({"role": role, "content": content[:keep]})
+        keep = 1200 if repair_request and latest_assistant else 900 if follows_offer and latest_assistant else 320 if chatting else 900 if i >= len(recent) - 2 else 250
+        messages.append({"role": role, "content": content[-keep:] if repair_request and latest_assistant else content[:keep]})
     if chatting:
         messages.append({"role": "user", "content": question})
     else:
         context = "\n\n".join(blocks) if blocks else "(no relevant sources found; answer from your own knowledge)"
-        messages.append({"role": "user", "content": f"SOURCES:\n{context}\n\nQUESTION: {question}"})
+        messages.append({"role": "user", "content":
+                         f"CURRENT QUESTION: {question}\n\n"
+                         f"SOURCES (optional reference material; ignore excerpts about a different subject):\n{context}\n\n"
+                         f"Answer this question, in a natural conversational voice: {question}"})
 
     if req.get("attachments"):
         attach_files(messages, req.get("attachments"), emit, answer_model)
@@ -4684,7 +4727,7 @@ def answer(req, emit):
                 helper_name = MODEL_INFO.get(helper, {}).get("callsign", helper)
                 emit({"type": "model", "message": f"{primary_name} answered with a second opinion from {helper_name}."})
     wants_detail = bool(re.search(r"\b(?:in detail|detailed|step[- ]by[- ]step|thorough|comprehensive|deep dive|explain fully)\b", question, re.I))
-    limit = 180 if chatting else 300 if offgrid else 650 if wants_detail else 420 if len(question.split()) > 25 else 240
+    limit = 180 if chatting else 300 if offgrid else 650 if wants_detail else 420 if len(question.split()) > 25 else 360
     full, done_event = stream_chat(messages, emit, limit, answer_model)
     if not re.sub(r"\bNEXT\s*:.*", "", full, flags=re.S).strip():
         # An empty reply is never acceptable: retry once without sources.
@@ -4694,6 +4737,19 @@ def answer(req, emit):
         full = ("Starting with the surroundings sounds sensible. " if re.search(r"surroundings|ground", question, re.I) else "") + fact["passage"]
         emit({"type": "phase", "phase": "write"})
         emit({"type": "token", "text": full})
+
+    if answer_needs_completion(full, done_event):
+        continuation = messages + [
+            {"role": "assistant", "content": full},
+            {"role": "user", "content": "Continue exactly where your last sentence stopped. Finish that sentence only, "
+                                        "without repeating anything or starting another topic."},
+        ]
+        extra, extra_event = stream_chat(continuation, emit, 100, answer_model)
+        full += extra
+        if done_event and extra_event:
+            done_event = {**extra_event,
+                          "tokens": done_event.get("tokens", 0) + extra_event.get("tokens", 0),
+                          "seconds": round(done_event.get("seconds", 0) + extra_event.get("seconds", 0), 1)}
 
     match = None
     for match in re.finditer(r"\bNEXT\s*:\s*(.+)", full):
@@ -4710,6 +4766,16 @@ def answer(req, emit):
     record("question", question, online=online, offgrid=offgrid, turn=len(history) // 2 + 1)
     if done_event:
         emit(done_event)
+
+
+def answer_needs_completion(text, done_event):
+    """A generation limit should not leave the final sentence hanging."""
+    tail = text.strip()
+    if not tail or re.search(r"[.!?][\"'\)\]]*\s*$", tail):
+        return False
+    if done_event and done_event.get("reason") == "length":
+        return True
+    return len(tail) > 30 and bool(re.search(r"\b(?:it|the|a|an|and|but|or|to|for|with|of|is|are|was|would|could)\s*$", tail, re.I))
 
 
 def stream_chat(messages, emit, limit=None, model=None):
@@ -4739,6 +4805,8 @@ def stream_chat(messages, emit, limit=None, model=None):
                               "seconds": round(chunk.get("total_duration", 0) / 1e9, 1),
                               "reason": chunk.get("done_reason", ""),
                               "promptTokens": chunk.get("prompt_eval_count", 0)}
+    if done_event is None:
+        raise RuntimeError("The model connection ended before the answer was complete.")
     return full, done_event
 
 
