@@ -33,6 +33,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import maps  # noqa: E402  (offline maps: maps.py next to this file)
 import transfers
 import linked_library
+import outpost
 import radar  # noqa: E402  (signals & radar: radar.py next to this file)
 
 # The Windows app (built from windows/): its own places, tools and readings.
@@ -136,13 +137,20 @@ CHAT_PROMPT = (
     "You are Umbra, a friendly local assistant in an ordinary conversation. The selected personality is "
     "a light voice preference, never a script or a reason to change the subject. "
     "Respond to what the person actually said in their language and tone. "
-    "Keep casual replies to one or two natural sentences and at most one easy question. "
+    "Keep casual replies proportionate: a greeting can be one sentence, but an open invitation to chat "
+    "deserves two or three sentences with something concrete to respond to. Ask at most one easy question. "
+    "When the person is bored, asks you to choose, or leaves the topic open, take initiative: suggest one "
+    "specific interesting subject, tiny game, curious fact or imaginative question. Do not merely ask "
+    "'what's on your mind', 'what would you like to talk about', or the same question again. "
+    "If the previous reply ended in a question the person did not take up, move the conversation forward "
+    "with a fresh specific idea instead of rephrasing that question. "
     "Use everyday wording for check-ins, even with a historical or theatrical personality; avoid lofty reflections. "
     "If they share something personal, respond with care and let them lead. If they correct you, acknowledge it "
     "briefly and follow their new direction. No lists, numbered steps, headings, bold, forced reflection, "
     "practical exercise or unsolicited advice. "
-    "For a request for something fun, offer a short joke or interesting fact. Do not invent shared events, "
-    "local weather, personal experiences or things you did today. "
+    "For a request for something fun, offer a short joke, interesting fact, or playful prompt. Introduce "
+    "a topic directly ('Here's an idea...'); do not claim you were just reading, thinking, seeing or doing it. "
+    "Do not invent shared events, local weather, personal experiences or things you did today. "
     "Do not mention earlier conversations unless the person asks about them. "
     "Speak naturally without pretending to have a human life or adding an AI disclaimer."
 )
@@ -166,6 +174,8 @@ UMBRA_GUIDE = (
     "waypoints, measuring, clickable country files with facts, and safety levels per country. "
     "FARMING: an offline planner with edible crops and common livestock, editable estimates for output, "
     "calories, seed, feed, work, climate and soil. Its bundled figures are rough planning defaults, not local advice. "
+    "UMBRA OUTPOST: an optional fictional settlement game with eight resources, upgrades and two short expeditions; "
+    "it progresses offline and keeps its save separate from the real Farming planner. "
     "SIGNALS & RADAR (Ctrl+J): nearby Wi-Fi and Bluetooth signals on a radar, INTEL, a DEVICES list that "
     "remembers every device heard and marks new ones, the device's vitals, and a KILL SWITCH that turns all radios off at once. "
     "DOWNLOADS (maps, library, AI model, manuals) can be paused and resumed from the button at the top. "
@@ -182,13 +192,13 @@ UMBRA_GUIDE = (
     "Ctrl+P Profile, Ctrl+O Loadout, Ctrl+T Themes, Ctrl+, Settings, F1 all shortcuts, and Ctrl + mouse wheel (or Ctrl + plus / "
     "minus, Ctrl+0 to reset) to zoom every screen (also Settings, Zoom); never invent others. The Calendar, Vault, "
     "Medic, Supplies and Training are tabs inside the Field Kit; to add a reminder, open the Field Kit, go to CALENDAR and "
-    "click a day. MAPS, FARMING, SIGNALS & RADAR, LIBRARY, HISTORY, THEMES and SETTINGS are their own screens, each opened with its "
+    "click a day. MAPS, FARMING, UMBRA OUTPOST, SIGNALS & RADAR, LIBRARY, HISTORY, THEMES and SETTINGS are their own screens, each opened with its "
     "button in the top bar (not in the Field Kit). You cannot change anything in the app yourself: never say you "
     "added, saved or changed something; tell the user where to do it."
 )
 ABOUT_UMBRA = re.compile(r"\b(umbra|this app|the app|your (features|tools|functions)|what can you do|"
                          r"what can you help me with|how can you help me|what are you|who are you|"
-                         r"how do (i|you) use|field kit|farming (tab|screen|planner)|medic tab|vault|radar|sun (and|&) moon|pocket cards?|morse trainer|"
+                         r"how do (i|you) use|field kit|farming (tab|screen|planner)|outpost|medic tab|vault|radar|sun (and|&) moon|pocket cards?|morse trainer|"
                          r"settings|shortcut|offline map|waypoint|calendar|reminder|manuals?|radar|kill switch|theme|tour|download|backup|"
                          r"profile|achievement|help me with the app)\b", re.I)
 
@@ -511,6 +521,7 @@ def save_supplies(data):
 # ------------------------------------------------------------- farm planner
 
 FARM_FILE = os.path.join(DATA_DIR, "farm.json")
+OUTPOST_FILE = os.path.join(DATA_DIR, "outpost.json")
 FARM_LOCK = threading.Lock()
 
 
@@ -1031,12 +1042,12 @@ def feature_reply(question):
     q = question.strip()
     if re.fullmatch(r"(?i)(?:what can you (?:do|help me with)|how can you help me)[!?.\s]*", q):
         return random.choice((
-            "We can just talk, or I can help with your offline library, maps, manuals and Field Kit. What's on your mind?",
-            "I can chat, look things up in your local library, and help you use maps or the Field Kit. What would you like to do?",
+            "We can just talk, or I can help with your offline library, maps, manuals, Field Kit and Outpost game. What's on your mind?",
+            "I can chat, look things up in your local library, or help you use maps, the Field Kit and Outpost. What would you like to do?",
             "Whatever suits you: a conversation, an answer from your offline library, or help with Umbra's tools. Where should we start?",
         ))
     if re.fullmatch(r"(?i)(?:who|what) are you[!?.\s]*", q):
-        return "I'm Umbra, your local assistant. We can talk, or I can help you explore your offline library and tools."
+        return "I'm Umbra, your local assistant. We can talk, explore your offline library, or play Umbra Outpost."
     return ""
 
 
@@ -2665,7 +2676,7 @@ def reset_umbra():
     the library and config.json (model, library folder) are kept."""
     MANUAL_DOWNLOADS.control("cancel")
     for path in (SETTINGS_FILE, PROFILE_FILE, CUSTOM_THEMES_FILE, PERSONALITIES_FILE, SCENARIOS_FILE, LOCK_FILE, ACH_FILE,
-                 WAYPOINTS_FILE, SUPPLIES_FILE, FARM_FILE, SAFETY_FILE, FOLDERS_FILE, VAULT_FILE, radar.KNOWN_FILE, CALENDAR_FILE, MANUALS_STATE, STYLE_FILE):
+                 WAYPOINTS_FILE, SUPPLIES_FILE, FARM_FILE, OUTPOST_FILE, SAFETY_FILE, FOLDERS_FILE, VAULT_FILE, radar.KNOWN_FILE, CALENDAR_FILE, MANUALS_STATE, STYLE_FILE):
         try:
             os.remove(path)
         except OSError:
@@ -3139,6 +3150,7 @@ def backup(include_history, target=""):
         "settings": read_json(SETTINGS_FILE, {}), "profile": get_profile(),
         "themes": custom_themes(), "personalities": custom_personalities(), "scenarios": custom_scenarios(),
         "achievements": read_json(ACH_FILE, {}), "waypoints": get_waypoints(), "supplies": get_supplies(), "farm": get_farm(),
+        "outpost": read_json(OUTPOST_FILE, {}),
         "safety": get_safety()["levels"], "folders": get_folders()["folders"], "vault": get_vault(), "calendar": get_calendar()["events"],
         "history": [read_json(history_path(i["id"]), {}) for i in history_list()["items"]] if include_history else [],
     }
@@ -3166,6 +3178,11 @@ def restore(data):
         try:
             save_farm(data["farm"])
         except (ValueError, TypeError):
+            pass
+    if isinstance(data.get("outpost"), dict) and data["outpost"]:
+        try:
+            outpost.restore_save(OUTPOST_FILE, data["outpost"])
+        except (ValueError, TypeError, KeyError):
             pass
     if isinstance(data.get("calendar"), list) and data["calendar"]:
         try:
@@ -3750,6 +3767,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(get_profile())
         if path == "/api/farm":
             return self.send_json({"catalog": farm_catalog(), "plan": get_farm()})
+        if path == "/api/outpost":
+            return self.send_json(outpost.interact(OUTPOST_FILE))
         if path == "/api/greeting":
             return self.send_json(greeting())
         if path == "/api/starters":
@@ -4001,6 +4020,11 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/farm":
             try:
                 return self.send_json(save_farm(self.read_json()))
+            except (ValueError, TypeError) as e:
+                return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/outpost":
+            try:
+                return self.send_json(outpost.interact(OUTPOST_FILE, self.read_json()))
             except (ValueError, TypeError) as e:
                 return self.send_json({"error": str(e)}, 400)
         if self.path == "/api/attention":
@@ -4533,7 +4557,7 @@ def answer(req, emit):
                    "none of these parts was missed: " + " ".join(f"[{i}] {p[:180]}" for i, p in enumerate(parts, 1)))
     if chatting and ABOUT_UMBRA.search(question):
         system += (" You are Umbra Wiki, a local assistant that can chat, answer using an offline library, "
-                   "and help with maps, manuals, a field kit and saved history. For this answer, briefly give "
+                   "and help with maps, manuals, a field kit, Outpost and saved history. For this answer, briefly give "
                    "two or three real examples of what you can help with, without a feature list or crisis framing.")
     if not chatting:
         ctx = user_context(question, req.get("context"))
@@ -4556,13 +4580,13 @@ def answer(req, emit):
                    "in their proper order, without long explanations. Never skip the first step or any "
                    "safety-critical step to save words (for bleeding, firm direct pressure always comes first).")
     messages = [{"role": "system", "content": system}]
-    recent = history[-(3 if chatting else HISTORY_TURNS) * 2:]
+    recent = history[-HISTORY_TURNS * 2:]
     for i, turn in enumerate(recent):
         role = "assistant" if turn.get("role") == "assistant" else "user"
         content = str(turn.get("content", ""))
         if chatting and role == "assistant" and (len(content) > 300 or re.search(r"(?m)^\s*(?:\d+[.)]|[-*])\s", content)):
             continue  # a previous long or list-like answer should not steer a new chat topic
-        keep = 200 if chatting else 900 if i >= len(recent) - 2 else 250
+        keep = 320 if chatting else 900 if i >= len(recent) - 2 else 250
         messages.append({"role": role, "content": content[:keep]})
     if chatting:
         messages.append({"role": "user", "content": question})
@@ -4591,7 +4615,7 @@ def answer(req, emit):
                 helper_name = MODEL_INFO.get(helper, {}).get("callsign", helper)
                 emit({"type": "model", "message": f"{primary_name} answered with a second opinion from {helper_name}."})
     wants_detail = bool(re.search(r"\b(?:in detail|detailed|step[- ]by[- ]step|thorough|comprehensive|deep dive|explain fully)\b", question, re.I))
-    limit = 120 if chatting else 300 if offgrid else 650 if wants_detail else 420 if len(question.split()) > 25 else 240
+    limit = 180 if chatting else 300 if offgrid else 650 if wants_detail else 420 if len(question.split()) > 25 else 240
     full, done_event = stream_chat(messages, emit, limit, answer_model)
     if not re.sub(r"\bNEXT\s*:.*", "", full, flags=re.S).strip():
         # An empty reply is never acceptable: retry once without sources.

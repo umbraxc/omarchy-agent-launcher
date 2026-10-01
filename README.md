@@ -16,6 +16,8 @@ and no subscription. Nothing you ask leaves your machine.
   and a built-in field manual covers the critical basics.
 - **Farming field planner**: explore edible crops and livestock through
   animated ASCII field cards, then adjust land, care, feed and food estimates.
+- **Umbra Outpost**: an optional fictional settlement game with eight resources,
+  station upgrades, offline progress and two choice driven expeditions.
 - **Made to be lived with**: scenarios and personalities, a welcome tour,
   history, voice input, 22 themes, animated backgrounds and transitions, and
   an off-grid battery saver.
@@ -241,6 +243,15 @@ yearly output. Open it with **Ctrl+Shift+F**.
 
 Hold **Shift** and drag any top tab to put your most used tools first. The
 Settings tab stays anchored. Your tab order is saved on this computer.
+
+### Umbra Outpost
+
+The **Umbra Outpost** tab is a separate fictional game. Food, water, wood,
+scrap, energy, medicine, knowledge and morale support a small settlement.
+Build and upgrade stations to gather resources while Umbra is closed, then
+send expeditions to the silent weather station and the glasshouse. Each story
+has two choices when the team returns. The save stays on this device and is
+included in Umbra backups; it never changes your real Farming plan or supplies.
 
 ### Field Kit
 

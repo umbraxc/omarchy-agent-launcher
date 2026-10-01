@@ -244,6 +244,7 @@
     ["#maps-btn", "MAPS", "Offline maps with a military look, down to street level: download a country or any area, search towns, streets, water and coordinates. Right-click for waypoints (15 marker types), measuring and range rings. Click a country's name for its file and your own safety level."],
     ["#fieldkit-btn", "FIELD KIT", "Tools that matter in an emergency. MEDIC: CPR metronome, timers, triage, coma scale, burns and child-dose calculators, a patient chart with handover reports. SUN & MOON with a live Earth. SUPPLIES. A CALENDAR that also shows when water and food run out. The VAULT for your arsenal and valuables. TRAINING: Morse, radio, grid references, compass, and field manuals to download. Printable CARDS."],
     ["#farming-btn", "FARMING", "An offline field planner for edible crops and common livestock. Choose an item to see animated field art, care, space, climate, and daily or weekly estimates; adjust the numbers for your plan. Ctrl+Shift+F opens it."],
+    ["#outpost-btn", "UMBRA OUTPOST", "A separate fictional settlement game. Build stations, gather eight resources while Umbra is closed, and follow two short expedition stories."],
     ["#radar-btn", "SIGNALS & RADAR", "The Wi-Fi networks and Bluetooth devices around you on a radar, nearer the centre when stronger; click one for its details. Plus your device's vitals. No internet needed."],
     ["#dl-btn", "DOWNLOADS", "Shows while something downloads (maps, library, AI model): pause, resume or cancel it here. Downloads go on after a restart."],
     ["#theme-btn", "THEMES", "Pick a colour theme, follow your Omarchy theme, or design your own."],
@@ -257,7 +258,7 @@
 
   // Both visual tours introduce every main tab. The short tour keeps fewer
   // explanatory steps outside the header.
-  const QUICK_SPOTS = [".cell.status", "#loadout-btn", "#history-btn", "#library-btn", "#maps-btn", "#fieldkit-btn", "#farming-btn", "#radar-btn", "#dl-btn", "#theme-btn", "#sound", "#lock", "#settings-btn", "#q"];
+  const QUICK_SPOTS = [".cell.status", "#loadout-btn", "#history-btn", "#library-btn", "#maps-btn", "#fieldkit-btn", "#farming-btn", "#outpost-btn", "#radar-btn", "#dl-btn", "#theme-btn", "#sound", "#lock", "#settings-btn", "#q"];
 
   function spotlight(quick = false) {
     return new Promise((resolve, reject) => {

@@ -13,7 +13,7 @@
   };
   window.prefs = { ...DEFAULTS, hiddenControls: [], headerOrder: [] };
   // Header buttons that can be hidden (Settings itself always stays).
-  const CONTROLS = [["loadout-btn", "Profile & loadout"], ["history-btn", "History"], ["library-btn", "Library"], ["maps-btn", "Maps"], ["fieldkit-btn", "Field kit"], ["farming-btn", "Farming"],
+  const CONTROLS = [["loadout-btn", "Profile & loadout"], ["history-btn", "History"], ["library-btn", "Library"], ["maps-btn", "Maps"], ["fieldkit-btn", "Field kit"], ["farming-btn", "Farming"], ["outpost-btn", "Umbra Outpost"],
                     ["radar-btn", "Signals & radar"], ["theme-btn", "Themes"], ["sound", "Sound"], ["lock", "Lock"]];
   const panel = $("#settings");
   let pullTimer = 0;

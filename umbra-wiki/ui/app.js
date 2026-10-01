@@ -194,6 +194,7 @@ const Sound = (() => {
     "maps-btn": ["MAPS", "Offline maps and waypoints"],
     "fieldkit-btn": ["FIELD KIT", "Medic, sky, supplies and training"],
     "farming-btn": ["FARMING", "Crops, livestock and food production"],
+    "outpost-btn": ["UMBRA OUTPOST", "Build a settlement and explore two stories"],
     "radar-btn": ["SIGNALS & RADAR", "Nearby signals and device status"],
     "theme-btn": ["THEMES", "Choose Umbra's look"],
     "sound": ["SOUND", "Interface audio"],
@@ -206,7 +207,7 @@ const Sound = (() => {
   card.innerHTML = "<b></b><small></small>";
   document.body.appendChild(card);
   const mainVisible = () => !document.body.classList.contains("touring") && !document.body.classList.contains("locked") &&
-    !["#maps", "#fieldkit", "#farming", "#radar", "#loadout", "#history", "#library", "#themes", "#settings", "#core"].some((s) => {
+    !["#maps", "#fieldkit", "#farming", "#outpost", "#radar", "#loadout", "#history", "#library", "#themes", "#settings", "#core"].some((s) => {
       const el = $(s); return el && !el.hidden;
     });
   const hide = () => { card.hidden = true; };
@@ -233,7 +234,7 @@ const Sound = (() => {
 // quiet minute on the main screen, one gentle signal crosses their icons.
 (() => {
   const bar = document.querySelector(".controls");
-  const panels = ["maps", "fieldkit", "farming", "radar", "loadout", "history", "library", "themes", "settings", "core"];
+  const panels = ["maps", "fieldkit", "farming", "outpost", "radar", "loadout", "history", "library", "themes", "settings", "core"];
   const atHome = () => !document.hidden && !document.body.classList.contains("locked") &&
     !document.body.classList.contains("touring") && panels.every((id) => document.getElementById(id)?.hidden !== false);
   let idle = 0, wave = 0;
@@ -267,7 +268,7 @@ let hoverLast = null;
 // (Morse keys, the metronome's tap).
 document.addEventListener("click", (e) => {
   const b = e.target.closest("button, .mp-pt, label.mp-opt, .set-chip");
-  if (!b || b.disabled || !b.closest("#maps, #fieldkit, #farming, #radar, #loadout, #history, #library, #themes, #dl-pop, #settings, .news, .dl-toast, .toolrow, .tabguide, .hist-edit, .hist-move")) return;
+  if (!b || b.disabled || !b.closest("#maps, #fieldkit, #farming, #outpost, #radar, #loadout, #history, #library, #themes, #dl-pop, #settings, .news, .dl-toast, .toolrow, .tabguide, .hist-edit, .hist-move")) return;
   if (b.closest("[data-quiet], .fk-chart, .fk-key, .fk-tap")) return;
   setTimeout(Sound.tap, 30);
 });

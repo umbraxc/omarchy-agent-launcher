@@ -3,7 +3,7 @@
 (() => {
   const bar = document.querySelector(".controls");
   const pinned = document.querySelector("#settings-btn");
-  const ids = ["loadout-btn", "history-btn", "library-btn", "maps-btn", "fieldkit-btn", "farming-btn", "radar-btn", "theme-btn", "sound", "lock"];
+  const ids = ["loadout-btn", "history-btn", "library-btn", "maps-btn", "fieldkit-btn", "farming-btn", "outpost-btn", "radar-btn", "theme-btn", "sound", "lock"];
   const movable = (el) => el && ids.includes(el.id);
   const order = () => [...bar.children].filter(movable).map((el) => el.id);
   function apply(saved) {
@@ -20,7 +20,7 @@
   const hideNote = () => { clearTimeout(hideTimer); note.hidden = true; };
   const busy = () => !!document.querySelector(".nav-callout:not([hidden]), .ac-toast:not([hidden]), .dl-toast:not([hidden]), .tip:not([hidden]), .sound-pop:not([hidden])");
   const showNote = () => {
-    const panels = ["maps", "fieldkit", "farming", "radar", "loadout", "history", "library", "themes", "settings", "core"];
+    const panels = ["maps", "fieldkit", "farming", "outpost", "radar", "loadout", "history", "library", "themes", "settings", "core"];
     if (document.hidden || document.body.classList.contains("locked") || document.body.classList.contains("touring") || busy() ||
         panels.some((id) => document.getElementById(id)?.hidden === false)) return;
     const r = bar.getBoundingClientRect();
