@@ -1,8 +1,8 @@
 # Maintainer: umbraxc <334050264+umbraxc@users.noreply.github.com>
 pkgname=umbra-wiki
-pkgver=3.1.5
+pkgver=3.1.6
 pkgrel=1
-_commit=86c4c43b41aa3c18b259d03e152f35e07ef25ec4   # v3.1.5 release source
+_commit=4b5effbde9a63159d64265f34dfb5d091350529d   # exact 3.1.6 release source
 pkgdesc="Offline survival assistant: a local AI that answers from an offline library, with sources"
 arch=('any')
 url="https://github.com/umbraxc/omarchy-umbra"
@@ -18,8 +18,8 @@ optdepends=('pipewire-audio: sounds and voice recording'
             'bluez-utils: Bluetooth devices on the Signals & Radar screen'
             'poppler: read text from linked PDF files')
 install=umbra-wiki.install
-source=("$pkgname-$pkgver-$pkgrel.tar.gz::https://github.com/umbraxc/omarchy-umbra/archive/$_commit.tar.gz")
-sha256sums=('72665a639948f0e5f42d6dd3b420ed01e3d9f1026dc527407103c206b823c57f')
+source=("$pkgname-$pkgver-$pkgrel.tar.gz::https://github.com/umbraxc/omarchy-umbra/releases/download/v$pkgver/umbra-wiki-$pkgver-source.tar.gz")
+sha256sums=('f5025ef96462bfe76d4f5a3ea33d2ae7f4f0c2390d10a3ea617037380910d20e')
 
 package() {
   cd "omarchy-umbra-$_commit/umbra-wiki"
@@ -27,7 +27,7 @@ package() {
 
   install -d "$app"
   cp -r ui sounds "$app/"
-  install -m644 server.py maps.py pmtiles.py radar.py transfers.py linked_library.py manuals.json facts.json fieldmanual.json knowledge.json library.json packs.json achievements.json farming.json "$app/"
+  install -m644 server.py maps.py pmtiles.py radar.py transfers.py linked_library.py outpost.py sky.py manuals.json facts.json fieldmanual.json knowledge.json library.json packs.json achievements.json farming.json "$app/"
   install -Dm644 maps/world.mbtiles maps/countries.json maps/atlas.json -t "$app/maps/"
   install -m755 fetch-archive.sh uninstall.sh "$app/"
 
