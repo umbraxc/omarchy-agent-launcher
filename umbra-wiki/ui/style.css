@@ -3549,3 +3549,6 @@ body.reduce-motion .web, body.reduce-motion .web-seam, body.reduce-motion .web-s
 #netbanner .web-unfold { margin-left: 12px; padding: 2px 9px; border: 1px solid var(--net); background: none; color: var(--net); font-size: 9.5px; letter-spacing: .14em; }
 /* The dossier cards rest while the browser is open: there's no room beside the conversation. */
 body.web-open:not(.web-folded) .dossier { display: none !important; }
+/* Online, the conversation column is narrow: the status line goes on two rows, as in a small window. */
+body.web-open:not(.web-narrow):not(.web-folded) .promptbar { grid-template-columns: minmax(0, 1fr) auto; row-gap: 2px; letter-spacing: .16em; }
+body.web-open:not(.web-narrow):not(.web-folded) .promptbar .pb-tab { grid-column: 1 / -1; grid-row: 2; }

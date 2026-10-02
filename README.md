@@ -114,6 +114,8 @@ your usual browser. Comments are chatty, gentle or off, and always wait while
 you type or Umbra answers. In a narrow window, the web sits above the
 conversation; drag the line between them to resize.
 
+![Umbra Online: Wikipedia on the left; on the right, Umbra spots the page, shares a fun fact, and a selection offers Explain, Ask and Save quote](docs/online.png)
+
 ### The Core panel: your AI, and how everything is doing
 
 Click **STATUS** at the top and the Core panel slides in from the side. A live orb shows Umbra's state, with every
@@ -274,6 +276,9 @@ companions. Eight buildings grow to level 10 and keep producing supplies, and
 everything keeps going while you're away (at a tenth of the pace after the first two minutes, for up to a day), with a summary when you return. The Outpost profile shows your total level and settings (including a reset); at total levels 1,000, 1,300, 1,600 and 2,079 you can Prestige, restarting the run for a lasting bonus, small perks and Locker rewards: four orbs, titles and name effects. The save stays
 on this device and is included in Umbra backups; it never changes your real
 Farming plan or supplies.
+
+![Umbra Outpost: Forestry at level 81, with a 3D ASCII forest and every tree drawn in 3D](docs/outpost.png)
+![Prestige rewards: four tiers, each with its own orb, title and name effect](docs/outpost-prestige.png)
 
 ### Conversation scenery
 
