@@ -1822,8 +1822,18 @@ document.addEventListener("mouseover", (e) => {
     tip.hidden = false;
     const r = el.getBoundingClientRect();
     const w = tip.offsetWidth, h = tip.offsetHeight;
-    const below = r.bottom + 8 + h < innerHeight - 4;
-    tip.style.left = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), innerWidth - w - 8) + "px";
+    let below = r.bottom + 8 + h < innerHeight - 4;
+    let left = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), innerWidth - w - 8);
+    // Umbra Online: the browser is drawn above the page, so a label that
+    // would land on it goes above its button, or beside the browser.
+    const web = window.UmbraWeb?.area?.();
+    if (web) {
+      const hits = (top) => !(left + w <= web.left || left >= web.right || top + h <= web.top || top >= web.bottom);
+      if (hits(below ? r.bottom + 8 : r.top - h - 8)) below = !below;
+      if (hits(below ? r.bottom + 8 : r.top - h - 8) && r.left >= web.right - 4) left = Math.min(innerWidth - w - 8, Math.max(left, web.right + 8));
+      if (!below && r.top - h - 8 < 4) below = true;
+    }
+    tip.style.left = left + "px";
     tip.style.top = (below ? r.bottom + 8 : r.top - h - 8) + "px";
     tip.classList.toggle("above", !below);
   }, 380);

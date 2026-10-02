@@ -11,7 +11,10 @@ started. Built into "Umbra Wiki.exe" by windows/umbra.spec.
                                  empty profile, check it, exit (for the build)
 """
 
+import base64
 import ctypes
+import io
+import itertools
 import json
 import os
 import sys
@@ -131,6 +134,349 @@ def selftest():
     return 0 if ok else 1
 
 
+class WebPane:
+    """Umbra Online's built-in browser on Windows: Edge WebView2 controls (one
+    per tab) laid over the space the page keeps free (#web .web-view), driven
+    by the same "web:{json}" messages as the Linux launcher's WebPane. Every
+    change runs on the window's thread; events go back to the page through
+    UmbraWeb.host(...). Anything that fails leaves Umbra's usual online mode."""
+
+    SCHEMES = ("http://", "https://")
+
+    def __init__(self, window):
+        self.window = window
+        self.form = None
+        self.tabs, self.order, self.active = {}, [], None
+        self.loading, self.ids = {}, itertools.count(1)
+        self.rect, self.shown, self.ratio = (0, 0, 10, 10), False, 1.0
+        self.last_selact = 0
+        try:
+            self.reader = open(os.path.join(HERE, "ui", "web-page.js"), encoding="utf-8").read()
+        except OSError:
+            self.reader = ""
+
+    def start(self):
+        """Once the window exists: load the WebView2 types, then tell the page."""
+        try:
+            import clr  # noqa: F401  (pythonnet, already loaded by pywebview)
+            from System import Action
+            self.Action = Action
+            self.form = self.window.native
+            from Microsoft.Web.WebView2.WinForms import WebView2  # noqa: F401
+            self.window.evaluate_js("window.UMBRA_WEB = 1")
+            print("web: ready", flush=True)
+        except Exception as e:
+            self.form = None
+            print("web: not available:", e, flush=True)
+
+    def ui(self, fn):
+        """Run on the window's thread (WinForms controls live there)."""
+        def safe():
+            try:
+                fn()
+            except Exception as e:
+                print("web:", repr(e), flush=True)
+        if self.form is not None:
+            self.form.BeginInvoke(self.Action(safe))
+
+    def send(self, event):
+        js = ("try { window.UmbraWeb && UmbraWeb.host(" + json.dumps(event, ensure_ascii=True)
+              + ") } catch (e) { console.error('UmbraWeb:', e) }")
+        self.ui(lambda: self.form.webview.CoreWebView2.ExecuteScriptAsync(js))
+
+    # ------------------------------------------------------------ tabs
+    def tab_info(self, tid):
+        v = self.tabs[tid]
+        core = v.CoreWebView2
+        url = str(core.Source) if core is not None else ""
+        if url == "about:blank":
+            url = ""
+        return {"id": tid, "title": str(core.DocumentTitle) if core is not None else "", "url": url,
+                "loading": bool(self.loading.get(tid)), "progress": 0.35 if self.loading.get(tid) else 1,
+                "back": bool(core and core.CanGoBack), "forward": bool(core and core.CanGoForward), "secure": url.startswith("https://")}
+
+    def send_tabs(self):
+        self.send({"t": "tabs", "active": self.active, "tabs": [self.tab_info(t) for t in self.order]})
+
+    def new_tab(self, url=""):
+        from Microsoft.Web.WebView2.WinForms import WebView2, CoreWebView2CreationProperties
+        from System.Drawing import Color, Rectangle
+        tid = next(self.ids)
+        v = WebView2()
+        props = CoreWebView2CreationProperties()
+        props.UserDataFolder = os.path.join(DATA, "web")
+        v.CreationProperties = props
+        v.DefaultBackgroundColor = Color.White
+        v.Visible = False
+        v.Bounds = Rectangle(*self.rect)
+        self.form.Controls.Add(v)
+        v.BringToFront()
+        self.tabs[tid] = v
+        self.order.append(tid)
+        v.CoreWebView2InitializationCompleted += lambda s, a, tid=tid, url=url: self.ready(tid, a, url)
+        v.EnsureCoreWebView2Async(None)
+        self.select(tid)
+        return tid
+
+    def ready(self, tid, args, url):
+        v = self.tabs.get(tid)
+        if v is None:
+            return
+        if not args.IsSuccess:
+            self.send({"t": "failed", "tab": tid, "url": url, "tls": False, "message": "The browser couldn't start."})
+            return
+        core = v.CoreWebView2
+        st = core.Settings
+        st.AreDevToolsEnabled = False
+        st.IsStatusBarEnabled = False
+        st.AreDefaultScriptDialogsEnabled = True
+        if self.reader:
+            core.AddScriptToExecuteOnDocumentCreatedAsync(self.reader)
+        core.WebMessageReceived += lambda s, e, tid=tid: self.on_message(tid, e)
+        core.NavigationStarting += lambda s, e, tid=tid: self.on_start(tid, e)
+        core.NavigationCompleted += lambda s, e, tid=tid: self.on_done(tid, e)
+        core.SourceChanged += lambda s, e: self.send_tabs()
+        core.DocumentTitleChanged += lambda s, e: self.send_tabs()
+        core.HistoryChanged += lambda s, e: self.send_tabs()
+        core.NewWindowRequested += self.on_new_window
+        core.PermissionRequested += self.on_permission
+        core.DownloadStarting += self.on_download
+        core.ProcessFailed += lambda s, e, tid=tid: self.send({"t": "crashed", "tab": tid})
+        if url:
+            self.load(tid, url)
+        self.send_tabs()
+
+    def load(self, tid, url):
+        v = self.tabs.get(tid)
+        url = (url or "").strip()
+        if v is not None and v.CoreWebView2 is not None and url.startswith(self.SCHEMES):
+            v.CoreWebView2.Navigate(url)
+
+    def select(self, tid):
+        if tid not in self.tabs:
+            return
+        self.active = tid
+        for t, v in self.tabs.items():
+            v.Visible = self.shown and t == tid
+        if self.shown:
+            self.tabs[tid].BringToFront()
+            self.tabs[tid].Focus()
+        self.send_tabs()
+        self.extract()
+
+    def close_tab(self, tid):
+        v = self.tabs.pop(tid, None)
+        if v is None:
+            return
+        i = self.order.index(tid)
+        self.order.remove(tid)
+        self.loading.pop(tid, None)
+        self.form.Controls.Remove(v)
+        v.Dispose()
+        if self.active == tid:
+            self.active = None
+            if self.order:
+                self.select(self.order[max(0, i - 1)])
+        self.send_tabs()
+
+    def end(self):
+        for tid in list(self.order):
+            self.close_tab(tid)
+        self.place(None, False)
+
+    # --------------------------------------------------------- placement
+    def place(self, rect, show, page_width=0):
+        from System.Drawing import Rectangle
+        if page_width:
+            self.ratio = self.form.webview.Width / float(page_width)
+        if rect:
+            k = self.ratio
+            self.rect = tuple(max(0, int(round(float(n) * k))) for n in rect)
+        show = bool(show and rect and self.order)
+        for t, v in self.tabs.items():
+            v.Bounds = Rectangle(*self.rect)
+            v.Visible = show and t == self.active
+        if show and self.active in self.tabs:
+            self.tabs[self.active].BringToFront()
+        self.shown = show
+
+    def snapshot(self, purpose, then=None):
+        from Microsoft.Web.WebView2.Core import CoreWebView2CapturePreviewImageFormat
+        from System.IO import MemoryStream
+        v = self.tabs.get(self.active)
+        if v is None or v.CoreWebView2 is None:
+            if then:
+                then()
+            return
+        stream = MemoryStream()
+        task = v.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream)
+
+        def done():
+            try:
+                from PIL import Image
+                img = Image.open(io.BytesIO(bytes(stream.ToArray()))).convert("RGB")
+                if img.width > 1280:
+                    img = img.resize((1280, max(1, img.height * 1280 // img.width)))
+                if purpose == "cover":
+                    img = Image.blend(img, Image.new("RGB", img.size, (9, 9, 9)), 0.42)
+                buf = io.BytesIO()
+                img.save(buf, "PNG" if purpose == "cover" else "JPEG", quality=82)
+                self.send({"t": "snapshot", "purpose": purpose, "tab": self.active,
+                           "type": "png" if purpose == "cover" else "jpeg", "data": base64.b64encode(buf.getvalue()).decode()})
+            except Exception as e:
+                self.send({"t": "snapshot", "purpose": purpose, "error": str(e)[:200]})
+            if then:
+                then()
+        task.GetAwaiter().OnCompleted(self.Action(done))
+
+    def extract(self, tid=None):
+        v = self.tabs.get(tid or self.active)
+        if v is not None and v.CoreWebView2 is not None:
+            v.CoreWebView2.ExecuteScriptAsync("window.__umbraRead && __umbraRead(true)")
+
+    # ------------------------------------------------------------ events
+    def on_message(self, tid, e):
+        try:
+            data = json.loads(str(e.TryGetWebMessageAsString()))
+        except Exception:
+            return
+        if not isinstance(data, dict) or data.get("t") not in ("page", "sel", "selact", "seen", "key"):
+            return
+        if data["t"] == "selact":   # web pages could post this too: never more than one every two seconds
+            if time.time() - self.last_selact < 2:
+                return
+            self.last_selact = time.time()
+        if data["t"] == "key":
+            if data.get("key") not in ("ctrl+l", "ctrl+t", "ctrl+w", "ctrl+tab", "ctrl+shift+tab", "f1", "f6", "ctrl+k", "ctrl+b"):
+                return
+        data["tab"] = tid
+        self.send(data)
+
+    def on_start(self, tid, e):
+        uri = str(e.Uri or "")
+        if uri.startswith(("mailto:", "tel:", "magnet:")):
+            e.Cancel = True
+            self.send({"t": "handoff", "url": uri})
+            return
+        if not uri.startswith(self.SCHEMES + ("about:", "data:", "blob:")):
+            e.Cancel = True
+            return
+        self.loading[tid] = True
+        self.send({"t": "nav", "tab": tid, "url": uri})
+        self.send_tabs()
+
+    def on_done(self, tid, e):
+        self.loading[tid] = False
+        if not e.IsSuccess:
+            status = str(e.WebErrorStatus)
+            if status != "OperationCanceled":
+                v = self.tabs.get(tid)
+                url = str(v.CoreWebView2.Source) if v is not None and v.CoreWebView2 is not None else ""
+                self.send({"t": "failed", "tab": tid, "url": url, "tls": status.startswith("Certificate"),
+                           "message": "The site didn't answer (" + status + ")."})
+        self.send_tabs()
+
+    def on_new_window(self, sender, e):
+        e.Handled = True
+        uri = str(e.Uri or "")
+        if uri.startswith(self.SCHEMES):
+            self.new_tab(uri)
+
+    def on_permission(self, sender, e):
+        from Microsoft.Web.WebView2.Core import CoreWebView2PermissionState
+        e.State = CoreWebView2PermissionState.Deny
+
+    def on_download(self, sender, e):
+        folder = os.path.join(os.path.expanduser("~"), "Downloads")
+        try:
+            os.makedirs(folder, exist_ok=True)
+            name = os.path.basename(str(e.ResultFilePath)) or "download"
+            base, ext = os.path.splitext(name)
+            path, n = os.path.join(folder, name), 1
+            while os.path.exists(path):
+                n += 1
+                path = os.path.join(folder, f"{base} ({n}){ext}")
+            e.ResultFilePath = path
+            e.Handled = True   # no browser download bubble: Umbra tells the user
+            op = e.DownloadOperation
+            self.send({"t": "download", "state": "started", "name": os.path.basename(path), "path": path})
+
+            def changed(s, a):
+                state = str(op.State)
+                if state == "Completed":
+                    self.send({"t": "download", "state": "finished", "path": path})
+                elif state == "Interrupted":
+                    self.send({"t": "download", "state": "failed", "message": str(op.InterruptReason)})
+            op.StateChanged += changed
+        except Exception as ex:
+            print("web download:", ex, flush=True)
+
+    # ---------------------------------------------------------- commands
+    def command(self, cmd):
+        if self.form is not None:
+            self.ui(lambda: self.run(cmd))
+
+    def run(self, cmd):
+        c = cmd.get("c")
+        v = self.tabs.get(self.active)
+        if c == "rect":
+            r = cmd.get("rect")
+            self.place((r["x"], r["y"], r["w"], r["h"]) if r else None, cmd.get("show"), float(r.get("vw") or 0) if r else 0)
+        elif c == "cover":
+            self.snapshot("cover", lambda: self.place(None, False))
+        elif c == "open":
+            url = str(cmd.get("url", ""))
+            if cmd.get("newTab") or v is None:
+                self.new_tab(url)
+            else:
+                self.load(self.active, url)
+        elif c == "select":
+            self.select(int(cmd.get("id", 0)))
+        elif c == "close":
+            self.close_tab(int(cmd.get("id", 0)))
+        elif c == "end":
+            self.end()
+        elif c == "sync":
+            self.send_tabs()
+            self.extract()
+        elif c == "extract":
+            self.extract()
+        elif c == "snapshot":
+            self.snapshot(str(cmd.get("purpose", "vision")))
+        elif c == "focus" and v is not None:
+            v.Focus()
+        elif c == "external":
+            open_in_browser(str(cmd.get("url", "")), str(cmd.get("app", "")))
+            self.send({"t": "external", "ok": True})
+        elif v is not None and v.CoreWebView2 is not None and c in ("back", "forward", "reload", "stop"):
+            core = v.CoreWebView2
+            {"back": core.GoBack, "forward": core.GoForward, "reload": core.Reload, "stop": core.Stop}[c]()
+
+
+def open_in_browser(url, app=""):
+    """Hand a page to the user's browser: the one chosen in Settings (a
+    StartMenuInternet name from the registry), else the default one."""
+    if not url.startswith(("http://", "https://", "mailto:")):
+        return
+    if app:
+        try:
+            import shlex
+            import subprocess
+            import winreg
+            for root in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+                try:
+                    with winreg.OpenKey(root, rf"SOFTWARE\Clients\StartMenuInternet\{app}\shell\open\command") as k:
+                        command = winreg.QueryValue(k, None)
+                    exe = shlex.split(command, posix=False)[0].strip('"')
+                    subprocess.Popen([exe, url])
+                    return
+                except OSError:
+                    continue
+        except Exception as e:
+            print("open in browser:", e, flush=True)
+    os.startfile(url)
+
+
 class Bridge:
     """What the page can ask of the window (window.umbraNative in app.js).
     pywebview offers the page every public attribute, so the rest is private."""
@@ -139,8 +485,20 @@ class Bridge:
         self._window = None
         self._closing = False
         self._full = False
+        self._web = None
 
     def message(self, text):
+        if text.startswith("web:") and self._web is not None:
+            try:
+                cmd = json.loads(text[4:])
+            except ValueError:
+                return
+            if isinstance(cmd, dict):
+                self._web.command(cmd)
+            return
+        if text == "focus" and self._web is not None and self._web.form is not None:
+            self._web.ui(lambda: self._web.form.webview.Focus())
+            return
         if text == "close":
             self._closing = True
             self._window.destroy()
@@ -205,6 +563,16 @@ def main():
             "UMBRA WIKI // the background service didn't start.<br><br>"
             "Details are in %LOCALAPPDATA%\\UmbraWiki\\umbra.log</body>"), width=900, height=500, background_color="#090909")
     bridge._window = window
+    # Umbra Online: the built-in browser, once the window is up.
+    web = WebPane(window)
+    bridge._web = web
+
+    def loaded():   # also after a reload of the page: it forgets the flag
+        if web.form is None:
+            web.start()
+        else:
+            window.evaluate_js("window.UMBRA_WEB = 1")
+    window.events.loaded += loaded
 
     def on_closing():
         """Ask the page first: it confirms, plays the outro and says "close".
@@ -248,6 +616,23 @@ def main():
                 except Exception as e:
                     print("probe failed:", e, flush=True)
         threading.Thread(target=probe, daemon=True).start()
+
+        def probe_web():   # Umbra Online: open a page in the built-in browser, report what Umbra read
+            time.sleep(38)
+            try:
+                print("probe web: available", window.evaluate_js("String(!!(window.UmbraWeb && UmbraWeb.available))"), flush=True)
+                window.evaluate_js("setOnline(true); UmbraWeb.enter().then(() => UmbraWeb.go('https://en.wikipedia.org/wiki/Aurora'))")
+                for _ in range(4):
+                    time.sleep(10)
+                    print("probe web:", window.evaluate_js(
+                        "JSON.stringify({open: UmbraWeb.open, tabs: [...document.querySelectorAll('.web-tab')].map(t => t.textContent.trim().slice(0, 40)),"
+                        " addr: document.querySelector('.web-addr input')?.value, error: document.querySelector('.web-error')?.hidden === false,"
+                        " notes: [...document.querySelectorAll('.web-note .label')].map(n => n.textContent.slice(0, 30)),"
+                        " rect: JSON.stringify(document.querySelector('.web-view')?.getBoundingClientRect())})"), flush=True)
+                print("probe web: browsers", urllib.request.urlopen(URL + "api/web/browsers", timeout=20).read()[:300], flush=True)
+            except Exception as e:
+                print("probe web failed:", e, flush=True)
+        threading.Thread(target=probe_web, daemon=True).start()
     webview.start(gui="edgechromium", private_mode=False, storage_path=os.path.join(DATA, "webview"))
     if server:
         server.shutdown()

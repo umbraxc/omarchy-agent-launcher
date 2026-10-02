@@ -10,8 +10,9 @@
 "use strict";
 
 window.UmbraWeb = (() => {
-  const host = !!window.UMBRA_WEB && !!window.webkit?.messageHandlers?.umbra;
-  const send = (o) => { try { window.webkit.messageHandlers.umbra.postMessage("web:" + JSON.stringify(o)); } catch {} };
+  // The window around the page has a browser to lend: the Linux launcher or the Windows app.
+  const hostOk = () => !!window.UMBRA_WEB && (!!window.webkit?.messageHandlers?.umbra || !!window.pywebview?.api);
+  const send = (o) => window.umbraNative?.("web:" + JSON.stringify(o));
   const esc = (s) => escapeHtml(String(s ?? ""));
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const calm = () => document.body.classList.contains("reduce-motion") || window.offgrid;
@@ -145,7 +146,7 @@ window.UmbraWeb = (() => {
 
   // ------------------------------------------------------- open & close
   async function enter() {
-    if (!host) return false;
+    if (!hostOk()) return false;
     build();
     if (open) { fold(false); return true; }
     open = true;
@@ -203,23 +204,35 @@ window.UmbraWeb = (() => {
   // Where the native browser goes, and whether it shows (sent only when it changes).
   let lastRect = "";
   function place() {
-    if (!host || !el) return;
+    if (!el) return;
     if (open) layout();
     const view = el.querySelector(".web-view");
     const r = view.getBoundingClientRect();
     const t = tab();
     const show = open && !el.hidden && !covered && !umbraView && !!t && !!t.url && !errors[active] && r.width > 20 && r.height > 20;
     const msg = JSON.stringify({ c: "rect", rect: { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height), vw: document.documentElement.clientWidth }, show });
-    if (msg !== lastRect) { lastRect = msg; try { window.webkit.messageHandlers.umbra.postMessage("web:" + msg); } catch {} }
+    if (msg !== lastRect) { lastRect = msg; window.umbraNative?.("web:" + msg); }
     el.querySelector(".web-cover").hidden = show || !covered || !lastShot;
+  }
+  // The space the browser covers right now (for labels that must avoid it).
+  function area() {
+    if (!open || !el || el.hidden || covered || umbraView || !tab()?.url) return null;
+    const r = el.querySelector(".web-view").getBoundingClientRect();
+    return r.width > 20 ? r : null;
   }
   function checkCover() {
     if (!open || !el || el.hidden) return;
     const view = el.querySelector(".web-view").getBoundingClientRect();
     if (view.width < 20) return;
-    let over = false;
+    // Labels and popovers that don't take the mouse (so hit-testing misses them).
+    let over = [...document.querySelectorAll(".tip, #pop, .nav-callout")].some((f) => {
+      if (f.hidden || !f.offsetParent && getComputedStyle(f).position !== "fixed") return false;
+      const r = f.getBoundingClientRect();
+      return r.width > 0 && !(r.right <= view.left || r.left >= view.right || r.bottom <= view.top || r.top >= view.bottom);
+    });
     for (const fx of [0.12, 0.5, 0.88]) for (const fy of [0.08, 0.5, 0.92]) {
       const hit = document.elementFromPoint(view.left + view.width * fx, view.top + view.height * fy);
+      if (over) break;
       if (hit && !el.contains(hit)) { over = true; break; }
     }
     if (over === covered) return;
@@ -246,17 +259,18 @@ window.UmbraWeb = (() => {
     hideStart();
     if (active && tab()) send({ c: "open", url });
     else send({ c: "open", url, newTab: true });
+    send({ c: "focus" });   // the keyboard goes to the page
     rememberVisit(url);
   }
   function paintTabs() {
     if (!el) return;
     const list = el.querySelector(".web-tablist");
     const html = tabs.map((t) => `<div class="web-tab ${t.id === active ? "on" : ""}" role="tab" data-id="${t.id}" title="${esc(t.title || t.url)}|${esc(t.url)}">
-        <span class="web-tab-i">${t.loading ? '<span class="spin" data-spin>✻</span>' : "◆"}</span><span class="web-tab-t">${esc(t.title || shortUrl(t.url) || "New tab")}</span><button type="button" class="web-x" title="Close tab|Ctrl + W">✕</button></div>`).join("");
+        <span class="web-tab-i">${t.loading ? '<span class="spin" data-spin>✻</span>' : "◆"}</span><span class="web-tab-t">${esc(t.title || shortUrl(t.url || errors[t.id]?.url) || "New tab")}</span><button type="button" class="web-x" title="Close tab|Ctrl + W">✕</button></div>`).join("");
     if (list._html !== html) { list.innerHTML = html; list._html = html; }
     const t = tab();
     const addr = el.querySelector(".web-addr input");
-    if (document.activeElement !== addr) addr.value = t ? t.url : "";
+    if (document.activeElement !== addr) addr.value = t ? t.url || errors[t.id]?.url || "" : "";
     el.querySelector(".web-addr").classList.toggle("secure", !!t?.secure);
     el.querySelector(".web-lock").textContent = !t ? "⌕" : t.secure ? "🔒︎" : "◇";
     el.querySelector(".web-back").disabled = !t?.back;
@@ -343,6 +357,7 @@ window.UmbraWeb = (() => {
       paintTabs(); place();
     } else if (e.t === "nav") {
       delete errors[e.tab];
+      if (e.tab === active && /\.pdf([?#]|$)/i.test(e.url) && chatMode() !== "off") setTimeout(() => { if (open && tab()?.url === e.url) pdfCard(e.url); }, 1500);
       if (e.tab === active) { el.querySelector(".web-error").hidden = true; setUmbraView(false); selection = ""; }
       delete pages[e.tab];
       paintTabs(); place();
@@ -411,7 +426,7 @@ window.UmbraWeb = (() => {
       document.dispatchEvent(new KeyboardEvent("keydown", init));
     }
   }
-  const focusUi = () => { try { window.webkit.messageHandlers.umbra.postMessage("focus"); } catch {} };
+  const focusUi = () => window.umbraNative?.("focus");
 
   // ---------------------------------------------------- the companion
   // Cards in the conversation (never saved with it): what Umbra spotted on
@@ -464,6 +479,27 @@ window.UmbraWeb = (() => {
       [`▣ SAVE OFFLINE${p.images ? ` <small>+ ${p.images} PICTURES</small>` : ""}`, () => savePage(false)],
       ...(docs ? [[`⇣ SAVE + ${docs} DOCUMENTS`, () => savePage(true)]] : []),
     ], "spotted");
+  }
+
+  // A PDF shows in the browser's viewer, which Umbra can't read: it offers
+  // to keep it in the Library, where it can.
+  function pdfCard(url) {
+    const name = decodeURIComponent(url.split(/[?#]/)[0].split("/").pop() || "document.pdf");
+    note("spotted", `<p>A PDF document, <b>${esc(name)}</b>. Save it to your Library and I can read it, search it and answer from it, also offline.</p>`,
+      [["▣ SAVE PDF TO LIBRARY", () => savePdf(url, name)]], "spotted");
+  }
+  async function savePdf(url, name) {
+    const card = note("save", `<p><span class="spin" data-spin>✻</span> Saving <b>${esc(name)}</b>…</p>`);
+    try {
+      const r = await (await fetch("/api/web/save", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, title: name.replace(/\.pdf$/i, ""), blocks: [{ k: "p", t: `A PDF saved from ${url}` }], docs: [{ url, name }], withDocs: true }) })).json();
+      if (!r.ok || !r.documents) throw new Error(r.message || "The download didn't work.");
+      card.querySelector(".wn-body").innerHTML = `<p><b>${esc(name)}</b> is in your Library. Ask me about it any time, also offline.</p><small class="wn-meta">${esc(r.folder)}</small>`;
+      Sound.complete();
+    } catch (err) {
+      card.querySelector(".wn-body").innerHTML = `<p>The PDF couldn't be saved. ${esc(err.message)}</p>`;
+      Sound.error();
+    }
   }
 
   // Remarks: when, and which kind.
@@ -631,7 +667,7 @@ window.UmbraWeb = (() => {
   }
 
   return {
-    available: host, get open() { return open; }, get covered() { return covered; }, enter, leave, fold, host: hostEvent, pageFor, loadBrowsers,
+    get available() { return hostOk(); }, get open() { return open; }, get covered() { return covered; }, area, enter, leave, fold, host: hostEvent, pageFor, loadBrowsers,
     get browsers() { return browsers; }, setChat, paintTools, go,
   };
 })();

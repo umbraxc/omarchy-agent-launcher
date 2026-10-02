@@ -4760,8 +4760,43 @@ WEB_BROWSERS = ("firefox", "librewolf", "zen", "floorp", "waterfox", "chromium",
                 "opera", "microsoft-edge", "epiphany", "falkon", "qutebrowser", "mullvad", "tor-browser")
 
 
+def web_browsers_windows():
+    """Windows: browsers registered for the Start menu, and the one https opens with."""
+    import winreg
+    found, default = {}, ""
+    for root in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+        try:
+            with winreg.OpenKey(root, r"SOFTWARE\Clients\StartMenuInternet") as k:
+                for i in range(winreg.QueryInfoKey(k)[0]):
+                    key = winreg.EnumKey(k, i)
+                    try:
+                        name = winreg.QueryValue(k, key) or key
+                    except OSError:
+                        name = key
+                    found.setdefault(key, {"id": key, "name": str(name)[:60]})
+        except OSError:
+            pass
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice") as k:
+            prog = str(winreg.QueryValueEx(k, "ProgId")[0]).lower()
+        hints = {"chrome": "chrome", "msedge": "edge", "firefox": "firefox", "brave": "brave", "opera": "opera", "vivaldi": "vivaldi"}
+        for hint, word in hints.items():
+            if hint in prog:
+                default = next((b["id"] for b in found.values() if word in (b["id"] + b["name"]).lower()), "")
+                break
+    except OSError:
+        pass
+    browsers = sorted(found.values(), key=lambda b: (b["id"] != default, b["name"].lower()))
+    return {"default": default, "browsers": browsers[:20]}
+
+
 def web_browsers():
     """The web browsers installed here and the system's default one."""
+    if WINDOWS:
+        try:
+            return web_browsers_windows()
+        except Exception:
+            return {"default": "", "browsers": []}
     default = ""
     try:
         default = subprocess.run(["xdg-settings", "get", "default-web-browser"], capture_output=True,

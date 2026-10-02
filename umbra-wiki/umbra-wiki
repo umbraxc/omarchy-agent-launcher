@@ -30,7 +30,11 @@ gi.require_version("Gdk", "3.0")
 gi.require_version("WebKit2", "4.1")
 from gi.repository import Gdk, Gio, GLib, Gtk, WebKit2  # noqa: E402
 
-WEB_JS = os.path.join(os.path.dirname(os.path.realpath(__file__)), "ui", "web-page.js")
+# Umbra Online's page reader: beside the launcher (a source install), or with
+# the packaged app files (/usr/bin/umbra-wiki uses /usr/share/umbra-wiki).
+WEB_JS = next((p for p in (os.path.join(os.path.dirname(os.path.realpath(__file__)), "ui", "web-page.js"),
+                           "/usr/share/umbra-wiki/ui/web-page.js",
+                           os.path.expanduser("~/.local/share/umbra-wiki/ui/web-page.js")) if os.path.isfile(p)), "")
 APP_ID = "org.umbra.wiki"
 URL = f"http://127.0.0.1:{os.environ.get('UMBRA_PORT', '8766')}/"
 
@@ -108,10 +112,11 @@ class WebPane:
         overlay.add_overlay(self.stack)
         overlay.connect("get-child-position", self.child_position)
         self.tabs, self.order, self.active = {}, [], None
+        self.tls_failed = {}
         self.ids = itertools.count(1)
         self.rect, self.shown = (0, 0, 10, 10), False
         try:
-            self.reader = open(WEB_JS, encoding="utf-8").read()
+            self.reader = open(WEB_JS, encoding="utf-8").read() if WEB_JS else ""
         except OSError:
             self.reader = ""
         data = os.path.join(GLib.get_user_data_dir(), "umbra-wiki", "web")
@@ -228,9 +233,7 @@ class WebPane:
                 self.overlay.queue_resize()
         show = bool(show and rect and self.order)
         if show and not self.shown:
-            self.stack.show()
-            if self.active:
-                self.tabs[self.active].grab_focus()
+            self.stack.show()   # (the keyboard stays where it is: a dialog just closed, say)
         elif not show and self.shown:
             self.stack.hide()
         self.shown = show
@@ -292,12 +295,18 @@ class WebPane:
         self.send_tabs()
 
     def on_failed(self, tid, uri, err, tls=False):
+        """Umbra draws the error page itself (WebKit's own is suppressed); a
+        certificate error is reported once, as such."""
         if err is not None and err.matches(WebKit2.NetworkError.quark(), WebKit2.NetworkError.CANCELLED):
             return False
         if err is not None and err.matches(WebKit2.PolicyError.quark(), WebKit2.PolicyError.FRAME_LOAD_INTERRUPTED_BY_POLICY_CHANGE):
             return False   # a download, or a link handed to another app
+        if tls:
+            self.tls_failed[tid] = uri
+        elif self.tls_failed.pop(tid, None) == uri:
+            return True
         self.send({"t": "failed", "tab": tid, "url": uri, "tls": tls, "message": "" if tls or err is None else err.message})
-        return False
+        return True
 
     def on_policy(self, view, decision, kind):
         if kind == WebKit2.PolicyDecisionType.NEW_WINDOW_ACTION:

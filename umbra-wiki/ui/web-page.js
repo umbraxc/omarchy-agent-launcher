@@ -7,7 +7,22 @@
 (() => {
   "use strict";
   if (window.__umbraRead || window.top !== window) return;
-  const post = (o) => { try { window.webkit.messageHandlers.umbraweb.postMessage(JSON.stringify(o)); } catch {} };
+  // Linux: the launcher's handler in this isolated world; Windows: WebView2's channel.
+  const post = (o) => {
+    try { window.webkit.messageHandlers.umbraweb.postMessage(JSON.stringify(o)); return; } catch {}
+    try { window.chrome.webview.postMessage(JSON.stringify(o)); } catch {}
+  };
+  // On Windows the page has the keyboard: Umbra's browser shortcuts go to Umbra.
+  if (!window.webkit?.messageHandlers?.umbraweb && window.chrome?.webview) {
+    window.addEventListener("keydown", (e) => {
+      const k = e.key.toLowerCase();
+      const name = (e.ctrlKey ? "ctrl+" : "") + (e.shiftKey && e.ctrlKey ? "shift+" : "") + (k === "tab" ? "tab" : k);
+      if (["ctrl+l", "ctrl+t", "ctrl+w", "ctrl+tab", "ctrl+shift+tab", "f1", "f6", "ctrl+k", "ctrl+b"].includes(name)) {
+        e.preventDefault(); e.stopPropagation();
+        post({ t: "key", key: name });
+      }
+    }, true);
+  }
   const clip = (s, n) => (s.length > n ? s.slice(0, n) : s);
   const tidy = (s) => (s || "").replace(/\s+/g, " ").trim();
   const DOC = /\.(pdf|epub|docx?|odt|txt|md|csv|xlsx?|pptx?|zip)(\?|#|$)/i;
