@@ -2669,7 +2669,6 @@ const SHORTCUTS = [
   ["Ctrl + O", "Loadout: scenario and personality"], ["Ctrl + G", "Maps"], ["Ctrl + K", "Field kit: medic, sun & moon, supplies, vault, training"], ["Ctrl + J", "Signals & radar"], ["Ctrl + T", "Themes"], ["Ctrl + M", "Mute or unmute sounds"],
   ["Ctrl + Shift + F", "Farming planner"], ["Ctrl + B", "Umbra Outpost"], ["Ctrl + U", "Friends and the Camp Network"],
   ["Ctrl + ,", "Settings"], ["Ctrl + wheel", "Zoom in or out (also Ctrl + plus / minus; Ctrl + 0 resets)"], ["F1", "This list"],
-  ["Shift + drag", "Rearrange top tabs (Settings stays fixed)"],
   ["Ctrl + L", "Online, in the browser: the address bar"], ["Ctrl + T", "Online, in the browser: a new tab"], ["Ctrl + W", "Online, in the browser: close the tab"],
   ["Ctrl + Tab", "Online, in the browser: next tab"], ["Alt + Left", "Online, in the browser: back (Alt + Right: forward)"], ["F5", "Online, in the browser: reload"],
 ];

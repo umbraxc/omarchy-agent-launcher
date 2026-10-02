@@ -3726,3 +3726,54 @@ button.fr-way:hover { border-color: var(--net); } .fr-way .g { color: var(--net)
   .fr-body.fr-camp, .fr-body.fr-add { grid-template-columns: 1fr; } .cp-scene { min-height: 320px; } .fr-ways { grid-template-columns: 1fr; }
   .loadout.cardtab .lo-body { grid-template-columns: 1fr; } .fr-safe { display: none; }
 }
+/* The Trader's tools: a picture of the next tier, turning when hovered. */
+.op-tool .op-tart { position: relative; height: 150px; margin: 0 -2px 4px; border: 1px solid var(--line); background: radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--signal) 10%, var(--bg)), var(--bg)); }
+.op-tool .op-tart small { position: absolute; left: 8px; bottom: 6px; z-index: 2; color: var(--dim); font-size: 8.5px; letter-spacing: .18em; pointer-events: none; }
+.op-tool:hover .op-tart { border-color: color-mix(in srgb, var(--signal) 50%, var(--line)); }
+
+/* ------------------------------------------- Outpost bars: one standard */
+/* A recessed track with faint notches every tenth; a fill in the skill's
+   colour with a soft gradient; progress bars also glide every frame, carry a
+   slow sheen and a glowing head, and flash when an action completes. */
+.op-bar { height: 6px; border-color: color-mix(in srgb, var(--line) 80%, #000); overflow: visible;
+  background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), color-mix(in srgb, var(--fg) 7%, transparent) calc(10% - 1px) 10%), linear-gradient(180deg, #000 0%, var(--bg-3) 100%);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .6); }
+.op-bar > i { position: relative; overflow: hidden; transition: width .7s cubic-bezier(.22, .8, .3, 1);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--sc, var(--signal)) 45%, #000) 0%, var(--sc, var(--signal)) 70%, color-mix(in srgb, var(--sc, var(--signal)) 70%, #fff) 100%); }
+.op-bar > i::after { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 2px; background: color-mix(in srgb, var(--sc, var(--signal)) 40%, #fff); box-shadow: 0 0 6px var(--sc, var(--signal)); }
+.op-bar.hp { --sc: var(--red); } .op-bar.enemy { --sc: #d58a4a; } .op-bar.pool { --sc: #a49ad6; } .op-bar.full { --sc: var(--red); }
+.op-bar.m > i { filter: brightness(1.15); }
+.op-bar.big { height: 10px; }
+/* Progress: driven by --p (0..1) every frame. */
+.op-prog > i, .op-swing > i { width: 100% !important; transform-origin: left center; transform: scaleX(var(--p, 0)); transition: none; box-shadow: 0 0 10px color-mix(in srgb, var(--sc, var(--signal)) 70%, transparent); }
+.op-prog > i::after, .op-swing > i::after { display: none; }
+.op-prog::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--p, 0) * 100%); pointer-events: none;
+  background: repeating-linear-gradient(-55deg, rgba(255, 255, 255, .16) 0 3px, transparent 3px 9px); background-size: 24px 100%; animation: op-sheen 1.1s linear infinite; }
+@keyframes op-sheen { to { background-position: 24px 0; } }
+.op-prog::after, .op-swing::after { content: ""; position: absolute; top: -3px; bottom: -3px; left: calc(var(--p, 0) * 100% - 2px); width: 4px; pointer-events: none;
+  background: #fff; box-shadow: 0 0 8px 2px var(--sc, var(--signal)), 0 0 2px #fff; opacity: calc(.35 + var(--p, 0) * .65); }
+.op-prog.pop, .op-swing.pop { animation: op-pop .52s cubic-bezier(.2, .8, .3, 1); }
+@keyframes op-pop { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sc, var(--signal)) 90%, transparent), inset 0 1px 2px rgba(0, 0, 0, .6); filter: brightness(2); }
+  100% { box-shadow: 0 0 0 7px transparent, inset 0 1px 2px rgba(0, 0, 0, .6); filter: none; } }
+.op-swing { --sc: var(--signal); } [data-swing="them"] { --sc: #d58a4a; }
+/* The top strip's current action: glyph and name, time left, a bigger bar. */
+.op .op-act { gap: 5px; padding: 6px 10px 8px; border-color: color-mix(in srgb, var(--sc, var(--signal)) 45%, var(--line));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--sc, var(--signal)) 10%, transparent), transparent 70%); }
+.op-act-l { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.op-act-l > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: .06em; }
+.op-eta { color: var(--sc, var(--signal)); font-style: normal; font-size: 9.5px; letter-spacing: .1em; font-variant-numeric: tabular-nums; }
+.op-top-prog { height: 7px; }
+.op-hp .op-bar { height: 7px; }
+body.reduce-motion .op-prog::before, body.offgrid .op-prog::before { animation: none; }
+body.reduce-motion .op-bar > i, body.offgrid .op-bar > i { transition: none; }
+.op-tool .op-tart { overflow: hidden; }
+.op-tool .op-tart .op-art-r { inset: 6px 6px 18px; }
+.op-tool .op-tart .op-art-r canvas { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); height: 100%; width: auto; aspect-ratio: 1; }
+/* Pinned tabs stay in the header beside the ☰ menu. */
+.top.compact-nav .controls .ctl.pinned:not(.gone):not(#nav-more) { display: grid !important; }
+.top .controls .ctl.pinned { box-shadow: inset 0 -2px color-mix(in srgb, var(--signal) 60%, transparent); }
+.set-tab-row { align-items: center; }
+.set-tabopts { display: inline-flex; gap: 6px; flex: none; }
+.set-tabopts label { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid var(--line); color: var(--dim); font-size: 10px; letter-spacing: .14em; cursor: pointer; }
+.set-tabopts label:has(input:checked) { color: var(--fg-bright); border-color: var(--signal); background: var(--signal-soft); }
+.set-tabopts label:has(input:disabled) { opacity: .6; cursor: default; }

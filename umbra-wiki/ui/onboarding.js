@@ -271,7 +271,7 @@
     ["#theme-btn", "THEMES", "Pick a colour theme, follow your Omarchy theme, or design your own."],
     ["#sound", "SOUND", "Open sound controls, adjust effects and notifications, or play longer offline nature and instrumental radio tracks. The same choices appear in Settings."],
     ["#lock", "LOCK", "Locks the window so nothing can be clicked or typed by accident."],
-    ["#settings-btn", "SETTINGS", "This differently colored tab stays fixed. Hold Shift and drag any other top tab to arrange it. Settings also has sounds, AI models, text, backups, updates and this tour."],
+    ["#settings-btn", "SETTINGS", "Settings has sounds, AI models, text, backups, updates and this tour."],
     ["#q", "ASK", "Type here. Enter sends, Shift+Enter adds a line, Ctrl+Z undoes. Tab opens quick actions; hold Ctrl for conversation tools. Ctrl+F searches this conversation, while Ctrl+Shift+H searches all saved conversations."],
     ["#mic", "VOICE", "Hold F9 (or click) and just talk. Speech is turned into text offline."],
     ["#send", "TRANSMIT", "Sends your question. While I'm answering it becomes STOP (or press Esc)."],

@@ -84,7 +84,8 @@
     if (a) {
       const label = a.type === "combat" ? `⚔\ufe0e ${clean(D.enemies[a.enemy]?.name || "")}${a.expedition ? ` · ${a.wave + 1}/${D.expeditions.find((e) => e.id === a.expedition).enemies.length}` : ""}`
         : a.type === "scout" ? "» Running the route" : `${D.skills[a.skill].glyph} ${clean(D.recipes[a.recipe].name)}`;
-      act = `<button type="button" class="op-act" data-view="${a.type === "combat" ? (a.expedition ? "expeditions" : "battle") : a.type === "scout" ? "scouting" : a.skill}"><span>${label}</span>${a.type === "combat" ? "" : `<div class="op-bar op-prog" data-start="${a.start}" data-int="${a.interval}"><i></i></div>`}</button><button type="button" class="op-stop" data-act="stop" title="Stop|Stop the current action">■</button>`;
+      const sc = a.type === "combat" ? "var(--red)" : a.type === "scout" ? D.skills.scouting?.color || "var(--signal)" : D.skills[a.skill].color;
+      act = `<button type="button" class="op-act" style="--sc:${sc}" data-view="${a.type === "combat" ? (a.expedition ? "expeditions" : "battle") : a.type === "scout" ? "scouting" : a.skill}"><span class="op-act-l"><span>${label}</span>${a.type === "combat" ? "" : '<em class="op-eta" data-keep="1"></em>'}</span>${a.type === "combat" ? "" : `<div class="op-bar op-prog op-top-prog" data-start="${a.start}" data-int="${a.interval}"><i></i></div>`}</button><button type="button" class="op-stop" data-act="stop" title="Stop|Stop the current action">■</button>`;
     }
     const P = V.state.prestige || 0;
     return `<button type="button" class="op-chip op-prestige-chip p${P}" data-view="profile" title="Prestige|${P ? `Prestige ${ROMAN[P]} of IV.` : "Prestige I unlocks at total level 1,000."} Total level ${V.totalLevel} of ${D.maxTotal}. Open your profile."><span>★ ${P ? ROMAN[P] : "0"}/IV</span> <b>${V.totalLevel}</b></button>
@@ -351,7 +352,9 @@
     const upgrades = Object.entries(groups).map(([g, list]) => {
       const tier = s.upgrades[g] || 0, next = list.find((o) => o.tier === tier + 1), cur = list.find((o) => o.tier === tier);
       const ok = next && s.scrip >= next.price && (!next.skill || lvl(next.skill) >= next.level);
-      return `<article class="op-card op-offer"><header><b>${clean(cur ? cur.name : list[0].name.split(" ").slice(1).join(" "))}</b><span>${tier ? `TIER ${tier}/${list.length}` : "NONE YET"}</span></header>
+      const show = next || cur, key = UmbraOutpostModels.toolKey(show);
+      return `<article class="op-card op-offer op-tool" data-tool-card="${key}"><header><b>${clean(cur ? cur.name : (([w]) => w.charAt(0).toUpperCase() + w.slice(1))([list[0].name.split(" ").slice(1).join(" ")]))}</b><span>${tier ? `TIER ${tier}/${list.length}` : "NONE YET"}</span></header>
+        <div class="op-bart op-tart" data-live="t:${key}"><i class="op-art-r" data-art="tool:${key}" data-size="220"></i><small>${clean(show.name.toUpperCase())}${next ? "" : " · OWNED"}</small></div>
         <p>${cur ? clean(cur.desc) : "Not owned."}</p>${next ? `<p class="op-next">NEXT · ${clean(next.name)}: ${clean(next.desc)}${next.skill ? ` <span class="${lvl(next.skill) >= next.level ? "" : "short"}">${skillName(next.skill)} ${next.level}</span>` : ""}</p>
         <button type="button" data-act="buy" data-offer="${next.id}" ${ok ? "" : "disabled"}>BUY · ¤${fmt(next.price)}</button>` : `<small class="op-done">BEST AVAILABLE</small>`}</article>`;
     }).join("");
@@ -528,12 +531,17 @@
       if (x.dataset.art || x.dataset.live || x.dataset.keep) continue;      // a drawn picture, a live canvas or floating numbers
       for (const { name, value } of [...y.attributes]) {
         if (name === "style" && x.closest(".op-prog, [data-swing]")) continue;   // bars move between updates
+        if (name === "style" && x.parentElement?.classList.contains("op-bar") && x.getAttribute(name) !== value) {
+          // A bar that empties (a level up) jumps back instead of sliding backwards.
+          const was = parseFloat(x.style.width), will = parseFloat(/width:\s*([\d.]+)/.exec(value)?.[1]);
+          if (will < was - 20) { x.style.transition = "none"; x.setAttribute(name, value); void x.offsetWidth; x.style.transition = ""; continue; }
+        }
         if (x.getAttribute(name) !== value) {
           if (name === "data-act" && value === "stop") lastStartClick = performance.now();   // the button just turned into STOP
           x.setAttribute(name, value);
         }
       }
-      for (const { name } of [...x.attributes]) if (!y.hasAttribute(name)) x.removeAttribute(name);
+      for (const { name } of [...x.attributes]) if (!y.hasAttribute(name) && !(name === "style" && x.closest(".op-prog, [data-swing]"))) x.removeAttribute(name);
       if (x.tagName === "SELECT") { patchChildren(x, y); x.value = y.querySelector("option[selected]")?.value ?? ""; continue; }
       patchChildren(x, y);
     }
@@ -599,13 +607,35 @@
     const t = now();
     panel.querySelectorAll(".op-prog").forEach((el) => {
       // The action repeats: keep the bar looping even if an update is late.
-      const start = +el.dataset.start, int = +el.dataset.int || 1, k = Math.max(0, t - start) % int;
-      el.firstElementChild.style.width = (k / int * 100) + "%";
+      const start = +el.dataset.start, int = +el.dataset.int || 1, k = (Math.max(0, t - start) % int) / int;
+      if (el._k != null && k < el._k - .5) pop(el);   // one more done
+      el._k = k;
+      el.style.setProperty("--p", k.toFixed(4));
+      const eta = el.parentElement.querySelector(".op-eta");
+      if (eta) { const txt = `${((1 - k) * int).toFixed(1)}s`; if (eta.textContent !== txt) eta.textContent = txt; }
     });
     panel.querySelectorAll("[data-swing]").forEach((el) => {
       const next = +el.dataset.next, speed = +el.dataset.speed || 1;
-      el.firstElementChild.style.width = Math.max(0, Math.min(100, (1 - (next - t) / speed) * 100)) + "%";
+      const k = Math.max(0, Math.min(1, 1 - (next - t) / speed));
+      if (el._k != null && k < el._k - .5) pop(el);
+      el._k = k;
+      el.style.setProperty("--p", k.toFixed(4));
     });
+  }
+  // A short burst of light when a bar completes.
+  function pop(el) {
+    if (window.offgrid || document.body.classList.contains("reduce-motion")) return;
+    el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
+    clearTimeout(el._pop); el._pop = setTimeout(() => el.classList.remove("pop"), 520);
+  }
+  // Bars move every frame (smooth at the screen's own rate) while the
+  // Outpost is open; with Reduce motion or off-grid, ten times a second.
+  let barFrame = 0;
+  function barLoop() {
+    barFrame = 0;
+    if (!V || panel.hidden) return;
+    tick();
+    if (!window.offgrid && !document.body.classList.contains("reduce-motion")) barFrame = requestAnimationFrame(barLoop);
   }
   let petFrame = 0;
   setInterval(() => {
@@ -617,7 +647,7 @@
   // The building under the pointer comes alive: it turns, smoke rises.
   let bLive = null, bCard = null;
   panel.addEventListener("pointerover", (e) => {
-    const card = e.target.closest("[data-building-card]");
+    const card = e.target.closest("[data-building-card], [data-tool-card]");
     if (card === bCard) return;
     bLive?.stop(); bLive = null; panel.querySelectorAll(".op-bart canvas.live").forEach((c) => c.remove());
     panel.querySelectorAll(".op-bart.playing").forEach((b) => b.classList.remove("playing"));
@@ -625,7 +655,8 @@
     if (!card || window.offgrid || document.body.classList.contains("reduce-motion") || V?.state.options?.liveArt === false) return;
     const box = card.querySelector(".op-bart"), c = document.createElement("canvas");
     c.className = "live"; box.appendChild(c); box.classList.add("playing");
-    bLive = Ascii3D.view(c, UmbraOutpostModels.spin(UmbraOutpostModels.building(card.dataset.buildingCard, +card.dataset.level), .45), { cell: 5 });
+    const scene = card.dataset.toolCard ? UmbraOutpostModels.tool(card.dataset.toolCard) : UmbraOutpostModels.building(card.dataset.buildingCard, +card.dataset.level);
+    bLive = Ascii3D.view(c, UmbraOutpostModels.spin(scene, card.dataset.toolCard ? .8 : .45), { cell: 5 });
   });
 
   // ------------------------------------------------------------- info box
@@ -858,7 +889,11 @@
   const otherPanels = ["maps", "fieldkit", "farming", "friends", "radar", "loadout", "history", "library", "themes", "settings", "core"];
   new MutationObserver(() => { if (!panel.hidden && otherPanels.some((id) => document.getElementById(id)?.hidden === false)) close(); })
     .observe(document.body, { subtree: true, attributes: true, attributeFilter: ["hidden"] });
-  setInterval(tick, 100);
+  setInterval(() => {
+    if (panel.hidden) return;
+    if (window.offgrid || document.body.classList.contains("reduce-motion")) tick();
+    else if (!barFrame) barFrame = requestAnimationFrame(barLoop);
+  }, 100);
   window.closeOutpost = close;
   window.toggleOutpost = toggle;
 })();

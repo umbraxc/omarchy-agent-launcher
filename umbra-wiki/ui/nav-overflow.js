@@ -15,7 +15,7 @@
   more.setAttribute("aria-controls", menu.id);
   more.setAttribute("aria-expanded", "false");
 
-  const tabs = () => [...bar.children].filter(el => el.classList.contains("ctl") && el !== more && !el.hidden && !el.classList.contains("gone"));
+  const tabs = () => [...bar.children].filter(el => el.classList.contains("ctl") && el !== more && !el.hidden && !el.classList.contains("gone") && el.dataset.menu !== "off");
   const close = () => { menu.hidden = true; more.classList.remove("on"); more.setAttribute("aria-expanded", "false"); };
   function place() {
     const r = more.getBoundingClientRect();

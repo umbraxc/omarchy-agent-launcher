@@ -11,7 +11,7 @@
     volume: 0.9, notifyVolume: 0.5, radioVolume: 0.4, hoverSounds: true, rain: true, background: "rain", reduceMotion: false, offgrid: "off", textScale: 1, cpuLimit: 100,
     suggestions: true, greeting: true, barAlert: true,
   };
-  window.prefs = { ...DEFAULTS, hiddenControls: [], headerOrder: [] };
+  window.prefs = { ...DEFAULTS, hiddenControls: [], pinnedControls: [], headerOrder: [] };
   // Header buttons that can be hidden (Settings itself always stays).
   const CONTROLS = [["loadout-btn", "Profile & loadout"], ["history-btn", "History"], ["library-btn", "Library"], ["maps-btn", "Maps"], ["fieldkit-btn", "Field kit"], ["farming-btn", "Farming"], ["outpost-btn", "Umbra Outpost"], ["friends-btn", "Friends"],
                     ["radar-btn", "Signals & radar"], ["theme-btn", "Themes"], ["sound", "Sound"], ["lock", "Lock"]];
@@ -34,29 +34,18 @@
   }
   document.addEventListener("umbra-zoom", (e) => syncZoom(e.detail));
 
-  // Hidden buttons glitch out and the rest close up to the right; shown ones
-  // glitch back in. Without animation (at startup) they just switch.
-  function applyControls(animate) {
-    const hidden = new Set(prefs.hiddenControls || []);
-    for (const [id] of CONTROLS) {
+  // Every tab lives in the ☰ tab menu (unless switched off there); pinned
+  // tabs also stay in the header, beside the menu, at all times.
+  function applyControls() {
+    const hidden = new Set(prefs.hiddenControls || []), pinned = new Set(prefs.pinnedControls || []);
+    for (const [id] of [...CONTROLS, ["settings-btn"]]) {
       const el = $("#" + id);
       if (!el) continue;
-      const hide = hidden.has(id);
-      const shown = !el.classList.contains("gone") && !el.classList.contains("glitch-out");
-      if (hide !== shown) continue;
+      const inMenu = id === "settings-btn" || !hidden.has(id);
+      el.dataset.menu = inMenu ? "on" : "off";
+      el.classList.toggle("pinned", pinned.has(id));
+      el.classList.toggle("gone", !inMenu && !pinned.has(id));
       el.classList.remove("glitch-in", "glitch-out");
-      if (!animate || prefs.reduceMotion) { el.classList.toggle("gone", hide); continue; }
-      void el.offsetWidth;
-      if (hide) {
-        el.classList.add("glitch-out");
-        el.addEventListener("animationend", () => {
-          if (el.classList.contains("glitch-out")) { el.classList.remove("glitch-out"); el.classList.add("gone"); }
-        }, { once: true });
-      } else {
-        el.classList.remove("gone");
-        el.classList.add("glitch-in");
-        el.addEventListener("animationend", () => el.classList.remove("glitch-in"), { once: true });
-      }
     }
   }
 
@@ -131,7 +120,7 @@
   const KEYWORDS = {
     PERFORMANCE: "cpu processor performance speed fast slow hot fan heat temperature memory ram cores threads limit battery graph gpu graphics card video nvidia amd cuda rocm vulkan vram boost typical answer time speed slow measure benchmark how long",
     SOUND: "notification notifications popup pop-up alert achievement ding audio volume speaker speakers headphones mute quiet loud output input microphone mic beep",
-    "HEADER BUTTONS": "hide show icons toolbar top buttons header",
+    TABS: "hide show icons toolbar top buttons header tabs menu pin pinned",
     "MAPS & PLACES": "maps map downloaded areas countries waypoints places delete remove space disk",
     MOTION: "animation animations background rain transition boot intro outro reduce motion effects",
     CONVERSATION: "adapt adaptive learn learning style tone formal casual forget zoom scale bigger smaller magnify magnifier size larger readable chat text size font bigger smaller greeting suggestions replies alert close exit",
@@ -232,7 +221,7 @@
     { id: "ai", name: "AI & PERFORMANCE", icon: "󰘚", color: "color-mix(in oklab, #e8892a 78%, var(--fg))", line: "The model, the processor, battery, Umbra Online",
       sections: ["PERFORMANCE", "AI MODEL", "POWER", "UMBRA ONLINE"] },
     { id: "look", name: "LOOK & FEEL", icon: "󰏘", color: "color-mix(in oklab, #a77ce8 78%, var(--fg))", line: "Motion, buttons, conversation, text size",
-      sections: ["MOTION", "HEADER BUTTONS", "CONVERSATION"] },
+      sections: ["MOTION", "TABS", "CONVERSATION"] },
     { id: "sound", name: "SOUND & VOICE", icon: "󰕾", color: "color-mix(in oklab, #36aec8 78%, var(--fg))", line: "Effects, volume, speakers, microphone, dictation",
       sections: ["SOUND", "VOICE"] },
     { id: "data", name: "YOUR DATA", icon: "󰆼", color: "color-mix(in oklab, #4fb86a 78%, var(--fg))", line: "Backups, maps and places, where things are kept",
@@ -375,12 +364,12 @@
           <select class="set-audio-in"></select></label>
         <p class="lib-note set-sound-missing" hidden></p>
       </section>
-      <section class="set-section"><div class="lib-head">HEADER BUTTONS</div>
-        <p class="lib-note">Hold Shift and drag a top tab to move it. Umbra remembers your order. Settings stays in place.</p>
-        ${CONTROLS.map(([id, label]) => `
-          <label class="set-row"><span class="set-text"><b>${label}</b><small>Show this button in the top right</small></span>
-            <input type="checkbox" class="set-control" data-control="${id}"></label>`).join("")}
-        <p class="lib-note">Settings always stays, so you can bring the others back.</p>
+      <section class="set-section"><div class="lib-head">TABS</div>
+        <p class="lib-note">Every tab is in the ☰ menu at the top right. <b>Pin</b> the ones you use most to keep them beside the menu at all times.</p>
+        ${[...CONTROLS, ["settings-btn", "Settings"]].map(([id, label]) => `
+          <div class="set-row set-tab-row"><span class="set-text"><b>${label}</b><small>${id === "settings-btn" ? "Always in the menu, so you can bring the others back" : "In the ☰ menu, pinned beside it, or both"}</small></span>
+            <span class="set-tabopts"><label title="In the menu|Listed in the ☰ tab menu"><input type="checkbox" class="set-control" data-control="${id}" ${id === "settings-btn" ? "checked disabled" : ""}><span>MENU</span></label>
+            <label title="Pinned|Always shown in the header, beside the ☰ menu"><input type="checkbox" class="set-pin" data-pin="${id}"><span>◆ PIN</span></label></span></div>`).join("")}
       </section>
       <section class="set-section"><div class="lib-head">MOTION</div>
         <label class="set-row"><span class="set-text"><b>Transition</b><small>How the boot, the goodbye and the end of the tour sweep across the screen</small></span>
@@ -561,14 +550,25 @@
         Sound.click();
       });
     });
-    body.querySelectorAll(".set-control").forEach((box) => {
+    body.querySelectorAll(".set-control:not([disabled])").forEach((box) => {
       const id = box.dataset.control;
       box.checked = !(prefs.hiddenControls || []).includes(id);
       box.addEventListener("change", () => {
         const hidden = new Set(prefs.hiddenControls || []);
         if (box.checked) hidden.delete(id); else hidden.add(id);
         save({ hiddenControls: [...hidden] });
-        applyControls(true);
+        applyControls();
+        Sound.click();
+      });
+    });
+    body.querySelectorAll(".set-pin").forEach((box) => {
+      const id = box.dataset.pin;
+      box.checked = (prefs.pinnedControls || []).includes(id);
+      box.addEventListener("change", () => {
+        const pinned = new Set(prefs.pinnedControls || []);
+        if (box.checked) pinned.add(id); else pinned.delete(id);
+        save({ pinnedControls: [...pinned] });
+        applyControls();
         Sound.click();
       });
     });
@@ -1123,9 +1123,10 @@
       const s = await (await fetch("/api/settings")).json();
       if (s.background && s.background !== prefs.background) { prefs.background = s.background; applyPrefs(); }
       if ((s.offgrid || "off") !== (prefs.offgrid || "off")) { prefs.offgrid = s.offgrid || "off"; await checkPower(); }   // e.g. from the widget
-      if (JSON.stringify(s.hiddenControls || []) !== JSON.stringify(prefs.hiddenControls || [])) {
+      if (JSON.stringify(s.hiddenControls || []) !== JSON.stringify(prefs.hiddenControls || []) || JSON.stringify(s.pinnedControls || []) !== JSON.stringify(prefs.pinnedControls || [])) {
         prefs.hiddenControls = s.hiddenControls || [];
-        applyControls(true);
+        prefs.pinnedControls = s.pinnedControls || [];
+        applyControls();
       }
       if (JSON.stringify(s.headerOrder || []) !== JSON.stringify(prefs.headerOrder || [])) {
         prefs.headerOrder = s.headerOrder || [];

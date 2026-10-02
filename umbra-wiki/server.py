@@ -3068,6 +3068,9 @@ def apply_settings(update):
         if isinstance(update.get("hiddenControls"), list):
             allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "fieldkit-btn", "farming-btn", "outpost-btn", "friends-btn", "radar-btn", "theme-btn", "sound", "lock"}
             settings["hiddenControls"] = [c for c in update["hiddenControls"] if c in allowed]
+        if isinstance(update.get("pinnedControls"), list):
+            allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "fieldkit-btn", "farming-btn", "outpost-btn", "friends-btn", "radar-btn", "theme-btn", "sound", "lock", "settings-btn"}
+            settings["pinnedControls"] = list(dict.fromkeys(c for c in update["pinnedControls"] if isinstance(c, str) and c in allowed))
         if isinstance(update.get("headerOrder"), list):
             allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "fieldkit-btn", "farming-btn", "outpost-btn", "friends-btn", "radar-btn", "theme-btn", "sound", "lock"}
             settings["headerOrder"] = list(dict.fromkeys(c for c in update["headerOrder"] if isinstance(c, str) and c in allowed))

@@ -442,7 +442,7 @@ temperature and memory, and the **AI processor limit**: a four-step bar
 (25, 50, 75 or 100%) that sets how many cores the AI may use while it writes,
 to keep a laptop cooler and quieter.
 
-Then text size, sound output and microphone, volume, which header buttons show,
+Then text size, sound output and microphone, volume, which tabs are in the ☰ menu or pinned beside it,
 transitions, backgrounds, reduced motion, the local AI model, voice input,
 backups, and **off-grid mode**: a battery saver that calms the animations,
 skips Umbra's extra AI work and keeps answers short, automatically when you
@@ -676,7 +676,6 @@ Umbra Wiki speaks and understands English.
 | Ctrl+J | signals & radar (S scans again) |
 | Ctrl+Shift+F | farming planner |
 | Ctrl+U | friends and the Camp Network |
-| Shift+drag a top tab | rearrange top tabs; Settings stays fixed |
 | Ctrl+T | themes |
 | Ctrl+M | mute |
 | Ctrl+, | settings |

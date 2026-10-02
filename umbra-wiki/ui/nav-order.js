@@ -29,8 +29,7 @@
     note.hidden = false;
     hideTimer = setTimeout(hideNote, 4500);
   };
-  setTimeout(showNote, 45000);
-  setInterval(showNote, 300000);
+  // (The "hold Shift and drag" hint is retired: the tabs live in the ☰ menu now.)
   bar.addEventListener("mouseover", hideNote);
   new MutationObserver(() => { if (!note.hidden && busy()) hideNote(); })
     .observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });

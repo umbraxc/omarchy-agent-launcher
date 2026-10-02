@@ -328,6 +328,74 @@ window.UmbraOutpostModels = (() => {
     return F.part("lump", "#8a8a8a");
   }
 
+  // ------------------------------------------------------ Trader tools
+  // The Trader's tool upgrades, one model per kind; the tier sets the metal
+  // (the handles and grips keep their own colours).
+  const TOOL_METALS = { rusted: "#9a5a3a", iron: METALS.iron, steel: METALS.steel, titanium: METALS.titanium, skyfall: METALS.skyfall };
+  const metalMat = (tier) => tier === "rusted" ? M.noisy("#a8653f", "#5e3a26", RAMP.metal, 9)
+    : { ...M.metal(TOOL_METALS[tier] || METALS.iron), shade(c) { if (tier === "skyfall") c.emit = .35 + .2 * Math.sin(c.x * 9 + c.y * 7); } };
+  const HANDLE = { color: hex("#8a6a48"), ramp: RAMP.wood, shade(c) { c.glyph = Math.sin(c.y * 30 + c.x * 12) > .6 ? "|" : c.glyph; } };
+  // Long tools lie on a diagonal, so they fill a square picture.
+  const tilt = (fn, a) => (x, y, z, b, h) => { const c = Math.cos(a), s = Math.sin(a); fn(x * c + y * s, -x * s + y * c, z, b, h); };
+  F.tool = (kind, tier) => {
+    const metal = metalMat(tier), edge = { ...metalMat(tier), shade(c) { c.color = mix(hex(TOOL_METALS[tier] || METALS.iron), [255, 255, 255], .45); c.glyph = "="; } };
+    if (kind === "hatchet") return model(tilt((x, y, z, b, h) => {
+      const [rx, rz] = A.rotY(x, z, .35);
+      U(b, sd.capsule(rx, y, rz, 0, -.85, 0, 0, .7, 0, .1), "handle", h);
+      // The head: a wedge that flares to the edge, with an eye round the handle.
+      U(b, Math.max(sd.box(rx + .3, y - .55, rz, .34, .2 + (rx + .3) * .22, .1), -rx - .02), "metal", h);
+      U(b, sd.box(rx + .64, y - .55, rz, .04, .34, .07), "edge", h);
+      U(b, sd.cyl(rx, y - .75, rz, .15, .4), "metal", h);
+    }, -.8), { handle: HANDLE, metal, edge }, { cam: [.9, .7, 3] });
+    if (kind === "pickaxe") return model(tilt((x, y, z, b, h) => {
+      const [rx, rz] = A.rotY(x, z, .35);
+      U(b, sd.capsule(rx, y, rz, 0, -.85, 0, 0, .55, 0, .1), "handle", h);
+      for (const s of [-1, 1]) U(b, sd.capsule(rx, y, rz, 0, .62, 0, s * .8, .4 - .1 * s, 0, .11 - .03 * s), s > 0 ? "edge" : "metal", h);
+      U(b, sd.rbox(rx, y - .62, rz, .18, .14, .14, .04), "metal", h);
+    }, -.6), { handle: HANDLE, metal, edge }, { cam: [.9, .7, 3] });
+    if (kind === "rod") return model((x, y, z, b, h) => {
+      const [rx, rz] = A.rotY(x, z, .5), ry = y - rx * .9;
+      U(b, sd.capsule(rx, ry, rz, -.9, 0, 0, .95, 0, 0, .05 + Math.max(0, -rx) * .03), "metal", h);
+      U(b, sd.capsule(rx, ry, rz, -.95, 0, 0, -.45, 0, 0, .1), "cork", h);
+      U(b, sd.torus(rx + .35, rz - .12, ry + .02, .15, .055), "reel", h);
+      U(b, sd.capsule(rx, ry, rz, .95, 0, 0, .95, -.55, .02, .02), "line", h);
+      U(b, sd.torus(rx - .95, rz, ry + .6, .04, .012), "metal", h);
+    }, { metal, cork: M.noisy("#c9a06a", "#8a6a48", RAMP.cloth, 14), reel: metal, line: { color: hex("#e8e4d8"), shade(c) { c.glyph = "|"; } } }, { cam: [.6, .6, 3] });
+    if (kind === "prybar") return model(tilt((x, y, z, b, h) => {
+      const [rx, rz] = A.rotY(x, z, .4);
+      U(b, sd.capsule(rx, y, rz, 0, -.8, 0, 0, .55, 0, .085), "metal", h);
+      U(b, Math.max(Math.abs(sd.torus(rx - .2, rz, y - .55, .2, 0) ) - .085, -(y - .55)), "metal", h);   // the curved end
+      U(b, sd.box(rx - .38, y - .52, rz, .05, .08, .08), "edge", h);
+      U(b, sd.box(rx + .04, y + .82, rz, .1, .04, .07), "edge", h);
+      U(b, sd.capsule(rx, y, rz, 0, -.75, 0, 0, -.25, 0, .12), "grip", h);
+    }, -.75), { metal, edge, grip: { color: hex("#c8553d"), ramp: RAMP.cloth } }, { cam: [.9, .7, 3] });
+    if (kind === "snare") return model((x, y, z, b, h) => {
+      U(b, Math.abs(sd.torus(x - .2, z, y - .05, .42, 0)) - .045, "metal", h);   // the wire loop
+      U(b, Math.abs(sd.torus(x - .2, z, y - .05, .28, 0)) - .038, "metal", h);
+      U(b, sd.cone(x + .55, -(y - .55), z, .11, 1.05), "stake", h);                // a wooden stake, point down
+      U(b, sd.capsule(x, y, z, .55, .45, 0, .25, .1, .05, .035), "metal", h);
+    }, { metal, stake: M.solid("#9a7550", RAMP.wood) }, { cam: [1, 2.2, 2.4] });
+    if (kind === "knife") return model((x, y, z, b, h) => {
+      const [rx, rz] = A.rotY(x, z, .5), ry = y + rx * .3;
+      U(b, Math.max(sd.box(rx + .3, ry - (rx + .3) * (rx + .3) * .25, rz, .45, .15, .045), (rx - .75) * .6 + Math.abs(ry) - .16), "metal", h);
+      U(b, sd.box(rx + .3, ry - .13 - (rx + .3) * (rx + .3) * .25, rz, .42, .025, .05), "edge", h);
+      U(b, sd.capsule(rx, ry, rz, -.75, 0, 0, -.18, 0, 0, .13), "handle", h);
+      U(b, sd.cyl(rx + .16, ry, rz, .05, .02), "edge", h);
+    }, { metal, edge, handle: HANDLE }, { cam: [.4, .8, 3] });
+    // Field rations: tins in a crate; more tins for higher tiers.
+    const n = { i: 1, ii: 2, iii: 3 }[tier] || 1;
+    return model((x, y, z, b, h) => {
+      U(b, Math.max(sd.box(x, y + .25, z, .7, .25, .45), -sd.box(x, y + .35, z, .64, .25, .39)), "crate", h);
+      for (let i = 0; i < 2 + n; i++) { const tx = -.45 + i * (.9 / (1 + n)); U(b, sd.cyl(x - tx, y + .05, z, .17, .55), "tin", h); U(b, sd.cyl(x - tx, y + .6, z, .18, .03), "lid", h); }
+    }, { crate: M.noisy("#9a7550", "#6a5038", RAMP.wood, 8), tin: { color: hex("#c8553d"), ramp: RAMP.metal, spec: .5, shade(c) { if (Math.abs(c.y - .35) < .08) { c.color = hex("#f2ece0"); c.glyph = "="; } } }, lid: M.metal("#c3cad2") }, { cam: [1.5, 1.6, 2.6] });
+  };
+  const TOOL_KINDS = { tool_forestry: "hatchet", tool_fishing: "rod", tool_quarrying: "pickaxe", tool_salvaging: "prybar", tool_trapping: "snare", tool_foraging: "knife", autoeat: "rations" };
+  // An offer of the Trader ({group, name}) as "kind@tier".
+  function toolKey(o) {
+    const first = o.name.split(" ")[0].toLowerCase();
+    return `${TOOL_KINDS[o.group] || "rations"}@${o.group === "autoeat" ? (o.name.split(" ").pop() || "I").toLowerCase() : first}`;
+  }
+
   // ------------------------------------------------------- recipe → model
   // Gathering shows where it comes from; making shows what it makes.
   const TREES = { birch: ["#e8e2d4", "#9ccf6a", "round"], pine: ["#7a4a2e", "#3f7a52", "cone"], oak: ["#6e5038", "#5f8f45", "broad"], maple: ["#7a6a5a", "#e07a3a", "round"],
@@ -528,10 +596,11 @@ window.UmbraOutpostModels = (() => {
       if (kind === "item") request(el, key, () => forItem(id), size, cell);
       else if (kind === "recipe" && window.UmbraOutpostModels.recipes) request(el, key, () => forRecipe(window.UmbraOutpostModels.recipes[id]), size, cell);
       else if (kind === "building") { const [b, lv] = id.split("@"); request(el, key, () => building(b, +lv), size, cell); }
+      else if (kind === "tool") { const [k, tier] = id.split("@"); request(el, key, () => F.tool(k, tier), size, cell); }
     }
   }
 
-  return { forItem, forRecipe, building, fill, spin, recipes: null,
+  return { forItem, forRecipe, building, fill, spin, recipes: null, toolKey, tool: (key) => { const [k, tier] = key.split("@"); return F.tool(k, tier); },
     // A live, turning view for the hover box.
     live(canvas, id) { return A.view(canvas, spin(forItem(id)), { cell: 5, font: font() }); } };
 })();
