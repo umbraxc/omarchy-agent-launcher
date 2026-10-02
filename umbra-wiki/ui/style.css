@@ -3356,3 +3356,13 @@ body.reduce-motion .op-live, body.reduce-motion .op-it.r-legendary, body.reduce-
 .op-top { flex: 1 1 0; } .op-current { min-width: 0; overflow: hidden; } .op .op-stop { flex: none; }
 @media (max-width: 760px) { .op-hp .op-bar { display: none; } .op-top { gap: 5px; } .op-chip { padding: 4px 6px; } }
 .op-it i canvas, .op-rart .op-art-r canvas { display: block; width: 100%; height: 100%; }
+
+/* Building cards: the building itself, growing with its level. */
+.op-build .op-bart { position: relative; height: 150px; margin: -2px -2px 2px; border: 1px solid var(--line); background: radial-gradient(circle at 50% 65%, color-mix(in srgb, var(--signal) 9%, var(--bg)), var(--bg)); }
+.op-bart .op-art-r { position: absolute; inset: 0; display: grid; place-items: center; }
+.op-bart canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.op-bart canvas.live { background: var(--bg); }
+.op-build.dim .op-bart { filter: saturate(.4) brightness(.8); }
+.op-bart .op-art-r canvas { position: static; width: auto; height: 100%; aspect-ratio: 1; }
+.op-bart canvas.live { left: 50%; width: auto; height: 100%; aspect-ratio: 1; transform: translateX(-50%); }
+.op-bart canvas { filter: brightness(1.35) contrast(1.08); }

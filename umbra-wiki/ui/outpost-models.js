@@ -392,6 +392,93 @@ window.UmbraOutpostModels = (() => {
     return out ? forItem(out) : forItem("scrap_metal");
   }
 
+  // ------------------------------------------------------------ buildings
+  // Each building grows with its level (0 = foundations, 10 = complete).
+  function building(id, L) {
+    const g = .55 + Math.min(10, L) * .045, k = L / 10;
+    const ground = { color: hex("#4a5a42"), ramp: " .,:;'", shade(c) { c.alpha = .55; } };
+    const parts = {
+      garden(x, y, z, b, h) {
+        U(b, y + .02, "ground", h);
+        const beds = Math.max(1, Math.min(5, 1 + Math.floor(L / 2)));
+        for (let r = 0; r < beds; r++) { const bz = z - (r - (beds - 1) / 2) * .34; U(b, sd.box(x, y - .06, bz, .62 * g, .07, .12), "soil", h); if (L) U(b, sd.box(x, y - .15, bz, .58 * g, .03, .09) + .03 * noise2(x * 14, bz * 9), "crop", h); }
+        if (L >= 5) U(b, Math.max(sd.roof(x, y - .02, z, .75 * g, .95, .7 * g), -sd.roof(x, y - .02, z, .7 * g, .9, .65 * g)), "glass", h);
+        if (L >= 8) U(b, sd.cyl(x - .8, y, z + .7, .08, .5), "post", h);
+      },
+      well(x, y, z, b, h) {
+        U(b, y + .02, "ground", h);
+        U(b, Math.max(sd.cyl(x, y, z, .38 * g, .35 + k * .1), -sd.cyl(x, y - .05, z, .3 * g, .6)), L ? "stone" : "outline", h);
+        if (L) U(b, sd.cyl(x, y - .2, z, .3 * g, .02), "water", h);
+        if (L >= 2) { for (const s of [-1, 1]) U(b, sd.cyl(x - s * .36 * g, y, z, .03, .95), "post", h); U(b, sd.roof(x, y - .92, z, .55 * g, .35, .3), "roof", h); U(b, sd.capsule(x, y, z, -.36 * g, .72, 0, .36 * g, .72, 0, .03), "post", h); }
+        if (L >= 6) U(b, sd.box(x + .6, y - .25, z + .3, .18, .25, .18), "barrel", h);
+      },
+      lumber(x, y, z, b, h) {
+        U(b, y + .02, "ground", h);
+        const n = Math.max(1, Math.min(6, 1 + Math.floor(L / 2)));
+        for (let i = 0; i < n; i++) { const row = Math.floor(i / 3), col = i % 3; U(b, sd.capsule(x, y, z, -.55 * g, .1 + row * .17, (col - 1) * .17, .55 * g, .1 + row * .17, (col - 1) * .17, .085), "log", h); }
+        if (L >= 3) U(b, sd.cyl(x + .75, y, z - .45, .17, .22), "stump", h);
+        if (L >= 6) { U(b, sd.box(x - .2, y - .55, z - .6, .6, .03, .3), "roof", h); for (const s of [-1, 1]) U(b, sd.cyl(x - .2 - s * .55, y, z - .6, .03, .55), "post", h); }
+      },
+      salvage(x, y, z, b, h) {
+        U(b, y + .02, "ground", h);
+        if (!L) { U(b, Math.max(sd.box(x, y, z, .55, .03, .4), -sd.box(x, y, z, .5, .1, .35)), "outline", h); return; }
+        U(b, sd.box(x, y - .28 * g, z, .5 * g, .28 * g, .36 * g), "shed", h); U(b, sd.roof(x, y - .56 * g, z, .62 * g, .44 * g, .25), "tin", h);
+        U(b, sd.box(x, y - .3 * g, z - .37 * g, .2 * g, .2 * g, .01), "door", h);
+        for (let i = 0; i < Math.min(6, 2 + L); i++) U(b, sd.sphere(x + .75 * g + (i % 2) * .15, y - .08 - Math.floor(i / 2) * .1, z - .3 + (i % 3) * .2, .1), "scrap", h);
+        if (L >= 5) U(b, sd.box(x - .7 * g, y - .2, z + .1, .2, .2, .25), "bench", h);
+      },
+      solar(x, y, z, b, h) {
+        U(b, y + .02, "ground", h);
+        const n = Math.max(1, Math.min(4, Math.ceil(L / 3)));
+        if (!L) { U(b, Math.max(sd.box(x, y, z, .55, .03, .4), -sd.box(x, y, z, .5, .1, .35)), "outline", h); return; }
+        for (let i = 0; i < n; i++) { const pz = z - (i - (n - 1) / 2) * .36; U(b, sd.box(x, y - .3 + x * .35, pz, .55 * g, .02, .14) * .9, "panel", h); U(b, sd.cyl(x, y, pz, .025, .28), "post", h); }
+        if (L >= 7) U(b, sd.box(x + .8, y - .2, z, .12, .2, .14), "battery", h);
+      },
+      clinic(x, y, z, b, h) {
+        U(b, y + .02, "ground", h);
+        if (!L) { U(b, Math.max(sd.box(x, y, z, .55, .03, .4), -sd.box(x, y, z, .5, .1, .35)), "outline", h); return; }
+        U(b, sd.box(x, y - .3 * g, z, .5 * g, .3 * g, .38 * g), "white", h); U(b, sd.roof(x, y - .6 * g, z, .58 * g, .44 * g, .25), "roof", h);
+        U(b, sd.box(x, y - .38 * g, z - .39 * g, .1, .025, .01), "cross", h); U(b, sd.box(x, y - .38 * g, z - .39 * g, .025, .1, .01), "cross", h);
+        if (L >= 5) U(b, sd.box(x + .6 * g, y - .22 * g, z, .18 * g, .22 * g, .3 * g), "white", h);
+        if (L >= 8) U(b, Math.max(sd.roof(x - .7 * g, y, z, .3, .3, .35), -y), "tent", h);
+      },
+      archive(x, y, z, b, h) {
+        U(b, y + .02, "ground", h);
+        if (!L) { U(b, Math.max(sd.box(x, y, z, .55, .03, .4), -sd.box(x, y, z, .5, .1, .35)), "outline", h); return; }
+        U(b, sd.box(x, y - .32 * g, z, .42 * g, .32 * g, .36 * g), "brick", h); U(b, sd.box(x, y - .66 * g, z, .46 * g, .03, .4 * g), "roof", h);
+        const mh = .5 + L * .09;
+        U(b, sd.cyl(x + .25, y - .66 * g, z, .022, mh), "mast", h);
+        for (let i = 1; i <= Math.min(4, 1 + Math.floor(L / 3)); i++) U(b, sd.capsule(x, y, z, .25 - .12, .66 * g + mh * i / 5, 0, .25 + .12, .66 * g + mh * i / 5, 0, .012), "mast", h);
+        U(b, sd.sphere(x + .25, y - .66 * g - mh, z, .05), "beacon", h);
+        if (L >= 6) U(b, Math.max(sd.sphere(x - .3, y - .72 * g, z, .18), -(y - .7 * g)), "dish", h);
+      },
+      hearth(x, y, z, b, h) {
+        U(b, y + .02, "ground", h);
+        U(b, Math.max(sd.torus(x, z, y - .08, .34 * g, .09), -y), L ? "stone" : "outline", h);
+        if (!L) return;
+        for (const a of [0, 2.1, 4.2]) U(b, sd.capsule(x, y, z, Math.cos(a) * .26 * g, .04, Math.sin(a) * .26 * g, -Math.cos(a) * .06, .2, -Math.sin(a) * .06, .05), "log", h);
+        U(b, sd.cone(x, y, z, .22 * g, .32 + L * .04), "fire", h);
+        if (L >= 4) for (const a of [.6, 2.7, 4.8]) U(b, sd.box(x - Math.cos(a) * .75, y - .12, z - Math.sin(a) * .75, .2, .07, .07), "bench", h);
+        if (L >= 8) for (const a of [1.6, 3.7]) U(b, sd.cyl(x - Math.cos(a) * .95, y, z - Math.sin(a) * .95, .03, .7), "lamp", h);
+      },
+    };
+    return model(parts[id], { ground, outline: { color: hex("#c8b48a"), ramp: " .:", shade(c) { c.glyph = ":"; c.emit = .8; } },
+      soil: M.solid("#9a7450", RAMP.solid), crop: { color: hex("#8fc06a"), ramp: RAMP.leaf, shade(c) { c.glyph = hash2(Math.floor(c.x * 30), Math.floor(c.z * 30)) > .6 ? "✿" : "\""; c.color = hash2(Math.floor(c.x * 12), 3) > .5 ? hex("#a6d07a") : hex("#e0c070"); } },
+      glass: { color: hex("#c8eee6"), ramp: " .:+", shade(c) { c.alpha = .55; } }, post: M.solid("#8a6a4a", RAMP.wood), stone: M.noisy("#9a9286", "#7a7268"),
+      water: { color: hex("#4a90b0"), shade(c, t) { c.emit = .7 + .2 * Math.sin(t * 2 + c.x * 9); c.glyph = Math.sin(t * 2 + c.x * 12 + c.z * 9) > 0 ? "~" : "≈"; } },
+      roof: M.solid("#8a4a3a"), barrel: M.solid("#7a5a3a", RAMP.wood), log: M.noisy("#a8805a", "#7a5a3a", RAMP.wood), stump: { color: hex("#b58e5e"), ramp: RAMP.wood, shade(c) { if (c.ny > .8) c.glyph = "o"; } },
+      shed: M.noisy("#8a8072", "#6a6258"), tin: M.metal("#a8b0b8"), door: M.solid("#4a3a2e"), scrap: M.metal("#a8a49c"), bench: M.solid("#7a5a3e", RAMP.wood),
+      panel: { color: hex("#3c6a9a"), ramp: RAMP.metal, shade(c, t) { c.glyph = "#"; if (Math.sin(c.x * 4 + c.z * 3 + t * 1.2) > .93) { c.color = [230, 240, 255]; c.emit = .95; c.glyph = "✦"; } } },
+      battery: M.solid("#e0c060"), white: M.solid("#e2ded2"), cross: { color: [220, 60, 60], shade(c) { c.emit = .95; c.glyph = "+"; } }, tent: M.solid("#d8c8a0", RAMP.cloth),
+      brick: { color: hex("#a8603e"), ramp: RAMP.solid, shade(c) { if (Math.abs((c.y * 9) % 1) < .12) c.color = hex("#6a3a2a"); } }, mast: M.metal("#c0c6cc"), dish: M.metal("#d0d6dc"),
+      beacon: { color: [255, 80, 60], shade(c, t) { c.emit = Math.sin(t * 2.6) > 0 ? 1 : .35; c.glyph = "@"; } },
+      fire: { color: [255, 170, 80], ramp: " .'^*", shade(c, t) { const n = noise2(c.x * 9 + t * 3, c.y * 9 - t * 8); c.emit = .6 + .4 * n; c.glyph = n > .6 ? "*" : n > .4 ? "^" : "'"; c.color = mix([255, 224, 130], [235, 80, 40], clamp(c.y * 2 + n * .3)); } },
+      lamp: { color: [255, 210, 120], shade(c) { c.emit = .9; } } },
+      { cam: [1.6, 1.25, 2.6], zoom: .92, ambient: .62,
+        particles: id === "hearth" && L ? (t, put) => { for (let i = 0; i < 8; i++) { const p = (t * .35 + i / 8) % 1; put(Math.sin(i * 3 + t) * .1, .3 + p * .9, 0, p < .5 ? "*" : "·", mix([255, 220, 120], [220, 80, 40], p), .9 * (1 - p)); } }
+          : id === "salvage" && L ? (t, put) => { for (let i = 0; i < 5; i++) { const p = (t * .2 + i / 5) % 1; put(.1 + p * .2, .7 + p * .8, 0, "°", [200, 200, 206], .5 * (1 - p)); } } : null });
+  }
+
   // ---------------------------------------------------------- image cache
   // Pictures are rendered once (one per animation frame, so nothing
   // stutters) into canvases kept in memory, then copied into a small canvas
@@ -438,10 +525,11 @@ window.UmbraOutpostModels = (() => {
       const cell = size >= 140 ? 6 : size >= 80 ? 5 : 4;
       if (kind === "item") request(el, key, () => forItem(id), size, cell);
       else if (kind === "recipe" && window.UmbraOutpostModels.recipes) request(el, key, () => forRecipe(window.UmbraOutpostModels.recipes[id]), size, cell);
+      else if (kind === "building") { const [b, lv] = id.split("@"); request(el, key, () => building(b, +lv), size, cell); }
     }
   }
 
-  return { forItem, forRecipe, fill, spin, recipes: null,
+  return { forItem, forRecipe, building, fill, spin, recipes: null,
     // A live, turning view for the hover box.
     live(canvas, id) { return A.view(canvas, spin(forItem(id)), { cell: 5, font: font() }); } };
 })();

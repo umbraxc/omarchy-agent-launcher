@@ -6,6 +6,7 @@
   const button = document.getElementById("outpost-btn");
   const panel = document.createElement("section");
   panel.id = "outpost"; panel.className = "loadout op"; panel.hidden = true;
+  panel.dataset.quiet = "1";   // the Outpost plays its own button sounds, one per press
   panel.setAttribute("aria-label", "Umbra Outpost game");
   panel.innerHTML = `<header class="lo-head op-head"><span class="lo-title">✦ UMBRA OUTPOST</span>
       <div class="op-top" role="status" aria-live="polite"></div><button class="op-close" type="button">CLOSE ✕</button></header>
@@ -163,7 +164,9 @@
       const cost = Object.fromEntries(Object.entries(b.cost).map(([k, v]) => [k, v * (L + 1)]));
       const parts = L >= 5 ? { [b.parts]: 4 * (L - 4) } : {};
       const ok = !max && Object.entries(cost).every(([k, v]) => s.supplies[k] >= v) && Object.entries(parts).every(([k, v]) => have(k) >= v);
-      return `<article class="op-card op-build ${L ? "" : "dim"}"><header><b>${clean(b.name)}</b><span>LV ${L}/${D.buildingMax}</span></header>
+      return `<article class="op-card op-build ${L ? "" : "dim"}" data-building-card="${id}" data-level="${L}">
+        <div class="op-bart" data-live="b:${id}@${L}"><i class="op-art-r" data-art="building:${id}@${L}" data-size="200"></i></div>
+        <header><b>${clean(b.name)}</b><span>LV ${L}/${D.buildingMax}</span></header>
         <div class="op-pips">${Array.from({ length: D.buildingMax }, (_, i) => `<i class="${i < L ? "on" : ""}"></i>`).join("")}</div>
         <p>${L ? `${rate(L).toFixed(1)} ${b.supply}/h · ${effectText(b.effect, L)}` : `Makes ${b.supply}. ${effectText(b.effect)} per level.`}</p>
         ${max ? "" : `<p class="op-next">NEXT · ${rate(L + 1).toFixed(1)} ${b.supply}/h${L + 1 > 5 ? `, holds ${250 + 50 * (L - 4)}` : ""} · ${effectText(b.effect, L + 1)}</p>`}
@@ -283,7 +286,7 @@
     return `<section class="op-sec"><h2>▦ STOCKPILE <small>${used} / ${V.slots} kinds · worth ¤${fmt(value)}</small><button type="button" class="inline" data-act="slots" ${s.scrip >= V.slotPrice ? "" : "disabled"} title="More room|+${D.stockpileStep} kinds for ¤${fmt(V.slotPrice)}">+${D.stockpileStep} SLOTS · ¤${fmt(V.slotPrice)}</button></h2>
       ${bar(used / V.slots, used >= V.slots ? "full" : "")}
       <div class="op-tabs">${CATS.map(([c, n]) => `<button type="button" class="${bankTab === c ? "on" : ""}" data-tab="${c}">${n}</button>`).join("")}</div>
-      <div class="op-bankwrap"><div class="op-bank">${ids.map((id) => `<button type="button" class="op-cell ${pick === id ? "on" : ""}" data-pick="${id}">${icon(id, s.bank[id])}</button>`).join("") || `<p class="op-note">Nothing here yet.</p>`}</div>
+      <div class="op-bankwrap"><div class="op-bank">${ids.map((id) => `<button type="button" class="op-cell ${pick === id ? "on" : ""}" data-pick="${id}" data-item="${id}">${icon(id, s.bank[id])}</button>`).join("") || `<p class="op-note">Nothing here yet.</p>`}</div>
       <aside class="op-detail">${pick ? detailHtml(pick) : `<p class="op-note">Select an item to see what it does, equip it or sell it.</p>`}</aside></div></section>`;
   }
   function statsText(it) {
@@ -531,6 +534,19 @@
     panel.querySelectorAll(".op-pet.got .op-pet-art").forEach((el, i) => { if ((i + petFrame) % 3 === 0) el.textContent = UmbraOutpostArt.pets[el.dataset.pet][petFrame]; else el.textContent = UmbraOutpostArt.pets[el.dataset.pet][0]; });
   }, 900);
 
+  // The building under the pointer comes alive: it turns, smoke rises.
+  let bLive = null, bCard = null;
+  panel.addEventListener("pointerover", (e) => {
+    const card = e.target.closest("[data-building-card]");
+    if (card === bCard) return;
+    bLive?.stop(); bLive = null; panel.querySelectorAll(".op-bart canvas.live").forEach((c) => c.remove());
+    bCard = card;
+    if (!card || window.offgrid || document.body.classList.contains("reduce-motion")) return;
+    const box = card.querySelector(".op-bart"), c = document.createElement("canvas");
+    c.className = "live"; box.appendChild(c);
+    bLive = Ascii3D.view(c, UmbraOutpostModels.spin(UmbraOutpostModels.building(card.dataset.buildingCard, +card.dataset.level), .45), { cell: 5 });
+  });
+
   // ------------------------------------------------------------- info box
   // Hover an item anywhere in the Outpost: it turns in 3D beside what it
   // is, what it does, and where it comes from and goes.
@@ -572,8 +588,14 @@
     info.style.top = `${Math.max(8, Math.min(innerHeight - h - 8, r.top - 20))}px`;
   }
   function hideInfo() { infoTimer = setTimeout(() => { info.hidden = true; infoView?.stop(); infoView = null; infoId = ""; }, 120); }
-  panel.addEventListener("pointerover", (e) => { const el = e.target.closest("[data-item]"); if (el && !info.contains(el)) showInfo(el); else if (!info.hidden) hideInfo(); });
-  panel.addEventListener("pointerout", (e) => { const el = e.target.closest("[data-item]"); if (el && !el.contains(e.relatedTarget)) hideInfo(); });
+  // The outermost [data-item] counts, so crossing an item's own border or
+  // its count never closes the box; moving straight to another item swaps it.
+  const itemAt = (node) => { let el = node?.closest?.("[data-item]"); while (el?.parentElement?.closest("[data-item]")) el = el.parentElement.closest("[data-item]"); return el; };
+  panel.addEventListener("pointerover", (e) => { const el = itemAt(e.target); if (el && !info.contains(el)) showInfo(el); });
+  panel.addEventListener("pointerout", (e) => {
+    const from = itemAt(e.target), to = itemAt(e.relatedTarget);
+    if (from && from !== to && !to) hideInfo();
+  });
 
   // ---------------------------------------------------------------- toasts
   function toast(html, kind = "") {
@@ -634,7 +656,7 @@
     const a = V.state.action;
     let wait = 30;
     if (a?.type === "combat") wait = 1;
-    else if (a) wait = Math.max(.35, a.start + a.interval - now() + .12);
+    else if (a) { const due = a.start + a.interval - now() + .15; wait = due > 0 ? Math.max(1, due) : 1; }
     if (V.state.warmUntil > now()) wait = Math.min(wait, 5);
     poll = setTimeout(() => refresh(), wait * 1000);
   }
@@ -652,7 +674,7 @@
       V = out;
       feedback(action ? null : prev, out.events || []);
       if (action) {
-        if (["start", "fight", "expedition", "scout", "equip", "buy", "tune", "obstacle", "bountyshop", "upgrade", "mastery", "slots", "story"].includes(action.type)) Sound.click();
+        // Buttons already click when pressed (one sound); results have their own.
         if (action.type === "fight" || action.type === "expedition") setHero(sel);
       }
       render(!!action);
@@ -668,9 +690,11 @@
   panel.addEventListener("pointerdown", () => { pressed = true; });
   window.addEventListener("pointerup", () => { if (pressed) { pressed = false; setTimeout(() => render(), 60); } });
   panel.addEventListener("click", (e) => {
+    const pressed = e.target.closest("button");
+    if (pressed && !pressed.disabled && !pressed.classList.contains("op-close")) Sound.click();
     const nav = e.target.closest("[data-view]");
     if (nav) {
-      sel = nav.dataset.view; lastBody = ""; pick = null; Sound.click();
+      sel = nav.dataset.view; lastBody = ""; pick = null;
       clearTimeout(infoTimer); info.hidden = true; infoView?.stop(); infoView = null; infoId = "";
       if (sel === "battle" && V.action?.area) area = V.action.area;
       $o(".op-main").scrollTop = 0;
@@ -679,11 +703,11 @@
     }
     if (e.target.closest("[data-hide-start]")) { try { localStorage.setItem("umbra-outpost-start", "hidden"); } catch {} render(true); return; }
     const tab = e.target.closest("[data-tab]");
-    if (tab) { bankTab = tab.dataset.tab; Sound.click(); render(true); return; }
+    if (tab) { bankTab = tab.dataset.tab; render(true); return; }
     const ar = e.target.closest("[data-area]");
-    if (ar) { area = ar.dataset.area; Sound.click(); render(true); return; }
+    if (ar) { area = ar.dataset.area; render(true); return; }
     const cell = e.target.closest("[data-pick]");
-    if (cell) { pick = cell.dataset.pick; Sound.click(); render(true); return; }
+    if (cell) { pick = cell.dataset.pick; render(true); return; }
     const b = e.target.closest("[data-act]");
     if (!b || b.disabled) return;
     const d = b.dataset, act = { type: d.act };
@@ -717,7 +741,7 @@
     panel.hidden = true; button.classList.remove("on"); document.body.classList.remove("outpost-open");
     clearTimeout(poll);
     if (art) { art.stop(); art = null; artKey = ""; }
-    live?.stop(); live = null; liveId = ""; info.hidden = true; infoView?.stop(); infoView = null; infoId = "";
+    live?.stop(); live = null; liveId = ""; bLive?.stop(); bLive = null; bCard = null; info.hidden = true; infoView?.stop(); infoView = null; infoId = "";
   }
   function toggle() {
     if (!panel.hidden) { close(); Sound.click(); return; }

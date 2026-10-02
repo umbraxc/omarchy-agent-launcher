@@ -575,10 +575,13 @@ def _advance(state, now, events, rng):
     if not a:
         state["updated"] = now
         return None
-    a["start"] = max(a.get("start", start), start)
+    # Only a long absence is capped (a day of offline time). An action in
+    # progress keeps its own start: checking often must never delay it.
+    floor = now - OFFLINE_CAP
+    a["start"] = max(a.get("start", now), floor)
     stop = None
     if a["type"] == "combat":
-        a["clock"] = max(a.get("clock", start), start)
+        a["clock"] = max(a.get("clock", now), floor)
         if a.get("spawnAt"):
             a["spawnAt"] = max(a["spawnAt"], a["clock"])
         else:
