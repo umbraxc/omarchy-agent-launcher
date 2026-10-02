@@ -273,9 +273,10 @@ const Sound = (() => {
   arm();
 })();
 
-// A soft hover blip on the rows and buttons of the tools, like elsewhere.
+// A soft hover blip on the rows and cards of the tools, like elsewhere.
+// Tabs and filter chips stay silent, as the header tabs do.
 document.addEventListener("mouseover", (e) => {
-  const b = e.target.closest(".cal-day, .cal-urow, .rd-row, .rd-krow, .v-row, .v-libi, .tr-mcard, .hist-row .hopen, .hf, .fk-subnav button, .fk-subtabs button, .mp-pt, .tm-item, .set-chip, .manual-page");
+  const b = e.target.closest(".cal-day, .cal-urow, .rd-row, .rd-krow, .v-row, .v-libi, .tr-mcard, .hist-row .hopen, .mp-pt, .tm-item, .manual-page");
   if (!b || b === hoverLast) return;
   hoverLast = b;
   Sound.hover();
@@ -1937,7 +1938,11 @@ function paintAnswer(answerEl, shown, sourceByN, live = false) {
   answerEl.innerHTML = renderMarkdown(shown) + (live ? '<span class="cursor"></span>' : "");
   answerEl.querySelectorAll(".cite").forEach((c) => {
     const s = sourceByN[c.dataset.n];
-    if (s) bindSource(c, s);
+    if (s) { bindSource(c, s); return; }
+    // A number with no source behind it is the model's slip, not a citation.
+    const before = c.previousSibling;
+    if (before && before.nodeType === Node.TEXT_NODE) before.textContent = before.textContent.replace(/\s+$/, "");
+    c.remove();
   });
 }
 

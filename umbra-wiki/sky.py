@@ -28,9 +28,11 @@ def altitude(ra, dec, lat, lon, when=None):
 def overview(lat=None, lon=None, when=None):
     data = catalog()
     if lat is None or lon is None:
-        return ("The user's sky location is not set. Do not claim any constellation is visible there right now. "
-                "Give a short, accurate introduction to the night sky and ask for their city or latitude/longitude "
-                "for a location-specific chart. The chat chart shows a clearly labelled sample location until then. "
+        return ("The user's sky location is not set, so you do not know what is above their horizon. Do not name "
+                "constellations as visible tonight, and do not give directions or heights such as 'high in the east'. "
+                "You may mention one or two well-known constellations as typical of the current season, clearly framed "
+                "as depending on hemisphere and location. Ask for their city or latitude/longitude so the chart can show "
+                "their own sky. Until then the chat chart shows a clearly labelled sample location. "
                 "This offline atlas contains 88 IAU constellations and named stars, not planet ephemerides or astrology predictions.")
     names = {abbrev: name for name, abbrev, _ in data["constellations"]}
     visible = [(name, abbr, magnitude, altitude(ra, dec, lat, lon, when))

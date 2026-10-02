@@ -264,7 +264,6 @@
       body.scrollTo({ top: cat.offsetTop - body.offsetTop - 4, behavior: document.body.classList.contains("reduce-motion") ? "auto" : "smooth" });
       Sound.click();
     }));
-    chips.querySelectorAll(".set-chip").forEach((b) => b.addEventListener("mouseenter", Sound.hover));
     markChip();
   }
   // The chip of the category in view is lit.

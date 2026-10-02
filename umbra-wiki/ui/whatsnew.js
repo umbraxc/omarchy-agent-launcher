@@ -40,17 +40,20 @@
     setTimeout(() => box.querySelector(".news-ok").focus(), 50);
   }
 
-  // Waits for a quiet moment: booted, unlocked, no tour and no dialog open.
+  // Waits for a quiet moment: booted, unlocked, no tour, no dialog open, no
+  // answer arriving and nothing half typed in the prompt.
   let tries = 0;
+  const busy = () => document.body.classList.contains("booting") || document.body.classList.contains("touring") ||
+    locked || document.querySelector(".wipe, .news") || !$("#modal").hidden || controller || input.value.trim();
+  // Shows a note a moment later, unless the user has started something since.
+  const later = (fn) => setTimeout(() => { if (busy()) setTimeout(wait, 700); else fn(); }, 900);
   async function wait() {
-    const busy = document.body.classList.contains("booting") || document.body.classList.contains("touring") ||
-      locked || document.querySelector(".wipe") || !$("#modal").hidden;
-    if (busy) { if (++tries < 400) setTimeout(wait, 700); return; }
+    if (busy()) { if (++tries < 400) setTimeout(wait, 700); return; }
     const info = await fetch("/api/whatsnew").then((r) => r.json()).catch(() => null);
-    if (info && info.show) setTimeout(() => { if (!locked && !document.querySelector(".news")) show(info); }, 900);
+    if (info && info.show) later(() => show(info));
     else if (/Windows/.test(navigator.userAgent)) {
       const u = await fetch("/api/update-auto").then((r) => r.json()).catch(() => ({}));
-      if (u.installable) setTimeout(() => { if (!locked && !document.querySelector(".news")) offer(u); }, 900);
+      if (u.installable) later(() => offer(u));
     }
   }
 

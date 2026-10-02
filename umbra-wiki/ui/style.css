@@ -1422,6 +1422,10 @@ body.booting::after {
 body.touring #ask { opacity: .45; pointer-events: none; }
 body.touring .intro { display: none; }
 .tour-skip { position: fixed; top: 84px; right: 22px; z-index: 35; font-size: 10.5px; padding: 6px 10px; background: var(--bg-1); }
+/* Beside an open side drawer, never over its controls. */
+body:has(.themes:not([hidden])) .tour-skip { right: calc(min(520px, 100%) + 22px); }
+body:has(.corepanel:not([hidden])) .tour-skip { right: calc(min(560px, 100%) + 22px); }
+@media (max-width: 680px) { body:has(.themes:not([hidden])) .tour-skip { right: 22px; z-index: 29; } }
 .tour-choices { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
 .tour-field { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
 .tour-field input, .tour-field textarea {

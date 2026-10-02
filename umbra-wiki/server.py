@@ -4643,7 +4643,9 @@ def answer(req, emit):
         if type(lat) not in (int, float) or type(lon) not in (int, float):
             lat = lon = None
         system += " OFFLINE SKY ATLAS: " + sky.overview(lat, lon)
-        system += " A shaded animated star chart will appear with the reply; mention it naturally. Answer the user's astronomy question directly."
+        system += (" The app shows an animated star chart below your reply by itself. You may refer to it in passing "
+                   "(for example 'the chart below'), but never describe or announce it in brackets, captions or stage "
+                   "directions, and never cite it with a number. Answer the user's astronomy question directly.")
     if re.search(r"\b(?:fresh|drinking|safe|clean|purif\w*|treat\w*)?\s*water\b", question, re.I) and not chatting:
         system += (" WATER SAFETY: Fresh or clear-looking water is not necessarily safe to drink. "
                    "Keep finding/collecting water distinct from making it safe. Settling or cloth filtering "
@@ -4689,6 +4691,8 @@ def answer(req, emit):
         system += (" OFF-GRID MODE: the user is saving battery. Keep the answer short: the essential steps "
                    "in their proper order, without long explanations. Never skip the first step or any "
                    "safety-critical step to save words (for bleeding, firm direct pressure always comes first).")
+    if not sources:
+        system += " No SOURCES are supplied for this reply: do not write bracketed citation numbers."
     messages = [{"role": "system", "content": system}]
     recent = history[-HISTORY_TURNS * 2:]
     for i, turn in enumerate(recent):

@@ -221,7 +221,7 @@
     const tab = el.querySelector(".dos-tab");
     let pinned = false, closeTimer = 0;
     const set = (on) => { if (el.classList.contains("docked")) return; el.classList.toggle("open", on); if (on) pop(el); };
-    el.addEventListener("mouseenter", () => { clearTimeout(closeTimer); if (!el.classList.contains("open")) { set(true); Sound.hover(); } });
+    el.addEventListener("mouseenter", () => { clearTimeout(closeTimer); if (!el.classList.contains("open")) set(true); });
     el.addEventListener("mouseleave", () => { if (!pinned) closeTimer = setTimeout(() => set(false), 350); });
     tab.addEventListener("click", () => { pinned = !el.classList.contains("open") || !pinned; set(pinned); Sound.click(); });
     el.querySelector(".dos-size").addEventListener("click", () => {
