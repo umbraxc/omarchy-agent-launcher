@@ -3351,3 +3351,7 @@ body.reduce-motion .op-live, body.reduce-motion .op-it.r-legendary, body.reduce-
   .op-info { width: min(330px, calc(100vw - 16px)); grid-template-columns: 90px 1fr; } .op-info canvas { width: 90px; height: 90px; }
   .op-sups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* The top strip always keeps the current action and its stop button in view. */
+.op-top { flex: 1 1 0; } .op-current { min-width: 0; overflow: hidden; } .op .op-stop { flex: none; }
+@media (max-width: 760px) { .op-hp .op-bar { display: none; } .op-top { gap: 5px; } .op-chip { padding: 4px 6px; } }

@@ -17,6 +17,7 @@
   const clean = (v) => escapeHtml(String(v ?? ""));
 
   let D = null, V = null, sel = "overview", busy = false, skew = 0, poll = 0, art = null, artKey = "", pressed = false;
+  let lastStartClick = -1e9;
   let lastBody = "", lastNav = "", lastTop = "", pick = null, bankTab = "all", prevXp = null, prevCombat = null, area = "outskirts";
 
   // ------------------------------------------------------------ formatting
@@ -467,7 +468,10 @@
       if (x.dataset.art || x.dataset.live || x.dataset.keep) continue;      // a drawn picture, a live canvas or floating numbers
       for (const { name, value } of [...y.attributes]) {
         if (name === "style" && x.closest(".op-prog, [data-swing]")) continue;   // bars move between updates
-        if (x.getAttribute(name) !== value) x.setAttribute(name, value);
+        if (x.getAttribute(name) !== value) {
+          if (name === "data-act" && value === "stop") lastStartClick = performance.now();   // the button just turned into STOP
+          x.setAttribute(name, value);
+        }
       }
       for (const { name } of [...x.attributes]) if (!y.hasAttribute(name)) x.removeAttribute(name);
       if (x.tagName === "SELECT") { patchChildren(x, y); x.value = y.querySelector("option[selected]")?.value ?? ""; continue; }
@@ -511,8 +515,9 @@
     if (!V || panel.hidden) return;
     const t = now();
     panel.querySelectorAll(".op-prog").forEach((el) => {
-      const start = +el.dataset.start, int = +el.dataset.int || 1;
-      el.firstElementChild.style.width = Math.max(0, Math.min(100, (t - start) / int * 100)) + "%";
+      // The action repeats: keep the bar looping even if an update is late.
+      const start = +el.dataset.start, int = +el.dataset.int || 1, k = Math.max(0, t - start) % int;
+      el.firstElementChild.style.width = (k / int * 100) + "%";
     });
     panel.querySelectorAll("[data-swing]").forEach((el) => {
       const next = +el.dataset.next, speed = +el.dataset.speed || 1;
@@ -682,6 +687,10 @@
     const b = e.target.closest("[data-act]");
     if (!b || b.disabled) return;
     const d = b.dataset, act = { type: d.act };
+    // A STOP that just appeared (after a start, or where START was a moment
+    // ago) ignores the click: a double-click must never cancel the work.
+    if (d.act === "stop" && performance.now() - lastStartClick < 900) return;
+    if (["start", "fight", "expedition", "scout"].includes(d.act)) { lastStartClick = performance.now(); b.blur(); }
     if (d.recipe) act.recipe = d.recipe;
     if (d.building) act.building = d.building;
     if (d.item) act.item = d.item;

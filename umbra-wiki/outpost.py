@@ -738,8 +738,15 @@ def _act(state, action, now, events):
         state["action"] = {"type": "scout", "skill": "scouting", "start": now, "step": 0}
         state["action"]["interval"] = scout_interval(state, state["action"], m)
     elif kind == "stop":
-        if state.get("action", {}) and state["action"].get("expedition"):
+        a = state.get("action") or {}
+        if a.get("expedition"):
             _log(state, "You called the expedition back.")
+        elif a.get("type") == "skill":
+            _log(state, f"You stopped {D.RECIPES[a['recipe']]['name'].lower()}.")
+        elif a.get("type") == "combat":
+            _log(state, f"You retreated from the {D.ENEMIES[a['enemy']]['name'].lower()}.")
+        elif a.get("type") == "scout":
+            _log(state, "You stopped running the route.")
         state["action"] = None
     elif kind == "fight":
         _start_fight(state, now, enemy=action.get("enemy"))
