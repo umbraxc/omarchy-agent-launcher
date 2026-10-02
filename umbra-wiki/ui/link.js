@@ -39,6 +39,8 @@ window.UmbraLink = (() => {
 
   // ------------------------------------------------------- the panel
 
+  const web = () => !!window.UmbraWeb?.available;
+
   function showLocal() {
     const p = shell("local");
     p.querySelector(".lp-title").textContent = "◆ LINK · LOCAL";
@@ -46,13 +48,19 @@ window.UmbraLink = (() => {
     p.querySelector(".lp-right").innerHTML = `
       <div class="lp-sec"><small>RIGHT NOW</small>
         ${ROW(true, "AI", "ON THIS COMPUTER")}${ROW(true, "LIBRARY", "ON THIS COMPUTER")}${ROW(true, "MAPS & TOOLS", "ON THIS COMPUTER")}${ROW(false, "INTERNET", "NOT USED")}</div>
-      <div class="lp-sec"><small>GOING ONLINE ADDS</small>
+      ${web() ? `<div class="lp-sec"><small>GOING ONLINE OPENS UMBRA ONLINE</small>
+        <ul><li><b>The web on the left, Umbra on the right.</b> Umbra reads the pages with you, comments, and can summarise, explain or save them for offline.</li>
+        <li><b>Wikipedia</b> also joins every answer. Your library and the AI keep working as before.</li></ul></div>
+      <div class="lp-sec"><small>WHAT LEAVES THIS COMPUTER</small>
+        <ul><li>The <b>pages you open</b> load from the internet, like in any browser. Sites see your <b>network address (IP)</b> and can keep cookies (in Umbra's own browser storage).</li>
+        <li>The <b>search words</b> of each question, to Wikipedia, over an encrypted connection (HTTPS).</li>
+        <li><b>Nothing else</b>: what Umbra reads on pages, your conversations, profile, health notes, location, vault and files stay here. The AI runs on this computer.</li></ul></div>` : `<div class="lp-sec"><small>GOING ONLINE ADDS</small>
         <ul><li><b>Wikipedia</b> for every question: fuller, more current answers.</li>
         <li>Answers say which facts came from where. Your library and the AI keep working as before.</li></ul></div>
       <div class="lp-sec"><small>WHAT LEAVES THIS COMPUTER</small>
         <ul><li>The <b>search words</b> of each question, to Wikipedia, over an encrypted connection (HTTPS).</li>
         <li>Wikipedia sees your <b>network address (IP)</b>; your network and provider can see that you contact Wikipedia.</li>
-        <li><b>Nothing else</b>: not your conversations, profile, health notes, location, vault or files.</li></ul></div>
+        <li><b>Nothing else</b>: not your conversations, profile, health notes, location, vault or files.</li></ul></div>`}
       <div class="lp-warn"><pre class="lp-warn-art"></pre><div><b>RADIO SILENCE BROKEN</b>
         <small>Online, this device transmits. Other devices on the network, your provider or anyone listening on the airwaves can notice it. If you must not be found, stay LOCAL.</small></div></div>
       <label class="lp-agree"><input type="checkbox"> I understand what goes online.</label>`;
@@ -70,12 +78,14 @@ window.UmbraLink = (() => {
     p.querySelector(".lp-radar-cap").innerHTML = `<b class="warn">TRANSMITTING</b><small>This device is talking to the internet.</small>`;
     p.querySelector(".lp-right").innerHTML = `
       <div class="lp-sec"><small>RIGHT NOW</small>
-        ${ROW(true, "AI", "ON THIS COMPUTER")}${ROW(true, "LIBRARY", "ON THIS COMPUTER")}${ROW(true, "WIKIPEDIA", "OVER THE INTERNET")}
+        ${ROW(true, "AI", "ON THIS COMPUTER")}${ROW(true, "LIBRARY", "ON THIS COMPUTER")}${ROW(true, "WIKIPEDIA", "OVER THE INTERNET")}${web() ? ROW(true, "BROWSER", "OVER THE INTERNET") : ""}
         <div class="lp-stats"><span>LATENCY <b class="lp-ms">…</b></span><span>QUESTIONS SENT ONLINE <b>${sentOnline()}</b></span></div></div>
       <div class="lp-sec"><small>GOING LOCAL</small>
-        <ul><li>Wikipedia is switched off at once; answers come from your library and the AI only.</li>
+        <ul><li>${web() ? "The browser closes and " : ""}Wikipedia is switched off at once; answers come from your library and the AI only.</li>
         <li>Nothing more leaves this computer. Every launch starts LOCAL anyway.</li></ul></div>`;
-    p.querySelector(".lp-foot").innerHTML = `<button class="ghost lp-stay">STAY ONLINE</button><button class="solid lp-dark">GO DARK ▸</button>`;
+    const folded = web() && (!UmbraWeb.open || document.body.classList.contains("web-folded"));
+    p.querySelector(".lp-foot").innerHTML = `<button class="ghost lp-stay">STAY ONLINE</button>${folded ? '<button class="ghost lp-web">◧ SHOW THE BROWSER</button>' : ""}<button class="solid lp-dark">GO DARK ▸</button>`;
+    p.querySelector(".lp-web")?.addEventListener("click", () => { close(true); UmbraWeb.enter(); });
     fetch("/api/netinfo").then((r) => r.json()).then((n) => { const el = p.querySelector(".lp-ms"); if (el) el.textContent = n.online ? `${n.ms} MS` : "NO CONNECTION"; }).catch(() => {});
     p.querySelector(".lp-stay").addEventListener("click", () => close());
     p.querySelector(".lp-dark").addEventListener("click", () => goDark(p));
@@ -132,6 +142,7 @@ window.UmbraLink = (() => {
         return ok ? `OK · ${ms} MS` : "NO ANSWER";
       }],
       ["ENCRYPTING (HTTPS)", () => wait(150).then(() => (ok ? "OK" : "—"))],
+      ...(web() ? [["OPENING THE BROWSER", () => wait(200).then(() => (ok ? "OK" : "—"))]] : []),
     ], true);
     if (!ok) {
       setOnline(false);
@@ -150,13 +161,15 @@ window.UmbraLink = (() => {
     flash("online");
     await wait(calm() ? 200 : 900);
     close(true);
+    if (web()) UmbraWeb.enter();
   }
 
   async function goDark(p) {
     p.className = "linkpanel switching dark";
     p.querySelector(".lp-title").textContent = "◆ CUTTING UPLINK";
     p.querySelector(".lp-radar-cap").innerHTML = `<b>GOING DARK</b><small>Closing the connection.</small>`;
-    const con = await sequence(p, [["CLOSING CHANNEL", () => wait(200).then(() => "OK")], ["TRANSMITTER OFF", () => wait(150).then(() => "OK")]], false);
+    const con = await sequence(p, [...(web() && UmbraWeb.open ? [["CLOSING THE BROWSER", () => UmbraWeb.leave().then(() => "OK")]] : []),
+      ["CLOSING CHANNEL", () => wait(200).then(() => "OK")], ["TRANSMITTER OFF", () => wait(150).then(() => "OK")]], false);
     setOnline(false);
     con.textContent += "> RADIO SILENCE RESTORED. YOU ARE LOCAL.\n";
     Sound.local();

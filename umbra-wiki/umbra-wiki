@@ -6,6 +6,9 @@ WebKit view with no browser chrome. Each launch is its own window/process,
 so the Agent Launcher can count open sessions.
 """
 
+import base64
+import io
+import itertools
 import json
 import os
 import signal
@@ -27,6 +30,7 @@ gi.require_version("Gdk", "3.0")
 gi.require_version("WebKit2", "4.1")
 from gi.repository import Gdk, Gio, GLib, Gtk, WebKit2  # noqa: E402
 
+WEB_JS = os.path.join(os.path.dirname(os.path.realpath(__file__)), "ui", "web-page.js")
 APP_ID = "org.umbra.wiki"
 URL = f"http://127.0.0.1:{os.environ.get('UMBRA_PORT', '8766')}/"
 
@@ -87,6 +91,351 @@ def ensure_backend():
     return False
 
 
+class WebPane:
+    """Umbra Online's built-in browser: native WebKit views (one per tab) laid
+    over a rectangle that the Umbra page keeps free and draws its own tabs,
+    address bar and seam around. The page drives it with "web:{json}"
+    messages; the pane answers with UmbraWeb.host({...}) events. A small
+    reader script runs in an isolated world (web pages can't see or call it)
+    and tells Umbra what's on the page and what the user selects."""
+
+    DOC_SCHEMES = ("http://", "https://")
+
+    def __init__(self, ui, overlay):
+        self.ui, self.overlay = ui, overlay
+        self.stack = Gtk.Stack()
+        self.stack.set_no_show_all(True)
+        overlay.add_overlay(self.stack)
+        overlay.connect("get-child-position", self.child_position)
+        self.tabs, self.order, self.active = {}, [], None
+        self.ids = itertools.count(1)
+        self.rect, self.shown = (0, 0, 10, 10), False
+        try:
+            self.reader = open(WEB_JS, encoding="utf-8").read()
+        except OSError:
+            self.reader = ""
+        data = os.path.join(GLib.get_user_data_dir(), "umbra-wiki", "web")
+        cache = os.path.join(GLib.get_user_cache_dir(), "umbra-wiki", "web")
+        manager = WebKit2.WebsiteDataManager(base_data_directory=data, base_cache_directory=cache)
+        self.context = WebKit2.WebContext.new_with_website_data_manager(manager)
+        cookies = self.context.get_cookie_manager()
+        os.makedirs(data, exist_ok=True)
+        cookies.set_persistent_storage(os.path.join(data, "cookies.sqlite"), WebKit2.CookiePersistentStorage.SQLITE)
+        cookies.set_accept_policy(WebKit2.CookieAcceptPolicy.NO_THIRD_PARTY)
+        self.context.connect("download-started", self.on_download)
+
+    # ----------------------------------------------------------- talking
+    def send(self, event):
+        js = ("try { window.UmbraWeb && UmbraWeb.host(" + json.dumps(event, ensure_ascii=True)
+              + ") } catch (e) { console.error('UmbraWeb:', e && e.stack || e) }")
+        self.ui.evaluate_javascript(js, -1, None, None, None, None, None)
+
+    def tab_info(self, tid):
+        v = self.tabs[tid]
+        url = v.get_uri() or ""
+        return {"id": tid, "title": v.get_title() or "", "url": url, "loading": v.is_loading(),
+                "progress": round(v.get_estimated_load_progress(), 2), "back": v.can_go_back(),
+                "forward": v.can_go_forward(), "secure": url.startswith("https://")}
+
+    def send_tabs(self):
+        self.send({"t": "tabs", "active": self.active, "tabs": [self.tab_info(t) for t in self.order]})
+
+    # ------------------------------------------------------------- tabs
+    def new_tab(self, url="", select=True):
+        tid = next(self.ids)
+        ucm = WebKit2.UserContentManager()
+        ucm.register_script_message_handler_in_world("umbraweb", "umbra")
+        ucm.connect("script-message-received::umbraweb", lambda _m, r, tid=tid: self.on_page_message(tid, r))
+        if self.reader:
+            ucm.add_script(WebKit2.UserScript.new_for_world(
+                self.reader, WebKit2.UserContentInjectedFrames.TOP_FRAME, WebKit2.UserScriptInjectionTime.END, "umbra", None, None))
+        view = WebKit2.WebView(web_context=self.context, user_content_manager=ucm)
+        st = view.get_settings()
+        st.set_hardware_acceleration_policy(WebKit2.HardwareAccelerationPolicy.NEVER)
+        st.set_enable_developer_extras(False)
+        st.set_javascript_can_open_windows_automatically(False)
+        st.set_enable_back_forward_navigation_gestures(True)
+        view.set_background_color(Gdk.RGBA(1, 1, 1, 1))
+        for sig in ("notify::title", "notify::uri", "notify::estimated-load-progress", "notify::is-loading"):
+            view.connect(sig, lambda *_: self.send_tabs())
+        view.connect("load-changed", lambda v, ev, tid=tid: self.on_load(tid, ev))
+        view.connect("load-failed", lambda v, ev, uri, err, tid=tid: self.on_failed(tid, uri, err))
+        view.connect("load-failed-with-tls-errors", lambda v, uri, cert, errs, tid=tid: self.on_failed(tid, uri, None, tls=True))
+        view.connect("decide-policy", self.on_policy)
+        view.connect("create", lambda v, action: self.on_create(action))
+        view.connect("permission-request", lambda v, req: (req.deny(), True)[1])
+        view.connect("key-press-event", self.on_key)
+        view.connect("scroll-event", self.on_scroll)
+        view.connect("context-menu", self.on_context_menu)
+        view.connect("web-process-terminated", lambda v, reason, tid=tid: self.send({"t": "crashed", "tab": tid}))
+        self.tabs[tid] = view
+        self.order.append(tid)
+        self.stack.add_named(view, str(tid))
+        view.show()
+        if url:
+            self.load(view, url)
+        if select or self.active is None:
+            self.select(tid)
+        else:
+            self.send_tabs()
+        return tid
+
+    def select(self, tid):
+        if tid not in self.tabs:
+            return
+        self.active = tid
+        self.stack.set_visible_child_name(str(tid))
+        if self.shown:
+            self.tabs[tid].grab_focus()
+        self.send_tabs()
+        self.extract(tid)
+
+    def close_tab(self, tid):
+        view = self.tabs.pop(tid, None)
+        if not view:
+            return
+        i = self.order.index(tid)
+        self.order.remove(tid)
+        view.try_close()
+        self.stack.remove(view)
+        view.destroy()
+        if self.active == tid:
+            self.active = None
+            if self.order:
+                self.select(self.order[max(0, i - 1)])
+        self.send_tabs()
+
+    def end(self):
+        for tid in list(self.order):
+            self.close_tab(tid)
+        self.place(None)
+
+    def load(self, view, url):
+        url = url.strip()
+        if url.startswith(self.DOC_SCHEMES) or url == "about:blank":
+            view.load_uri(url)
+
+    # ------------------------------------------------------ positioning
+    def place(self, rect, show=False, page_width=0):
+        # Page pixels to window pixels: Umbra's zoom and the desktop's text
+        # scaling both change it, so measure it (the page sends its width).
+        zoom = self.ui.get_allocated_width() / page_width if page_width else self.ui.get_zoom_level()
+        if rect:
+            x, y, w, h = (max(0, int(round(float(n) * zoom))) for n in rect)
+            new = (x, y, max(10, w), max(10, h))
+            if new != self.rect:
+                self.rect = new
+                self.overlay.queue_resize()
+        show = bool(show and rect and self.order)
+        if show and not self.shown:
+            self.stack.show()
+            if self.active:
+                self.tabs[self.active].grab_focus()
+        elif not show and self.shown:
+            self.stack.hide()
+        self.shown = show
+
+    def child_position(self, _overlay, child, allocation):
+        """The browser goes exactly where the page left room for it."""
+        if child is not self.stack:
+            return False
+        allocation.x, allocation.y, allocation.width, allocation.height = self.rect
+        return True
+
+    def snapshot(self, purpose, then=None):
+        view = self.tabs.get(self.active)
+        if not view:
+            return then() if then else None
+
+        def done(v, result):
+            try:
+                import cairo
+                surface = v.get_snapshot_finish(result)
+                w, h = surface.get_width(), surface.get_height()
+                k = min(1.0, 1280 / max(w, 1))
+                small = cairo.ImageSurface(cairo.FORMAT_RGB24, max(1, int(w * k)), max(1, int(h * k)))
+                ctx = cairo.Context(small)
+                ctx.scale(k, k)
+                ctx.set_source_surface(surface, 0, 0)
+                ctx.paint()
+                if purpose == "cover":   # dimmed once here, so the page never filters it on every frame
+                    ctx.set_source_rgba(0.035, 0.035, 0.035, 0.42)
+                    ctx.paint()
+                buf = io.BytesIO()
+                small.write_to_png(buf)
+                self.send({"t": "snapshot", "purpose": purpose, "tab": self.active, "type": "png",
+                           "data": base64.b64encode(buf.getvalue()).decode()})
+            except Exception as exc:   # a page that can't be drawn
+                self.send({"t": "snapshot", "purpose": purpose, "error": str(exc)[:200]})
+            if then:
+                then()
+        view.get_snapshot(WebKit2.SnapshotRegion.VISIBLE, WebKit2.SnapshotOptions.NONE, None, done)
+
+    # --------------------------------------------------------- page events
+    def extract(self, tid=None):
+        view = self.tabs.get(tid or self.active)
+        if view and self.reader:
+            view.evaluate_javascript("window.__umbraRead && __umbraRead(true)", -1, "umbra", None, None, None, None)
+
+    def on_page_message(self, tid, result):
+        try:
+            data = json.loads(result.get_js_value().to_string())
+        except (ValueError, AttributeError, GLib.Error):
+            return
+        if isinstance(data, dict) and data.get("t") in ("page", "sel", "selact", "seen"):
+            data["tab"] = tid
+            self.send(data)
+
+    def on_load(self, tid, event):
+        if event == WebKit2.LoadEvent.COMMITTED:
+            self.send({"t": "nav", "tab": tid, "url": self.tabs[tid].get_uri() or ""})
+        self.send_tabs()
+
+    def on_failed(self, tid, uri, err, tls=False):
+        if err is not None and err.matches(WebKit2.NetworkError.quark(), WebKit2.NetworkError.CANCELLED):
+            return False
+        if err is not None and err.matches(WebKit2.PolicyError.quark(), WebKit2.PolicyError.FRAME_LOAD_INTERRUPTED_BY_POLICY_CHANGE):
+            return False   # a download, or a link handed to another app
+        self.send({"t": "failed", "tab": tid, "url": uri, "tls": tls, "message": "" if tls or err is None else err.message})
+        return False
+
+    def on_policy(self, view, decision, kind):
+        if kind == WebKit2.PolicyDecisionType.NEW_WINDOW_ACTION:
+            uri = decision.get_navigation_action().get_request().get_uri()
+            decision.ignore()
+            if uri.startswith(self.DOC_SCHEMES):
+                self.new_tab(uri)
+            return True
+        if kind == WebKit2.PolicyDecisionType.NAVIGATION_ACTION:
+            uri = decision.get_navigation_action().get_request().get_uri() or ""
+            if uri.startswith(("mailto:", "tel:", "magnet:")):
+                decision.ignore()
+                self.send({"t": "handoff", "url": uri})
+                return True
+            if not uri.startswith(self.DOC_SCHEMES + ("about:", "data:", "blob:")):
+                decision.ignore()
+                return True
+        if kind == WebKit2.PolicyDecisionType.RESPONSE:
+            if not decision.is_mime_type_supported():
+                decision.download()
+                return True
+        return False
+
+    def on_create(self, action):
+        uri = action.get_request().get_uri()
+        if uri and uri.startswith(self.DOC_SCHEMES):
+            self.new_tab(uri)
+        return None
+
+    def on_context_menu(self, view, menu, event, hit):
+        # Keep the useful browser entries, drop the ones that open windows Umbra doesn't have.
+        drop = {WebKit2.ContextMenuAction.OPEN_LINK_IN_NEW_WINDOW, WebKit2.ContextMenuAction.OPEN_IMAGE_IN_NEW_WINDOW,
+                WebKit2.ContextMenuAction.OPEN_FRAME_IN_NEW_WINDOW, WebKit2.ContextMenuAction.OPEN_VIDEO_IN_NEW_WINDOW,
+                WebKit2.ContextMenuAction.OPEN_AUDIO_IN_NEW_WINDOW, WebKit2.ContextMenuAction.INSPECT_ELEMENT}
+        for item in list(menu.get_items()):
+            if item.get_stock_action() in drop:
+                menu.remove(item)
+        return False
+
+    def on_key(self, view, event):
+        ctrl = event.state & Gdk.ModifierType.CONTROL_MASK
+        alt = event.state & Gdk.ModifierType.MOD1_MASK
+        shift = event.state & Gdk.ModifierType.SHIFT_MASK
+        name = (Gdk.keyval_name(event.keyval) or "").lower()
+        if alt and name in ("left", "right"):
+            view.go_back() if name == "left" else view.go_forward()
+            return True
+        if name == "f5" or (ctrl and name == "r"):
+            view.reload()
+            return True
+        if ctrl and name in ("plus", "equal", "minus", "0"):
+            view.set_zoom_level(1.0 if name == "0" else max(0.3, min(3.0, view.get_zoom_level() + (-0.1 if name == "minus" else 0.1))))
+            return True
+        # Umbra's own shortcuts still work while the page has the keyboard.
+        if (ctrl and name in ("l", "t", "w", "tab", "iso_left_tab", "k", "b")) or name in ("f1", "f6", "f9"):
+            self.send({"t": "key", "key": ("ctrl+" if ctrl else "") + ("shift+" if shift else "") + name})
+            return True
+        return False
+
+    def on_scroll(self, view, event):
+        if event.state & Gdk.ModifierType.CONTROL_MASK:
+            ok, dx, dy = event.get_scroll_deltas()
+            up = event.direction == Gdk.ScrollDirection.UP or (ok and dy < 0)
+            view.set_zoom_level(max(0.3, min(3.0, view.get_zoom_level() + (0.1 if up else -0.1))))
+            return True
+        return False
+
+    def on_download(self, _context, download):
+        folder = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) or os.path.expanduser("~/Downloads")
+
+        def destination(d, suggested):
+            os.makedirs(folder, exist_ok=True)
+            base, ext = os.path.splitext(os.path.basename(suggested or "download") or "download")
+            path, n = os.path.join(folder, base + ext), 1
+            while os.path.exists(path):
+                n += 1
+                path = os.path.join(folder, f"{base} ({n}){ext}")
+            d.set_destination("file://" + path)
+            self.send({"t": "download", "state": "started", "name": os.path.basename(path), "path": path})
+            return True
+        download.connect("decide-destination", destination)
+        download.connect("finished", lambda d: self.send({"t": "download", "state": "finished",
+                         "path": urllib.parse.unquote((d.get_destination() or "")[7:])}))
+        download.connect("failed", lambda d, err: self.send({"t": "download", "state": "failed", "message": err.message}))
+
+    # ------------------------------------------------------------ commands
+    def command(self, cmd):
+        c = cmd.get("c")
+        view = self.tabs.get(self.active)
+        if c == "rect":
+            r = cmd.get("rect")
+            self.place((r["x"], r["y"], r["w"], r["h"]) if r else None, cmd.get("show"), float(r.get("vw") or 0) if r else 0)
+        elif c == "cover":
+            # A Umbra panel opens over the browser: picture first, then step aside.
+            self.snapshot("cover", lambda: self.place(None))
+        elif c == "open":
+            url = str(cmd.get("url", ""))
+            if cmd.get("newTab") or not view:
+                self.new_tab(url)
+            else:
+                self.load(view, url)
+        elif c == "select":
+            self.select(int(cmd.get("id", 0)))
+        elif c == "close":
+            self.close_tab(int(cmd.get("id", 0)))
+        elif c == "end":
+            self.end()
+        elif c == "sync":
+            self.send_tabs()
+            self.extract()
+        elif c == "extract":
+            self.extract()
+        elif c == "snapshot":
+            self.snapshot(str(cmd.get("purpose", "vision")))
+        elif c == "focus" and view:
+            view.grab_focus()
+        elif c == "find" and view:
+            finder = view.get_find_controller()
+            if cmd.get("text"):
+                finder.search(str(cmd["text"]), WebKit2.FindOptions.CASE_INSENSITIVE | WebKit2.FindOptions.WRAP_AROUND, 500)
+            else:
+                finder.search_finish()
+        elif c == "external":
+            url = str(cmd.get("url", ""))
+            app = str(cmd.get("app", ""))
+            try:
+                info = Gio.DesktopAppInfo.new(app) if app else None
+                if info:
+                    info.launch_uris([url], None)
+                else:
+                    Gio.AppInfo.launch_default_for_uri(url, None)
+                self.send({"t": "external", "ok": True})
+            except (GLib.Error, TypeError) as exc:
+                self.send({"t": "external", "ok": False, "message": str(exc)[:200]})
+        elif view and c in ("back", "forward", "reload", "stop"):
+            {"back": view.go_back, "forward": view.go_forward, "reload": view.reload, "stop": view.stop_loading}[c]()
+
+
 class UmbraWiki(Gtk.Application):
     def __init__(self, question=""):
         # NON_UNIQUE: every launch opens its own window and process.
@@ -115,6 +464,12 @@ class UmbraWiki(Gtk.Application):
         # Page errors go to stdout, so a launcher log shows what went wrong.
         settings.set_enable_write_console_messages_to_stdout(True)
         view.connect("context-menu", lambda *_: True)  # no browser right-click menu
+        # Umbra Online's browser lives in the same window, over a space the page keeps free.
+        overlay = Gtk.Overlay()
+        overlay.add(view)
+        self.web = WebPane(view, overlay)
+        manager.add_script(WebKit2.UserScript.new("window.UMBRA_WEB = 1;", WebKit2.UserContentInjectedFrames.TOP_FRAME,
+                                                  WebKit2.UserScriptInjectionTime.START, None, None))
 
         if ensure_backend():
             if self.question == "--loadout":
@@ -136,7 +491,7 @@ class UmbraWiki(Gtk.Application):
                 "UMBRA WIKI // backend failed to start.<br><br>"
                 "Check: systemctl --user status umbra-wiki</body>", None)
 
-        win.add(view)
+        win.add(overlay)
         win.show_all()
 
     def on_close_request(self, win, _event):
@@ -167,10 +522,19 @@ class UmbraWiki(Gtk.Application):
         if text == "close":
             self.closing = True
             win.close()
+        elif text == "focus":   # the page takes the keyboard back from the browser
+            self.view.grab_focus()
         elif text == "fullscreen":
             win.fullscreen()
         elif text == "unfullscreen":
             win.unfullscreen()
+        elif text.startswith("web:"):
+            try:
+                cmd = json.loads(text[4:])
+            except ValueError:
+                return
+            if isinstance(cmd, dict):
+                self.web.command(cmd)
         elif text.startswith("zoom:"):   # Ctrl + wheel in the page (app.js): zoom everything
             try:
                 self.view.set_zoom_level(max(0.5, min(2.0, float(text[5:]))))

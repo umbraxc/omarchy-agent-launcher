@@ -4,6 +4,7 @@
 
 ### Highlights
 
+- Umbra Online (Linux): going online opens a web browser beside Umbra, in one window and your theme. Umbra reads along, comments and shares fun facts, and can summarise, explain, look at your screen or save pages and their documents for offline study.
 - Umbra Outpost is now a full idle game: 21 skills to level 99, mastery, a stockpile of 236 items, gear, the Trader, battles, four expeditions, bounties and 17 companions. It keeps going at a gentler pace while you're away, and a summary greets you when you return. Reach high enough total levels to Prestige up to four times, each with its own orb, title and name effect.
 - Every Outpost item, recipe and building has its own 3D ASCII art; hover any item to see it turn, with what it does and where it comes from.
 - Conversations can show a 3D ASCII landscape that fits the subject, from mountains to a lighthouse at night, at most once an hour.

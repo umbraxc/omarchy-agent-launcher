@@ -3429,3 +3429,123 @@ body.reduce-motion .fx-ember-glow, body.reduce-motion .fx-sparks, body.reduce-mo
 .op-confirm .op-dact { justify-content: flex-end; } .op-confirm .op-dact .op-go { width: auto; margin: 0; }
 .op-art-valley.golden { filter: sepia(.45) saturate(1.5) hue-rotate(-8deg) brightness(1.08); }
 @media (max-width: 760px) { .op-prof-head { grid-template-columns: auto 1fr; } .op-prof-btns { grid-column: 1 / -1; } .op-cols { grid-template-columns: 1fr; } }
+
+/* ------------------------------------------------------------ Umbra Online */
+/* The web on the left (on top in a narrow window), the conversation beside it.
+   The browser itself is native, laid over .web-view by the launcher. */
+body { --web-w: 58vw; --web-h: 56vh; --web-top: 96px; }
+.web { position: fixed; z-index: 4; left: 0; top: var(--web-top); bottom: 0; width: var(--web-w); display: flex; flex-direction: column;
+  background: var(--bg); border-right: 1px solid var(--line); }
+body.web-open main, body.web-open .dock { margin-left: calc(var(--web-w) + 10px); }
+body.web-open main, body.web-open .dock { --col: calc(100vw - var(--web-w) - 10px); padding-left: max(20px, calc((var(--col) - 860px) / 2)); padding-right: max(20px, calc((var(--col) - 860px) / 2)); }
+body.web-open.web-narrow main, body.web-open.web-narrow .dock, body.web-open.web-folded main, body.web-open.web-folded .dock { --col: 100vw; }
+body.web-open.web-folded main, body.web-open.web-folded .dock { margin-left: 0; }
+body.web-narrow .web { right: 0; width: auto; bottom: auto; height: var(--web-h); border-right: 0; border-bottom: 1px solid var(--line); }
+body.web-open.web-narrow main { margin-left: 0; margin-top: calc(var(--web-h) + 10px); }
+body.web-open.web-narrow .dock { margin-left: 0; }
+body.web-open.web-narrow.web-folded main { margin-top: 0; }
+.web-seam { position: fixed; z-index: 4; top: var(--web-top); bottom: 0; left: var(--web-w); width: 10px; cursor: col-resize; background: var(--bg); }
+.web-seam::before { content: ""; position: absolute; left: 4px; top: 0; bottom: 0; width: 2px; opacity: .55;
+  background: linear-gradient(180deg, transparent, var(--net) 18%, var(--signal) 50%, var(--net) 82%, transparent); transition: opacity .2s; }
+.web-seam:hover::before, .web-seam.drag::before { opacity: 1; }
+.web-seam i { position: absolute; left: 1px; top: 46%; width: 8px; height: 8px; background: var(--signal); box-shadow: 0 0 10px var(--signal); animation: web-seam-pulse 3.2s ease-in-out infinite; }
+@keyframes web-seam-pulse { 0%, 100% { transform: translateY(-40px); opacity: .5; } 50% { transform: translateY(40px); opacity: 1; } }
+body.web-narrow .web-seam { left: 0; right: 0; bottom: auto; width: auto; height: 10px; top: calc(var(--web-top) + var(--web-h)); cursor: row-resize; }
+body.web-narrow .web-seam::before { left: 0; right: 0; top: 4px; bottom: auto; width: auto; height: 2px; background: linear-gradient(90deg, transparent, var(--net) 18%, var(--signal) 50%, var(--net) 82%, transparent); }
+body.web-narrow .web-seam i { top: 1px; left: 46%; animation-name: web-seam-pulse-x; }
+@keyframes web-seam-pulse-x { 0%, 100% { transform: translateX(-40px); opacity: .5; } 50% { transform: translateX(40px); opacity: 1; } }
+/* Arriving: the browser unrolls from the seam; leaving rolls it back. */
+body.web-entering .web { animation: web-in .6s cubic-bezier(.2, .8, .2, 1) both; }
+body.web-entering .web-seam { animation: web-seam-in .6s ease-out both; }
+body.web-leaving .web { animation: web-in .4s cubic-bezier(.6, 0, .8, .2) reverse both; }
+@keyframes web-in { from { clip-path: inset(0 100% 0 0); filter: brightness(1.8) saturate(.4); } 60% { filter: none; } to { clip-path: inset(0 0 0 0); } }
+@keyframes web-seam-in { from { opacity: 0; box-shadow: 0 0 0 var(--net); } 50% { opacity: 1; box-shadow: 0 0 30px var(--net); } to { box-shadow: none; } }
+body.web-narrow.web-entering .web { animation-name: web-in-y; }
+@keyframes web-in-y { from { clip-path: inset(0 0 100% 0); filter: brightness(1.8) saturate(.4); } 60% { filter: none; } to { clip-path: inset(0); } }
+body.reduce-motion .web, body.reduce-motion .web-seam, body.reduce-motion .web-seam i { animation: none !important; }
+
+.web-tabs { display: flex; align-items: flex-end; gap: 4px; padding: 7px 10px 0; background: var(--bg-1); border-bottom: 1px solid var(--line); min-height: 38px; }
+.web-tablist { display: flex; gap: 4px; min-width: 0; overflow: hidden; }
+.web-tab { display: flex; align-items: center; gap: 7px; min-width: 70px; max-width: 220px; padding: 6px 6px 6px 10px; border: 1px solid var(--line); border-bottom: 0;
+  background: var(--bg-2); color: var(--dim); font-size: 10.5px; cursor: pointer; white-space: nowrap; }
+.web-tab:hover { color: var(--fg); }
+.web-tab.on { color: var(--fg-bright); background: var(--bg); border-color: var(--net); box-shadow: inset 0 2px var(--net); }
+.web-tab-i { color: var(--net); font-size: 9px; } .web-tab-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.web .web-x { padding: 0 4px; border: 0; background: none; color: var(--faint); font-size: 10px; } .web .web-x:hover { color: var(--red); }
+.web .web-new { padding: 6px 10px; border: 1px dashed var(--line); border-bottom: 0; background: none; color: var(--faint); font-size: 10px; letter-spacing: .12em; }
+.web .web-new:hover { color: var(--net); border-color: var(--net); }
+.web-fill { flex: 1; }
+.web .web-fold { align-self: center; margin-bottom: 6px; padding: 3px 8px; border: 1px solid var(--line); background: none; color: var(--dim); }
+.web .web-fold:hover { color: var(--signal); border-color: var(--signal); }
+.web-bar { display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+.web .web-nb { min-width: 30px; height: 30px; padding: 0 8px; display: grid; place-items: center; border: 1px solid var(--line); background: var(--bg-1); color: var(--dim); font-size: 13px; letter-spacing: .1em; }
+.web .web-nb:hover:not(:disabled) { color: var(--fg-bright); border-color: var(--muted); }
+.web .web-nb:disabled { opacity: .35; }
+.web .web-uview { font-size: 9.5px; white-space: nowrap; } .web .web-uview.on { color: var(--bg); background: var(--signal); border-color: var(--signal); }
+.web-addr { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px; border: 1px solid var(--line); background: var(--bg-1); }
+.web-addr:focus-within { border-color: var(--net); box-shadow: 0 0 0 3px var(--net-soft); }
+.web-addr input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; color: var(--fg-bright); font: 12px var(--font); }
+.web-lock { color: var(--dim); font-size: 11px; } .web-addr.secure .web-lock { color: #8fc77a; }
+.web-reading { color: var(--net); font-style: normal; font-size: 9.5px; letter-spacing: .16em; white-space: nowrap; animation: web-read 2.6s ease-in-out infinite; }
+@keyframes web-read { 50% { opacity: .45; } }
+.web .web-ext { display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 10px; border: 1px solid var(--line); background: var(--bg-1); color: var(--signal); font-size: 9.5px; letter-spacing: .12em; white-space: nowrap; }
+.web .web-ext:hover { border-color: var(--signal); background: var(--signal-soft); }
+.web-load { height: 2px; background: transparent; } .web-load i { display: block; height: 100%; width: 0; background: var(--net); box-shadow: 0 0 8px var(--net); transition: width .25s, opacity .4s; opacity: 0; }
+.web-load.on i { opacity: 1; }
+.web-view { position: relative; flex: 1; min-height: 0; overflow: hidden; background: var(--bg); }
+.web-hole { position: absolute; inset: 0; background: repeating-linear-gradient(-45deg, transparent 0 14px, var(--bg-1) 14px 28px); }
+.web-cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top left; }
+.web-status { display: flex; justify-content: space-between; gap: 10px; padding: 4px 10px; border-top: 1px solid var(--line); background: var(--bg-1); color: var(--faint); font-size: 9.5px; letter-spacing: .14em; white-space: nowrap; overflow: hidden; }
+.web-status b { color: var(--net); font-weight: 400; } .web-warn { color: var(--accent); }
+/* The start page and the error page, drawn by Umbra in the browser's place. */
+.web-start, .web-error, .web-reader { position: absolute; inset: 0; overflow-y: auto; background: var(--bg); }
+.ws-in, .we-in { max-width: 620px; margin: 0 auto; padding: 8vh 24px 30px; text-align: center; }
+.ws-art, .we-in pre { margin: 0 0 14px; color: var(--net); font-size: 12px; line-height: 1.15; display: inline-block; text-align: left; }
+.ws-in > small { display: block; color: var(--dim); font-size: 10px; letter-spacing: .26em; margin-bottom: 18px; }
+.ws-search { display: flex; align-items: center; gap: 10px; padding: 4px 4px 4px 14px; border: 1px solid var(--net); background: var(--bg-1); box-shadow: 0 0 0 3px var(--net-soft); }
+.ws-search span { color: var(--net); } .ws-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; color: var(--fg-bright); font: 13px var(--font); padding: 8px 0; }
+.ws-search button { padding: 8px 14px; border: 0; background: var(--net); color: var(--bg); font-weight: 700; letter-spacing: .14em; }
+.ws-quick { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 14px 0 22px; }
+.ws-quick button { padding: 6px 12px; border: 1px solid var(--line); background: var(--bg-1); color: var(--fg); font-size: 11px; }
+.ws-quick button:hover, .ws-recent button:hover { border-color: var(--net); color: var(--fg-bright); }
+.ws-recent { display: grid; gap: 4px; text-align: left; } .ws-recent b { color: var(--faint); font-size: 9.5px; letter-spacing: .2em; margin-bottom: 4px; font-weight: 400; }
+.ws-recent button { display: flex; justify-content: space-between; gap: 12px; padding: 7px 10px; border: 1px solid var(--line); background: var(--bg-1); color: var(--fg); font-size: 11px; text-align: left; }
+.ws-recent button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ws-recent em { color: var(--faint); font-style: normal; white-space: nowrap; }
+.ws-note { margin-top: 22px; color: var(--faint); font-size: 10.5px; }
+.we-in b { display: block; color: var(--red); letter-spacing: .16em; font-size: 12px; } .we-in p { color: var(--fg); } .we-in small { display: block; color: var(--faint); margin-bottom: 16px; }
+.we-in div { display: flex; gap: 8px; justify-content: center; }
+/* Umbra View: the page's text and pictures, set in the theme. */
+.web-reader article { max-width: 760px; margin: 0 auto; padding: 26px 26px 60px; color: var(--fg); font-size: 13.5px; line-height: 1.75; animation: rise .35s ease-out both; }
+.wr-src { color: var(--net); font-size: 9.5px; letter-spacing: .2em; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.web-reader h1 { color: var(--signal); font-size: 22px; letter-spacing: .04em; line-height: 1.3; } .web-reader h1:not(.wr-title) { font-size: 18px; }
+.web-reader h2 { color: var(--fg-bright); font-size: 16px; margin-top: 1.8em; padding-bottom: 5px; border-bottom: 1px dashed var(--line); } .web-reader h3 { color: var(--fg-bright); font-size: 14px; }
+.web-reader li { margin: .3em 0 .3em 1.2em; list-style: square; } .web-reader li::marker { color: var(--signal); }
+.web-reader blockquote { margin: 1em 0; padding: 4px 16px; border-left: 2px solid var(--signal); color: var(--fg-bright); }
+.web-reader figure { margin: 1.2em 0; } .web-reader img { max-width: 100%; border: 1px solid var(--line); } .web-reader figcaption { color: var(--dim); font-size: 12px; }
+.web-reader pre { background: var(--bg-2); padding: 12px; overflow: auto; font-size: 12px; } .web-reader a { color: var(--net); }
+
+/* The companion's tools above the prompt, and its cards in the conversation. */
+.web-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
+.web-tools button { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border: 1px solid var(--line); background: var(--bg-2); color: var(--fg-bright); font-size: 10px; letter-spacing: .1em; }
+.web-tools button .g { color: var(--signal); } .web-tools button:hover { border-color: var(--signal); }
+.web-tools .web-chip { border-color: var(--net); color: var(--net); } .web-tools .web-chip .g { color: var(--net); }
+.web-tools .web-chip.off { border-style: dashed; border-color: var(--line); color: var(--faint); } .web-tools .web-chip.off .g { color: var(--faint); }
+.web-chatty { margin-left: auto; display: inline-flex; align-items: center; gap: 0; color: var(--faint); font-size: 9.5px; letter-spacing: .12em; }
+.web-chatty-k { margin-right: 6px; }
+.web-tools .web-chatty button { padding: 3px 7px; margin-left: -1px; border-color: var(--line); background: none; color: var(--dim); font-size: 9.5px; }
+.web-tools .web-chatty button.on { color: var(--net); background: var(--net-soft); border-color: var(--net); position: relative; }
+.msg.web-note .label { color: var(--signal); }
+.msg.web-note.spotted .label, .msg.web-note.offer .label, .msg.web-note.info .label { color: var(--net); }
+.msg.web-note.fact .label { color: var(--accent); }
+.wn-card { border: 1px solid var(--line); border-left: 2px solid var(--signal); background: var(--bg-1); padding: 10px 13px; }
+.web-note.spotted .wn-card, .web-note.offer .wn-card, .web-note.info .wn-card { border-left-color: var(--net); }
+.web-note.fact .wn-card { border-left-color: var(--accent); }
+.wn-body p { margin: 0; color: var(--fg); line-height: 1.6; } .wn-body b { color: var(--fg-bright); }
+.wn-body blockquote { margin: 0; padding-left: 10px; border-left: 2px solid var(--signal); color: var(--fg-bright); }
+.wn-meta { display: block; margin-top: 6px; color: var(--faint); font-size: 9.5px; letter-spacing: .12em; overflow-wrap: anywhere; }
+.wn-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.wn-acts button { padding: 5px 9px; border: 1px solid var(--line); background: var(--bg-2); color: var(--fg-bright); font-size: 10px; letter-spacing: .08em; }
+.wn-acts button:hover { border-color: var(--net); } .wn-acts button small { color: var(--faint); font-size: 9px; }
+#netbanner .web-unfold { margin-left: 12px; padding: 2px 9px; border: 1px solid var(--net); background: none; color: var(--net); font-size: 9.5px; letter-spacing: .14em; }
+/* The dossier cards rest while the browser is open: there's no room beside the conversation. */
+body.web-open:not(.web-folded) .dossier { display: none !important; }

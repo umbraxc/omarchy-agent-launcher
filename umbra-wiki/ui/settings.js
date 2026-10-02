@@ -136,6 +136,7 @@
     MOTION: "animation animations background rain transition boot intro outro reduce motion effects",
     CONVERSATION: "adapt adaptive learn learning style tone formal casual forget zoom scale bigger smaller magnify magnifier size larger readable chat text size font bigger smaller greeting suggestions replies alert close exit",
     POWER: "battery off-grid offgrid power saver laptop unplugged",
+    "UMBRA ONLINE": "online browser web internet firefox chrome default browser comments chatty fun facts pages websites",
     KEYBOARD: "keys shortcuts hotkeys keyboard",
     BACKUP: "backup restore export save usb copy transfer",
     "AI MODEL": "model ai llm gemma llama ollama brain download",
@@ -228,8 +229,8 @@
   // colour (six distinct hues, blended with the theme's text colour so they
   // read well on light and dark themes alike), a header stripe and a chip under the search box to jump there.
   const CATS = [
-    { id: "ai", name: "AI & PERFORMANCE", icon: "󰘚", color: "color-mix(in oklab, #e8892a 78%, var(--fg))", line: "The model, the processor, battery",
-      sections: ["PERFORMANCE", "AI MODEL", "POWER"] },
+    { id: "ai", name: "AI & PERFORMANCE", icon: "󰘚", color: "color-mix(in oklab, #e8892a 78%, var(--fg))", line: "The model, the processor, battery, Umbra Online",
+      sections: ["PERFORMANCE", "AI MODEL", "POWER", "UMBRA ONLINE"] },
     { id: "look", name: "LOOK & FEEL", icon: "󰏘", color: "color-mix(in oklab, #a77ce8 78%, var(--fg))", line: "Motion, buttons, conversation, text size",
       sections: ["MOTION", "HEADER BUTTONS", "CONVERSATION"] },
     { id: "sound", name: "SOUND & VOICE", icon: "󰕾", color: "color-mix(in oklab, #36aec8 78%, var(--fg))", line: "Effects, volume, speakers, microphone, dictation",
@@ -414,6 +415,15 @@
           <select class="set-offgrid"><option value="off">Off</option><option value="on">On</option>
             <option value="auto">On battery</option></select></label>
       </section>
+      <section class="set-section set-online"><div class="lib-head">UMBRA ONLINE</div>
+        <label class="set-row"><span class="set-text"><b>Comments while you browse</b><small>Online, Umbra reads the pages beside you.
+          Chatty: it says what it spotted, shares fun facts and ideas as you read. Gentle: one fun fact on longer pages. Off: only when you ask.
+          Comments always wait while you type or Umbra answers.</small></span>
+          <select class="set-webchat"><option value="chatty">Chatty</option><option value="gentle">Gentle</option><option value="off">Off</option></select></label>
+        <label class="set-row"><span class="set-text"><b>Your browser</b><small>"Open in your browser" hands a page to this one, for sites where you're signed in.
+          <span class="set-webdefault"></span></small></span>
+          <select class="set-webbrowser"><option value="">System default</option></select></label>
+      </section>
       <section class="set-section"><div class="lib-head">KEYBOARD</div>
         <div class="set-row"><span class="set-text"><b>Keyboard shortcuts</b><small>Every shortcut on one screen. Press F1 any time.</small></span>
           <button class="ghost set-keys">SHOW</button></div>
@@ -584,6 +594,20 @@
     powerLine();
     og.addEventListener("change", async () => { save({ offgrid: og.value }); await checkPower(); powerLine(); Sound.theme(); });
     body.querySelector(".set-keys").addEventListener("click", () => window.showShortcuts && window.showShortcuts());
+    const wc = body.querySelector(".set-webchat");
+    wc.value = prefs.webChat || "chatty";
+    wc.addEventListener("change", () => { window.UmbraWeb ? UmbraWeb.setChat(wc.value) : save({ webChat: wc.value }); Sound.click(); });
+    const wb = body.querySelector(".set-webbrowser");
+    (async () => {
+      let info = { default: "", browsers: [] };
+      try { info = await (await fetch("/api/web/browsers")).json(); } catch {}
+      const def = info.browsers.find((b) => b.id === info.default);
+      wb.innerHTML = `<option value="">System default${def ? ` (${escapeHtml(def.name)})` : ""}</option>` + info.browsers.map((b) => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name)}</option>`).join("");
+      wb.value = info.browsers.some((b) => b.id === prefs.webBrowser) ? prefs.webBrowser : "";
+      body.querySelector(".set-webdefault").textContent = def ? `This computer's default browser is ${def.name}.` : info.browsers.length ? "" : "No other browser was found on this computer.";
+      if (!window.UmbraWeb?.available) body.querySelector(".set-online small").insertAdjacentText("beforeend", " (The built-in browser comes to this system in a later version; online mode searches Wikipedia.)");
+    })();
+    wb.addEventListener("change", () => { save({ webBrowser: wb.value }); window.UmbraWeb?.loadBrowsers(); Sound.click(); });
     body.querySelector(".set-backup").addEventListener("click", () =>
       exportTo({ history: body.querySelector(".set-backup-history").checked }, "your backup", "/api/backup"));
     const file = body.querySelector(".set-restore-file");

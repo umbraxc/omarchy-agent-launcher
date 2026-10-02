@@ -2078,7 +2078,7 @@ async function ask(question, shownAs = "") {
     const res = await fetch("/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, history: chat, conversation: window.currentConversationId || "", online, offgrid: !!window.offgrid, folder: window.currentFolder || "", context: localContext(), attachments }),
+      body: JSON.stringify({ question, history: chat, conversation: window.currentConversationId || "", online, offgrid: !!window.offgrid, folder: window.currentFolder || "", context: localContext(), attachments, page: window.UmbraWeb?.pageFor?.() }),
       signal: controller.signal,
     });
     const reader = res.body.getReader();
@@ -2659,6 +2659,8 @@ const SHORTCUTS = [
   ["Ctrl + Shift + F", "Farming planner"], ["Ctrl + B", "Umbra Outpost"],
   ["Ctrl + ,", "Settings"], ["Ctrl + wheel", "Zoom in or out (also Ctrl + plus / minus; Ctrl + 0 resets)"], ["F1", "This list"],
   ["Shift + drag", "Rearrange top tabs (Settings stays fixed)"],
+  ["Ctrl + L", "Online, in the browser: the address bar"], ["Ctrl + T", "Online, in the browser: a new tab"], ["Ctrl + W", "Online, in the browser: close the tab"],
+  ["Ctrl + Tab", "Online, in the browser: next tab"], ["Alt + Left", "Online, in the browser: back (Alt + Right: forward)"], ["F5", "Online, in the browser: reload"],
 ];
 function showShortcuts() {
   if ($(".keys-overlay")) return;

@@ -100,6 +100,20 @@ Umbra is fully offline by default. When you have internet, switch **LINK** to
 you which facts came from where. It always asks first, and every launch starts
 local.
 
+On Linux, going online opens **Umbra Online**: a web browser on the left and
+Umbra on the right, in one window and in your theme. Umbra reads each page
+with you. It says what it spotted and offers to summarise it, quiz you or
+make a list. When set to chatty it shares fun facts and remarks as you
+scroll. Select text on a page to **explain**, **ask** about or **save** it.
+**Save page** keeps the text and pictures (and, if you like, the PDFs the
+page links to) in *Documents/Umbra Saved Pages*, added to your Library, so
+you can study it and Umbra can quote it offline. **Umbra View** sets a page's
+text in your theme. **On screen?** shows Umbra the part you're looking at,
+and **Open in Firefox** (or the browser you pick in Settings) hands a page to
+your usual browser. Comments are chatty, gentle or off, and always wait while
+you type or Umbra answers. In a narrow window, the web sits above the
+conversation; drag the line between them to resize.
+
 ### The Core panel: your AI, and how everything is doing
 
 Click **STATUS** at the top and the Core panel slides in from the side. A live orb shows Umbra's state, with every
@@ -600,6 +614,9 @@ Umbra Wiki speaks and understands English.
 - **Nothing leaves your computer** in local mode: the AI, the library, your
   history and your settings are all on your disk. Online mode sends only
   your question's key words to Wikipedia, and only after you switch it on.
+  In Umbra Online, the pages you open load from the internet like in any
+  browser (sites see your network address and keep cookies in Umbra's own
+  browser storage); what Umbra reads on them stays on your computer.
   Umbra goes online otherwise only when you ask it to: downloading the
   library, an AI model or maps (from the Protomaps OpenStreetMap build and
   the AWS Terrain Tiles), and checking for updates.
@@ -635,6 +652,8 @@ Umbra Wiki speaks and understands English.
 | Ctrl+T | themes |
 | Ctrl+M | mute |
 | Ctrl+, | settings |
+| Ctrl+L / Ctrl+T / Ctrl+W | in Umbra Online's browser: address bar / new tab / close tab |
+| Ctrl+Tab, Alt+Left / Alt+Right, F5 | in Umbra Online's browser: next tab, back / forward, reload |
 | F1 | all shortcuts |
 
 ![Keyboard shortcuts](docs/shortcuts.png)

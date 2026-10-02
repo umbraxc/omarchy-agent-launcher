@@ -1,5 +1,6 @@
 """Persistent references to user-owned library files. Files are never moved or deleted."""
 import hashlib
+import html
 import json
 import os
 import re
@@ -10,6 +11,15 @@ from pathlib import Path
 
 SUPPORTED = {'.zim': 'zim', '.pdf': 'pdf', '.txt': 'text', '.md': 'text', '.markdown': 'text',
              '.csv': 'text', '.log': 'text', '.html': 'text', '.htm': 'text', '.json': 'text'}
+
+
+def html_text(body):
+    """Readable text of an HTML page (saved web pages): paragraphs kept apart, tags and scripts gone."""
+    body = re.sub(r'(?is)<(script|style|noscript|svg)\b.*?</\1>', ' ', body)
+    body = re.sub(r'(?i)<(br|/p|/h[1-6]|/li|/blockquote|/figcaption|/pre|/tr|/div)\b[^>]*>', '\n\n', body)
+    body = re.sub(r'<[^>]+>', ' ', body)
+    body = html.unescape(body)
+    return re.sub(r'[ \t]+', ' ', body)
 
 
 class Links:
@@ -110,6 +120,8 @@ class Links:
                 body = '\n'.join(page.extract_text() or '' for page in reader.pages)
         else:
             body = p.read_bytes()[:8_000_000].decode('utf-8', 'replace')
+            if p.suffix.lower() in ('.html', '.htm'):
+                body = html_text(body)
         body = body[:8_000_000]
         self.index_dir.mkdir(parents=True, exist_ok=True)
         tmp = self.index_dir / (key + '.' + str(threading.get_ident()) + '.tmp')
