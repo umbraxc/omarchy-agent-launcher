@@ -33,6 +33,7 @@
   const have = (id) => V.state.bank[id] || 0;
   const skillName = (s) => D.skills[s]?.name || s;
   const roman = (n) => ["", "I", "II", "III", "IV", "V"][n] || n;
+  const ROMAN = ["", "I", "II", "III", "IV"];
   // Item icons are small 3D pictures (outpost-models.js), the glyph shows
   // until the picture is ready. Hover any of them for the info box.
   function icon(id, qty, extra = "", size = 72) {
@@ -53,12 +54,13 @@
     trader: svg('<circle cx="12" cy="12" r="8"/><path d="M14.5 9.5c-.5-1-1.5-1.5-2.5-1.5-1.7 0-3 1-3 2s1 1.7 3 2 3 1 3 2-1.3 2-3 2c-1 0-2-.5-2.5-1.5M12 6v12"/>'),
     companions: svg('<circle cx="7" cy="9" r="2"/><circle cx="12" cy="6.5" r="2"/><circle cx="17" cy="9" r="2"/><path d="M8 17c0-3 2-5 4-5s4 2 4 5c0 2-2 2-4 2s-4 0-4-2z"/>'),
     log: svg('<path d="M6 3h10l3 3v15H6z"/><path d="M9 9h7M9 13h7M9 17h4"/>'),
+    profile: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.5 4-6.5 8-6.5s7 2 8 6.5"/>'),
     battle: svg('<path d="m4 4 9 9M4 4h4M4 4v4M20 4l-9 9M20 4h-4M20 4v4M8 16l-3 3M16 16l3 3M10 14l-4 4M14 14l4 4"/>'),
     expeditions: svg('<path d="M5 21V4"/><path d="M5 4h12l-3 4 3 4H5"/>'),
     bounties: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>'),
   };
   const SECTIONS = [
-    ["OUTPOST", [["overview", ICONS.overview, "Valley"], ["stockpile", ICONS.stockpile, "Stockpile"], ["gear", ICONS.gear, "Gear"], ["trader", ICONS.trader, "Trader"], ["companions", ICONS.companions, "Companions"], ["log", ICONS.log, "Log & stats"]]],
+    ["OUTPOST", [["profile", ICONS.profile, "Profile"], ["overview", ICONS.overview, "Valley"], ["stockpile", ICONS.stockpile, "Stockpile"], ["gear", ICONS.gear, "Gear"], ["trader", ICONS.trader, "Trader"], ["companions", ICONS.companions, "Companions"], ["log", ICONS.log, "Log & stats"]]],
     ["GATHERING", ["forestry", "salvaging", "fishing", "foraging", "trapping", "quarrying"]],
     ["MAKING", ["cooking", "metalwork", "carpentry", "tailoring", "remedies", "tinkering"]],
     ["SUPPORT", ["hearth", "signals", "scouting"]],
@@ -69,7 +71,7 @@
     return SECTIONS.map(([head, rows]) => `<div class="op-nav-group"><small>${head}${head === "COMBAT" ? ` <b>LV ${V.combatLevel}</b>` : ""}</small>` + rows.map((row) => {
       if (Array.isArray(row)) {
         const [id, g, name] = row, on = sel === id, busyHere = active && ((id === "battle" && active.type === "combat" && !active.expedition) || (id === "expeditions" && active.expedition));
-        const badge = id === "stockpile" ? `${Object.keys(V.state.bank).length}/${V.slots}` : id === "companions" ? `${V.state.companions.length}/${Object.keys(D.companions).length}` : id === "bounties" && V.state.bounty ? `${V.state.bounty.left}` : "";
+        const badge = id === "profile" ? `${V.totalLevel}` : id === "stockpile" ? `${Object.keys(V.state.bank).length}/${V.slots}` : id === "companions" ? `${V.state.companions.length}/${Object.keys(D.companions).length}` : id === "bounties" && V.state.bounty ? `${V.state.bounty.left}` : "";
         return `<button type="button" class="op-nav-row ${on ? "on" : ""}" data-view="${id}" title="${name}"><span class="op-nav-g">${g}</span><span class="op-nav-name">${name}</span>${busyHere ? '<i class="op-live"></i>' : ""}<small>${badge}</small></button>`;
       }
       const s = D.skills[row], on = sel === row, busyHere = active && (active.skill === row || (row === "scouting" && active.type === "scout"));
@@ -84,7 +86,9 @@
         : a.type === "scout" ? "» Running the route" : `${D.skills[a.skill].glyph} ${clean(D.recipes[a.recipe].name)}`;
       act = `<button type="button" class="op-act" data-view="${a.type === "combat" ? (a.expedition ? "expeditions" : "battle") : a.type === "scout" ? "scouting" : a.skill}"><span>${label}</span>${a.type === "combat" ? "" : `<div class="op-bar op-prog" data-start="${a.start}" data-int="${a.interval}"><i></i></div>`}</button><button type="button" class="op-stop" data-act="stop" title="Stop|Stop the current action">■</button>`;
     }
-    return `<span class="op-chip" title="Scrip|The Outpost's currency. Sell items or run the route to earn it.">¤ <b>${fmt(V.state.scrip)}</b></span>
+    const P = V.state.prestige || 0;
+    return `<button type="button" class="op-chip op-prestige-chip p${P}" data-view="profile" title="Prestige|${P ? `Prestige ${ROMAN[P]} of IV.` : "Prestige I unlocks at total level 1,000."} Total level ${V.totalLevel} of ${D.maxTotal}. Open your profile."><span>★ ${P ? ROMAN[P] : "0"}/IV</span> <b>${V.totalLevel}</b></button>
+      <span class="op-chip" title="Scrip|The Outpost's currency. Sell items or run the route to earn it.">¤ <b>${fmt(V.state.scrip)}</b></span>
       <span class="op-chip" title="Bounty tokens|Earned by finishing bounties.">✪ <b>${fmt(V.state.tokens)}</b></span>
       <span class="op-chip op-hp" title="Health|${Math.round(V.state.hp)} of ${V.maxHp}. Recovers at camp; eat in a fight.">♥ ${bar(hp, "hp")}<b>${Math.round(V.state.hp)}</b></span>
       <span class="op-current">${act}</span>`;
@@ -109,7 +113,7 @@
     hero.hidden = !want;
     if (!want) return;
     const canvas = document.createElement("canvas");
-    canvas.className = "op-art " + (want === "valley" ? "op-art-valley" : "");
+    canvas.className = "op-art " + (want === "valley" ? "op-art-valley" + ((V.state.prestige || 0) >= 4 ? " golden" : "") : "");
     canvas.setAttribute("aria-hidden", "true");
     const label = document.createElement("div");
     label.className = "op-hero-label";
@@ -190,7 +194,7 @@
   ];
   function startHtml() {
     const s = V.state, done = STEPS.map((st) => !!st[3](s));
-    let hide = false; try { hide = localStorage.getItem("umbra-outpost-start") === "hidden"; } catch {}
+    let hide = V.state.options?.start === false; try { hide = hide || localStorage.getItem("umbra-outpost-start") === "hidden"; } catch {}
     if (hide || done.every(Boolean)) return "";
     const next = done.indexOf(false);
     return `<section class="op-sec op-start"><h2>✦ GETTING STARTED <small>${done.filter(Boolean).length} of ${STEPS.length} done</small><button type="button" class="inline" data-hide-start="1">HIDE</button></h2>
@@ -413,6 +417,58 @@
         <header><b>${got ? clean(c.name) : "UNKNOWN"}</b><span>${got ? clean(c.animal.toUpperCase()) : ""}</span></header><p>${got ? clean(effectText(c.effect)) : `Found while training ${c.skill === "combat" ? "combat" : skillName(c.skill)}.`}</p></article>`;
     }).join("")}</div></section>`;
   }
+  // -------------------------------------------------------------- profile
+  function profileHtml() {
+    const s = V.state, P = s.prestige || 0, next = D.prestige[P], o = s.options || {};
+    const total = V.totalLevel, need = next ? next.total : D.maxTotal, frac = Math.min(1, total / need);
+    const xpAll = Object.values(s.xp).reduce((a, b) => a + b, 0);
+    const skills = Object.keys(D.skills).map((k) => `<div class="op-ps" style="--sc:${D.skills[k].color}" title="${clean(D.skills[k].name)}|${fmt(xpOf(k))} XP"><span>${D.skills[k].glyph}</span><b>${clean(D.skills[k].name)}</b><em>${lvl(k)}</em>${bar(xpFrac(k), "xp")}</div>`).join("");
+    const mastered = Object.values(s.mastery).reduce((n, book) => n + Object.values(book).filter((x) => x >= D.xpTable[99]).length, 0);
+    const st = s.stats || {};
+    return `<section class="op-sec op-prof">
+      <div class="op-prof-head p${P}"><div class="op-prof-stars">${[1, 2, 3, 4].map((i) => `<i class="${i <= P ? "on" : ""}">${i <= P ? "★" : "☆"}</i>`).join("")}</div>
+        <div><small>${P ? `PRESTIGE ${ROMAN[P]} · ${clean(D.prestige[P - 1].name.toUpperCase())}` : "NO PRESTIGE YET"}</small><h1>Total level ${total}<span> / ${D.maxTotal}</span></h1>
+          <p>Combat level ${V.combatLevel} · ${fmt(xpAll)} XP in all · ${dur(s.playtime || 0)} in the Outpost</p></div>
+        <div class="op-prof-btns"><button type="button" class="op-go" data-show="rewards">✦ REWARDS</button></div></div>
+      <div class="op-prestige-meter"><label>${next ? `PRESTIGE ${ROMAN[P + 1]} · ${clean(next.name.toUpperCase())} AT TOTAL LEVEL ${fmt(next.total)}` : "EVERY PRESTIGE COMPLETE"}<span>${next ? `${total} / ${fmt(next.total)}` : "IV / IV"}</span></label>${bar(frac, "prestige")}
+        <p>${next ? (total >= next.total ? "<b>Ready.</b> Prestige restarts your skills, items and buildings and keeps your companions, achievements and Locker rewards. It brings a lasting bonus, new perks and new Locker rewards."
+          : `Prestige restarts a run for a lasting bonus, new perks and Locker rewards: an orb, a title and a name effect. ${fmt(next.total - total)} levels to go.`) : "You have reached the last light. Every reward is yours."}</p>
+        ${next ? `<button type="button" class="op-go op-prestige-go" data-show="prestige" ${total >= next.total ? "" : "disabled"}>${total >= next.total ? `PRESTIGE ${ROMAN[P + 1]} ▸` : `PRESTIGE ${ROMAN[P + 1]} · LOCKED`}</button>` : ""}</div></section>
+      <section class="op-sec"><h2>◈ SKILLS <small>${total} of ${D.maxTotal} levels</small></h2><div class="op-grid op-pskills">${skills}</div></section>
+      <section class="op-sec"><h2>≡ MILESTONES</h2><dl class="op-stats">${[["Companions", `${s.companions.length} / ${Object.keys(D.companions).length}`], ["Expeditions cleared", `${s.completed.length} / ${D.expeditions.length}`],
+        ["Recipes at mastery 99", mastered], ["Enemies defeated", fmt(st.kills || 0)], ["Items crafted", fmt(st.crafted || 0)], ["Bounties", fmt(st.bounties || 0)], ["Scrip earned", fmt(st.scripEarned || 0)]].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></section>
+      <section class="op-sec op-settings"><h2>⚙ OUTPOST SETTINGS</h2>
+        ${[["start", "Getting-started guide", "First steps on the Valley page"], ["liveArt", "Live 3D art", "Turning buildings, recipes and items; off is lighter on slow computers"], ["awayPopup", "While-you-were-away summary", "A summary each time you come back"]].map(([k, name, hint]) =>
+          `<label class="op-opt"><span><b>${name}</b><small>${hint}</small></span><input type="checkbox" data-option="${k}" ${o[k] !== false ? "checked" : ""}></label>`).join("")}
+        <div class="op-opt danger"><span><b>Reset the Outpost</b><small>Start over from nothing. Prestige stars and Locker rewards stay yours.</small></span><button type="button" class="warn" data-show="reset">RESET…</button></div></section>`;
+  }
+  function rewardsHtml() {
+    const P = V.state.prestige || 0;
+    return `<div class="op-modal op-rewards"><small>PRESTIGE · FOUR TIERS</small><h2>Rewards for each prestige</h2><div class="op-tiers">${D.prestige.map((t) => {
+      const got = P >= t.tier, nextOne = P + 1 === t.tier;
+      const orbId = ["", "embercrown", "stormrings", "northlight", "lastlight"][t.tier], fx = ["", "ember-glow", "sparks", "aurora-flow", "golden-embers"][t.tier];
+      return `<article class="op-tier ${got ? "got" : nextOne ? "next-tier" : "locked"}"><header><b>${"★".repeat(t.tier)} ${ROMAN[t.tier]} · ${clean(t.name.toUpperCase())}</b><span>${got ? "EARNED" : `TOTAL LEVEL ${fmt(t.total)}`}</span></header>
+        <div class="op-tier-orb" data-orb-style="${orbId}"></div>
+        <p class="op-tier-name"><span class="fx-${fx}">${clean((window.UmbraProfile?.data?.name || "Survivor"))}</span> <span class="title-tag">${clean(t.title.toUpperCase())}</span></p>
+        <ul><li><b>Orb</b> ${clean(t.orb)}</li><li><b>Title</b> ${clean(t.title)}</li><li><b>Name effect</b> ${clean(t.nameFx)}</li>
+          <li><b>Bonus</b> ${clean(effectText(t.bonus))}</li>${t.perks.map((p) => `<li><b>Perk</b> ${clean(p)}</li>`).join("")}</ul></article>`;
+    }).join("")}</div><p class="op-note">Bonuses and perks add up: Prestige III keeps everything from I and II. Rewards appear in your Locker (Profile & Loadout).</p>
+      <button type="button" class="op-go" data-show="">CLOSE</button></div>`;
+  }
+  function confirmHtml(kind) {
+    const P = V.state.prestige || 0, t = D.prestige[P];
+    if (kind === "prestige") return `<div class="op-modal op-confirm prestige"><small>PRESTIGE ${ROMAN[P + 1]} · ${clean(t.name.toUpperCase())}</small><h2>Begin a new run?</h2>
+      <div class="op-cols"><div><h3>RESETS</h3><ul><li>All skill levels and mastery</li><li>Stockpile, gear, scrip and tokens</li><li>Buildings and supplies</li><li>Expeditions, bounty and the route</li></ul></div>
+      <div><h3>YOU KEEP</h3><ul><li>Companions</li><li>Achievements and Locker rewards</li><li>Lifetime statistics</li><li>Every earlier prestige bonus</li></ul></div>
+      <div><h3>YOU GAIN</h3><ul><li>${clean(effectText(t.bonus))}</li>${t.perks.map((p) => `<li>${clean(p)}</li>`).join("")}<li>Orb, title and name effect: ${clean(t.name)}</li></ul></div></div>
+      <label class="op-type">Type <b>PRESTIGE</b> to confirm<input type="text" data-confirm="PRESTIGE" autocomplete="off" spellcheck="false"></label>
+      <div class="op-dact"><button type="button" class="op-go" data-show="">NOT YET</button><button type="button" class="op-go op-prestige-go" data-act="prestige" data-confirm-btn="PRESTIGE" disabled>PRESTIGE ${ROMAN[P + 1]} ★</button></div></div>`;
+    return `<div class="op-modal op-confirm"><small>RESET THE OUTPOST</small><h2>Start over from nothing?</h2>
+      <p>Skills, mastery, items, gear, buildings, companions and progress are erased. Your prestige stars, achievements and Locker rewards stay.</p>
+      <label class="op-type">Type <b>RESET</b> to confirm<input type="text" data-confirm="RESET" autocomplete="off" spellcheck="false"></label>
+      <div class="op-dact"><button type="button" class="op-go" data-show="">KEEP MY OUTPOST</button><button type="button" class="op-go warn" data-act="reset" data-confirm-btn="RESET" disabled>RESET EVERYTHING</button></div></div>`;
+  }
+
   function logHtml() {
     const st = V.state.stats, rows = [["Actions", st.actions], ["Items found", st.found], ["Items crafted", st.crafted], ["Burnt dinners", st.burnt], ["Enemies defeated", st.kills], ["Damage dealt", st.damage], ["Damage taken", st.damageTaken],
       ["Knock-downs", st.knockouts], ["Meals eaten", st.eaten], ["Bounties done", st.bounties], ["Expeditions", st.expeditions], ["Route laps", st.laps], ["Scrip earned", st.scripEarned]];
@@ -424,7 +480,7 @@
   function bodyHtml() {
     if (D.skills[sel] && !["melee", "marksmanship", "gadgetry", "fortitude", "vitality"].includes(sel)) return sel === "scouting" ? scoutingHtml() : sel === "bounty" ? bountiesHtml() : skillHtml(sel);
     return { overview: overviewHtml, stockpile: stockpileHtml, gear: gearHtml, trader: traderHtml, battle: battleHtml, expeditions: expeditionsHtml,
-      bounties: bountiesHtml, companions: companionsHtml, log: logHtml }[sel]?.() || overviewHtml();
+      bounties: bountiesHtml, companions: companionsHtml, log: logHtml, profile: profileHtml }[sel]?.() || overviewHtml();
   }
   function combatSkills() {
     return `<section class="op-sec"><h2>⚔\ufe0e COMBAT SKILLS</h2><div class="op-grid cs">${["melee", "marksmanship", "gadgetry", "fortitude", "vitality", "bounty"].map((s) => `<div class="op-cs" style="--sc:${D.skills[s].color}" title="${clean(D.skills[s].name)}|${clean(D.skills[s].desc)}"><span>${D.skills[s].glyph}</span><b>${D.skills[s].name}</b><em>${lvl(s)}</em>${bar(xpFrac(s), "xp")}</div>`).join("")}</div></section>`;
@@ -490,17 +546,26 @@
     const id = c?.dataset.live || "";
     if (id === liveId && live) return;
     live?.stop(); live = null; liveId = id;
-    if (c && !window.offgrid) live = Ascii3D.view(c, UmbraOutpostModels.spin(UmbraOutpostModels.forRecipe(D.recipes[id]), .35), { cell: 5 });
+    if (c && !window.offgrid && V.state.options?.liveArt !== false) live = Ascii3D.view(c, UmbraOutpostModels.spin(UmbraOutpostModels.forRecipe(D.recipes[id]), .35), { cell: 5 });
   }
 
   // A popup is drawn once and kept while its content is the same, so
   // updates (an action completing) never redraw or replay it.
+  let orbStops = [];
   function setLayer(layer, html) {
     if (layer._html === html) return;
+    orbStops.forEach((f) => f && f()); orbStops = [];
     layer.innerHTML = html; layer._html = html;
   }
+  let overlay = "";      // "rewards", "prestige" or "reset" while open
   function modals() {
     const layer = $o(".op-layer"), s = V.state;
+    if (overlay) {
+      layer.hidden = false;
+      setLayer(layer, overlay === "rewards" ? rewardsHtml() : confirmHtml(overlay));
+      if (overlay === "rewards") layer.querySelectorAll("[data-orb-style]:not(.on)").forEach((el) => { el.classList.add("on"); if (window.umbraOrb) orbStops.push(window.umbraOrb(el, 15, 10, el.dataset.orbStyle)); });
+      return;
+    }
     if (s.pendingStory && D.storyChoices[s.pendingStory]) {
       const st = D.storyChoices[s.pendingStory], exp = D.expeditions.find((e) => e.story === s.pendingStory);
       layer.hidden = false;
@@ -526,7 +591,7 @@
       if (!layer.dataset.shown) { Sound.complete(); layer.dataset.shown = "1"; }
       return;
     }
-    layer.hidden = true; layer.innerHTML = ""; layer._html = ""; delete layer.dataset.shown;
+    layer.hidden = true; orbStops.forEach((f) => f && f()); orbStops = []; layer.innerHTML = ""; layer._html = ""; delete layer.dataset.shown;
   }
   // Progress bars, attack timers and pets move between updates.
   function tick() {
@@ -557,7 +622,7 @@
     bLive?.stop(); bLive = null; panel.querySelectorAll(".op-bart canvas.live").forEach((c) => c.remove());
     panel.querySelectorAll(".op-bart.playing").forEach((b) => b.classList.remove("playing"));
     bCard = card;
-    if (!card || window.offgrid || document.body.classList.contains("reduce-motion")) return;
+    if (!card || window.offgrid || document.body.classList.contains("reduce-motion") || V?.state.options?.liveArt === false) return;
     const box = card.querySelector(".op-bart"), c = document.createElement("canvas");
     c.className = "live"; box.appendChild(c); box.classList.add("playing");
     bLive = Ascii3D.view(c, UmbraOutpostModels.spin(UmbraOutpostModels.building(card.dataset.buildingCard, +card.dataset.level), .45), { cell: 5 });
@@ -596,7 +661,7 @@
         ${src.used.length ? `<dt>USED IN</dt><dd>${clean(list(src.used, (r) => r.name))}</dd>` : ""}</dl>
         <p class="op-info-foot">YOU HAVE <b>${fmt(have(id))}</b> · ¤${fmt(it.value)} EACH</p>`;
       infoView?.stop();
-      infoView = window.offgrid ? null : UmbraOutpostModels.live(info.querySelector("canvas"), id);
+      infoView = window.offgrid || V.state.options?.liveArt === false ? null : UmbraOutpostModels.live(info.querySelector("canvas"), id);
     }
     info.hidden = false;
     const r = el.getBoundingClientRect(), w = info.offsetWidth, h = info.offsetHeight;
@@ -632,6 +697,7 @@
       else if (e.type === "defeat") toast(`<b>Knocked down</b><small>BACK AT CAMP</small>`, "warn");
       else if (e.type === "bounty") { toast(`<b>Bounty complete · ✪ ${e.tokens}</b><small>THE BOARD PAYS</small>`, "big"); Sound.complete(); }
       else if (e.type === "expedition") { toast(`<b>${clean(D.expeditions.find((x) => x.id === e.id).name)}</b><small>EXPEDITION COMPLETE</small>`, "big"); Sound.complete(); }
+      else if (e.type === "prestige") { toast(`<span class="op-burst">★</span><b>PRESTIGE ${ROMAN[e.tier]} · ${clean(D.prestige[e.tier - 1].name.toUpperCase())}</b><small>NEW REWARDS IN YOUR LOCKER</small>`, "big"); Sound.achieve(); setTimeout(() => window.UmbraAchievements?.check?.(), 600); }
       else if (e.type === "building") { toast(`<b>${clean(D.buildings[e.id].name)} · LV ${e.level}</b><small>RAISED</small>`, "big"); Sound.complete(); art?.rebuild?.(); }
     }
     // XP and items gained this tick, for the skill being trained.
@@ -706,6 +772,8 @@
   panel.addEventListener("pointerdown", () => { pressed = true; });
   window.addEventListener("pointerup", () => { if (pressed) { pressed = false; setTimeout(() => render(), 60); } });
   panel.addEventListener("click", (e) => {
+    const show = e.target.closest("[data-show]");
+    if (show) { overlay = show.dataset.show; if (overlay !== "rewards") { const l = $o(".op-layer"); l._html = ""; } Sound.click(); render(true); return; }
     const pressed = e.target.closest("button");
     if (pressed && !pressed.disabled && !pressed.classList.contains("op-close")) Sound.click();
     const nav = e.target.closest("[data-view]");
@@ -744,11 +812,20 @@
     if (d.obstacle) act.obstacle = d.obstacle;
     if (d.stance) act.stance = d.stance;
     if (d.choice) act.choice = +d.choice;
+    if (d.confirmBtn) { act.confirm = d.confirmBtn; overlay = ""; }
     if (d.act === "fight" && sel !== "battle" && sel !== "bounties") sel = "battle";
     if (d.act === "fight") area = D.areas.find((x) => x.enemies.includes(d.enemy)).id;
     refresh(act);
   });
+  panel.addEventListener("input", (e) => {
+    const box = e.target.closest("[data-confirm]");
+    if (!box) return;
+    const go = $o(`[data-confirm-btn="${box.dataset.confirm}"]`);
+    if (go) go.disabled = box.value.trim().toUpperCase() !== box.dataset.confirm;
+  });
   panel.addEventListener("change", (e) => {
+    const opt = e.target.closest("[data-option]");
+    if (opt) { refresh({ type: "options", [opt.dataset.option]: opt.checked }); return; }
     const s = e.target.closest("[data-select]");
     if (s) refresh({ type: s.dataset.select, item: s.value || null });
   });
@@ -774,6 +851,7 @@
   $o(".op-close").addEventListener("click", () => { close(); Sound.click(); });
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape" || panel.hidden) return;
+    if (overlay) { overlay = ""; render(true); return; }
     if (!$o(".op-layer").hidden && V?.state.away) { refresh({ type: "ack" }); return; }
     close();
   });

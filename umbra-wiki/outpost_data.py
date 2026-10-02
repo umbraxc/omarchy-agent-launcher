@@ -595,6 +595,26 @@ for _r in RECIPES.values():
             _r["xp"] = round(_target * MAX_SECONDS, 1)
 
 
+# ------------------------------------------------------------- prestige
+# Four prestiges. Each resets the run and keeps companions, achievements and
+# Locker rewards; each adds a lasting bonus and a few small perks.
+PRESTIGE = [
+    {"tier": 1, "name": "Ember Crown", "total": 1000, "title": "Outpost Veteran", "nameFx": "Ember glow", "orb": "Ember Crown",
+     "bonus": {"xp:all": 5, "speed:all": 2},
+     "perks": ["A set of Rusted tools for every gathering skill", "Start each run with ¤500 scrip"]},
+    {"tier": 2, "name": "Signal Storm", "total": 1300, "title": "Keeper of the Valley", "nameFx": "Crackling static", "orb": "Signal Storm",
+     "bonus": {"xp:all": 5, "speed:all": 2},
+     "perks": ["Buildings start at level 2", "Field rations I from the first fight", "+12 stockpile slots"]},
+    {"tier": 3, "name": "Northern Relay", "total": 1600, "title": "Voice of the North", "nameFx": "Aurora", "orb": "Northern Relay",
+     "bonus": {"xp:all": 5, "speed:all": 2, "mastery": 5},
+     "perks": ["Away from the Outpost, progress runs at a fifth of the pace instead of a tenth", "+5% mastery XP", "Start each run with ¤2,500 scrip"]},
+    {"tier": 4, "name": "The Last Light", "total": 2079, "title": "Legend of the Outpost", "nameFx": "Golden embers", "orb": "The Last Light",
+     "bonus": {"xp:all": 5, "speed:all": 2, "double:all": 3},
+     "perks": ["Away, progress runs at a third of the pace", "+3% double items in every skill", "A golden valley at night"]},
+]
+MAX_TOTAL = MAX_LEVEL * len(SKILLS)
+
+
 def export():
     """Everything the UI needs to draw the game."""
     return {"skills": SKILLS, "items": ITEMS, "recipes": RECIPES, "enemies": ENEMIES, "areas": AREAS, "expeditions": EXPEDITIONS,
@@ -605,4 +625,4 @@ def export():
                 for s, o, n, l, sec, xp, sc, cost, eff, text in OBSTACLES],
             "obstacleSlots": OBSTACLE_SLOTS, "xpTable": XP_TABLE[:101], "rarityColors": RARITY_COLORS, "checkpoints": MASTERY_CHECKPOINTS,
             "storyChoices": STORY_CHOICES, "hearthBonus": HEARTH_BONUS, "hearthMax": HEARTH_MAX, "stockpileStep": STOCKPILE_STEP,
-            "beats": BEATS, "buildingMax": BUILDING_MAX}
+            "beats": BEATS, "buildingMax": BUILDING_MAX, "prestige": PRESTIGE, "maxTotal": MAX_TOTAL}

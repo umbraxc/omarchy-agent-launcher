@@ -41,6 +41,7 @@ def fresh(now):
             "supplies": {"food": 15, "water": 15, "wood": 12, "scrap": 10, "energy": 8, "medicine": 2, "knowledge": 4, "morale": 10},
             "upgrades": {}, "broadcasts": {}, "obstacles": [None] * 6, "warmUntil": 0, "companions": [], "completed": [],
             "storyDone": [], "pendingStory": None, "bounty": None, "tokens": 0, "stats": {}, "away": None,
+            "prestige": 0, "playtime": 0, "options": {"start": True, "liveArt": True, "awayPopup": True},
             "log": ["The lamps come on. Umbra Outpost has a place to begin."]}
 
 
@@ -166,6 +167,8 @@ def modifiers(state, now):
     kit = state.get("kit")
     if kit and kit.get("charges", 0) > 0 and kit.get("item") in D.ITEMS:
         add(D.ITEMS[kit["item"]]["effect"])
+    for tier in D.PRESTIGE[:state.get("prestige", 0)]:
+        add(tier["bonus"])
     if state.get("warmUntil", 0) > now:
         m["warm"] = D.HEARTH_BONUS + state["buildings"].get("hearth", 0)
     return m
@@ -619,6 +622,34 @@ def _advance(state, now, events, rng):
     return stop
 
 
+def away_pace(state):
+    p = state.get("prestige", 0)
+    return 1 / 3 if p >= 4 else 1 / 5 if p >= 3 else AWAY_PACE
+
+
+def total_level(state):
+    return sum(level(state, s) for s in D.SKILLS)
+
+
+def _new_run(state, now):
+    """A fresh run that keeps the prestige, companions, settings, lifetime
+    stats and stories already told; prestige perks are applied."""
+    keep = {k: copy.deepcopy(state.get(k)) for k in ("prestige", "companions", "options", "stats", "playtime", "storyDone", "log")}
+    new = fresh(now)
+    new.update({k: v for k, v in keep.items() if v is not None})
+    p = new["prestige"]
+    if p >= 1:
+        new["upgrades"].update({f"tool_{skill}": 1 for skill, _, _ in D.TOOLS})
+        new["scrip"] += 500
+    if p >= 2:
+        new["buildings"] = {b: max(2, v) for b, v in new["buildings"].items()}
+        new["upgrades"]["autoeat"] = 1
+        new["slotsBought"] = 2
+    if p >= 3:
+        new["scrip"] += 2500
+    return new
+
+
 def _shift(state, dt, until):
     """Move running timers forward by dt, so the action resumes now."""
     a = state.get("action")
@@ -653,7 +684,7 @@ def _report(before, state, seconds, stop):
                        if D.level_for(state["xp"][s]) > D.level_for(before["xp"].get(s, 0))},
             "items": items, "scrip": state["scrip"] - before["scrip"], "kills": state["stats"].get("kills", 0) - before["kills"],
             "companions": [c for c in state["companions"] if c not in before["companions"]], "tokens": state["tokens"] - before["tokens"],
-            "supplies": supplies, "pace": AWAY_PACE, "stopped": stop or ""}
+            "supplies": supplies, "pace": away_pace(state), "stopped": stop or ""}
 
 
 # ---------------------------------------------------------------- actions
@@ -732,9 +763,11 @@ def interact(path, action=None, now=None):
         before = _snapshot(state)
         last = float(state.get("updated", now))
         gap = min(max(0, now - last), OFFLINE_CAP)
+        if gap <= AWAY_FULL:
+            state["playtime"] = state.get("playtime", 0) + gap
         if gap > AWAY_FULL:
             state["updated"] = now - gap          # a longer absence starts the day it can count
-            until = now - gap + AWAY_FULL + (gap - AWAY_FULL) * AWAY_PACE
+            until = now - gap + AWAY_FULL + (gap - AWAY_FULL) * away_pace(state)
             stop = _advance(state, until, events, rng)
             _shift(state, now - until, until)
             state["updated"] = now
@@ -749,7 +782,7 @@ def interact(path, action=None, now=None):
             _log(state, f"{D.SKILLS[skill]['name']} reached level {lv}.")
         if away:
             report = _report(before, state, min(now - last, OFFLINE_CAP), stop)
-            if report:
+            if report and state.get("options", {}).get("awayPopup", True):
                 state["away"] = report
                 events = [e for e in events if e["type"] not in ("level", "mastery")]   # the report says it all
         if action:
@@ -918,6 +951,27 @@ def _act(state, action, now, events):
         state["pendingStory"] = None
     elif kind == "ack":
         state["away"] = None
+    elif kind == "prestige":
+        p = state.get("prestige", 0)
+        _require(p < len(D.PRESTIGE), "You've reached the final prestige.")
+        need = D.PRESTIGE[p]["total"]
+        _require(total_level(state) >= need, f"Prestige {p + 1} needs a total level of {need}.")
+        _require(action.get("confirm") == "PRESTIGE", "Confirm the prestige first.")
+        state["prestige"] = p + 1
+        new = _new_run(state, now)
+        state.clear(); state.update(new)
+        _log(state, f"Prestige {['I', 'II', 'III', 'IV'][p]}: {D.PRESTIGE[p]['name']}. A new run begins, stronger than the last.")
+        events.append({"type": "prestige", "tier": p + 1})
+    elif kind == "reset":
+        _require(action.get("confirm") == "RESET", "Type RESET to confirm.")
+        new = _new_run({"prestige": state.get("prestige", 0), "options": state.get("options"), "stats": {}, "playtime": 0}, now)
+        state.clear(); state.update(new)
+        _log(state, "The Outpost starts over. Your prestige and Locker rewards are kept.")
+    elif kind == "options":
+        opts = state.setdefault("options", {})
+        for key in ("start", "liveArt", "awayPopup"):
+            if isinstance(action.get(key), bool):
+                opts[key] = action[key]
     else:
         raise ValueError("Unknown Outpost action.")
 
@@ -935,6 +989,7 @@ def view(state, now, events=()):
             info.update(enemyMax=e["hp"], player=ps, hitChance=round(hit_chance(ps["acc"], e["eva"]) * 100),
                         enemyHitChance=round(hit_chance(e["acc"], ps["eva"]) * 100))
     return {"state": state, "now": now, "events": list(events), "mods": m, "maxHp": max_hp(state), "combatLevel": combat_level(state),
+            "totalLevel": total_level(state), "awayPace": away_pace(state),
             "levels": {s: level(state, s) for s in D.SKILLS}, "slots": slots(state), "slotPrice": D.stockpile_price(state["slotsBought"]),
             "player": player_stats(state, m), "action": info, "autoeat": BASE_AUTOEAT + m.get("autoeat", 0),
             "intervals": {rid: round(interval(state, rid, m), 2) for rid in D.RECIPES}}
@@ -972,6 +1027,8 @@ def stat(path, key):
         return state["buildings"].get(key[8:], 0)
     if key == "total":
         return sum(D.level_for(x) for x in state["xp"].values())
+    if key == "prestige":
+        return state.get("prestige", 0)
     if key == "maxskill":
         return max(D.level_for(x) for x in state["xp"].values())
     if key.startswith("skill:"):

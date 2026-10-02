@@ -1333,6 +1333,50 @@
    "stat": "outpost:mastery99",
    "goal": 1,
    "category": "outpost"
+  },
+  {
+   "id": "prestige-1",
+   "name": "Prestige I \u00b7 Ember Crown",
+   "description": "Prestige Umbra Outpost for the first time.",
+   "icon": "\u2654\ufe0e",
+   "tier": "gold",
+   "points": 75,
+   "stat": "outpost:prestige",
+   "goal": 1,
+   "category": "outpost"
+  },
+  {
+   "id": "prestige-2",
+   "name": "Prestige II \u00b7 Signal Storm",
+   "description": "Prestige Umbra Outpost a second time.",
+   "icon": "\u03df\ufe0e",
+   "tier": "gold",
+   "points": 100,
+   "stat": "outpost:prestige",
+   "goal": 2,
+   "category": "outpost"
+  },
+  {
+   "id": "prestige-3",
+   "name": "Prestige III \u00b7 Northern Relay",
+   "description": "Prestige Umbra Outpost a third time.",
+   "icon": "\u2737\ufe0e",
+   "tier": "legendary",
+   "points": 150,
+   "stat": "outpost:prestige",
+   "goal": 3,
+   "category": "outpost"
+  },
+  {
+   "id": "prestige-4",
+   "name": "Prestige IV \u00b7 The Last Light",
+   "description": "Reach the final prestige: every Outpost skill at 99.",
+   "icon": "\u2600\ufe0e",
+   "tier": "legendary",
+   "points": 250,
+   "stat": "outpost:prestige",
+   "goal": 4,
+   "category": "outpost"
   }
  ],
  "rewards": [
@@ -1724,6 +1768,114 @@
    "description": "The north's old machine heart, humming red.",
    "unlock": {
     "achievement": "beyond-the-valley"
+   }
+  },
+  {
+   "id": "embercrown",
+   "kind": "orb",
+   "name": "Ember Crown",
+   "description": "A crown of slow fire turning above a glowing heart.",
+   "unlock": {
+    "achievement": "prestige-1"
+   }
+  },
+  {
+   "id": "stormrings",
+   "kind": "orb",
+   "name": "Signal Storm",
+   "description": "Rings of lightning racing around a humming core.",
+   "unlock": {
+    "achievement": "prestige-2"
+   }
+  },
+  {
+   "id": "northlight",
+   "kind": "orb",
+   "name": "Northern Relay",
+   "description": "A relay tower under curtains of aurora.",
+   "unlock": {
+    "achievement": "prestige-3"
+   }
+  },
+  {
+   "id": "lastlight",
+   "kind": "orb",
+   "name": "The Last Light",
+   "description": "An eclipsed sun with its companions in orbit and a burning corona.",
+   "unlock": {
+    "achievement": "prestige-4"
+   }
+  },
+  {
+   "id": "outpost-veteran",
+   "kind": "title",
+   "name": "Outpost Veteran",
+   "description": "Shown after your name. Earned with Prestige I.",
+   "unlock": {
+    "achievement": "prestige-1"
+   }
+  },
+  {
+   "id": "keeper-valley",
+   "kind": "title",
+   "name": "Keeper of the Valley",
+   "description": "Shown after your name. Earned with Prestige II.",
+   "unlock": {
+    "achievement": "prestige-2"
+   }
+  },
+  {
+   "id": "voice-north",
+   "kind": "title",
+   "name": "Voice of the North",
+   "description": "Shown after your name. Earned with Prestige III.",
+   "unlock": {
+    "achievement": "prestige-3"
+   }
+  },
+  {
+   "id": "legend-outpost",
+   "kind": "title",
+   "name": "Legend of the Outpost",
+   "description": "Shown after your name. Earned with Prestige IV.",
+   "unlock": {
+    "achievement": "prestige-4"
+   }
+  },
+  {
+   "id": "ember-glow",
+   "kind": "name",
+   "name": "Ember glow",
+   "description": "Your name smoulders with a slow, warm glow.",
+   "unlock": {
+    "achievement": "prestige-1"
+   }
+  },
+  {
+   "id": "sparks",
+   "kind": "name",
+   "name": "Crackling static",
+   "description": "Electric sparks flicker across your name.",
+   "unlock": {
+    "achievement": "prestige-2"
+   }
+  },
+  {
+   "id": "aurora-flow",
+   "kind": "name",
+   "name": "Aurora",
+   "description": "Northern lights flow through your name.",
+   "unlock": {
+    "achievement": "prestige-3"
+   }
+  },
+  {
+   "id": "golden-embers",
+   "kind": "name",
+   "name": "Golden embers",
+   "description": "Your name burns gold, with embers rising.",
+   "unlock": {
+    "achievement": "prestige-4"
    }
   }
  ]

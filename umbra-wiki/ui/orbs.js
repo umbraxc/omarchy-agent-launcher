@@ -20,6 +20,7 @@ window.UmbraOrbs = (() => {
     return lerp(lerp(lerp(c(0, 0, 0), c(1, 0, 0), u), lerp(c(0, 1, 0), c(1, 1, 0), u), v),
       lerp(lerp(c(0, 0, 1), c(1, 0, 1), u), lerp(c(0, 1, 1), c(1, 1, 1), u), v), w);
   }
+  const mix2 = (a, b, k) => { k = clamp(k); const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); const A = p(a), B = p(b); return "#" + A.map((x, i) => Math.round(x + (B[i] - x) * k).toString(16).padStart(2, "0")).join(""); };
   const fbm = (x, y, z) => noise(x, y, z) * 0.55 + noise(x * 2.1, y * 2.1, z) * 0.3 + noise(x * 4.3, y * 4.3, z) * 0.15;
   // Distance from (x, y) to an ellipse of half-width a and height ratio k:
   // what makes thin rings come out solid on a grid of characters.
@@ -379,6 +380,72 @@ window.UmbraOrbs = (() => {
         if (v > .5 && r < 1) return ["-", "#736d62", .4];
         if (Math.abs(v + .12 - .1*Math.sin(u*6)) < .025 && Math.abs(u)<.75) return ["·", "#8f8a75", .4];
         return hash(Math.round(u*34),Math.round(v*34),6) > .986 ? ["·", "#dce8d5", .5] : null;
+      },
+    },
+    // Prestige orbs: each grander than the last.
+    embercrown: {
+      under: c => { c.glow(c.cx, c.cy, c.R * 1.35, "#f0783a", .26); c.glow(c.cx, c.cy - c.R * .4, c.R * .8, "#ffd27a", .14); },
+      cell(u, v, r, t) {
+        if (r > 1.12) return null;
+        // A crown of flame points turning around a molten heart.
+        const a = Math.atan2(v, u), spin = a + t * .45;
+        const crown = .78 + .14 * Math.max(0, Math.cos(spin * 7)) + .05 * noise(u * 5, v * 5, t * .8);
+        if (r < .42) { const k = 1 - r / .42; return [ramp(.55 + .45 * k), k > .6 ? "#fff3c0" : k > .3 ? "#ffb456" : "#e8642e", .8 + .2 * Math.sin(t * 3 + r * 9)]; }
+        if (r > crown - .1 && r < crown && v < .3) return [Math.cos(spin * 7) > .6 ? "^" : "*", "#ffcf6a", .9];
+        const flame = fbm(u * 4, v * 4 - t * 1.2, t * .4);
+        if (r < crown - .1 && flame > .45) return [flame > .62 ? "%" : "+", mix2("#e8642e", "#ffd27a", (flame - .45) * 4), .5 + .5 * (flame - .45) * 3];
+        if (r > .95 && r < 1.05) return ["·", "#c87a4a", .5 + .4 * Math.sin(a * 12 - t * 2)];
+        return null;
+      },
+    },
+    stormrings: {
+      under: c => { c.glow(c.cx, c.cy, c.R * 1.3, "#5a8aff", .22); c.glow(c.cx, c.cy, c.R * .5, "#e8f4ff", .2); },
+      cell(u, v, r, t) {
+        if (r > 1.12) return null;
+        // Three tilted rings of charge; bolts leap between them and the core.
+        if (r < .26) return [ramp(1 - r / .26 * .5), "#f0f8ff", .9 + .1 * Math.sin(t * 9)];
+        for (let k = 0; k < 3; k++) {
+          const tilt = .35 + k * .25, rot = t * (.6 + k * .25) + k * 2.1;
+          const [x, y] = [u * Math.cos(rot) - v * Math.sin(rot), u * Math.sin(rot) + v * Math.cos(rot)];
+          const d = Math.abs(Math.hypot(x, y / tilt) - (.5 + k * .17));
+          if (d < .035) { const spark = Math.sin(Math.atan2(y, x) * 9 - t * 6 + k) > .7; return [spark ? "ϟ" : "-", spark ? "#ffffff" : ["#7fb6ff", "#a6c8ff", "#c8e0ff"][k], spark ? 1 : .7]; }
+        }
+        const boltOn = Math.sin(t * 2.3) > .55, ang = Math.floor(t * 2.3) * 2.4;
+        if (boltOn) { const bx = Math.cos(ang), by = Math.sin(ang), along = u * bx + v * by, off = -u * by + v * bx;
+          if (along > .25 && along < .95 && Math.abs(off - .08 * Math.sin(along * 30 + t * 20)) < .035) return ["ϟ", "#ffffff", 1]; }
+        return hash(Math.round(u * 32), Math.round(v * 32), 11) > .985 ? ["·", "#a6c8ff", .5] : null;
+      },
+    },
+    northlight: {
+      under: c => { c.glow(c.cx, c.cy, c.R * 1.3, "#3ad89a", .18); c.glow(c.cx, c.cy - c.R * .3, c.R * 1.1, "#9a6ae6", .14); },
+      cell(u, v, r, t) {
+        if (r > 1.08) return null;
+        // A lattice tower in the snow, aurora curtains flowing behind it.
+        const w = .04 + (v + .55) * .1;
+        if (v > -.55 && v < .62 && Math.abs(u) < w + .02 && (Math.abs(Math.abs(u) - w) < .03 || Math.abs(((v + 2) * 9) % 1 - .5) < .12)) return ["#", "#d8e0e8", .85];
+        if (Math.hypot(u, (v + .62) * 1.3) < .06) return ["@", "#ff5a4a", Math.sin(t * 3) > 0 ? 1 : .35];
+        if (v > .6) return [Math.sin(u * 30) > .5 ? "_" : ".", "#e8f0f6", .5];
+        const wave = Math.sin(u * 5 + t * .6 + Math.sin(u * 2 - t * .3) * 1.5) * .12 - .2;
+        const k = 1 - Math.abs(v - wave) / .32;
+        if (k > 0 && v < .55) { const hue = .5 + .5 * Math.sin(u * 3 + t * .4); return [k > .6 ? "|" : k > .3 ? "!" : ":", mix2("#4ae6a0", "#b07ae6", hue * (1 - k * .3)), .25 + .7 * k]; }
+        return hash(Math.round(u * 34), Math.round(v * 34), 13) > .982 ? ["·", "#e0e8ff", .55] : null;
+      },
+    },
+    lastlight: {
+      under: c => { c.glow(c.cx, c.cy, c.R * 1.45, "#ffb43a", .3); c.glow(c.cx, c.cy, c.R * .9, "#fff0c0", .16); },
+      cell(u, v, r, t) {
+        if (r > 1.15) return null;
+        // An eclipsed sun: a dark disc, a burning corona with flares, and
+        // seventeen small lights (the companions) in orbit.
+        for (let i = 0; i < 17; i++) {
+          const a = t * (.25 + (i % 3) * .06) + i * .37, rr = .78 + (i % 4) * .07, x = Math.cos(a) * rr, y = Math.sin(a) * rr * .42;
+          if (Math.hypot(u - x, v - y) < .045) return ["✦", ["#9fc779", "#76bdc7", "#e5be68", "#dc8e83", "#aa9dcc"][i % 5], .95];
+        }
+        if (r < .4) return r > .37 ? ["O", "#fff4c8", 1] : ["·", "#2a1a10", .35];
+        const a = Math.atan2(v, u), flare = .5 + .3 * Math.max(0, Math.sin(a * 5 + t * 1.3)) * fbm(a * 2, t * .5, 3);
+        if (r < flare) { const k = (r - .4) / (flare - .4); return [k < .3 ? "@" : k < .6 ? "#" : "*", mix2("#fff4c8", "#e8782a", k), 1 - k * .6]; }
+        if (r > 1 && r < 1.1) return ["·", "#ffcf6a", .45 + .4 * Math.sin(a * 16 + t * 3)];
+        return null;
       },
     },
     anvil: {
