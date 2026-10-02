@@ -493,12 +493,18 @@
     if (c && !window.offgrid) live = Ascii3D.view(c, UmbraOutpostModels.spin(UmbraOutpostModels.forRecipe(D.recipes[id]), .35), { cell: 5 });
   }
 
+  // A popup is drawn once and kept while its content is the same, so
+  // updates (an action completing) never redraw or replay it.
+  function setLayer(layer, html) {
+    if (layer._html === html) return;
+    layer.innerHTML = html; layer._html = html;
+  }
   function modals() {
     const layer = $o(".op-layer"), s = V.state;
     if (s.pendingStory && D.storyChoices[s.pendingStory]) {
       const st = D.storyChoices[s.pendingStory], exp = D.expeditions.find((e) => e.story === s.pendingStory);
       layer.hidden = false;
-      layer.innerHTML = `<div class="op-modal"><small>${clean(exp.name.toUpperCase())} · THE STORY'S END</small><p>${clean(st.text)}</p><div class="op-choices">${st.choices.map((c, i) => `<button type="button" data-act="story" data-choice="${i}">${clean(c.label)}<small>${Object.entries(c.reward).map(([k, v]) => `+${v} ${k}`).join(" · ")}</small></button>`).join("")}</div></div>`;
+      setLayer(layer, `<div class="op-modal"><small>${clean(exp.name.toUpperCase())} · THE STORY'S END</small><p>${clean(st.text)}</p><div class="op-choices">${st.choices.map((c, i) => `<button type="button" data-act="story" data-choice="${i}">${clean(c.label)}<small>${Object.entries(c.reward).map(([k, v]) => `+${v} ${k}`).join(" · ")}</small></button>`).join("")}</div></div>`);
       return;
     }
     if (s.away) {
@@ -508,7 +514,7 @@
       layer.hidden = false;
       const sup = Object.entries(a.supplies || {}).filter(([, v]) => v >= 1).map(([k, v]) => `<span><b>+${fmt(v)}</b> ${k}</span>`).join("");
       const lv = Object.entries(a.levels || {}).map(([k, [f, t]]) => `${D.skills[k].name} ${f} → ${t}`).join(" · ");
-      layer.innerHTML = `<div class="op-modal away"><small>WHILE YOU WERE AWAY · ${dur(a.seconds)}</small><h2>The Outpost kept working.</h2>
+      setLayer(layer, `<div class="op-modal away"><small>WHILE YOU WERE AWAY · ${dur(a.seconds)}</small><h2>The Outpost kept working.</h2>
         ${lv ? `<p class="op-away-levels">▲ LEVELS GAINED · ${clean(lv)}</p>` : ""}
         ${xp ? `<ul class="op-away-xp">${xp}</ul>` : ""}
         ${items ? `<h3>ITEMS</h3><div class="op-away-items">${items}</div>` : ""}
@@ -516,11 +522,11 @@
         <p class="op-away-sum">${a.scrip ? `¤ ${a.scrip > 0 ? "+" : ""}${fmt(a.scrip)} scrip` : ""}${a.kills ? ` · ${fmt(a.kills)} enemies defeated` : ""}${a.tokens ? ` · ✪ +${a.tokens}` : ""}${a.companions.length ? ` · new companion: ${a.companions.map((c) => clean(D.companions[c].name)).join(", ")}` : ""}</p>
         ${a.stopped ? `<p class="op-away-stop">⚠ ${clean(a.stopped)}</p>` : ""}
         <p class="op-away-pace">While you're away the Outpost works at a tenth of its pace after the first two minutes, for up to a day.</p>
-        <button type="button" class="op-go" data-act="ack">BACK TO WORK ▸</button></div>`;
+        <button type="button" class="op-go" data-act="ack">BACK TO WORK ▸</button></div>`);
       if (!layer.dataset.shown) { Sound.complete(); layer.dataset.shown = "1"; }
       return;
     }
-    layer.hidden = true; layer.innerHTML = ""; delete layer.dataset.shown;
+    layer.hidden = true; layer.innerHTML = ""; layer._html = ""; delete layer.dataset.shown;
   }
   // Progress bars, attack timers and pets move between updates.
   function tick() {
