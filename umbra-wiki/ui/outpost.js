@@ -151,4 +151,5 @@
   setInterval(() => { if (!panel.hidden && !document.hidden) refresh(); }, 30000);
   setInterval(tickLive, 250);
   window.closeOutpost = close;
+  window.toggleOutpost = toggle;
 })();

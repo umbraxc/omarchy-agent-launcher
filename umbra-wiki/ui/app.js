@@ -402,6 +402,9 @@ function setMuted(value, save = true) {
 
 let themes = [];
 let currentTheme = "";
+// The Omarchy theme only loads on Omarchy, so it also tells the tour and
+// notes whether Omarchy features (its theme, its top bar) exist here.
+const onOmarchy = () => themes.some((t) => t.id === "auto");
 const THEME_VARS = {
   bg: "--bg", bg1: "--bg-1", bg2: "--bg-2", bg3: "--bg-3", line: "--line", muted: "--muted",
   fg: "--fg", fgBright: "--fg-bright", dim: "--dim", faint: "--faint",
@@ -2450,7 +2453,9 @@ async function refreshVoice() {
   if (voice.state === "idle" && ++voiceTick % 2) return;
   try { showVoice(await (await fetch("/api/voice")).json()); } catch {}
 }
-refreshVoice();
+// The first check runs at once, focused or not, so the Windows app hides
+// the microphone before anything (the tour included) points at it.
+fetch("/api/voice").then((r) => r.json()).then(showVoice).catch(() => {});
 setInterval(refreshVoice, 800);
 
 mic.addEventListener("mousedown", (e) => e.preventDefault());   // keep the prompt focused for dictation
@@ -2638,7 +2643,7 @@ const SHORTCUTS = [
   ["Ctrl + H", "History"], ["Ctrl + Shift + H", "Search all conversations in History"],
   ["Ctrl + E", "Export this conversation"], ["Ctrl + L", "Library and field manual"], ["Ctrl + P", "Your profile"],
   ["Ctrl + O", "Loadout: scenario and personality"], ["Ctrl + G", "Maps"], ["Ctrl + K", "Field kit: medic, sun & moon, supplies, vault, training"], ["Ctrl + J", "Signals & radar"], ["Ctrl + T", "Themes"], ["Ctrl + M", "Mute or unmute sounds"],
-  ["Ctrl + Shift + F", "Farming planner"],
+  ["Ctrl + Shift + F", "Farming planner"], ["Ctrl + B", "Umbra Outpost"],
   ["Ctrl + ,", "Settings"], ["Ctrl + wheel", "Zoom in or out (also Ctrl + plus / minus; Ctrl + 0 resets)"], ["F1", "This list"],
   ["Shift + drag", "Rearrange top tabs (Settings stays fixed)"],
 ];
@@ -2647,7 +2652,7 @@ function showShortcuts() {
   const shade = document.createElement("div");
   shade.className = "modal keys-overlay";
   shade.innerHTML = `<div class="dialog to-local"><div class="dialog-tag">KEYBOARD</div><h2>SHORTCUTS</h2>
-    <div class="keys">${SHORTCUTS.map(([k, what]) => `<span class="kk">${k.split(" + ").map((x) => `<kbd>${escapeHtml(x)}</kbd>`).join(" + ")}</span><span>${escapeHtml(what)}</span>`).join("")}</div>
+    <div class="keys">${SHORTCUTS.filter(([k]) => k !== "F9" || !voice.unsupported).map(([k, what]) => `<span class="kk">${k.split(" + ").map((x) => `<kbd>${escapeHtml(x)}</kbd>`).join(" + ")}</span><span>${escapeHtml(what)}</span>`).join("")}</div>
     <div class="dialog-actions"><button class="solid">GOT IT</button></div></div>`;
   const close = () => { shade.remove(); document.removeEventListener("keydown", onKey, true); input.focus(); };
   const onKey = (e) => { if (e.key === "Escape" || e.key === "F1") { e.preventDefault(); e.stopImmediatePropagation(); close(); } };
@@ -2677,6 +2682,7 @@ document.addEventListener("keydown", (e) => {
     g: () => window.toggleMaps && window.toggleMaps(),
     k: () => window.toggleFieldKit && window.toggleFieldKit(),
     j: () => window.toggleRadar && window.toggleRadar(),
+    b: () => window.toggleOutpost && window.toggleOutpost(),
     m: () => setMuted(!Sound.muted),
     ",": () => window.openSettings && window.openSettings(),
   };

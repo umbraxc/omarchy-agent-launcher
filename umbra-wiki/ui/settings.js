@@ -129,7 +129,7 @@
   // Words people might search for that aren't written in a section, so
   // "cpu", "mic" or "dark" still find the right place.
   const KEYWORDS = {
-    PERFORMANCE: "cpu processor performance speed fast slow hot fan heat temperature memory ram cores threads limit battery graph",
+    PERFORMANCE: "cpu processor performance speed fast slow hot fan heat temperature memory ram cores threads limit battery graph gpu graphics card video nvidia amd cuda rocm vulkan vram boost",
     SOUND: "notification notifications popup pop-up alert achievement ding audio volume speaker speakers headphones mute quiet loud output input microphone mic beep",
     "HEADER BUTTONS": "hide show icons toolbar top buttons header",
     "MAPS & PLACES": "maps map downloaded areas countries waypoints places delete remove space disk",
@@ -337,6 +337,12 @@
           <span><small>CORES</small><b class="cpu-count">--</b></span>
           <span><small>TEMPERATURE</small><b class="cpu-temp">--</b></span>
           <span><small>MEMORY</small><b class="cpu-mem">--</b></span>
+        </div>
+        <div class="set-row"><span class="set-text"><b>AI runs on</b><small class="dev-note">Checking this computer's graphics card…</small></span></div>
+        <div class="seg seg-dev" role="radiogroup" aria-label="AI runs on">
+          <div class="seg-fill"></div>
+          <button type="button" class="seg-step" role="radio" data-dev="cpu"><b>CPU</b><small>PROCESSOR ONLY</small></button>
+          <button type="button" class="seg-step" role="radio" data-dev="gpu"><b>CPU + GPU</b><small>GRAPHICS BOOST</small></button>
         </div>
         <div class="set-row"><span class="set-text"><b>AI processor limit</b><small class="cpu-limit-note">How much of the processor
           Umbra's AI may use while it writes. Lower keeps your computer cooler and quieter; answers take longer.</small></span></div>
@@ -772,13 +778,78 @@
 
   // A live graph of the last minute (whole processor, and Umbra's share),
   // a bar per processor thread, and the AI's processor limit. Updates every
-  // second while Settings is open.
-  const cpuHist = { total: [], umbra: [] };
+  // second while Settings is open. With the graphics card boosting the AI,
+  // the graph and figures follow the card (and the processor beside it).
+  const cpuHist = { total: [], umbra: [], gpu: [] };
   const CPU_POINTS = 60;
-  let cpuTimer = 0, cpuInfo = null;
+  let cpuTimer = 0, cpuInfo = null, gpuInfo = null;
+  const gpuMode = () => !!(gpuInfo && gpuInfo.available && gpuInfo.device === "gpu");
+  // "NVIDIA Corporation GA107M [GeForce RTX 3050 Mobile]" reads as its product name.
+  const cardName = (name) => (name || "").replace(/^.*\[(.+)\]$/, "$1");
+
+  async function setupDevice() {
+    const seg = body.querySelector(".seg-dev"), note = body.querySelector(".dev-note");
+    if (!seg) return;
+    try { gpuInfo = await (await fetch("/api/gpu")).json(); } catch { gpuInfo = null; }
+    if (!body.contains(seg)) return;
+    const gpuBtn = seg.querySelector('[data-dev="gpu"]');
+    const available = !!(gpuInfo && gpuInfo.available);
+    gpuBtn.classList.toggle("unavailable", !available);
+    gpuBtn.setAttribute("aria-disabled", String(!available));
+    gpuBtn.querySelector("small").textContent = available ? "GRAPHICS BOOST" : "NOT AVAILABLE";
+    const show = (dev) => {
+      seg.style.setProperty("--pick", dev === "gpu" ? "1" : "0");
+      seg.querySelectorAll(".seg-step").forEach((b) => {
+        const on = b.dataset.dev === dev;
+        b.classList.toggle("current", on); b.classList.toggle("on", on); b.setAttribute("aria-checked", String(on));
+      });
+      const card = cardName(gpuInfo && gpuInfo.name);
+      note.textContent = !available
+        ? `CPU + GPU is not available on this machine. ${gpuInfo ? gpuInfo.reason : "The graphics card could not be checked."}`
+        : dev === "gpu"
+          ? `Your ${card} (${gpuInfo.accel}) takes as much of the AI as fits in its memory and the processor runs the rest: usually much faster answers. A change applies from the next answer.`
+          : `The AI runs on the processor alone and your ${card} stays free for other work. Answers take longer. A change applies from the next answer.`;
+    };
+    show(gpuInfo ? gpuInfo.device : "cpu");
+    seg.onclick = (e) => {
+      const b = e.target.closest(".seg-step");
+      if (!b) return;
+      if (b.classList.contains("unavailable")) {
+        Sound.error();
+        note.classList.remove("flash"); void note.offsetWidth; note.classList.add("flash");
+        return;
+      }
+      if (b.dataset.dev === gpuInfo.device) return;
+      gpuInfo.device = b.dataset.dev;
+      show(gpuInfo.device);
+      save({ aiDevice: gpuInfo.device });
+      Sound.click();
+      swapGraph();
+    };
+    swapGraph(false);
+  }
+
+  // The big graph changes its subject with the device: processor or card.
+  function swapGraph(animate = true) {
+    const sec = body.querySelector(".set-cpu");
+    if (!sec) return;
+    const gpu = gpuMode(), q = (sel) => sec.querySelector(sel);
+    sec.classList.toggle("gpu-mode", gpu);
+    q(".cpu-graph").setAttribute("aria-label", gpu ? "Graphics card and processor use over the last minute" : "Processor use over the last minute");
+    q(".lg-total").firstChild.nextSibling.textContent = gpu ? "PROCESSOR " : "WHOLE PROCESSOR ";
+    q(".lg-umbra").firstChild.nextSibling.textContent = gpu ? "GRAPHICS CARD " : "UMBRA ";
+    const labels = gpu ? ["GRAPHICS CARD", "ACCELERATION", "GRAPHICS MEMORY", "MODEL ON GPU"] : ["PROCESSOR", "CORES", "TEMPERATURE", "MEMORY"];
+    sec.querySelectorAll(".cpu-stats small").forEach((el, i) => (el.textContent = labels[i]));
+    cpuHist.gpu = [];
+    limitNote(prefs.cpuLimit || 100);
+    if (animate && !document.body.classList.contains("reduce-motion")) {
+      sec.classList.remove("swap"); void sec.offsetWidth; sec.classList.add("swap");
+    }
+    if (animate) updateCpu(true);
+  }
 
   function setupCpu() {
-    const seg = body.querySelector(".seg");
+    const seg = body.querySelector(".seg:not(.seg-dev)");
     const steps = [...seg.querySelectorAll(".seg-step")];
     const values = steps.map((b) => Number(b.dataset.v));
     const show = (v) => {
@@ -809,6 +880,7 @@
       if (["ArrowRight", "ArrowUp"].includes(e.key)) { e.preventDefault(); choose(values[Math.min(values.length - 1, i + 1)]); }
     });
     show(prefs.cpuLimit || 100);
+    setupDevice();
     clearInterval(cpuTimer);
     updateCpu();
     cpuTimer = setInterval(updateCpu, window.offgrid ? 3000 : 1000);
@@ -821,26 +893,44 @@
     note.textContent = (v === 100
       ? `Umbra's AI may use all ${all} cores of your processor while it writes: the fastest answers.`
       : `Umbra's AI may use ${cores} of your ${all} cores while it writes. Your computer stays cooler and quieter; answers take longer.`) +
-      " A change applies from the next answer.";
+      (gpuMode() ? " This is the processor's share; the graphics card works alongside it." : "") + " A change applies from the next answer.";
   }
 
-  async function updateCpu() {
+  async function updateCpu(redrawOnly = false) {
     if (panel.hidden || !body.querySelector(".cpu-graph")) { clearInterval(cpuTimer); return; }
-    let c;
-    try { c = await (await fetch("/api/cpu")).json(); } catch { return; }
+    let c, g = null;
+    const gpu = gpuMode();
+    try {
+      [c, g] = await Promise.all([fetch("/api/cpu").then((r) => r.json()), gpu ? fetch("/api/gpu").then((r) => r.json()) : null]);
+    } catch { return; }
+    if (!body.querySelector(".cpu-graph") || gpu !== gpuMode()) return;
     const first = !cpuInfo;
     cpuInfo = c;
     if (first) limitNote(prefs.cpuLimit || 100);
-    cpuHist.total.push(c.total); cpuHist.umbra.push(c.umbra);
-    for (const k of ["total", "umbra"]) if (cpuHist[k].length > CPU_POINTS) cpuHist[k].shift();
+    if (!redrawOnly) {
+      cpuHist.total.push(c.total); cpuHist.umbra.push(c.umbra);
+      if (g) cpuHist.gpu.push(g.util == null ? 0 : g.util);
+      for (const k of ["total", "umbra", "gpu"]) if (cpuHist[k].length > CPU_POINTS) cpuHist[k].shift();
+    }
     const q = (sel) => body.querySelector(sel);
     q(".cpu-total").textContent = Math.round(c.total) + "%";
-    q(".cpu-umbra").textContent = Math.round(c.umbra) + "%";
     q(".cpu-now").textContent = c.load ? `LOAD ${c.load.toFixed(2)}` : "";
+    q(".cpu-temp").classList.toggle("hot", !g && c.temp >= 85);
+    if (g) {
+      const gb = (v) => (v / 2 ** 30).toFixed(1);
+      q(".cpu-umbra").textContent = g.util == null ? "not reported" : Math.round(g.util) + "%";
+      q(".cpu-now").textContent = "CPU + GPU";
+      q(".cpu-name").textContent = cardName(g.name) || "--";
+      q(".cpu-count").textContent = g.accel || "--";
+      q(".cpu-temp").textContent = g.memTotal ? `${gb(g.memUsed)} of ${gb(g.memTotal)} GB` : g.vramGB ? `${g.vramGB} GB` : "not reported";
+      q(".cpu-mem").textContent = g.modelOnGpu == null ? "loads with the next answer" : `${g.modelOnGpu}%`;
+      drawCpu();
+      return;
+    }
+    q(".cpu-umbra").textContent = Math.round(c.umbra) + "%";
     q(".cpu-name").textContent = c.name;
     q(".cpu-count").textContent = `${c.physical} cores · ${c.threads} threads`;
     q(".cpu-temp").textContent = c.temp != null ? `${c.temp} °C` : "not reported";
-    q(".cpu-temp").classList.toggle("hot", c.temp >= 85);
     q(".cpu-mem").textContent = c.memTotal ? `${(c.memUsed / 1e9).toFixed(1)} of ${(c.memTotal / 1e9).toFixed(1)} GB` : "--";
     const cores = q(".cpu-cores");
     if (cores.childElementCount !== c.cores.length) cores.innerHTML = c.cores.map(() => "<i><b></b></i>").join("");
@@ -877,7 +967,7 @@
       ctx.globalAlpha = fillAlpha; ctx.fillStyle = stroke; ctx.fill(); ctx.globalAlpha = 1;
     };
     plot(cpuHist.total, col("--dim"), 0.12);
-    plot(cpuHist.umbra, col("--signal"), 0.28);
+    plot(gpuMode() ? cpuHist.gpu : cpuHist.umbra, col("--signal"), 0.28);
   }
 
   // Reset asks twice: it deletes everything personal.

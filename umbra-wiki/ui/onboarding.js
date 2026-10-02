@@ -289,7 +289,11 @@
       }
       const nav = window.UmbraNavOverflow;
       nav?.fill();
-      const source = outpostOnly ? SPOTS.filter(([sel]) => sel === "#outpost-btn") : SPOTS.filter(([sel]) => !quick || QUICK_SPOTS.includes(sel));
+      // Skip what this computer doesn't have (the microphone on Windows) and
+      // mention Omarchy only where it exists.
+      const here = ([sel]) => document.querySelector(".controls")?.contains($(sel)) || ($(sel) && !$(sel).hidden);
+      const source = (outpostOnly ? SPOTS.filter(([sel]) => sel === "#outpost-btn") : SPOTS.filter(([sel]) => !quick || QUICK_SPOTS.includes(sel)))
+        .filter(here).map(([sel, title, text]) => [sel, title, sel === "#theme-btn" && !onOmarchy() ? "Pick a colour theme, or design your own." : text]);
       const menuSpots = new Map(source.filter(([sel]) => document.querySelector(".controls")?.contains($(sel))).map(spot => [spot[0].slice(1), spot]));
       const menuSteps = [...(nav?.menu.querySelectorAll("button[data-for]") || [])]
         .filter(row => menuSpots.has(row.dataset.for))
@@ -447,7 +451,8 @@
   // A colour theme, applied at once.
   async function stepTheme(themeList) {
     let a;
-    a = await say("Let's make this place yours. **Pick a theme.** It applies right away, and you can change it any time from the palette button, follow your Omarchy theme, or design your own.");
+    a = await say("Let's make this place yours. **Pick a theme.** It applies right away, and you can change it any time from the palette button" +
+      (onOmarchy() ? ", follow your Omarchy theme, or design your own." : " or design your own."));
     await cards(a, themeList.map((t) => ({
       id: t.id, name: t.name, line: t.tagline || "",
       swatch: `<span class="tour-sw">${["bg", "signal", "accent", "net"].map((k) => `<i style="background:${t[k] || t.vars?.[k] || "#888"}"></i>`).join("")}</span>`,
@@ -756,8 +761,9 @@
       { id: "on", name: "Always on", line: "Lightest on power, all the time" },
     ], settings.offgrid || "auto", (id) => { offgridChoice = id; Sound.click(); });
     await postSettings({ offgrid: offgridChoice });   // the preselected choice counts too
+    // Voice input exists only on Linux; the Windows app doesn't mention it.
     const voice = await fetch("/api/voice").then((r) => r.json()).catch(() => ({}));
-    await say(voice.available
+    if (!voice.unsupported) await say(voice.available
       ? "Last thing: **voice input is ready.** Hold **F9** (or click the microphone) and just talk; it's turned into text right here, offline."
       : `Last thing: **voice input** isn't installed yet. Install it with \`${voice.install || "omarchy-voxtype-install"}\` and then hold **F9** to talk to me.`);
 
@@ -776,8 +782,8 @@
       "- **Export** conversations or the manual to a file or a USB stick, and **back up** your whole Umbra from Settings.\n" +
       "- Every download can be **paused and resumed**, even after a restart; a chime tells you when it's done.\n" +
       "- After an update, I'll show you **what's new**, once.\n" +
-      "- Press **F1** any time for the keyboard shortcuts.\n" +
-      "- On Omarchy, the **Umbra icon in the top bar** opens me, shows your loadout and a new field note every hour, and lights up when an answer is waiting.");
+      "- Press **F1** any time for the keyboard shortcuts." +
+      (onOmarchy() ? "\n- On Omarchy, the **Umbra icon in the top bar** opens me, shows your loadout and a new field note every hour, and lights up when an answer is waiting." : ""));
     a = await say(`That's the tour${who !== "friend" ? `, **${who}**` : ""}. You can replay it any time from **Settings**. Ready when you are.`);
     await choose(a, [["START USING UMBRA ▸", "go", true]]);
     completed = true;

@@ -192,7 +192,7 @@ UMBRA_GUIDE = (
     "rewards unlocked by rank and achievements, such as start-screen orbs, titles and name effects. The welcome tour "
     "can be replayed from Settings as a quick start or a full briefing. Everything works offline; only online mode, downloads and the update check use "
     "the internet. In the prompt, Tab opens quick actions. When you mention a tool, name it exactly as above. "
-    "The only keyboard shortcuts are: Ctrl+K Field Kit, Ctrl+G Maps, Ctrl+J Signals & Radar, Ctrl+L Library, Ctrl+H History, "
+    "The only keyboard shortcuts are: Ctrl+K Field Kit, Ctrl+G Maps, Ctrl+J Signals & Radar, Ctrl+B Umbra Outpost, Ctrl+Shift+F Farming, Ctrl+L Library, Ctrl+H History, "
     "Ctrl+P Profile, Ctrl+O Loadout, Ctrl+T Themes, Ctrl+, Settings, F1 all shortcuts, and Ctrl + mouse wheel (or Ctrl + plus / "
     "minus, Ctrl+0 to reset) to zoom every screen (also Settings, Zoom); never invent others. The Calendar, Vault, "
     "Medic, Supplies and Training are tabs inside the Field Kit; to add a reminder, open the Field Kit, go to CALENDAR and "
@@ -2227,11 +2227,97 @@ def ai_threads(limit=None):
 
 def ai_options(**extra):
     """Ollama options shared by every request, so the model never reloads
-    between them. Below 100% the AI gets fewer cores (num_thread)."""
+    between them. Below 100% the AI gets fewer cores (num_thread); "CPU only"
+    on a machine with a usable graphics card keeps the model off it (num_gpu)."""
     options = {"num_ctx": 4096, **extra}
     if cpu_limit() < 100:
         options["num_thread"] = ai_threads()
+    if gpu_static()["available"] and ai_device() == "cpu":
+        options["num_gpu"] = 0
     return options
+
+
+# ---------------------------------------------------------------- graphics
+
+_GPU = None
+_GPU_LOCK = threading.Lock()
+
+
+def gpu_static():
+    """The graphics card and whether the local AI can use it, checked once per
+    run: the hardware and Ollama's build don't change while Umbra runs.
+    Ollama never replaces the processor: it moves as much of the model as
+    fits into graphics memory and the processor runs the rest."""
+    global _GPU
+    with _GPU_LOCK:
+        if _GPU is not None:
+            return _GPU
+        info = system_info()
+        cards, accel = info.get("gpus") or [], info.get("accel")
+        vendor = lambda card: ("nvidia" if re.search(r"nvidia|geforce|quadro|rtx", card, re.I) else
+                               "amd" if re.search(r"\bamd\b|radeon|\bati\b", card, re.I) else "other")
+        fits = {"NVIDIA CUDA": "nvidia", "AMD ROCm": "amd"}
+        usable = [c for c in cards if accel and (accel not in fits or vendor(c) == fits[accel])]
+        if usable:
+            name, reason = usable[0], ""
+        elif not cards:
+            name, reason = "", "No graphics card was found on this machine."
+        else:
+            supported = [c for c in cards if vendor(c) != "other"]
+            name = (supported or cards)[0]
+            if supported and not WINDOWS:
+                package = "ollama-cuda" if vendor(name) == "nvidia" else "ollama-rocm"
+                reason = (f"Your graphics card can speed up answers once Ollama's GPU build is installed "
+                          f"(the {package} package), then restart Umbra.")
+            elif supported:
+                reason = "Ollama didn't detect a usable driver for this graphics card. Updating its driver can enable it."
+            else:
+                reason = "This graphics card isn't supported by the local AI engine, which needs an NVIDIA or AMD card."
+        _GPU = {"available": bool(usable), "name": name, "accel": accel if usable else None,
+                "vramGB": info.get("vramGB", 0) if usable else 0, "reason": reason}
+        return _GPU
+
+
+def ai_device():
+    """"gpu" (graphics card plus processor) or "cpu" (processor only). The
+    default follows what Ollama does by itself: use the card when it can."""
+    choice = read_json(SETTINGS_FILE, {}).get("aiDevice")
+    if not gpu_static()["available"]:
+        return "cpu"
+    return choice if choice in ("cpu", "gpu") else "gpu"
+
+
+def gpu_status():
+    """Live graphics figures for Settings: the card's use where the driver
+    reports it, and how much of the loaded model sits in graphics memory."""
+    status = {**gpu_static(), "device": ai_device(), "util": None, "memUsed": None, "memTotal": None, "modelOnGpu": None}
+    if not status["available"]:
+        return status
+    if "NVIDIA" in (status["accel"] or ""):
+        try:
+            out = subprocess.run(["nvidia-smi", "--query-gpu=utilization.gpu,memory.used,memory.total",
+                                  "--format=csv,noheader,nounits"], capture_output=True, text=True, timeout=2, check=True).stdout
+            util, used, total = [float(x) for x in out.splitlines()[0].split(",")]
+            status.update(util=util, memUsed=used * 2 ** 20, memTotal=total * 2 ** 20)
+        except (OSError, ValueError, IndexError, subprocess.SubprocessError):
+            pass
+    elif not WINDOWS:
+        for card in sorted(glob.glob("/sys/class/drm/card[0-9]*/device")):
+            try:
+                status["util"] = float(open(card + "/gpu_busy_percent").read())
+                status["memUsed"] = float(open(card + "/mem_info_vram_used").read())
+                status["memTotal"] = float(open(card + "/mem_info_vram_total").read())
+                break
+            except (OSError, ValueError):
+                continue
+    try:
+        for m in json.loads(fetch(OLLAMA + "/api/ps", timeout=2)).get("models", []):
+            if m.get("size"):
+                status["modelOnGpu"] = round(100 * m.get("size_vram", 0) / m["size"])
+                break
+    except Exception:
+        pass
+    return status
 
 
 def cpu_temp():
@@ -2949,6 +3035,8 @@ def apply_settings(update):
             settings["radioVolume"] = round(max(0.0, min(1.0, float(update["radioVolume"]))), 2)
         if update.get("cpuLimit") in CPU_LIMITS:
             settings["cpuLimit"] = update["cpuLimit"]
+        if update.get("aiDevice") in ("cpu", "gpu"):
+            settings["aiDevice"] = update["aiDevice"]
         for key in ("scenario", "personality"):
             if isinstance(update.get(key), str) and re.fullmatch(r"[a-z0-9-]{1,40}", update[key]):
                 settings[key] = update[key]
@@ -3853,6 +3941,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"battery": on_battery()})
         if path == "/api/cpu":
             return self.send_json(cpu_status())
+        if path == "/api/gpu":
+            return self.send_json(gpu_status())
         if path == "/api/achievements":
             return self.send_json(achievements())
         if path == "/api/update-auto":
@@ -3972,7 +4062,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/api/settings":
             update = self.read_json()
-            before = cpu_limit()
+            before = (cpu_limit(), ai_device())
             old = read_json(SETTINGS_FILE, {})
             settings = apply_settings(update)
             for key, stat in (("theme", "themes"), ("background", "backgrounds"),
@@ -3981,8 +4071,8 @@ class Handler(BaseHTTPRequestHandler):
                     record(stat, settings[key])
             if update.get("tourDone") is True:   # finished to the end, not skipped
                 record("tour")
-            if cpu_limit() != before:
-                threading.Thread(target=warm_model, daemon=True).start()   # reload the AI with its new core count now
+            if (cpu_limit(), ai_device()) != before:
+                threading.Thread(target=warm_model, daemon=True).start()   # reload the AI with its new cores or device now
             return self.send_json(settings)
         if self.path == "/api/voice":
             return self.send_json(voice_action(str(self.read_json().get("action", ""))))

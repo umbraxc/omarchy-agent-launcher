@@ -1350,6 +1350,15 @@ body.reduce-motion .mp-cfile.glitch .mp-cf-name::after { animation: fade .2s eas
 .seg-step small { font-size: 9px; letter-spacing: .22em; }
 .seg-step.on { color: var(--fg); }
 .seg-step.current { color: var(--signal); }
+.seg-dev { grid-template-columns: repeat(2, 1fr); cursor: default; touch-action: auto; margin-bottom: 10px; }
+.seg-dev .seg-fill { left: calc(var(--pick, 0) * 50%); width: 50%; border-left: 2px solid var(--signal);
+  transition: left .25s cubic-bezier(.3, .7, .3, 1); }
+.seg-dev .seg-step.unavailable { color: var(--faint); cursor: not-allowed; }
+.seg-dev .seg-step.unavailable small { color: var(--red); opacity: .8; }
+.dev-note.flash { animation: dev-flash .6s ease-out; }
+@keyframes dev-flash { 0%, 40% { color: var(--signal); } 100% { color: inherit; } }
+.set-cpu.swap .cpu-graph, .set-cpu.swap .cpu-legend, .set-cpu.swap .cpu-stats { animation: fade .35s ease-out both; }
+.set-cpu.gpu-mode .cpu-cores { display: none; }
 .set-row {
   display: flex; align-items: center; justify-content: space-between; gap: 14px;
   padding: 9px 4px; border-bottom: 1px dashed var(--line); cursor: default;
@@ -1556,6 +1565,10 @@ body.offgrid .offgrid-tag { display: block; }
 /* Shortcuts overview. */
 .keys { display: grid; grid-template-columns: auto 1fr; gap: 7px 18px; margin: 6px 0 18px; font-size: 12px; color: var(--fg); align-items: center; }
 .keys .kk { white-space: nowrap; color: var(--dim); }
+.keys-overlay .dialog { width: min(920px, calc(100% - 32px)); }
+/* Two columns of shortcuts when there's room; the list scrolls, never the frame. */
+.keys-overlay .keys { max-height: calc(100vh - 210px); overflow-y: auto; }
+@media (min-width: 760px) { .keys-overlay .keys { grid-template-columns: auto 1fr auto 1fr; gap: 7px 18px; } }
 .keys kbd { display: inline-block; padding: 1px 6px; border: 1px solid var(--muted); border-bottom-width: 2px; color: var(--signal); font-size: 11px; opacity: 1; margin: 0; }
 .loadout-chip:hover { color: var(--signal); }
 
