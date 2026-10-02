@@ -100,7 +100,7 @@ Umbra is fully offline by default. When you have internet, switch **LINK** to
 you which facts came from where. It always asks first, and every launch starts
 local.
 
-On Linux, going online opens **Umbra Online**: a web browser on the left and
+Going online opens **Umbra Online**: a web browser on the left and
 Umbra on the right, in one window and in your theme. Umbra reads each page
 with you. It says what it spotted and offers to summarise it, quiz you or
 make a list. When set to chatty it shares fun facts and remarks as you
