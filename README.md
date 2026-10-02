@@ -16,8 +16,8 @@ and no subscription. Nothing you ask leaves your machine.
   and a built-in field manual covers the critical basics.
 - **Farming field planner**: explore edible crops and livestock through
   animated ASCII field cards, then adjust land, care, feed and food estimates.
-- **Umbra Outpost**: an optional fictional settlement game with eight resources,
-  station upgrades, offline progress and two choice driven expeditions.
+- **Umbra Outpost**: an optional idle game with 21 skills, 236 items in 3D
+  ASCII art, gear, battles, expeditions, bounties and companions, all offline.
 - **Made to be lived with**: scenarios and personalities, a welcome tour,
   history, voice input, 22 themes, animated backgrounds and transitions, and
   an off-grid battery saver.
@@ -183,7 +183,7 @@ your saved conversations once, so earlier use counts too.
 **The Locker** (Profile → LOCKER) turns them into rewards: 23 orbs for the start
 screen, drawn in colour (radar scope, compass, moon phases, ringed world, the
 watcher, black sun, and for the hardest achievements a galaxy, an aurora, an
-atom, a black hole and a supernova, plus five Outpost scenes), 12
+atom, a black hole and a supernova, plus nine Outpost scenes), 12
 titles shown with your name, and 5 name effects. Ranks and particular
 achievements unlock them; a note tells you when one does. Achievements start
 counting once the welcome tour is done.
@@ -248,13 +248,26 @@ Settings tab stays anchored. Your tab order is saved on this computer.
 
 ### Umbra Outpost
 
-The **Umbra Outpost** tab is a separate fictional game. Food, water, wood,
-scrap, energy, medicine, knowledge and morale support a small settlement.
-Build and upgrade stations to gather resources while Umbra is closed. Hover
-the animated camp sites for live production, then send expeditions to the
-silent weather station and the glasshouse. Each story
-has two choices when the team returns. The save stays on this device and is
-included in Umbra backups; it never changes your real Farming plan or supplies.
+The **Umbra Outpost** tab (Ctrl+B) is a separate fictional idle game. Train
+21 skills to level 99, one action at a time: gather (Forestry, Salvaging,
+Fishing, Foraging, Trapping, Quarrying), make (Cooking, Metalwork, Carpentry,
+Tailoring, Remedies, Tinkering), support the camp (Hearthkeeping, Signals,
+Scouting) and fight. Every recipe has its own mastery; 236 items fill a
+stockpile, each drawn in 3D ASCII, with a hover card showing what it does and
+where it comes from. Gear up, fight in six areas, clear four expeditions (the
+first two end with the original story choices), take bounties and find 17
+companions. Eight buildings grow to level 10 and keep producing supplies, and
+everything keeps going while Umbra is closed, for up to a day. The save stays
+on this device and is included in Umbra backups; it never changes your real
+Farming plan or supplies.
+
+### Conversation scenery
+
+When a conversation is about a place or the outdoors, Umbra may show a 3D
+ASCII landscape under its answer: twenty scenes from alpine peaks and a
+lighthouse at night to an aurora, a waterfall and a campfire. At most one
+appears an hour, unless the conversation clearly moves to a new subject, and
+never for emergencies or in off-grid mode.
 
 ### Offline night sky
 
