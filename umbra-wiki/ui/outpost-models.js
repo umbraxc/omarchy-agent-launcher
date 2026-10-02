@@ -29,14 +29,16 @@ window.UmbraOutpostModels = (() => {
   // The camera frames each model by its measured size, so every object
   // fills its box the same way, centred.
   function fit(map, ground) {
-    const h = { m: "" }, N = 18, lo = [9, 9, 9], hi = [-9, -9, -9];
+    // A point counts when the surface is within half a grid step, so thin
+    // shapes (blades, strings, keys) are found too.
+    const h = { m: "" }, N = 24, lo = [9, 9, 9], hi = [-9, -9, -9], near = 2.6 / (N - 1) * .6;
     for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) for (let k = 0; k < N; k++) {
       const x = -1.3 + 2.6 * i / (N - 1), y = -1.3 + 2.6 * j / (N - 1), z = -1.3 + 2.6 * k / (N - 1);
-      if (map(x, y, z, 0, h) < .02 && !(ground && h.m === "ground")) { lo[0] = Math.min(lo[0], x); lo[1] = Math.min(lo[1], y); lo[2] = Math.min(lo[2], z); hi[0] = Math.max(hi[0], x); hi[1] = Math.max(hi[1], y); hi[2] = Math.max(hi[2], z); }
+      if (map(x, y, z, 0, h) < near && !(ground && h.m === "ground")) { lo[0] = Math.min(lo[0], x); lo[1] = Math.min(lo[1], y); lo[2] = Math.min(lo[2], z); hi[0] = Math.max(hi[0], x); hi[1] = Math.max(hi[1], y); hi[2] = Math.max(hi[2], z); }
     }
     if (lo[0] > hi[0]) return { c: [0, 0, 0], r: 1 };
     const c = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2];
-    return { c, r: Math.max(.25, Math.hypot(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]) / 2 + .08) };
+    return { c, r: Math.max(.25, Math.hypot(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]) / 2 - near + .06) };
   }
   function model(parts, mats, o = {}) {
     const map = (x, y, z, t, h) => { const b = [99, ""]; parts(x, y, z, b, h, t); return b[0]; };
@@ -150,27 +152,27 @@ window.UmbraOutpostModels = (() => {
       nails: (x, y, z, b, h) => { for (let k = 0; k < 7; k++) { const a = k * .9, ox = Math.cos(a) * .25, oz = Math.sin(a) * .25; U(b, sd.capsule(x, y, z, ox - .4, -.3 + k * .05, oz, ox + .4, -.2 + k * .05, oz, .03), "main", h); U(b, sd.cyl(x - ox + .42, y + .27 - k * .05, z - oz, .07, .02), "main", h); } },
       gear: (x, y, z, b, h) => { const a = Math.atan2(z, x), r = Math.hypot(x, z); U(b, Math.max(Math.abs(y) - .1, r - .55 - .1 * (Math.cos(a * 10) > 0 ? 1 : 0), .18 - r), "main", h); },
       rollw: (x, y, z, b, h) => U(b, Math.max(sd.cyl(x, y + .3, z, .45, .6), .12 - Math.hypot(x, z)), "main", h),
-      vial: (x, y, z, b, h) => { U(b, sd.capsule(x, y, z, 0, -.5, 0, 0, .3, 0, .22), "glass", h); U(b, sd.cyl(x, y - .3, z, .1, .3), "glass", h); U(b, sd.cyl(x, y - .6, z, .12, .12), "cork", h); },
+      vial: (x, y, z, b, h) => { U(b, sd.capsule(x, y, z, 0, -.5, 0, 0, .3, 0, .26), "liquidv", h); U(b, sd.capsule(x, y, z, 0, -.5, 0, 0, .3, 0, .28), "glass", h); U(b, sd.cyl(x, y - .3, z, .1, .3), "glass", h); U(b, sd.cyl(x, y - .6, z, .12, .12), "cork", h); },
       board: (x, y, z, b, h) => { const [rx, rz] = A.rotY(x, z, .4); U(b, sd.box(rx, y, rz, .75, .04, .5), "main", h); for (const [cx, cz] of [[-.3, -.15], [.2, .15], [.35, -.2]]) U(b, sd.box(rx - cx, y - .08, rz - cz, .14, .05, .1), "chip", h); },
       battery: (x, y, z, b, h) => { U(b, sd.cyl(x, y + .55, z, .28, 1), "main", h); U(b, sd.cyl(x, y - .45, z, .1, .1), "metal", h); U(b, sd.cyl(x, y + .1, z, .29, .25), "band", h); },
       lens: (x, y, z, b, h) => { U(b, Math.max(sd.sphere(x, y, z, .7) , Math.abs(z) - .1), "glass", h); U(b, Math.max(sd.torus(x, z, y, .6, .08), 0), "metal", h); },
       can: (x, y, z, b, h) => { U(b, sd.rbox(x, y + .05, z, .45, .55, .2, .06), "main", h); U(b, sd.capsule(x, y, z, -.25, .62, 0, .15, .62, 0, .05), "metal", h); U(b, sd.cyl(x - .35, y - .6, z, .07, .2), "metal", h); },
       piston: (x, y, z, b, h) => { U(b, sd.cyl(x, y - .1, z, .32, .45), "main", h); U(b, sd.capsule(x, y, z, 0, .1, 0, .2, -.7, 0, .07), "main", h); U(b, sd.torus(x - .2, z, y + .7, .14, .05), "main", h); },
-      blade: (x, y, z, b, h) => { const [rx, rz] = A.rotY(x, z, .5); U(b, sd.box(rx + .3, y, rz, .4, .02, .05), "metal", h); U(b, Math.max(sd.box(rx - .3, y, rz, .3, .015, .1), (rx - .3) * .3 + Math.abs(rz) - .1), "main", h); },
+      blade: (x, y, z, b, h) => { for (const [oz, a] of [[-.25, .4], [0, .5], [.25, .6]]) { const [rx, rz] = A.rotY(x, z - oz, a); U(b, sd.capsule(rx, y, rz, .05, 0, 0, .75, 0, 0, .05), "metal", h); U(b, Math.max(sd.box(rx - .3, y, rz, .35, .04, .09), (rx - .3) * .3 + Math.abs(rz) - .09), "main", h); } },
       pins: (x, y, z, b, h) => { for (let k = 0; k < 9; k++) U(b, sd.cyl(x - (k % 3 - 1) * .3, y + .25, z - (Math.floor(k / 3) - 1) * .3, .05, .5), "main", h); U(b, sd.box(x, y + .3, z, .5, .04, .5), "chip", h); },
       valve: (x, y, z, b, h) => { U(b, sd.capsule(x, y, z, 0, -.2, 0, 0, .4, 0, .3), "glass", h); U(b, sd.capsule(x, y, z, 0, -.1, 0, 0, .3, 0, .05), "glowpart", h); U(b, sd.cyl(x, y + .55, z, .3, .3), "metal", h); },
       core: (x, y, z, b, h) => U(b, sd.rbox(x, y, z, .45, .45, .45, .06), "core", h),
       bricks: (x, y, z, b, h) => { U(b, sd.box(x, y + .18, z, .55, .16, .28) - .02, "main", h); U(b, sd.box(x + .15, y - .16, z, .55, .16, .28) - .02, "main", h); },
       kit: (x, y, z, b, h) => { U(b, sd.rbox(x, y + .1, z, .55, .3, .35, .05), "main", h); U(b, sd.capsule(x, y, z, .3, .4, 0, .4, 1, -.1, .025), "metal", h); U(b, sd.cyl(x + .2, y - .12, z - .36, .1, .02), "glowpart", h); },
       panel: (x, y, z, b, h) => { const k = (z * .6 + y); U(b, Math.max(sd.box(x, k, z * .8 - y * .6, .7, .04, .5), 0), "main", h); U(b, sd.capsule(x, y, z, 0, -.6, .2, 0, -.05, 0, .04), "metal", h); },
-      shafts: (x, y, z, b, h) => { for (let k = 0; k < 7; k++) { const a = k * .9, ox = Math.cos(a) * .12, oz = Math.sin(a) * .12; U(b, sd.capsule(x - ox, y, z - oz, -.85, 0, 0, .85, 0, 0, .025), "main", h); } U(b, sd.torus(z, x, y, .17, .03), "metal", h); },
+      shafts: (x, y, z, b, h) => { for (let k = 0; k < 7; k++) { const a = k * .9, ox = Math.cos(a) * .14, oz = Math.sin(a) * .14; U(b, sd.capsule(x - ox, y, z - oz, -.85, 0, 0, .85, 0, 0, .055), "main", h); } U(b, sd.torus(z, x, y, .17, .03), "metal", h); },
       cells: (x, y, z, b, h) => { for (const ox of [-.32, 0, .32]) { U(b, sd.cyl(x - ox, y + .45, z, .14, .8), "main", h); U(b, sd.cyl(x - ox, y - .33, z, .06, .06), "metal", h); U(b, sd.cyl(x - ox, y + .05, z, .145, .16), "band", h); } },
       crystal: (x, y, z, b, h) => U(b, (Math.abs(x) + Math.abs(z) * 1.2 + Math.abs(y) * .55) * .7 - .4, "glowpart", h),
       lump: (x, y, z, b, h) => U(b, sd.sphere(x, y, z, .5) + .12 * noise2(x * 5, y * 5 + z * 3), "main", h),
       boot: (x, y, z, b, h) => { U(b, sd.rbox(x + .1, y, z, .2, .45, .22, .08), "main", h); U(b, sd.rbox(x - .2, y + .35, z, .45, .12, .22, .08), "main", h); U(b, sd.box(x - .15, y + .48, z, .5, .03, .23), "dark", h); },
     };
     return model(P[kind], { main: kind === "shard" ? M.glass(color) : ["coil", "pins", "gear", "nails", "piston", "pile"].includes(kind) ? M.metal(color) : M.solid(color, RAMP.solid),
-      metal: M.metal(STEEL), glass: M.glass("#cfe8ee"), cork: M.solid("#a07a52"), chip: M.solid("#2a2e30"), band: M.solid("#e0c060"), dark: M.solid(DARK),
+      metal: M.metal(STEEL), glass: M.glass("#cfe8ee"), liquidv: { color: hex("#9fd8e8"), shade(c) { c.emit = .55; } }, cork: M.solid("#a07a52"), chip: M.solid("#2a2e30"), band: M.solid("#e0c060"), dark: M.solid(DARK),
       glowpart: { color: hex(color), shade(c) { c.emit = .9; } }, core: { color: hex(color), ramp: RAMP.metal, shade(c) { const g = Math.abs(Math.sin(c.x * 14)) < .12 || Math.abs(Math.sin(c.y * 14)) < .12; if (g) { c.emit = .95; c.glyph = "+"; } else c.color = hex("#2a3a3a"); } } });
   };
   // Valuables and keepsakes.
@@ -178,7 +180,7 @@ window.UmbraOutpostModels = (() => {
     const P = {
       coin: (x, y, z, b, h) => { const [rx, rz] = A.rotY(x, z, .5); U(b, sd.cyl(rx, rz + .07, y, .55, .14), "gold", h); },
       frame: (x, y, z, b, h) => { const [rx, rz] = A.rotY(x, z, .3); U(b, Math.max(sd.box(rx, y, rz, .5, .62, .04), -sd.box(rx, y, rz - .03, .4, .52, .04)), "wood", h); U(b, sd.box(rx, y, rz, .4, .52, .02), "photo", h); },
-      key: (x, y, z, b, h) => { U(b, sd.torus(x + .5, z, y, .22, .05), "gold", h); U(b, sd.capsule(x, y, z, -.28, 0, 0, .7, 0, 0, .05), "gold", h); U(b, sd.box(x - .6, y + .12, z, .04, .1, .03), "gold", h); U(b, sd.box(x - .45, y + .1, z, .03, .08, .03), "gold", h); },
+      key: (x, y, z, b, h) => { U(b, sd.torus(x + .5, z, y, .24, .08), "gold", h); U(b, sd.capsule(x, y, z, -.28, 0, 0, .7, 0, 0, .08), "gold", h); U(b, sd.box(x - .6, y + .14, z, .06, .13, .06), "gold", h); U(b, sd.box(x - .44, y + .12, z, .05, .1, .06), "gold", h); },
       bottle: (x, y, z, b, h) => { const [rx, rz] = A.rotY(x, z, .4); U(b, sd.capsule(rx, y, rz, -.5, 0, 0, .25, 0, 0, .24), "glass", h); U(b, sd.capsule(rx, y, rz, .25, 0, 0, .7, 0, 0, .09), "glass", h); U(b, sd.capsule(rx, y, rz, -.35, 0, 0, .15, 0, 0, .1), "paper", h); },
       blob: (x, y, z, b, h) => U(b, sd.sphere(x, y, z, .5) + .08 * noise2(x * 4, y * 4 + z * 3), "gem", h),
       gem: (x, y, z, b, h) => U(b, (Math.abs(x) + Math.abs(y) * 1.3 + Math.abs(z)) * .6 - .42, "gem", h),
@@ -192,7 +194,7 @@ window.UmbraOutpostModels = (() => {
   // Gear. The metal part takes the tier's colour; grips and straps stay.
   F.machete = (metal) => model((x, y, z, b, h) => { const ry = y + x * .35;
     // A broad blade that widens to the tip, a guard and a wrapped grip.
-    U(b, Math.max(sd.box(x + .2, ry, z, .62, .2 + (x + .2) * -.06, .025), (-x - .82) + Math.abs(ry - .08) * .9), "blade", h);
+    U(b, Math.max(sd.box(x + .2, ry, z, .62, .2 + (x + .2) * -.06, .05), (-x - .82) + Math.abs(ry - .08) * .9), "blade", h);
     U(b, sd.box(x - .46, ry, z, .05, .26, .08), "guard", h); U(b, sd.capsule(x, ry, z, .5, 0, 0, .95, 0, 0, .08), "grip", h); },
     { blade: { ...M.metal(METALS[metal]), shade(c) { if (c.y + c.x * .35 > .1) { c.color = mix(hex(METALS[metal]), [255, 255, 255], .35); c.glyph = "="; } } }, guard: M.metal("#6a6050"), grip: { color: hex(WRAP), ramp: RAMP.wood, shade(c) { c.glyph = Math.sin(c.x * 50) > 0 ? "/" : "="; } } }, { cam: [.5, .7, 3] });
   F.helmet = (color, leather) => model((x, y, z, b, h) => { U(b, Math.max(sd.sphere(x, y + .15, z, .6), -(y + .15)), "shell", h); U(b, Math.max(sd.cyl(x, y + .2, z, .72, .07), -y - .2), "shell", h);
@@ -208,10 +210,10 @@ window.UmbraOutpostModels = (() => {
     { face: { color: hex(color), ramp: RAMP.metal, spec: .4, shade(c) { const r = Math.hypot(c.x, c.y); if (Math.abs(Math.sin(r * 18)) < .12) c.glyph = "o"; } }, rim: M.metal("#6a6050") }, { cam: [1.4, 1, 2.8] });
   F.tips = (color) => model((x, y, z, b, h) => { for (const [cx, cz, a] of [[0, 0, 0], [.35, .2, .6], [-.35, .15, -.5]]) { const [rx, rz] = A.rotY(x - cx, z - cz, a); U(b, Math.max(sd.cone(rx, y + .35, rz, .2, .7), 0), "tip", h); } }, { tip: M.metal(color) });
   F.bow = (wood, ornate) => model((x, y, z, b, h) => { const [rx, rz] = A.rotY(x, z, .4);
-    U(b, Math.max(sd.torus(rx + .9, rz, y, 1.15, .05), -(rx + .25)), "limb", h); U(b, sd.capsule(rx, y, rz, -.24, -.82, 0, -.24, .82, 0, .008), "string", h); U(b, sd.capsule(rx, y, rz, .22, -.15, 0, .26, .15, 0, .075), "grip", h); },
+    U(b, Math.max(sd.torus(rx + .9, rz, y, 1.15, .09), -(rx + .25)), "limb", h); U(b, sd.capsule(rx, y, rz, -.24, -.82, 0, -.24, .82, 0, .025), "string", h); U(b, sd.capsule(rx, y, rz, .22, -.15, 0, .26, .15, 0, .075), "grip", h); },
     { limb: { color: hex(wood), ramp: RAMP.wood, shade(c) { if (ornate && Math.sin(c.y * 30) > .7) c.color = hex("#e8c56a"); } }, string: M.solid("#f0ead8"), grip: M.solid(WRAP, RAMP.wood) });
   F.arrows = (color) => model((x, y, z, b, h) => { for (const [oy, oz] of [[0, 0], [.14, .1], [-.12, .12]]) { const [rx, rz] = A.rotY(x, z - oz, .5), ry = y - oy;
-    U(b, sd.capsule(rx, ry, rz, -.75, 0, 0, .55, 0, 0, .025), "shaft", h); U(b, Math.max(sd.cone(-(rx - .75), ry, rz, .07, .2) , 0), "tip", h); U(b, Math.max(Math.abs(rz) - .01, Math.abs(ry) - .09, Math.abs(rx + .62) - .13), "fletch", h); } },
+    U(b, sd.capsule(rx, ry, rz, -.75, 0, 0, .55, 0, 0, .05), "shaft", h); U(b, sd.cone(-(rx - .75), ry, rz, .11, .26), "tip", h); U(b, Math.max(Math.abs(rz) - .03, Math.abs(ry) - .12, Math.abs(rx + .62) - .13), "fletch", h); } },
     { shaft: M.solid("#c8a46e", RAMP.wood), tip: M.metal(color), fletch: M.solid("#efe8dc") });
   F.glove = (color) => model((x, y, z, b, h) => { U(b, sd.rbox(x, y + .1, z, .32, .38, .12, .1), "l", h); for (let k = 0; k < 4; k++) U(b, sd.capsule(x, y, z, -.22 + k * .15, .4, 0, -.24 + k * .16, .75 - Math.abs(k - 1.5) * .07, 0, .06), "l", h);
     U(b, sd.capsule(x, y, z, .3, .1, 0, .52, .4, 0, .07), "l", h); U(b, sd.cyl(x, y + .62, z, .34, .2), "cuff", h); }, { l: M.noisy(LIFT(color), color, RAMP.cloth, 8), cuff: M.solid("#5a4232") });

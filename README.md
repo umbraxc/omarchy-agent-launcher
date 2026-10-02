@@ -257,7 +257,7 @@ stockpile, each drawn in 3D ASCII, with a hover card showing what it does and
 where it comes from. Gear up, fight in six areas, clear four expeditions (the
 first two end with the original story choices), take bounties and find 17
 companions. Eight buildings grow to level 10 and keep producing supplies, and
-everything keeps going while Umbra is closed, for up to a day. The save stays
+everything keeps going while you're away (at a tenth of the pace after the first two minutes, for up to a day), with a summary when you return. The save stays
 on this device and is included in Umbra backups; it never changes your real
 Farming plan or supplies.
 

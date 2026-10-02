@@ -4,8 +4,8 @@
 
 ### Highlights
 
-- Umbra Outpost is now a full idle game: 21 skills to level 99, mastery, a stockpile of 236 items, gear, the Trader, battles, four expeditions, bounties and 17 companions. It keeps going while Umbra is closed.
-- Every Outpost item and recipe has its own 3D ASCII art; hover any item to see it turn, with what it does and where it comes from.
+- Umbra Outpost is now a full idle game: 21 skills to level 99, mastery, a stockpile of 236 items, gear, the Trader, battles, four expeditions, bounties and 17 companions. It keeps going at a gentler pace while you're away, and a summary greets you when you return.
+- Every Outpost item, recipe and building has its own 3D ASCII art; hover any item to see it turn, with what it does and where it comes from.
 - Conversations can show a 3D ASCII landscape that fits the subject, from mountains to a lighthouse at night, at most once an hour.
 - Choose whether the AI runs on the processor or with your graphics card, and see how long a typical answer takes on your computer.
 - Ctrl+B opens Umbra Outpost, the shortcut list is clearer, and the tour on Windows only shows what Windows supports.

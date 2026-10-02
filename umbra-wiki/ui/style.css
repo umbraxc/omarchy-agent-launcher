@@ -3330,7 +3330,7 @@ body.reduce-motion .op-live, body.reduce-motion .op-it.r-legendary, body.reduce-
 .op-start li b { display: grid; place-items: center; flex: none; width: 22px; height: 22px; border: 1px solid var(--line); color: var(--dim); }
 .op-start li em { display: block; font-style: normal; color: var(--fg-bright); font-size: 11px; } .op-start li small { display: block; margin-top: 3px; color: var(--dim); font-size: 10px; font-weight: 400; letter-spacing: 0; line-height: 1.4; }
 .op-start li.done { opacity: .55; } .op-start li.done b { color: var(--signal); border-color: var(--signal); }
-.op-start li.next button { border-color: var(--signal); } .op-start li.next b { color: var(--bg); background: var(--signal); border-color: var(--signal); }
+.op-start li.now button { border-color: var(--signal); } .op-start li.now b { color: var(--bg); background: var(--signal); border-color: var(--signal); }
 /* Every window size keeps the sidebar on the left. */
 @media (max-width: 900px) {
   .op-shell { grid-template-columns: 172px minmax(0, 1fr); grid-template-rows: none; }
@@ -3364,5 +3364,14 @@ body.reduce-motion .op-live, body.reduce-motion .op-it.r-legendary, body.reduce-
 .op-bart canvas.live { background: var(--bg); }
 .op-build.dim .op-bart { filter: saturate(.4) brightness(.8); }
 .op-bart .op-art-r canvas { position: static; width: auto; height: 100%; aspect-ratio: 1; }
-.op-bart canvas.live { left: 50%; width: auto; height: 100%; aspect-ratio: 1; transform: translateX(-50%); }
+.op-bart canvas.live { inset: 0; left: 0; width: 100%; height: 100%; aspect-ratio: auto; transform: none; }
+.op-bart.playing .op-art-r { visibility: hidden; }
 .op-bart canvas { filter: brightness(1.35) contrast(1.08); }
+/* Every first step is the same size, the current one included. */
+.op-start ol { grid-auto-rows: 1fr; }
+.op-start li { display: flex; min-height: 0; }
+.op .op-start li button { flex: 1; height: auto; min-height: 92px; }
+.op-modal h3 { margin: 14px 0 6px; color: var(--signal); font-size: 10px; letter-spacing: .2em; }
+.op-away-levels { color: var(--fg-bright) !important; font-size: 11.5px !important; letter-spacing: .04em; }
+.op-away-sup { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 11px; color: var(--dim); } .op-away-sup b { color: var(--fg-bright); }
+.op-away-pace { color: var(--faint) !important; font-size: 10px !important; margin-top: 12px !important; }

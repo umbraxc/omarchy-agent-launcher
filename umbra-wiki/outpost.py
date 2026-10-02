@@ -16,6 +16,10 @@ import outpost_data as D
 LOCK = threading.Lock()
 VERSION = 2
 OFFLINE_CAP = 24 * 3600
+# Away from the Outpost (closed, or nobody watching): the first two minutes
+# count fully, the rest at a tenth of the pace; still capped at a real day.
+AWAY_FULL = 120
+AWAY_PACE = .1
 LOG_LINES = 40
 BASE_AUTOEAT = 20            # % of max health; Field rations raise it
 REGEN = .01                  # of max health per 2 s outside combat
@@ -615,14 +619,29 @@ def _advance(state, now, events, rng):
     return stop
 
 
+def _shift(state, dt, until):
+    """Move running timers forward by dt, so the action resumes now."""
+    a = state.get("action")
+    if a:
+        for k in ("start", "clock", "pNext", "eNext"):
+            if type(a.get(k)) in (int, float):
+                a[k] += dt
+        if a.get("spawnAt"):
+            a["spawnAt"] += dt
+    if state.get("warmUntil", 0) > until:
+        state["warmUntil"] += dt          # warmth left over isn't lost while away
+
+
 def _snapshot(state):
     return {"xp": dict(state["xp"]), "bank": dict(state["bank"]), "scrip": state["scrip"], "kills": state["stats"].get("kills", 0),
+            "supplies": dict(state["supplies"]),
             "companions": list(state["companions"]), "tokens": state["tokens"]}
 
 
 def _report(before, state, seconds, stop):
     gained = {s: round(state["xp"][s] - before["xp"].get(s, 0)) for s in state["xp"] if state["xp"][s] - before["xp"].get(s, 0) >= 1}
-    if not gained and state["scrip"] == before["scrip"]:
+    supplies = {k: round(v - before["supplies"].get(k, 0), 1) for k, v in state["supplies"].items() if abs(v - before["supplies"].get(k, 0)) >= .1}
+    if not gained and state["scrip"] == before["scrip"] and not supplies:
         return None
     items = {}
     for k in set(before["bank"]) | set(state["bank"]):
@@ -634,7 +653,7 @@ def _report(before, state, seconds, stop):
                        if D.level_for(state["xp"][s]) > D.level_for(before["xp"].get(s, 0))},
             "items": items, "scrip": state["scrip"] - before["scrip"], "kills": state["stats"].get("kills", 0) - before["kills"],
             "companions": [c for c in state["companions"] if c not in before["companions"]], "tokens": state["tokens"] - before["tokens"],
-            "stopped": stop or ""}
+            "supplies": supplies, "pace": AWAY_PACE, "stopped": stop or ""}
 
 
 # ---------------------------------------------------------------- actions
@@ -712,8 +731,16 @@ def interact(path, action=None, now=None):
         events = []
         before = _snapshot(state)
         last = float(state.get("updated", now))
-        stop = _advance(state, now, events, rng)
-        away = now - last >= 120
+        gap = min(max(0, now - last), OFFLINE_CAP)
+        if gap > AWAY_FULL:
+            state["updated"] = now - gap          # a longer absence starts the day it can count
+            until = now - gap + AWAY_FULL + (gap - AWAY_FULL) * AWAY_PACE
+            stop = _advance(state, until, events, rng)
+            _shift(state, now - until, until)
+            state["updated"] = now
+        else:
+            stop = _advance(state, now, events, rng)
+        away = gap >= AWAY_FULL
         reached = {}
         for e in events:
             if e["type"] == "level":

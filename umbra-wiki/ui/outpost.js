@@ -194,7 +194,7 @@
     if (hide || done.every(Boolean)) return "";
     const next = done.indexOf(false);
     return `<section class="op-sec op-start"><h2>✦ GETTING STARTED <small>${done.filter(Boolean).length} of ${STEPS.length} done</small><button type="button" class="inline" data-hide-start="1">HIDE</button></h2>
-      <ol>${STEPS.map(([view, title, hint], i) => `<li class="${done[i] ? "done" : i === next ? "next" : ""}"><button type="button" data-view="${view}"><b>${done[i] ? "✓" : i + 1}</b><span><em>${title}</em><small>${hint}</small></span></button></li>`).join("")}</ol></section>`;
+      <ol>${STEPS.map(([view, title, hint], i) => `<li class="${done[i] ? "done" : i === next ? "now" : ""}"><button type="button" data-view="${view}"><b>${done[i] ? "✓" : i + 1}</b><span><em>${title}</em><small>${hint}</small></span></button></li>`).join("")}</ol></section>`;
   }
   const SKILL_USES = { forestry: "Logs feed Carpentry, Hearthkeeping and the buildings.", salvaging: "Parts and wire for Tinkering, cloth for Tailoring, vials for Remedies.",
     fishing: "Raw fish for Cooking.", foraging: "Herbs for Remedies and Cooking.", trapping: "Hides for Tailoring, meat for Cooking, feathers for arrows.",
@@ -451,6 +451,7 @@
       liveRecipe();
     }
     modals();
+    UmbraOutpostModels.fill(panel);      // pictures in the popups too
     tick();
   }
   // Patch `el` to match `html`, touching only what differs. Art that is
@@ -505,9 +506,17 @@
       const xp = Object.entries(a.xp).sort((x, y) => y[1] - x[1]).map(([k, v]) => `<li style="--sc:${D.skills[k].color}"><span>${D.skills[k].glyph} ${D.skills[k].name}</span><b>+${fmt(v)} XP</b>${a.levels[k] ? `<em>LV ${a.levels[k][0]} → ${a.levels[k][1]}</em>` : ""}</li>`).join("");
       const items = Object.entries(a.items).sort((x, y) => Math.abs(y[1]) - Math.abs(x[1])).slice(0, 18).map(([k, v]) => `<span class="${v < 0 ? "used" : ""}">${icon(k)}<b>${v > 0 ? "+" : ""}${fmt(v)}</b></span>`).join("");
       layer.hidden = false;
-      layer.innerHTML = `<div class="op-modal away"><small>WHILE YOU WERE AWAY · ${dur(a.seconds)}</small><h2>The Outpost kept working.</h2><ul class="op-away-xp">${xp}</ul>
-        ${items ? `<div class="op-away-items">${items}</div>` : ""}<p class="op-away-sum">${a.scrip ? `¤ ${a.scrip > 0 ? "+" : ""}${fmt(a.scrip)} scrip` : ""}${a.kills ? ` · ${fmt(a.kills)} enemies defeated` : ""}${a.tokens ? ` · ✪ +${a.tokens}` : ""}${a.companions.length ? ` · new companion: ${a.companions.map((c) => clean(D.companions[c].name)).join(", ")}` : ""}</p>
-        ${a.stopped ? `<p class="op-away-stop">⚠ ${clean(a.stopped)}</p>` : ""}<button type="button" class="op-go" data-act="ack">BACK TO WORK ▸</button></div>`;
+      const sup = Object.entries(a.supplies || {}).filter(([, v]) => v >= 1).map(([k, v]) => `<span><b>+${fmt(v)}</b> ${k}</span>`).join("");
+      const lv = Object.entries(a.levels || {}).map(([k, [f, t]]) => `${D.skills[k].name} ${f} → ${t}`).join(" · ");
+      layer.innerHTML = `<div class="op-modal away"><small>WHILE YOU WERE AWAY · ${dur(a.seconds)}</small><h2>The Outpost kept working.</h2>
+        ${lv ? `<p class="op-away-levels">▲ LEVELS GAINED · ${clean(lv)}</p>` : ""}
+        ${xp ? `<ul class="op-away-xp">${xp}</ul>` : ""}
+        ${items ? `<h3>ITEMS</h3><div class="op-away-items">${items}</div>` : ""}
+        ${sup ? `<h3>SUPPLIES FROM THE BUILDINGS</h3><div class="op-away-sup">${sup}</div>` : ""}
+        <p class="op-away-sum">${a.scrip ? `¤ ${a.scrip > 0 ? "+" : ""}${fmt(a.scrip)} scrip` : ""}${a.kills ? ` · ${fmt(a.kills)} enemies defeated` : ""}${a.tokens ? ` · ✪ +${a.tokens}` : ""}${a.companions.length ? ` · new companion: ${a.companions.map((c) => clean(D.companions[c].name)).join(", ")}` : ""}</p>
+        ${a.stopped ? `<p class="op-away-stop">⚠ ${clean(a.stopped)}</p>` : ""}
+        <p class="op-away-pace">While you're away the Outpost works at a tenth of its pace after the first two minutes, for up to a day.</p>
+        <button type="button" class="op-go" data-act="ack">BACK TO WORK ▸</button></div>`;
       if (!layer.dataset.shown) { Sound.complete(); layer.dataset.shown = "1"; }
       return;
     }
@@ -540,10 +549,11 @@
     const card = e.target.closest("[data-building-card]");
     if (card === bCard) return;
     bLive?.stop(); bLive = null; panel.querySelectorAll(".op-bart canvas.live").forEach((c) => c.remove());
+    panel.querySelectorAll(".op-bart.playing").forEach((b) => b.classList.remove("playing"));
     bCard = card;
     if (!card || window.offgrid || document.body.classList.contains("reduce-motion")) return;
     const box = card.querySelector(".op-bart"), c = document.createElement("canvas");
-    c.className = "live"; box.appendChild(c);
+    c.className = "live"; box.appendChild(c); box.classList.add("playing");
     bLive = Ascii3D.view(c, UmbraOutpostModels.spin(UmbraOutpostModels.building(card.dataset.buildingCard, +card.dataset.level), .45), { cell: 5 });
   });
 
