@@ -13,7 +13,9 @@ window.UmbraOutpostArt = (() => {
   // Ground stays quiet so the subject reads: sparse glyphs, half strength.
   const ground = (c1, c2) => ({ color: hex(c1), ramp: " .,:;'", shade(c) { c.color = mix(hex(c1), hex(c2), noise2(c.x * 2, c.z * 2)); c.alpha = .5; } });
   const floor = (c1) => ({ color: hex(c1), ramp: " .,:-", shade(c) { c.alpha = .45; } });
-  const orbit = (r, h, at = [0, .6, 0], speed = .12) => (t) => ({ pos: [Math.sin(t * speed + .6) * r * 1.25, h * .85, Math.cos(t * speed + .6) * r * 1.25], at: [at[0], at[1] + .1, at[2]], fovV: 34 });
+  // A fixed three-quarter view: the scene is traced once and only its
+  // moving parts redraw (orbiting cameras cost a full trace every frame).
+  const orbit = (r, h, at = [0, .6, 0]) => () => ({ pos: [Math.sin(.6) * r * 1.25, h * .85, Math.cos(.6) * r * 1.25], at: [at[0], at[1] + .1, at[2]], fovV: 34 });
   const U = (best, d, m, h) => { if (d < best[0]) { best[0] = d; h.m = m; } };
 
   // Small helpers for skill scenes.
@@ -23,7 +25,7 @@ window.UmbraOutpostArt = (() => {
   }
   const SKILL = {};
 
-  SKILL.forestry = () => ({ live: true, fps: 10, camera: orbit(4.6, 1.6, [0, 1, .8]), light: [-.4, .8, .4], ambient: .3,
+  SKILL.forestry = () => ({ fps: 9, camera: orbit(4.6, 1.6, [0, 1, .8]), light: [-.4, .8, .4], ambient: .3,
     map(x, y, z, t, h) { const b = [y, ""]; h.m = "grass";
       pine(x + .9, y, z + 1.2, 1.15, b, h); pine(x - 1.5, y, z + 1.6, .9, b, h); pine(x - .1, y, z + 2.4, 1.3, b, h); pine(x + 2.2, y, z + .2, .8, b, h);
       U(b, sd.cyl(x - .9, y, z - .4, .26, .32), "stump", h);
@@ -35,7 +37,7 @@ window.UmbraOutpostArt = (() => {
       handle: plain("#8a6a4a", RAMP.wood), metal: plain("#c8ccd2", RAMP.metal) },
     particles: (t, put) => { for (let i = 0; i < 8; i++) { const p = (t * .4 + i / 8) % 1; put(-.9 + Math.cos(i * 2.3) * p * .6, .4 + Math.sin(p * 3) * .4, -.4 + Math.sin(i * 2.3) * p * .6, "'", [222, 190, 140], 1 - p); } },
   });
-  SKILL.salvaging = () => ({ live: true, camera: orbit(3.6, 1.4, [0, .5, 0]), light: [.4, .8, .3], ambient: .28,
+  SKILL.salvaging = () => ({ fps: 9, camera: orbit(3.6, 1.4, [0, .5, 0]), light: [.4, .8, .3], ambient: .28,
     map(x, y, z, t, h) { const b = [y, ""]; h.m = "dirt";
       U(b, sd.rbox(x, y - .35, z, 1.1, .25, .5, .08), "car", h); U(b, sd.rbox(x + .1, y - .7, z, .55, .2, .45, .08), "car", h);
       for (const [wx, wz] of [[-.7, .5], [.7, .5], [-.7, -.5], [.7, -.5]]) U(b, sd.torus(x - wx, z - wz, y - .2, .17, .08), "tyre", h);
@@ -46,7 +48,7 @@ window.UmbraOutpostArt = (() => {
       tyre: plain("#2e2c2a", RAMP.rock), glass: { color: hex("#9fd0d8"), ramp: " .:/+", shade(c) { c.glyph = noise2(c.x * 8, c.y * 8) > .6 ? "/" : ":"; } }, scrap: plain("#a8a49c", RAMP.metal) },
     particles: (t, put) => { const p = (t * .5) % 1; put(.1 + Math.cos(t) * .3, .95 + p * .2, .2, p < .5 ? "✦" : "+", [255, 240, 190], 1 - p); },
   });
-  SKILL.fishing = () => ({ live: true, camera: orbit(3.2, 1.3, [0, .45, 0], .08), light: [-.3, .7, .5], ambient: .3,
+  SKILL.fishing = () => ({ fps: 9, moving: [[-.7, 0, -.1, .16]], camera: orbit(3.2, 1.3, [0, .45, 0], .08), light: [-.3, .7, .5], ambient: .3,
     map(x, y, z, t, h) { const b = [y - .02 * Math.sin(x * 3 + t), ""]; h.m = "water";
       U(b, sd.box(x + 1.2, y - .3, z, .9, .05, .35), "plank", h);
       for (const px of [.4, 2]) for (const pz of [-.3, .3]) U(b, sd.cyl(x + px, y + .4, z - pz, .05, .75), "plank", h);
@@ -57,7 +59,7 @@ window.UmbraOutpostArt = (() => {
     materials: { water, plank: plain("#8a6a4a", RAMP.wood), rod: plain("#c8a46e", RAMP.wood), float: { color: [230, 70, 60], shade(c) { c.emit = .9; c.glyph = "o"; } }, jacket: plain("#d9a23c") },
     particles: (t, put) => { const p = (t * .35) % 1; for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2; put(-.7 + Math.cos(a) * p * .6, .02, -.1 + Math.sin(a) * p * .35, "·", [210, 236, 246], .6 * (1 - p)); } },
   });
-  SKILL.foraging = () => ({ live: true, camera: orbit(2.8, 1.2, [0, .35, 0]), light: [-.4, .8, .3], ambient: .3,
+  SKILL.foraging = () => ({ fps: 9, camera: orbit(2.8, 1.2, [0, .35, 0]), light: [-.4, .8, .3], ambient: .3,
     map(x, y, z, t, h) { const b = [y, ""]; h.m = "moss";
       for (const [mx, mz, s] of [[0, 0, 1], [.35, .25, .7], [-.3, .3, .6], [.15, -.4, .8]]) { U(b, sd.cyl(x - mx, y, z - mz, .06 * s, .35 * s), "stem", h); U(b, Math.max(sd.sphere(x - mx, y - .35 * s, z - mz, .24 * s), .35 * s - y + .01), "cap", h); }
       for (const [bx, bz] of [[-1, -.6], [1.1, -.5], [.9, .8]]) U(b, sd.sphere(x - bx, y - .3, z - bz, .42) + .06 * noise2(x * 6, z * 6), "bush", h);
@@ -66,7 +68,7 @@ window.UmbraOutpostArt = (() => {
       bush: { color: hex("#4f8a4a"), ramp: RAMP.leaf, shade(c) { if (hash2(Math.floor(c.x * 14), Math.floor(c.y * 14 + c.z * 9)) > .88) { c.glyph = "•"; c.color = [120, 70, 160]; } } } },
     particles: (t, put) => { for (let i = 0; i < 4; i++) { const a = t * 1.2 + i * 1.6; put(Math.cos(a) * .9, .7 + Math.sin(a * 2) * .2, Math.sin(a) * .7, Math.sin(t * 10 + i) > 0 ? "ʚ" : "ɞ", [255, 220, 120], .9); } },
   });
-  SKILL.trapping = () => ({ live: true, camera: orbit(3, 1.2, [0, .3, 0]), light: [-.4, .8, .3], ambient: .3,
+  SKILL.trapping = () => ({ fps: 9, moving: [[-.5, .3, 0, .5]], camera: orbit(3, 1.2, [0, .3, 0]), light: [-.4, .8, .3], ambient: .3,
     map(x, y, z, t, h) { const b = [y - .1 * Math.max(0, .6 - Math.hypot(x + .5, z)), ""]; h.m = "meadow";
       for (const [gx, gz] of [[-1.2, -.6], [1.3, .7], [-.9, 1.1], [1.6, -.9]]) U(b, sd.sphere(x - gx, y, z - gz, .3) + .05 * noise2(x * 8, z * 8), "tuft", h);
       U(b, Math.max(sd.sphere(x + .5, y + .15, z, .45), -y), "burrow", h);
@@ -78,7 +80,7 @@ window.UmbraOutpostArt = (() => {
       return b[0]; },
     materials: { meadow: ground("#6f9150", "#9cb562"), tuft: foliage("#6f9a4f", "#9ab760", " .,\"';%"), burrow: plain("#6b5a44", RAMP.rock), stake: plain("#8a6a4a", RAMP.wood), wire: plain("#c3a26e", RAMP.metal), rabbit: plain("#b59a7e") },
   });
-  SKILL.quarrying = () => ({ live: true, camera: orbit(3.2, 1.3, [0, .6, -.4], .08), light: [.5, .7, .4], ambient: .28,
+  SKILL.quarrying = () => ({ fps: 9, camera: orbit(3.2, 1.3, [0, .6, -.4], .08), light: [.5, .7, .4], ambient: .28,
     map(x, y, z, t, h) { const b = [y, ""]; h.m = "gravel";
       U(b, (sd.sphere(x * .7, y - .2, z + 1, 1.2) + .18 * noise2(x * 3, y * 3 + z)), "rock", h);
       for (let i = 0; i < 5; i++) U(b, sd.sphere(x - .9 + i * .4, y - .1, z - .8 + Math.sin(i) * .3, .12), "rubble", h);
@@ -88,7 +90,7 @@ window.UmbraOutpostArt = (() => {
       rock: { color: hex("#8a8378"), ramp: RAMP.rock, shade(c, t) { const v = noise2(c.x * 4 + 3, c.y * 4 + c.z * 2); if (v > .74) { c.color = [214, 140, 82]; c.glyph = "◆"; c.emit = .7 + .2 * Math.sin(t * 2 + c.x * 5); } else c.color = mix(hex("#7a736a"), hex("#a29a8e"), v); } } },
     particles: (t, put) => { const p = (t * .8) % 1; for (let k = 0; k < 5; k++) put(.6 + Math.cos(k * 1.3) * p * .4, .3 + p * .3, -.2 + Math.sin(k * 1.3) * p * .3, ".", [200, 190, 170], 1 - p); },
   });
-  SKILL.cooking = () => ({ live: true, camera: orbit(2.6, 1.1, [0, .35, 0]), light: [0, .6, .8], ambient: .2,
+  SKILL.cooking = () => ({ fps: 9, moving: [[0, .3, 0, .38]], camera: orbit(2.6, 1.1, [0, .35, 0]), light: [0, .6, .8], ambient: .2,
     map(x, y, z, t, h) { const b = [y, ""]; h.m = "earth";
       for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; U(b, sd.sphere(x - Math.cos(a) * .5, y - .05, z - Math.sin(a) * .5, .11), "stone", h); }
       U(b, sd.cone(x, y - .02, z, .3, .45 + .06 * Math.sin(t * 7)), "fire", h);
@@ -96,11 +98,11 @@ window.UmbraOutpostArt = (() => {
       U(b, sd.cyl(x, y - .82, z, .27, .02), "stew", h);
       U(b, Math.min(sd.capsule(x, y, z, -.6, 0, 0, 0, 1.15, 0, .03), sd.capsule(x, y, z, .6, 0, 0, 0, 1.15, 0, .03)), "stick", h);
       return b[0]; },
-    materials: { earth: { color: hex("#4a4034"), ramp: " .,:;'", shade(c, t) { c.alpha = .7; const r = Math.hypot(c.x, c.z); c.emit = clamp(.9 / (1 + r * r * 2) * (.9 + .1 * Math.sin(t * 8)) + .1); c.color = mix(hex("#4a4034"), hex("#e39a52"), clamp(1 / (1 + r * r * 2))); } },
+    materials: { earth: { color: hex("#4a4034"), ramp: " .,:;'", shade(c) { c.alpha = .7; const r = Math.hypot(c.x, c.z); c.emit = clamp(.9 / (1 + r * r * 2) * .95 + .1); c.color = mix(hex("#4a4034"), hex("#e39a52"), clamp(1 / (1 + r * r * 2))); } },
       stone: plain("#8a8278", RAMP.rock), fire, pot: plain("#3d3d42", RAMP.metal), stick: plain("#7a5a3e", RAMP.wood), stew: { color: [200, 120, 60], shade(c, t) { c.emit = .6; c.glyph = noise2(c.x * 9 + t, c.z * 9) > .5 ? "o" : "~"; } } },
     particles: (t, put) => { for (let i = 0; i < 10; i++) { const p = (t * .3 + i / 10) % 1; put(Math.sin(i * 3 + t) * .12 * (1 + p), .9 + p * 1.2, Math.cos(i * 2) * .1, p < .4 ? "o" : "°", [220, 220, 226], .6 * (1 - p)); } },
   });
-  SKILL.metalwork = () => ({ live: true, camera: orbit(2.8, 1.3, [0, .55, 0]), light: [.2, .6, .7], ambient: .2,
+  SKILL.metalwork = () => ({ fps: 9, moving: [[.05, .95, .05, .32]], camera: orbit(2.8, 1.3, [0, .55, 0]), light: [.2, .6, .7], ambient: .2,
     map(x, y, z, t, h) { const b = [y, ""]; h.m = "floor";
       U(b, Math.min(sd.box(x, y - .3, z, .18, .3, .16), sd.box(x, y - .66, z, .5, .08, .2), sd.box(x - .55, y - .68, z, .12, .05, .12)), "anvil", h);
       U(b, sd.box(x, y - .76, z, .26, .02, .08), "hotbar", h);
@@ -113,7 +115,7 @@ window.UmbraOutpostArt = (() => {
       hotbar: { color: [255, 150, 60], shade(c, t) { c.emit = .75 + .2 * Math.sin(t * 3); c.glyph = "="; } }, brick: { color: hex("#9a4f3a"), ramp: RAMP.wall, shade(c) { if (Math.abs((c.y * 6) % 1) < .15) c.color = hex("#5a3a2e"); } }, forgefire: fire },
     particles: (t, put) => { const hit = (t * 4 / (Math.PI * 2)) % 1; if (hit > .7) for (let i = 0; i < 10; i++) { const p = (hit - .7) / .3, a = i * .63; put(Math.cos(a) * p * .6, .8 + Math.sin(p * 3) * .3, Math.sin(a) * p * .4, "*", [255, 200, 90], 1 - p); } },
   });
-  SKILL.carpentry = () => ({ live: true, camera: orbit(3, 1.3, [0, .5, 0]), light: [-.4, .8, .4], ambient: .3,
+  SKILL.carpentry = () => ({ fps: 9, moving: [[.25, .78, 0, .42]], camera: orbit(3, 1.3, [0, .5, 0]), light: [-.4, .8, .4], ambient: .3,
     map(x, y, z, t, h) { const b = [y, ""]; h.m = "shavings";
       for (const sx of [-.7, .7]) { U(b, sd.capsule(x, y, z, sx - .2, 0, -.2, sx, .55, 0, .03), "wood", h); U(b, sd.capsule(x, y, z, sx + .2, 0, .2, sx, .55, 0, .03), "wood", h); }
       U(b, sd.box(x, y - .6, z, 1.1, .04, .18), "plank", h);
@@ -124,16 +126,16 @@ window.UmbraOutpostArt = (() => {
       plank: { color: hex("#d8b27c"), ramp: RAMP.wood, shade(c) { c.glyph = Math.abs(Math.sin(c.x * 20 + noise2(c.x * 3, c.z * 3) * 4)) > .8 ? "=" : "-"; } }, saw: plain("#c8ccd2", RAMP.metal), bow: plain("#c8a46e", RAMP.wood) },
     particles: (t, put) => { for (let i = 0; i < 6; i++) { const p = (t * .9 + i / 6) % 1; put(-.2 + i * .05, .6 - p * .6, .15 + p * .2, "'", [230, 200, 150], 1 - p); } },
   });
-  SKILL.tailoring = () => ({ live: true, camera: orbit(3, 1.2, [0, .7, 0], .1), light: [-.3, .7, .6], ambient: .3,
+  SKILL.tailoring = () => ({ fps: 9, moving: [[.32, .95, .07, .22]], camera: orbit(3, 1.2, [0, .7, 0], .1), light: [-.3, .7, .6], ambient: .3,
     map(x, y, z, t, h) { const b = [y, ""]; h.m = "floor";
       U(b, Math.min(sd.capsule(x, y, z, -.8, 0, 0, -.8, 1.4, 0, .04), sd.capsule(x, y, z, .8, 0, 0, .8, 1.4, 0, .04), sd.capsule(x, y, z, -.8, 1.35, 0, .8, 1.35, 0, .04), sd.capsule(x, y, z, -.8, .25, 0, .8, .25, 0, .04)), "frame", h);
-      U(b, sd.box(x, y - .8, z - .02 * Math.sin(x * 4 + t), .66, .48, .01), "hide", h);
+      U(b, sd.box(x, y - .8, z - .02 * Math.sin(x * 4), .66, .48, .01), "hide", h);
       U(b, sd.capsule(x, y, z, .2 + .1 * Math.sin(t * 3), .9, .05, .35 + .1 * Math.sin(t * 3), 1, .1, .008), "needle", h);
       return b[0]; },
     materials: { floor: floor("#4a4036"), frame: plain("#7a5a3e", RAMP.wood), needle: plain("#e8eef2", RAMP.metal),
       hide: { color: hex("#c49a6c"), ramp: RAMP.wall, shade(c) { if (Math.abs(Math.abs(c.x) - .6) < .03 || Math.abs(Math.abs(c.y - .8) - .44) < .03) { c.glyph = "+"; c.color = hex("#e8d8b8"); } } } },
   });
-  SKILL.remedies = () => ({ live: true, camera: orbit(2.4, 1.3, [0, .55, 0], .1), light: [-.3, .8, .5], ambient: .3,
+  SKILL.remedies = () => ({ fps: 9, camera: orbit(2.4, 1.3, [0, .55, 0], .1), light: [-.3, .8, .5], ambient: .3,
     map(x, y, z, t, h) { const b = [y, ""]; h.m = "floor";
       U(b, sd.box(x, y - .38, z, .9, .04, .45), "table", h);
       for (const [vx, vz, c] of [[-.5, 0, "redliquid"], [-.2, .15, "greenliquid"], [.15, -.05, "blueliquid"]]) {
@@ -145,7 +147,7 @@ window.UmbraOutpostArt = (() => {
       redliquid: { color: [220, 90, 100], shade(c, t) { c.emit = .75; c.glyph = "~"; } }, greenliquid: { color: [110, 210, 120], shade(c) { c.emit = .75; c.glyph = "~"; } }, blueliquid: { color: [110, 170, 230], shade(c) { c.emit = .75; c.glyph = "~"; } } },
     particles: (t, put) => { for (let i = 0; i < 6; i++) { const p = (t * .4 + i / 6) % 1; put(-.2 + Math.sin(i) * .03, .62 + p * .5, .15, "°", [150, 230, 160], .8 * (1 - p)); } },
   });
-  SKILL.tinkering = () => ({ live: true, camera: orbit(2.6, 1.3, [0, .55, 0], .1), light: [-.3, .8, .5], ambient: .26,
+  SKILL.tinkering = () => ({ fps: 9, camera: orbit(2.6, 1.3, [0, .55, 0], .1), light: [-.3, .8, .5], ambient: .26,
     map(x, y, z, t, h) { const b = [y, ""]; h.m = "floor";
       U(b, sd.box(x, y - .38, z, .95, .04, .45), "bench", h);
       U(b, sd.rbox(x + .3, y - .58, z, .32, .18, .16, .04), "radio", h); U(b, sd.cyl(x + .1, y - .6, z - .17, .07, .02), "dial", h);
@@ -156,17 +158,17 @@ window.UmbraOutpostArt = (() => {
       dial: { color: [255, 200, 110], shade(c, t) { c.emit = .7 + .3 * Math.sin(t * 2); c.glyph = "o"; } }, coil: { color: hex("#d98b52"), ramp: RAMP.metal } },
     particles: (t, put) => { if (Math.sin(t * 5) > .3) for (let i = 0; i < 5; i++) put(-.45 + (hash2(i, Math.floor(t * 5)) - .5) * .3, .75 + hash2(i + 9, Math.floor(t * 5)) * .25, .05, "ϟ", [170, 220, 255], .9); },
   });
-  SKILL.hearth = () => ({ live: true, camera: orbit(3, 1.2, [0, .55, 0], .07), light: [0, .5, .8], ambient: .14,
+  SKILL.hearth = () => ({ fps: 9, moving: [[0, .55, 0, .6]], camera: orbit(3, 1.2, [0, .55, 0], .07), light: [0, .5, .8], ambient: .14,
     map(x, y, z, t, h) { const b = [y, ""]; h.m = "earth";
       U(b, Math.max(sd.torus(x, z, y - .2, .6, .2), -y), "stone", h);
       U(b, sd.cone(x, y, z, .45, .9 + .12 * Math.sin(t * 6) + .08 * Math.sin(t * 9.3)), "fire", h);
       for (const a of [0, 2.1, 4.2]) U(b, sd.capsule(x, y, z, Math.cos(a) * .4, .08, Math.sin(a) * .4, -Math.cos(a) * .1, .3, -Math.sin(a) * .1, .07), "log", h);
       return b[0]; },
-    materials: { earth: { color: hex("#3a3028"), ramp: " .,:;'", shade(c, t) { c.alpha = .7; const r = Math.hypot(c.x, c.z); c.emit = clamp(1.2 / (1 + r * r * 1.2) * (.88 + .12 * Math.sin(t * 7))); c.color = mix(hex("#3a3028"), hex("#ef9a52"), clamp(1.2 / (1 + r * r))); } },
-      stone: { color: hex("#8a8278"), ramp: RAMP.rock, shade(c, t) { c.emit = .5 + .1 * Math.sin(t * 7); } }, fire, log: plain("#5e4532", RAMP.wood) },
+    materials: { earth: { color: hex("#3a3028"), ramp: " .,:;'", shade(c) { c.alpha = .7; const r = Math.hypot(c.x, c.z); c.emit = clamp(1.2 / (1 + r * r * 1.2) * .94); c.color = mix(hex("#3a3028"), hex("#ef9a52"), clamp(1.2 / (1 + r * r))); } },
+      stone: { color: hex("#8a8278"), ramp: RAMP.rock, shade(c) { c.emit = .55; } }, fire, log: plain("#5e4532", RAMP.wood) },
     particles: (t, put) => { for (let i = 0; i < 16; i++) { const p = (t * .35 + i / 16) % 1; put(Math.sin(i * 3 + t) * .25 * (1 + p), .6 + p * 1.6, Math.cos(i * 5) * .2, p < .5 ? "*" : "·", mix([255, 220, 120], [220, 80, 40], p), .9 * (1 - p)); } },
   });
-  SKILL.signals = () => ({ live: true, camera: orbit(4, 1.6, [0, 1.4, 0], .07), light: [-.4, .7, .5], ambient: .3,
+  SKILL.signals = () => ({ fps: 9, camera: orbit(4, 1.6, [0, 1.4, 0], .07), light: [-.4, .7, .5], ambient: .3,
     sky: (u, v, t, col, row) => hash2(col, row) > .985 ? ["·", [220, 226, 246], .5 + .4 * Math.sin(t + col)] : null,
     map(x, y, z, t, h) { const b = [y, ""]; h.m = "hill";
       const w = Math.max(.05, .45 - y * .14);
@@ -178,7 +180,7 @@ window.UmbraOutpostArt = (() => {
     materials: { hill: ground("#3f5a45", "#5c7652"), mast: plain("#c0c6cc", RAMP.metal), hut: plain("#7a6a5a", RAMP.wall), beacon: { color: [255, 70, 60], shade(c, t) { c.emit = Math.sin(t * 3) > 0 ? 1 : .3; c.glyph = "@"; } } },
     particles: (t, put) => { for (let k = 0; k < 3; k++) { const p = (t * .4 + k / 3) % 1; for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2; put(Math.cos(a) * p * 2.4, 3.05, Math.sin(a) * p * 2.4, "·", [170, 160, 236], .7 * (1 - p)); } } },
   });
-  SKILL.scouting = () => ({ live: true, camera: orbit(3.8, 1.7, [0, .5, 0], .07), light: [-.4, .8, .3], ambient: .3,
+  SKILL.scouting = () => ({ fps: 9, camera: orbit(3.8, 1.7, [0, .5, 0], .07), light: [-.4, .8, .3], ambient: .3,
     map(x, y, z, t, h) { const b = [y - .2 * noise2(x * .7, z * .7), ""]; h.m = "trail";
       U(b, sd.capsule(x, y, z, -1.6, .55, -.2, 1.6, .55, -.2, .03), "rope", h);
       for (let k = -6; k <= 6; k++) U(b, sd.box(x - k * .25, y - .52, z + .2, .1, .02, .22), "plank", h);
@@ -221,7 +223,16 @@ window.UmbraOutpostArt = (() => {
     U(b, sd.capsule(x, y, z, 0, 1, .15, .35 + .1 * Math.sin(t * 3), .85, .2, .05), "enemy", h);
   }
   function duel(kind) {
-    return { live: true, fps: 10, camera: () => ({ pos: [0, 1.1, 4.6], at: [0, .7, 0], fovV: 23 }), light: [-.3, .8, .6], ambient: .3,
+    return { fps: 9, camera: () => ({ pos: [0, 1.1, 4.6], at: [0, .7, 0], fovV: 23 }), light: [-.3, .8, .6], ambient: .3,
+      // Strikes: arcs of sparks between the two, alternating sides.
+      particles(t, put) {
+        const k = (t * .8) % 2, mine = k < 1, p = k % 1;
+        if (p > .45) return;
+        for (let i = 0; i < 9; i++) {
+          const a = -1.1 + i * .27 + p * 2;
+          put((mine ? .15 : -.15) + Math.cos(a) * .32 * (mine ? 1 : -1), .95 + Math.sin(a) * .3, .2, i % 3 ? "·" : "*", mine ? [255, 230, 160] : [255, 120, 90], 1 - p / .45);
+        }
+      },
       map(x, y, z, t, h) {
         const b = [y, ""]; h.m = "arena";
         // The player: a cloaked figure facing right.

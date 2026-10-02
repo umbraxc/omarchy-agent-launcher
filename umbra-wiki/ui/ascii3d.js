@@ -83,13 +83,13 @@ window.Ascii3D = (() => {
     const g = canvas.getContext("2d");
     const cellPx = opts.cell || 10;
     let W = 0, H = 0, dpr = 1, cols = 0, rows = 0, cw = 6, ch = 10;
-    let buf = null, built = 0, alive = true, timer = 0, visible = true, last = 0;
+    let buf = null, built = 0, alive = true, timer = 0, visible = true, last = 0, cost = 0, frames = 0;
     const hit = { m: "" };
     let cam = null;
 
     function setup() {
-      const r = canvas.getBoundingClientRect();
-      const nd = Math.min(2, window.devicePixelRatio || 1);
+      const r = opts.size ? { width: opts.size[0], height: opts.size[1] } : canvas.getBoundingClientRect();
+      const nd = opts.dpr || Math.min(2, window.devicePixelRatio || 1);
       if (!r.width || !r.height) return false;
       if (r.width === W && r.height === H && nd === dpr && buf) return true;
       W = r.width; H = r.height; dpr = nd;
@@ -100,7 +100,7 @@ window.Ascii3D = (() => {
       buf = { d: new Float32Array(n), nx: new Float32Array(n), ny: new Float32Array(n), nz: new Float32Array(n),
         px: new Float32Array(n), py: new Float32Array(n), pz: new Float32Array(n), sh: new Float32Array(n),
         ao: new Float32Array(n), m: new Array(n) };
-      built = 0; layer = null;
+      built = 0; layer = null; shim = null;
       return true;
     }
 
@@ -145,27 +145,50 @@ window.Ascii3D = (() => {
       return .15 + .85 * Math.max(0, Math.min(1, res));
     }
 
+    // Trace one cell into the buffer.
+    let lightDir = null;
+    function traceCell(i, t) {
+      const B = cam, far = scene.far || 60, [lx, ly, lz] = lightDir;
+      const col = i % cols, row = (i - col) / cols;
+      const sx = (col + .5) * cw - W / 2, sy = H / 2 - (row + .5) * ch;
+      let dx = B.fx * B.focal + B.rx * sx + B.ux * sy, dy = B.fy * B.focal + B.uy * sy, dz = B.fz * B.focal + B.rz * sx + B.uz * sy;
+      const dl = Math.hypot(dx, dy, dz); dx /= dl; dy /= dl; dz /= dl;
+      const [d, steps] = march(B.px, B.py, B.pz, dx, dy, dz, t, far);
+      buf.d[i] = d;
+      if (d < 0) { buf.m[i] = ""; return; }
+      const x = B.px + dx * d, y = B.py + dy * d, z = B.pz + dz * d;
+      buf.m[i] = hit.m;
+      const [nx, ny, nz] = normal(x, y, z, t);
+      buf.nx[i] = nx; buf.ny[i] = ny; buf.nz[i] = nz; buf.px[i] = x; buf.py[i] = y; buf.pz[i] = z;
+      buf.ao[i] = 1 - Math.min(.6, steps / MAX * 1.6);
+      buf.sh[i] = scene.shadows === false ? 1 : shadow(x + nx * .02, y + ny * .02, z + nz * .02, lx, ly, lz, t);
+    }
     // Trace rows [from, to) into the buffer.
     function trace(from, to, t) {
-      const B = cam, far = scene.far || 60;
-      let [lx, ly, lz] = scene.light || [.5, .8, .3]; const ll = Math.hypot(lx, ly, lz); lx /= ll; ly /= ll; lz /= ll;
-      for (let row = from; row < to; row++) {
-        const sy = H / 2 - (row + .5) * ch;
-        for (let col = 0; col < cols; col++) {
-          const sx = (col + .5) * cw - W / 2, i = row * cols + col;
-          let dx = B.fx * B.focal + B.rx * sx + B.ux * sy, dy = B.fy * B.focal + B.uy * sy, dz = B.fz * B.focal + B.rz * sx + B.uz * sy;
-          const dl = Math.hypot(dx, dy, dz); dx /= dl; dy /= dl; dz /= dl;
-          const [d, steps] = march(B.px, B.py, B.pz, dx, dy, dz, t, far);
-          buf.d[i] = d;
-          if (d < 0) { buf.m[i] = ""; continue; }
-          const x = B.px + dx * d, y = B.py + dy * d, z = B.pz + dz * d;
-          buf.m[i] = hit.m;
-          const [nx, ny, nz] = normal(x, y, z, t);
-          buf.nx[i] = nx; buf.ny[i] = ny; buf.nz[i] = nz; buf.px[i] = x; buf.py[i] = y; buf.pz[i] = z;
-          buf.ao[i] = 1 - Math.min(.6, steps / MAX * 1.6);
-          buf.sh[i] = scene.shadows === false ? 1 : shadow(x + nx * .02, y + ny * .02, z + nz * .02, lx, ly, lz, t);
+      let [lx, ly, lz] = scene.light || [.5, .8, .3]; const ll = Math.hypot(lx, ly, lz);
+      lightDir = [lx / ll, ly / ll, lz / ll];
+      for (let i = from * cols, n = to * cols; i < n; i++) traceCell(i, t);
+    }
+    // Moving parts (scene.moving: world spheres [x, y, z, r]) are re-traced
+    // each frame; only the cells they cover, never the whole view.
+    let movingCells = null;
+    function findMoving() {
+      movingCells = [];
+      if (!scene.moving) return;
+      const seen = new Set();
+      for (const [x, y, z, r] of scene.moving) {
+        const B = cam, vx = x - B.px, vy = y - B.py, vz = z - B.pz, zf = vx * B.fx + vy * B.fy + vz * B.fz;
+        if (zf < .2) continue;
+        const cx = W / 2 + (vx * B.rx + vz * B.rz) / zf * B.focal, cy = H / 2 - (vx * B.ux + vy * B.uy + vz * B.uz) / zf * B.focal;
+        const rp = r / zf * B.focal + ch;
+        const c0 = Math.max(0, Math.floor((cx - rp) / cw)), c1 = Math.min(cols - 1, Math.ceil((cx + rp) / cw));
+        const r0 = Math.max(0, Math.floor((cy - rp) / ch)), r1 = Math.min(rows - 1, Math.ceil((cy + rp) / ch));
+        for (let row = r0; row <= r1; row++) for (let col = c0; col <= c1; col++) {
+          const i = row * cols + col;
+          if (!seen.has(i)) { seen.add(i); movingCells.push(i); }
         }
       }
+      movingCells.set = seen;
     }
 
     // Grouped drawing: cells of the same colour and opacity share one fillStyle.
@@ -247,6 +270,9 @@ window.Ascii3D = (() => {
     // Still scenes keep a layer of everything that doesn't move, drawn once
     // as rows are traced; each frame copies it and adds only what moves.
     let layer = null, lctx = null, layerRows = 0, liveCells = [], skyCells = [];
+    // Shimmer (water, firelight, twinkling sky) lives on its own layer,
+    // refreshed a few times a second; moving parts and particles every frame.
+    let shim = null, sctx = null, shimAt = -1e9;
     function paint(t) {
       let [lx, ly, lz] = scene.light || [.5, .8, .3]; const ll = Math.hypot(lx, ly, lz); lx /= ll; ly /= ll; lz /= ll;
       const dyn = groups();
@@ -267,6 +293,7 @@ window.Ascii3D = (() => {
           skyWash(lctx, layerRows, built);
           for (let i = layerRows * cols, n = built * cols; i < n; i++) {
             const mk = buf.m[i];
+            if (movingCells && movingCells.set && movingCells.set.has(i)) continue;
             if (!mk) { if (scene.sky) skyCells.push(i); }
             else if (isLive(mk)) liveCells.push(i);
             else shadeCell(i, t, still.put, lx, ly, lz);
@@ -275,9 +302,21 @@ window.Ascii3D = (() => {
           layerRows = built;
         }
         g.drawImage(layer, 0, 0);
+        if (skyCells.length + liveCells.length) {
+          if (!shim || shim.width !== canvas.width || shim.height !== canvas.height) { shim = document.createElement("canvas"); shim.width = canvas.width; shim.height = canvas.height; sctx = shim.getContext("2d"); shimAt = -1e9; }
+          const nowMs = performance.now();
+          if (nowMs - shimAt > 1000 / (scene.shimmerFps || 5) || built < rows) {
+            shimAt = nowMs;
+            const sg = groups();
+            for (const i of skyCells) shadeCell(i, t, sg.put, lx, ly, lz);
+            for (const i of liveCells) shadeCell(i, t, sg.put, lx, ly, lz);
+            sctx.setTransform(1, 0, 0, 1, 0, 0); sctx.clearRect(0, 0, shim.width, shim.height);
+            sctx.setTransform(dpr, 0, 0, dpr, 0, 0); draw(sctx, sg);
+          }
+          g.drawImage(shim, 0, 0);
+        }
         g.setTransform(dpr, 0, 0, dpr, 0, 0);
-        for (const i of skyCells) shadeCell(i, t, dyn.put, lx, ly, lz);
-        for (const i of liveCells) shadeCell(i, t, dyn.put, lx, ly, lz);
+        if (movingCells && built >= rows) for (const i of movingCells) { traceCell(i, t); shadeCell(i, t, dyn.put, lx, ly, lz); }
       }
       if (scene.particles && built >= rows) {
         const B = cam, fog = scene.fog;
@@ -310,18 +349,21 @@ window.Ascii3D = (() => {
         trace(0, rows, t); built = rows;
       } else if (built < rows) {
         // Reveal: a few rows per frame, like a scanline building the view.
-        if (!built) cam = camBasis(scene.stillTime ?? 4);
-        const step = calm() ? rows : Math.max(2, Math.ceil(rows / 14));
+        if (!built) { cam = camBasis(scene.stillTime ?? 4); findMoving(); }
+        const step = calm() || opts.size ? rows : Math.max(2, Math.ceil(rows / 14));
         trace(built, Math.min(rows, built + step), scene.stillTime ?? 4);
         built = Math.min(rows, built + step);
       }
       paint(t);
+      cost += performance.now() - now; frames++;
       last = now;
       if (opts.onFrame) opts.onFrame(t);
+      if (opts.size) return;
       const busy = built < rows;
       if (!visible || document.hidden || (calm() && !busy)) return;   // woken again by visibility
       timer = setTimeout(frame, busy ? 16 : 1000 / (scene.fps || (scene.live ? 10 : 9)));
     }
+    if (opts.size) { frame(); return { canvas, stats: () => ({ cols, rows, msPerFrame: frames ? +(cost / frames).toFixed(1) : 0 }) }; }
     const io = new IntersectionObserver((e) => {
       const was = visible; visible = !!e[0]?.isIntersecting;
       if (visible && !was) { clearTimeout(timer); frame(); }
@@ -335,9 +377,9 @@ window.Ascii3D = (() => {
     return {
       stop() { alive = false; clearTimeout(timer); io.disconnect(); ro.disconnect(); document.removeEventListener("visibilitychange", wake); },
       // Rebuild the still buffer (after the scene changed, e.g. a new building).
-      rebuild() { built = 0; layer = null; clearTimeout(timer); frame(); },
+      rebuild() { built = 0; layer = null; shim = null; clearTimeout(timer); frame(); },
       wake,
-      stats: () => ({ W, H, cols, rows, built, cw, ch, dpr }),
+      stats: () => ({ W, H, cols, rows, built, cw, ch, dpr, frames, msPerFrame: frames ? +(cost / frames).toFixed(1) : 0 }),
       // Which material is under a point of the canvas (for hover).
       pick(x, y) { const col = Math.floor(x / cw), row = Math.floor(y / ch); return col >= 0 && row >= 0 && col < cols && row < rows ? buf.m[row * cols + col] : ""; },
       project(px, py, pz) {
@@ -349,5 +391,12 @@ window.Ascii3D = (() => {
     };
   }
 
-  return { view, sd, rotY, noise2, noise3, fbm2, hash2, hash3, hex, mix, RAMP };
+  // Render a scene once to a detached canvas (cached item and recipe art).
+  function still(scene, w, h, o = {}) {
+    const canvas = document.createElement("canvas");
+    view(canvas, { ...scene, live: false, particles: o.particles ? scene.particles : null }, { size: [w, h], cell: o.cell || 6, dpr: o.dpr || Math.min(2, window.devicePixelRatio || 1), font: o.font });
+    return canvas;
+  }
+
+  return { view, still, sd, rotY, noise2, noise3, fbm2, hash2, hash3, hex, mix, RAMP };
 })();

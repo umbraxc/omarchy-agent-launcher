@@ -31,10 +31,11 @@
   const have = (id) => V.state.bank[id] || 0;
   const skillName = (s) => D.skills[s]?.name || s;
   const roman = (n) => ["", "I", "II", "III", "IV", "V"][n] || n;
-  function icon(id, qty, extra = "") {
+  // Item icons are small 3D pictures (outpost-models.js), the glyph shows
+  // until the picture is ready. Hover any of them for the info box.
+  function icon(id, qty, extra = "", size = 72) {
     const it = item(id);
-    const tip = `${it.name}|${it.desc || it.cat}${it.heal ? ` Heals ${it.heal}.` : ""}`;
-    return `<span class="op-it r-${it.rarity}" style="--ic:${it.color || D.rarityColors[it.rarity]}" title="${clean(tip)}" ${extra}><i>${clean(it.glyph)}</i>${qty != null ? `<b>${fmt(qty)}</b>` : ""}</span>`;
+    return `<span class="op-it r-${it.rarity}" style="--ic:${it.color || D.rarityColors[it.rarity]}" data-item="${id}" ${extra}><i class="op-art-i" data-art="item:${id}" data-size="${size}">${clean(it.glyph)}</i>${qty != null ? `<b>${fmt(qty)}</b>` : ""}</span>`;
   }
   const bar = (frac, cls = "", attrs = "") => `<div class="op-bar ${cls}" ${attrs}><i style="width:${Math.max(0, Math.min(100, frac * 100)).toFixed(1)}%"></i></div>`;
   const mlevel = (rid) => { const r = D.recipes[rid]; const x = V.state.mastery[r.skill]?.[rid] || 0; let L = 1; while (L < 99 && D.xpTable[L + 1] <= x) L++; return L; };
@@ -42,12 +43,24 @@
   const poolCap = (s) => 40000 * Object.values(D.recipes).filter((r) => r.skill === s).length;
 
   // ----------------------------------------------------------- navigation
+  const svg = (d) => `<svg class="op-ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+  const ICONS = {
+    overview: svg('<path d="M2 20 9 9l4 6 3-4 6 9z"/><path d="M15 6h4v3"/>'),
+    stockpile: svg('<path d="M3 8h18v12H3z"/><path d="M3 8l2-4h14l2 4M9 12h6"/>'),
+    gear: svg('<path d="M12 3 4 6v6c0 5 4 8 8 9 4-1 8-4 8-9V6z"/>'),
+    trader: svg('<circle cx="12" cy="12" r="8"/><path d="M14.5 9.5c-.5-1-1.5-1.5-2.5-1.5-1.7 0-3 1-3 2s1 1.7 3 2 3 1 3 2-1.3 2-3 2c-1 0-2-.5-2.5-1.5M12 6v12"/>'),
+    companions: svg('<circle cx="7" cy="9" r="2"/><circle cx="12" cy="6.5" r="2"/><circle cx="17" cy="9" r="2"/><path d="M8 17c0-3 2-5 4-5s4 2 4 5c0 2-2 2-4 2s-4 0-4-2z"/>'),
+    log: svg('<path d="M6 3h10l3 3v15H6z"/><path d="M9 9h7M9 13h7M9 17h4"/>'),
+    battle: svg('<path d="m4 4 9 9M4 4h4M4 4v4M20 4l-9 9M20 4h-4M20 4v4M8 16l-3 3M16 16l3 3M10 14l-4 4M14 14l4 4"/>'),
+    expeditions: svg('<path d="M5 21V4"/><path d="M5 4h12l-3 4 3 4H5"/>'),
+    bounties: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>'),
+  };
   const SECTIONS = [
-    ["OUTPOST", [["overview", "☗", "Valley"], ["stockpile", "▦", "Stockpile"], ["gear", "◈", "Gear"], ["trader", "¤", "Trader"], ["companions", "❀", "Companions"], ["log", "≡", "Log & stats"]]],
+    ["OUTPOST", [["overview", ICONS.overview, "Valley"], ["stockpile", ICONS.stockpile, "Stockpile"], ["gear", ICONS.gear, "Gear"], ["trader", ICONS.trader, "Trader"], ["companions", ICONS.companions, "Companions"], ["log", ICONS.log, "Log & stats"]]],
     ["GATHERING", ["forestry", "salvaging", "fishing", "foraging", "trapping", "quarrying"]],
     ["MAKING", ["cooking", "metalwork", "carpentry", "tailoring", "remedies", "tinkering"]],
     ["SUPPORT", ["hearth", "signals", "scouting"]],
-    ["COMBAT", [["battle", "⚔\ufe0e", "Battle"], ["expeditions", "⚑\ufe0e", "Expeditions"], ["bounties", "✪", "Bounties"]]],
+    ["COMBAT", [["battle", ICONS.battle, "Battle"], ["expeditions", ICONS.expeditions, "Expeditions"], ["bounties", ICONS.bounties, "Bounties"]]],
   ];
   function navHtml() {
     const active = V.state.action;
@@ -152,27 +165,55 @@
       return `<article class="op-card op-build ${L ? "" : "dim"}"><header><b>${clean(b.name)}</b><span>LV ${L}/${D.buildingMax}</span></header>
         <div class="op-pips">${Array.from({ length: D.buildingMax }, (_, i) => `<i class="${i < L ? "on" : ""}"></i>`).join("")}</div>
         <p>${L ? `${rate(L).toFixed(1)} ${b.supply}/h · ${effectText(b.effect, L)}` : `Makes ${b.supply}. ${effectText(b.effect)} per level.`}</p>
+        ${max ? "" : `<p class="op-next">NEXT · ${rate(L + 1).toFixed(1)} ${b.supply}/h${L + 1 > 5 ? `, holds ${250 + 50 * (L - 4)}` : ""} · ${effectText(b.effect, L + 1)}</p>`}
         ${max ? `<small class="op-done">FULLY UPGRADED</small>` : `<div class="op-cost">${Object.entries(cost).map(([k, v]) => `<span class="${s.supplies[k] >= v ? "" : "short"}">${v} ${k}</span>`).join("")}${Object.entries(parts).map(([k, v]) => `<span class="${have(k) >= v ? "" : "short"}">${icon(k)} ${v}</span>`).join("")}</div>
         <button type="button" data-act="upgrade" data-building="${id}" ${ok ? "" : "disabled"}>${L ? "UPGRADE" : "BUILD"}</button>`}</article>`;
     }).join("");
     const log = s.log.slice(0, 8).map((l) => `<p>› ${clean(l)}</p>`).join("");
-    return `<section class="op-sec"><h2>◈ SUPPLIES <small>Buildings keep producing while Umbra is closed.</small></h2><div class="op-sups">${supplies}</div></section>
+    return startHtml() + `<section class="op-sec"><h2>◈ SUPPLIES <small>Buildings keep producing while Umbra is closed.</small></h2><div class="op-sups">${supplies}</div></section>
       <section class="op-sec"><h2>☗ BUILDINGS <small>Each level raises output and a lasting bonus. From level 5 they also need crafted parts.</small></h2><div class="op-grid">${buildings}</div></section>
       <section class="op-sec"><h2>⌁ FIELD LOG</h2><div class="op-log">${log}</div></section>`;
   }
 
+  // First steps, ticked off as they happen; hidden once all are done.
+  const STEPS = [
+    ["forestry", "Fell a birch tree", "Open FORESTRY on the left and press START.", (s) => s.xp.forestry > 0],
+    ["fishing", "Catch a perch", "FISHING works the same way: one action at a time.", (s) => s.xp.fishing > 0],
+    ["cooking", "Cook what you caught", "COOKING turns raw fish into food that heals in a fight.", (s) => s.xp.cooking > 0],
+    ["overview", "Raise a building", "Supplies grow by themselves; spend them on the buildings below.", (s) => Object.values(s.buildings).reduce((a, b) => a + b, 0) > 3],
+    ["gear", "Choose your food and weapon", "In GEAR, pick a food to eat in fights and equip a weapon.", (s) => s.food && s.equipment.weapon],
+    ["battle", "Win your first fight", "In BATTLE, the Outskirts are gentle to start with.", (s) => (s.stats.kills || 0) > 0],
+  ];
+  function startHtml() {
+    const s = V.state, done = STEPS.map((st) => !!st[3](s));
+    let hide = false; try { hide = localStorage.getItem("umbra-outpost-start") === "hidden"; } catch {}
+    if (hide || done.every(Boolean)) return "";
+    const next = done.indexOf(false);
+    return `<section class="op-sec op-start"><h2>✦ GETTING STARTED <small>${done.filter(Boolean).length} of ${STEPS.length} done</small><button type="button" class="inline" data-hide-start="1">HIDE</button></h2>
+      <ol>${STEPS.map(([view, title, hint], i) => `<li class="${done[i] ? "done" : i === next ? "next" : ""}"><button type="button" data-view="${view}"><b>${done[i] ? "✓" : i + 1}</b><span><em>${title}</em><small>${hint}</small></span></button></li>`).join("")}</ol></section>`;
+  }
+  const SKILL_USES = { forestry: "Logs feed Carpentry, Hearthkeeping and the buildings.", salvaging: "Parts and wire for Tinkering, cloth for Tailoring, vials for Remedies.",
+    fishing: "Raw fish for Cooking.", foraging: "Herbs for Remedies and Cooking.", trapping: "Hides for Tailoring, meat for Cooking, feathers for arrows.",
+    quarrying: "Ore and coal for Metalwork; clay for bricks.", cooking: "Food heals you in fights.", metalwork: "Bars, melee weapons, armour and arrowtips.",
+    carpentry: "Planks for buildings, bows and arrows for Marksmanship.", tailoring: "Leather armour and cloaks.", remedies: "Kit remedies for lasting boosts, medkits that heal.",
+    tinkering: "Cells and gadgets for Gadgetry, charms, and parts for buildings.", hearth: "Warmth: more XP in every skill.", signals: "Fragments tune permanent broadcasts.",
+    scouting: "Each stop on the route gives a lasting bonus; laps pay scrip.", bounty: "Tokens buy special gear and the way north." };
   function skillHead(s) {
     const sk = D.skills[s], pool = V.state.pool[s] || 0, cap = poolCap(s), m = V.mods;
     const pct = (kind) => (m[`${kind}:all`] || 0) + (m[`${kind}:${s}`] || 0) + (sk.kind === "gather" ? m[`${kind}:gather`] || 0 : 0) + (sk.kind === "craft" ? m[`${kind}:craft`] || 0 : 0);
     const warm = V.state.warmUntil > now() && sk.kind !== "combat";
     const ticks = D.checkpoints.map(([p, , text]) => `<i class="${pool >= cap * p / 100 ? "on" : ""}" style="left:${p}%" title="${p}% checkpoint|${clean(text)}"></i>`).join("");
     const L = lvl(s), next = L < 99 ? D.xpTable[L + 1] - xpOf(s) : 0;
-    return `<div class="op-skillhead" style="--sc:${sk.color}"><div class="op-sh-main"><span class="op-sh-g">${sk.glyph}</span><div><h1>${sk.name}</h1><p>${clean(sk.desc)}</p></div>
+    return `<div class="op-skillhead" style="--sc:${sk.color}"><div class="op-sh-main"><span class="op-sh-g">${sk.glyph}</span><div><h1>${sk.name}</h1><p>${clean(sk.desc)}</p>${SKILL_USES[s] ? `<p class="op-uses">→ ${clean(SKILL_USES[s])}</p>` : ""}${nextUnlock(s)}</div>
         <div class="op-sh-level"><b>${L}</b><small>/ 99</small></div></div>
       <div class="op-sh-bars"><label>XP <span>${fmt(xpOf(s))}${L < 99 ? ` · ${fmt(next)} to level ${L + 1}` : " · MAX"}</span></label>${bar(xpFrac(s), "xp")}
         ${cap ? `<label title="Mastery pool|A quarter of all mastery XP in this skill pools here. Checkpoints give bonuses while the pool stays above them; spend it to raise a recipe's mastery.">MASTERY POOL <span>${fmt(pool)} / ${fmt(cap)} · ${(pool / cap * 100).toFixed(1)}%</span></label><div class="op-pool">${bar(pool / cap, "pool")}${ticks}</div>` : ""}</div>
       <div class="op-sh-mods">${[["XP", pct("xp") + (warm ? m.warm || 0 : 0), "+"], ["SPEED", pct("speed"), "−"], ["DOUBLE", pct("double"), "+"], ["KEEP", pct("preserve"), "+"]].map(([k, v, sign]) =>
         `<span class="${v ? "on" : ""}">${k} <b>${v ? sign + (+v.toFixed(1)) + "%" : "—"}</b></span>`).join("")}${warm ? `<span class="on warm" title="Hearth warmth|While the hearth is warm, every skill gains extra XP.">☼ WARM ${dur(V.state.warmUntil - now())}</span>` : ""}</div></div>`;
+  }
+  function nextUnlock(s) {
+    const r = Object.values(D.recipes).filter((x) => x.skill === s && x.level > lvl(s)).sort((a, b) => a.level - b.level)[0];
+    return r ? `<p class="op-unlock">NEXT AT LEVEL ${r.level}: <b>${clean(r.name)}</b></p>` : "";
   }
   function recipeCard(r) {
     const s = V.state, locked = lvl(r.skill) < r.level, active = s.action?.recipe === r.id;
@@ -186,13 +227,15 @@
     const ml = mlevel(r.id), poolNeed = ml < 99 ? D.xpTable[ml + 1] - (s.mastery[r.skill]?.[r.id] || 0) : 0, canSpend = ml < 99 && (s.pool[r.skill] || 0) >= poolNeed && !locked;
     const t = V.intervals[r.id];
     const blocked = !locked && Object.entries(r.inputs).some(([k, n]) => have(k) < n);
-    return `<article class="op-card op-recipe ${locked ? "locked" : ""} ${active ? "active" : ""}" style="--sc:${D.skills[r.skill].color}">
-      <header><b>${clean(r.name)}</b><span class="op-req">${locked ? `🔒 LV ${r.level}` : `LV ${r.level}`}</span></header>
-      <div class="op-rmeta"><span>◷ ${secs(t)}</span><span>✦ ${fmt(r.xp)} XP</span>${r.burn ? `<span title="Burn chance|Falls as your level rises above the recipe's.">※ ${Math.max(0, 30 - (lvl(r.skill) - r.level) * 1.5 - ml * .2).toFixed(0)}% burn</span>` : ""}</div>
+    const perHour = 3600 / t, made = Object.values(r.outputs)[0] || (r.table ? 1 : 0);
+    return `<article class="op-card op-recipe ${locked ? "locked" : ""} ${active ? "active" : ""}" style="--sc:${D.skills[r.skill].color}" data-recipe-card="${r.id}">
+      <div class="op-rart"><i class="op-art-r" data-art="recipe:${r.id}" data-size="180"></i>${active ? `<canvas class="op-rlive" data-live="${r.id}" aria-hidden="true"></canvas>` : ""}</div>
+      <div class="op-rbody"><header><b>${clean(r.name)}</b><span class="op-req">${locked ? `🔒\ufe0e LV ${r.level}` : `LV ${r.level}`}</span></header>
+      <div class="op-rmeta"><span title="Time|Per action, with your bonuses">◷ ${secs(t)}</span><span>✦ ${fmt(r.xp)} XP</span><span title="Per hour|While you keep at it">${fmt(perHour * r.xp)} XP/H${made ? ` · ${fmt(perHour * made)}/H` : ""}</span>${r.burn ? `<span title="Burn chance|Falls as your level rises above the recipe's.">※ ${Math.max(0, 30 - (lvl(r.skill) - r.level) * 1.5 - ml * .2).toFixed(0)}% burn</span>` : ""}</div>
       ${inputs ? `<div class="op-io"><small>USES</small>${inputs}</div>` : ""}<div class="op-io"><small>${r.table ? "FINDS" : "MAKES"}</small>${outs}${extras ? `<span class="op-rare">${extras}</span>` : ""}</div>
       <div class="op-mastery" title="Mastery|Each level: faster, more doubles${D.skills[r.skill].kind === "craft" ? " and kept materials" : ""}."><span>MASTERY ${ml}</span>${bar(mfrac(r.id), "m")}${canSpend ? `<button type="button" class="op-spend" data-act="mastery" data-recipe="${r.id}" title="Spend pool|${fmt(poolNeed)} pool XP for +1 mastery level">+1</button>` : ""}</div>
       ${active ? `<div class="op-bar op-prog big" data-start="${s.action.start}" data-int="${s.action.interval}"><i></i></div><button type="button" class="op-go on" data-act="stop">STOP ■</button>`
-        : `<button type="button" class="op-go" data-act="start" data-recipe="${r.id}" ${locked || blocked ? "disabled" : ""}>${locked ? "LOCKED" : blocked ? "NEED MATERIALS" : "START ▸"}</button>`}</article>`;
+        : `<button type="button" class="op-go" data-act="start" data-recipe="${r.id}" ${locked || blocked ? "disabled" : ""}>${locked ? "LOCKED" : blocked ? "NEED MATERIALS" : "START ▸"}</button>`}</div></article>`;
   }
   function skillHtml(s) {
     const recipes = Object.values(D.recipes).filter((r) => r.skill === s);
@@ -256,7 +299,7 @@
     const it = item(id), q = have(id), eq = it.slot && it.slot !== "kit" && V.state.equipment[it.slot];
     const req = Object.entries(it.req || {}).map(([k, v]) => `<span class="${lvl(k) >= v ? "" : "short"}">${skillName(k)} ${v}</span>`).join("");
     const cur = eq && eq !== id ? item(eq) : null;
-    return `<div class="op-dhead">${icon(id)}<div><b>${clean(it.name)}</b><small class="r-${it.rarity}">${it.rarity.toUpperCase()} · ${it.cat.toUpperCase()}</small></div></div>
+    return `<div class="op-dhead">${icon(id, null, "", 160)}<div><b>${clean(it.name)}</b><small class="r-${it.rarity}">${it.rarity.toUpperCase()} · ${it.cat.toUpperCase()}</small></div></div>
       ${it.desc ? `<p>${clean(it.desc)}</p>` : ""}${statsText(it).length ? `<ul>${statsText(it).map((t) => `<li>${clean(t)}</li>`).join("")}</ul>` : ""}
       ${cur ? `<p class="op-cmp">Equipped now: <b>${clean(cur.name)}</b>${statsText(cur).length ? ` · ${clean(statsText(cur).join(", "))}` : ""}</p>` : ""}
       ${req ? `<div class="op-cost">NEEDS ${req}</div>` : ""}
@@ -322,10 +365,10 @@
     const a = V.action, e = D.enemies[a.enemy], s = V.state;
     const food = s.food ? `${icon(s.food, have(s.food))}<button type="button" data-act="eat" ${have(s.food) && s.hp < V.maxHp ? "" : "disabled"}>EAT</button>` : `<em>No food chosen</em>`;
     return `<section class="op-sec op-fight"><div class="op-fighter you"><header><b>YOU</b><span>${V.combatLevel}</span></header>${bar(s.hp / V.maxHp, "hp", 'data-hp="you"')}<small><b data-hpnum="you">${Math.round(s.hp)}</b> / ${V.maxHp}</small>
-        ${bar(0, "op-swing", `data-swing="you" data-next="${a.pNext}" data-speed="${a.player.speed}"`)}<div class="op-rmeta"><span>HIT ${a.hitChance}%</span><span>MAX ${a.player.maxhit}</span></div><div class="op-food">${food}</div><div class="op-splat" data-splat="you"></div></div>
+        ${bar(0, "op-swing", `data-swing="you" data-next="${a.pNext}" data-speed="${a.player.speed}"`)}<div class="op-rmeta"><span>HIT ${a.hitChance}%</span><span>MAX ${a.player.maxhit}</span></div><div class="op-food">${food}</div><div class="op-splat" data-splat="you" data-keep="1"></div></div>
       <div class="op-versus">VS</div>
       <div class="op-fighter them"><header><b>${clean(e.name)}</b><span>${e.level}</span></header>${bar(a.spawnAt ? 0 : a.enemyHp / a.enemyMax, "hp enemy", 'data-hp="them"')}<small>${a.spawnAt ? "<b>NEXT ONE IS COMING…</b>" : `<b data-hpnum="them">${a.enemyHp}</b> / ${a.enemyMax}`}</small>
-        ${bar(0, "op-swing", `data-swing="them" data-next="${a.eNext}" data-speed="${e.interval}"`)}<div class="op-rmeta"><span>HIT ${a.enemyHitChance}%</span><span>MAX ${e.maxhit}</span></div><div class="op-splat" data-splat="them"></div></div>
+        ${bar(0, "op-swing", `data-swing="them" data-next="${a.eNext}" data-speed="${e.interval}"`)}<div class="op-rmeta"><span>HIT ${a.enemyHitChance}%</span><span>MAX ${e.maxhit}</span></div><div class="op-splat" data-splat="them" data-keep="1"></div></div>
       <button type="button" class="op-go on flee" data-act="stop">${a.expedition ? "CALL BACK ■" : "RETREAT ■"}</button></section>`;
   }
   function battleHtml() {
@@ -387,22 +430,61 @@
   function render(force = false) {
     if (!V || !D || panel.hidden) return;
     const nav = navHtml();
-    if (nav !== lastNav) { $o(".op-nav").innerHTML = nav; lastNav = nav; }
+    if (nav !== lastNav) { morph($o(".op-nav"), nav); lastNav = nav; }
     const top = topHtml();
-    if (top !== lastTop) { $o(".op-top").innerHTML = top; lastTop = top; }
+    if (top !== lastTop) { morph($o(".op-top"), top); lastTop = top; }
     setHero(sel);
     if (pressed && !force) return;      // never swap buttons under a pressed pointer
     let body = bodyHtml();
     if (sel === "battle" || sel === "expeditions") body += combatSkills();
     if (body !== lastBody || force) {
       const view = $o(".op-view");
-      view.innerHTML = body; lastBody = body;
-      // Pets wag.
-      view.querySelectorAll(".op-pet.got .op-pet-art").forEach((el) => { el.dataset.frame = "0"; });
+      // A new section starts fresh; the same section is patched in place,
+      // so what's under the pointer, tooltips and scroll stay put.
+      if (view.dataset.sel !== sel) { view.innerHTML = body; view.dataset.sel = sel; } else morph(view, body);
+      lastBody = body;
+      UmbraOutpostModels.fill(panel);
+      liveRecipe();
     }
     modals();
     tick();
   }
+  // Patch `el` to match `html`, touching only what differs. Art that is
+  // already drawn (same picture) is left alone.
+  const tpl = document.createElement("template");
+  function morph(el, html) {
+    tpl.innerHTML = html;
+    patchChildren(el, tpl.content);
+  }
+  function patchChildren(a, b) {
+    const an = [...a.childNodes], bn = [...b.childNodes];
+    for (let i = 0; i < bn.length; i++) {
+      const x = an[i], y = bn[i];
+      if (!x) { a.appendChild(y.cloneNode(true)); continue; }
+      if (x.nodeType !== y.nodeType || x.nodeName !== y.nodeName || (x.nodeType === 1 && (x.dataset.art !== y.dataset.art || x.dataset.live !== y.dataset.live))) { a.replaceChild(y.cloneNode(true), x); continue; }
+      if (x.nodeType === 3) { if (x.nodeValue !== y.nodeValue) x.nodeValue = y.nodeValue; continue; }
+      if (x.nodeType !== 1) continue;
+      if (x.dataset.art || x.dataset.live || x.dataset.keep) continue;      // a drawn picture, a live canvas or floating numbers
+      for (const { name, value } of [...y.attributes]) {
+        if (name === "style" && x.closest(".op-prog, [data-swing]")) continue;   // bars move between updates
+        if (x.getAttribute(name) !== value) x.setAttribute(name, value);
+      }
+      for (const { name } of [...x.attributes]) if (!y.hasAttribute(name)) x.removeAttribute(name);
+      if (x.tagName === "SELECT") { patchChildren(x, y); x.value = y.querySelector("option[selected]")?.value ?? ""; continue; }
+      patchChildren(x, y);
+    }
+    for (let i = an.length - 1; i >= bn.length; i--) an[i].remove();
+  }
+  // The running recipe's picture turns slowly while it works.
+  let live = null, liveId = "";
+  function liveRecipe() {
+    const c = panel.querySelector("canvas[data-live]");
+    const id = c?.dataset.live || "";
+    if (id === liveId && live) return;
+    live?.stop(); live = null; liveId = id;
+    if (c && !window.offgrid) live = Ascii3D.view(c, UmbraOutpostModels.spin(UmbraOutpostModels.forRecipe(D.recipes[id]), .35), { cell: 5 });
+  }
+
   function modals() {
     const layer = $o(".op-layer"), s = V.state;
     if (s.pendingStory && D.storyChoices[s.pendingStory]) {
@@ -443,6 +525,50 @@
     petFrame = 1 - petFrame;
     panel.querySelectorAll(".op-pet.got .op-pet-art").forEach((el, i) => { if ((i + petFrame) % 3 === 0) el.textContent = UmbraOutpostArt.pets[el.dataset.pet][petFrame]; else el.textContent = UmbraOutpostArt.pets[el.dataset.pet][0]; });
   }, 900);
+
+  // ------------------------------------------------------------- info box
+  // Hover an item anywhere in the Outpost: it turns in 3D beside what it
+  // is, what it does, and where it comes from and goes.
+  const info = document.createElement("div");
+  info.className = "op-info"; info.hidden = true;
+  info.innerHTML = '<canvas aria-hidden="true"></canvas><div class="op-info-text"></div>';
+  panel.appendChild(info);
+  let infoView = null, infoId = "", infoTimer = 0;
+  function sources(id) {
+    const made = [], used = [], drops = [];
+    for (const r of Object.values(D.recipes)) {
+      if (r.outputs[id] || r.fragment === id || (r.table || []).some(([k]) => k === id) || (r.extras || []).some(([k]) => k === id) || r.bonus?.[0] === id) made.push(r);
+      if (r.inputs[id]) used.push(r);
+    }
+    for (const e of Object.values(D.enemies)) if (e.drops.some(([k]) => k === id)) drops.push(e);
+    const shop = D.trader.some((o) => o.item === id) ? "the Trader" : D.bountyShop.some((o) => o.item === id) ? "the bounty board" : D.expeditions.find((x) => x.reward[id])?.name || "";
+    return { made, used, drops, shop };
+  }
+  function showInfo(el) {
+    const id = el.dataset.item, it = item(id);
+    if (!it || !D) return;
+    clearTimeout(infoTimer);
+    if (id !== infoId) {
+      infoId = id;
+      const src = sources(id), list = (a, f) => a.slice(0, 4).map(f).join(", ") + (a.length > 4 ? ` +${a.length - 4}` : "");
+      const lines = statsText(it);
+      info.querySelector(".op-info-text").innerHTML = `<b>${clean(it.name)}</b><small class="r-${it.rarity}">${it.rarity.toUpperCase()} · ${clean(it.cat.toUpperCase())}</small>
+        ${it.desc ? `<p>${clean(it.desc)}</p>` : ""}${lines.length ? `<ul>${lines.map((l) => `<li>${clean(l)}</li>`).join("")}</ul>` : ""}
+        <dl>${src.made.length ? `<dt>FROM</dt><dd>${clean(list(src.made, (r) => `${skillName(r.skill)}: ${r.name}`))}</dd>` : ""}
+        ${src.drops.length ? `<dt>DROPS</dt><dd>${clean(list(src.drops, (e) => e.name))}</dd>` : ""}${src.shop ? `<dt>FROM</dt><dd>${clean(src.shop)}</dd>` : ""}
+        ${src.used.length ? `<dt>USED IN</dt><dd>${clean(list(src.used, (r) => r.name))}</dd>` : ""}</dl>
+        <p class="op-info-foot">YOU HAVE <b>${fmt(have(id))}</b> · ¤${fmt(it.value)} EACH</p>`;
+      infoView?.stop();
+      infoView = window.offgrid ? null : UmbraOutpostModels.live(info.querySelector("canvas"), id);
+    }
+    info.hidden = false;
+    const r = el.getBoundingClientRect(), w = info.offsetWidth, h = info.offsetHeight;
+    info.style.left = `${Math.max(8, Math.min(innerWidth - w - 8, r.right + 10 + w > innerWidth ? r.left - w - 10 : r.right + 10))}px`;
+    info.style.top = `${Math.max(8, Math.min(innerHeight - h - 8, r.top - 20))}px`;
+  }
+  function hideInfo() { infoTimer = setTimeout(() => { info.hidden = true; infoView?.stop(); infoView = null; infoId = ""; }, 120); }
+  panel.addEventListener("pointerover", (e) => { const el = e.target.closest("[data-item]"); if (el && !info.contains(el)) showInfo(el); else if (!info.hidden) hideInfo(); });
+  panel.addEventListener("pointerout", (e) => { const el = e.target.closest("[data-item]"); if (el && !el.contains(e.relatedTarget)) hideInfo(); });
 
   // ---------------------------------------------------------------- toasts
   function toast(html, kind = "") {
@@ -513,7 +639,7 @@
     const prev = V && { xp: { ...V.state.xp }, bank: { ...V.state.bank } };
     prevCombat = V?.action?.type === "combat" ? { enemy: V.action.enemy, enemyHp: V.action.enemyHp, hp: V.state.hp } : null;
     try {
-      if (!D) D = await fetch("/api/outpost/data").then((r) => r.json());
+      if (!D) { D = await fetch("/api/outpost/data").then((r) => r.json()); UmbraOutpostModels.recipes = D.recipes; }
       const res = await fetch("/api/outpost", action ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(action) } : undefined);
       const out = await res.json();
       if (!res.ok) throw new Error(out.error || "The Outpost didn't answer.");
@@ -540,11 +666,13 @@
     const nav = e.target.closest("[data-view]");
     if (nav) {
       sel = nav.dataset.view; lastBody = ""; pick = null; Sound.click();
+      clearTimeout(infoTimer); info.hidden = true; infoView?.stop(); infoView = null; infoId = "";
       if (sel === "battle" && V.action?.area) area = V.action.area;
       $o(".op-main").scrollTop = 0;
       render(true);
       return;
     }
+    if (e.target.closest("[data-hide-start]")) { try { localStorage.setItem("umbra-outpost-start", "hidden"); } catch {} render(true); return; }
     const tab = e.target.closest("[data-tab]");
     if (tab) { bankTab = tab.dataset.tab; Sound.click(); render(true); return; }
     const ar = e.target.closest("[data-area]");
@@ -580,6 +708,7 @@
     panel.hidden = true; button.classList.remove("on"); document.body.classList.remove("outpost-open");
     clearTimeout(poll);
     if (art) { art.stop(); art = null; artKey = ""; }
+    live?.stop(); live = null; liveId = ""; info.hidden = true; infoView?.stop(); infoView = null; infoId = "";
   }
   function toggle() {
     if (!panel.hidden) { close(); Sound.click(); return; }

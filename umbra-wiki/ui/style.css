@@ -3152,7 +3152,7 @@ body.farming-open > :not(#farming):not(.modal):not(.ac-toast):not(.wipe):not(.ti
 .op-req { color: var(--sc, var(--signal)) !important; }
 .op-rmeta { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--dim); font-size: 9.5px; letter-spacing: .06em; }
 .op-io { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
-.op-io > small { width: 44px; color: var(--faint); font-size: 8.5px; letter-spacing: .18em; }
+.op-io > small { width: 44px; color: var(--faint); font-size: 8.5px; letter-spacing: .18em; align-self: center; }
 .op-io > span { display: inline-flex; align-items: center; gap: 2px; }
 .op-io em { color: var(--dim); font-size: 9.5px; font-style: normal; }
 .op-io .op-rare { padding-left: 6px; border-left: 1px dashed var(--line); }
@@ -3166,12 +3166,13 @@ body.farming-open > :not(#farming):not(.modal):not(.ac-toast):not(.wipe):not(.ti
 .op-done { color: var(--signal); font-size: 9.5px; letter-spacing: .14em; }
 .op-warmth { color: #ef8f4f; font-size: 10px; }
 /* Item icons: a glyph in a rarity frame. */
-.op-it { position: relative; display: inline-grid; place-items: center; width: 28px; height: 28px; flex: none; border: 1px solid color-mix(in srgb, var(--ic) 45%, var(--line)); background: color-mix(in srgb, var(--ic) 9%, var(--bg)); color: var(--ic); font: 700 14px var(--font); }
-.op-it i { font-style: normal; text-shadow: 0 0 8px color-mix(in srgb, var(--ic) 60%, transparent); }
+.op-it { position: relative; display: inline-grid; place-items: center; width: 38px; height: 38px; flex: none; border: 1px solid color-mix(in srgb, var(--ic) 45%, var(--line)); background: color-mix(in srgb, var(--ic) 7%, var(--bg)); color: var(--ic); font: 700 15px var(--font); cursor: help; }
+.op-it i { display: grid; place-items: center; width: 100%; height: 100%; font-style: normal; background: center / 100% 100% no-repeat; }
+.op-it i.ready { color: transparent; }
 .op-it b { position: absolute; right: 1px; bottom: -1px; color: var(--fg-bright); font-size: 8.5px; text-shadow: 0 0 3px #000, 0 0 3px #000; }
 .op-it.r-uncommon { border-color: #8fc77a88; } .op-it.r-fine { border-color: #7fb6e0aa; } .op-it.r-rare { border-color: #b192e6; box-shadow: 0 0 6px #b192e655; }
-.op-it.r-epic { border-color: #e8a85a; box-shadow: 0 0 8px #e8a85a66; } .op-it.r-legendary { border-color: #ef6f5f; box-shadow: 0 0 10px #ef6f5f88; animation: op-legend 2.4s ease-in-out infinite; }
-@keyframes op-legend { 50% { box-shadow: 0 0 16px #ef6f5faa; } }
+.op-it.r-epic { border-color: #e8a85a; box-shadow: 0 0 8px #e8a85a66; } .op-it.r-legendary { border-color: #ef6f5f; box-shadow: 0 0 10px #ef6f5f88; }
+
 .r-common { color: #b8b2a6; } .r-uncommon { color: #8fc77a; } .r-fine { color: #7fb6e0; } .r-rare { color: #b192e6; } .r-epic { color: #e8a85a; } .r-legendary { color: #ef6f5f; }
 /* Skill header. */
 .op-skillhead { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 340px); gap: 10px 22px; padding: 12px 14px; border: 1px solid var(--line); border-left: 3px solid var(--sc); background: var(--bg-1); }
@@ -3209,12 +3210,12 @@ body.farming-open > :not(#farming):not(.modal):not(.ac-toast):not(.wipe):not(.ti
 .op .op-tabs button.on { color: var(--signal); border-color: var(--signal); background: var(--signal-soft); }
 .op-tabs small { color: var(--faint); }
 .op-bankwrap { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 12px; align-items: start; }
-.op-bank { display: grid; grid-template-columns: repeat(auto-fill, 44px); gap: 5px; }
-.op .op-cell { padding: 0; width: 44px; height: 44px; display: grid; place-items: center; background: var(--bg-1); }
-.op .op-cell .op-it { width: 36px; height: 36px; font-size: 17px; border: 0; background: none; }
+.op-bank { display: grid; grid-template-columns: repeat(auto-fill, 54px); gap: 5px; }
+.op .op-cell { padding: 0; width: 54px; height: 54px; display: grid; place-items: center; background: var(--bg-1); }
+.op .op-cell .op-it { width: 46px; height: 46px; font-size: 18px; border: 0; background: none; }
 .op .op-cell.on { border-color: var(--signal); background: var(--signal-soft); }
 .op-detail { position: sticky; top: 10px; padding: 12px; border: 1px solid var(--line); background: var(--bg-1); }
-.op-dhead { display: flex; align-items: center; gap: 10px; } .op-dhead .op-it { width: 40px; height: 40px; font-size: 20px; }
+.op-dhead { display: flex; align-items: center; gap: 12px; } .op-dhead .op-it { width: 84px; height: 84px; font-size: 30px; }
 .op-dhead b { display: block; color: var(--fg-bright); font-size: 12px; } .op-dhead small { font-size: 9px; letter-spacing: .16em; }
 .op-detail p, .op-detail li { color: var(--dim); font-size: 10.5px; line-height: 1.5; } .op-detail ul { margin: 8px 0; padding-left: 16px; }
 .op-detail .op-have b { color: var(--fg-bright); } .op-cmp b { color: var(--fg); }
@@ -3299,3 +3300,54 @@ body.reduce-motion .op-live, body.reduce-motion .op-it.r-legendary, body.reduce-
   .op-top .op-chip:nth-child(2) { display: none; }
 }
 @media (max-width: 600px) { .op-fight { grid-template-columns: 1fr; } .op-versus { display: none; } .op-hp .op-bar { width: 40px; } .op-head .lo-title { display: none; } }
+
+/* Outpost, second pass: pictures, info, first steps and every window size. */
+.op-ico { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; display: block; margin: auto; }
+.op-nav-g { display: grid; place-items: center; width: 20px; font-size: 15px; }
+.op .op-nav-row { grid-template-columns: 22px 1fr auto; padding: 7px 8px 9px; font-size: 11px; }
+.op-live { animation: none; }
+/* Recipe cards: a picture on the left, details on the right. */
+.op-card.op-recipe { flex-direction: row; gap: 11px; padding: 10px; }
+.op-rart { position: relative; flex: 0 0 92px; height: 92px; border: 1px solid var(--line); background: radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--sc) 12%, var(--bg)), var(--bg)); align-self: flex-start; }
+.op-rart .op-art-r { position: absolute; inset: 0; display: block; background: center / 100% 100% no-repeat; }
+.op-rlive { position: absolute; inset: 0; width: 100%; height: 100%; background: var(--bg); }
+.op-rbody { display: flex; flex-direction: column; gap: 7px; flex: 1; min-width: 0; }
+.op-rbody > header { display: flex; align-items: center; gap: 8px; } .op-rbody > header b { flex: 1; min-width: 0; color: var(--fg-bright); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.op-recipe.locked .op-rart { filter: grayscale(1) brightness(.6); }
+.op-grid.recipes { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.op-uses { color: var(--fg) !important; } .op-unlock { margin-top: 4px !important; color: var(--dim); font-size: 10px !important; letter-spacing: .08em; } .op-unlock b { color: var(--sc); }
+.op-next { color: var(--signal) !important; font-size: 10px !important; }
+/* Info box. */
+.op-info { position: fixed; z-index: 7; display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 12px; width: 380px; padding: 12px; border: 1px solid var(--line); border-top: 2px solid var(--signal); background: color-mix(in srgb, var(--bg-1) 97%, transparent); box-shadow: 0 14px 30px rgba(0,0,0,.45); pointer-events: none; }
+.op-info canvas { width: 120px; height: 120px; background: radial-gradient(circle at 50% 55%, var(--bg-2), var(--bg)); border: 1px solid var(--line); }
+.op-info-text b { display: block; color: var(--fg-bright); font-size: 12.5px; } .op-info-text small { font-size: 9px; letter-spacing: .16em; }
+.op-info-text p { margin: 6px 0 0; color: var(--dim); font-size: 10.5px; line-height: 1.45; } .op-info-text ul { margin: 6px 0 0; padding-left: 15px; color: var(--fg); font-size: 10.5px; }
+.op-info-text dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 8px; margin: 7px 0 0; font-size: 10px; } .op-info-text dt { color: var(--signal); letter-spacing: .12em; } .op-info-text dd { margin: 0; color: var(--fg); }
+.op-info-foot { color: var(--signal) !important; letter-spacing: .08em; } .op-info-foot b { color: var(--fg-bright); }
+/* First steps. */
+.op-start ol { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+.op .op-start li button { display: flex; align-items: flex-start; gap: 10px; width: 100%; height: 100%; padding: 10px; text-align: left; color: var(--fg); background: var(--bg-1); }
+.op-start li b { display: grid; place-items: center; flex: none; width: 22px; height: 22px; border: 1px solid var(--line); color: var(--dim); }
+.op-start li em { display: block; font-style: normal; color: var(--fg-bright); font-size: 11px; } .op-start li small { display: block; margin-top: 3px; color: var(--dim); font-size: 10px; font-weight: 400; letter-spacing: 0; line-height: 1.4; }
+.op-start li.done { opacity: .55; } .op-start li.done b { color: var(--signal); border-color: var(--signal); }
+.op-start li.next button { border-color: var(--signal); } .op-start li.next b { color: var(--bg); background: var(--signal); border-color: var(--signal); }
+/* Every window size keeps the sidebar on the left. */
+@media (max-width: 900px) {
+  .op-shell { grid-template-columns: 172px minmax(0, 1fr); grid-template-rows: none; }
+  .op-nav { display: block; overflow-y: auto; overflow-x: hidden; border-right: 1px solid var(--line); border-bottom: 0; padding: 6px 4px 30px; }
+  .op-nav-group { display: block; margin-bottom: 8px; } .op-nav-group > small { display: flex; }
+  .op .op-nav-row { width: 100%; grid-template-columns: 20px 1fr auto; white-space: normal; }
+  .op-grid.recipes { grid-template-columns: 1fr; }
+}
+@media (max-width: 680px) {
+  .op-shell { grid-template-columns: 54px minmax(0, 1fr); }
+  .op-nav { padding: 4px 3px 30px; }
+  .op-nav-group > small { justify-content: center; font-size: 0; padding: 4px 0; border-top: 1px solid var(--line); }
+  .op-nav-group > small b { font-size: 8px; }
+  .op .op-nav-row { grid-template-columns: 1fr; justify-items: center; gap: 1px; padding: 6px 2px 8px; }
+  .op-nav-name { display: none; } .op-nav-row small { font-size: 9px; } .op-nav-xp { left: 6px; right: 6px; }
+  .op-main { padding: 0 10px 40px; }
+  .op-card.op-recipe { flex-direction: column; } .op-rart { flex-basis: auto; width: 100%; height: 110px; }
+  .op-info { width: min(330px, calc(100vw - 16px)); grid-template-columns: 90px 1fr; } .op-info canvas { width: 90px; height: 90px; }
+  .op-sups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
