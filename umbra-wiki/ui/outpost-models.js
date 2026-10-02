@@ -393,35 +393,46 @@ window.UmbraOutpostModels = (() => {
   }
 
   // ---------------------------------------------------------- image cache
-  // Pictures are rendered once (a few per frame, so nothing stutters) and
-  // reused as data URLs everywhere the item or recipe appears.
+  // Pictures are rendered once (one per animation frame, so nothing
+  // stutters) into canvases kept in memory, then copied into a small canvas
+  // in each placeholder: no image encoding and no loads through the page.
   const cache = new Map(), queue = [], waiting = new Map();
   let pumping = false;
   const font = () => getComputedStyle(document.documentElement).getPropertyValue("--font").trim() || "monospace";
   function pump() {
     pumping = true;
     const start = performance.now();
-    while (queue.length && performance.now() - start < 12) {
+    while (queue.length && performance.now() - start < 10) {
       const [key, build, size, cell] = queue.shift();
       if (cache.has(key)) continue;
-      let url = "";
-      try { url = A.still(build(), size, size, { cell, font: font() }).toDataURL(); } catch { url = ""; }
-      cache.set(key, url);
-      for (const el of waiting.get(key) || []) apply(el, url);
+      let pic = null;
+      try { pic = A.still({ ...build(), shadows: size >= 140 }, size, size, { cell, font: font(), dpr: 1 }); } catch { pic = null; }
+      cache.set(key, pic);
+      for (const el of waiting.get(key) || []) apply(el, pic);
       waiting.delete(key);
     }
     if (queue.length) requestAnimationFrame(pump); else pumping = false;
   }
-  function apply(el, url) { if (url) { el.style.backgroundImage = `url(${url})`; el.classList.add("ready"); } }
+  function apply(el, pic) {
+    if (!pic || !el.isConnected) return;
+    const c = document.createElement("canvas");
+    c.width = pic.width; c.height = pic.height;
+    c.getContext("2d").drawImage(pic, 0, 0);
+    el.textContent = ""; el.appendChild(c); el.classList.add("ready");
+  }
   function request(el, key, build, size, cell) {
     if (cache.has(key)) return apply(el, cache.get(key));
     if (!waiting.has(key)) { waiting.set(key, []); queue.push([key, build, size, cell]); }
     waiting.get(key).push(el);
     if (!pumping) requestAnimationFrame(pump);
   }
-  // Fill every [data-art] placeholder inside root.
+  // Fill every [data-art] placeholder inside root. Pictures for what's on
+  // screen go first.
   function fill(root) {
-    for (const el of root.querySelectorAll("[data-art]:not(.ready)")) {
+    const els = [...root.querySelectorAll("[data-art]:not(.ready)")];
+    const vh = innerHeight;
+    els.sort((a, b) => Math.abs(a.getBoundingClientRect().top - vh / 3) - Math.abs(b.getBoundingClientRect().top - vh / 3));
+    for (const el of els) {
       const [kind, id] = el.dataset.art.split(":"), size = +el.dataset.size || 64;
       const key = `${kind}:${id}:${size}`;
       const cell = size >= 140 ? 6 : size >= 80 ? 5 : 4;

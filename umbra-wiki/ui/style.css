@@ -3355,3 +3355,4 @@ body.reduce-motion .op-live, body.reduce-motion .op-it.r-legendary, body.reduce-
 /* The top strip always keeps the current action and its stop button in view. */
 .op-top { flex: 1 1 0; } .op-current { min-width: 0; overflow: hidden; } .op .op-stop { flex: none; }
 @media (max-width: 760px) { .op-hp .op-bar { display: none; } .op-top { gap: 5px; } .op-chip { padding: 4px 6px; } }
+.op-it i canvas, .op-rart .op-art-r canvas { display: block; width: 100%; height: 100%; }

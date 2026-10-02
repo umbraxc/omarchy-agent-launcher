@@ -350,7 +350,7 @@ window.Ascii3D = (() => {
       } else if (built < rows) {
         // Reveal: a few rows per frame, like a scanline building the view.
         if (!built) { cam = camBasis(scene.stillTime ?? 4); findMoving(); }
-        const step = calm() || opts.size ? rows : Math.max(2, Math.ceil(rows / 14));
+        const step = calm() || opts.size ? rows : Math.max(1, Math.ceil(rows / 26));
         trace(built, Math.min(rows, built + step), scene.stillTime ?? 4);
         built = Math.min(rows, built + step);
       }

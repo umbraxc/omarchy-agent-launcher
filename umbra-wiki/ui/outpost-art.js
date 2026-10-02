@@ -334,6 +334,7 @@ window.UmbraOutpostArt = (() => {
 
   return {
     skill(canvas, id) { return SKILL[id] ? A.view(canvas, SKILL[id](), { cell: 7 }) : null; },
+    skillScene: (id) => SKILL[id] && SKILL[id](),
     duel(canvas, kind) { return A.view(canvas, duel(kind || "raider"), { cell: 8 }); },
     valley(canvas, getLevels) {
       const scene = valley(getLevels), view = A.view(canvas, scene, { cell: 9 });
