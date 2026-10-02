@@ -381,6 +381,64 @@ window.UmbraOrbs = (() => {
         return hash(Math.round(u*34),Math.round(v*34),6) > .986 ? ["·", "#dce8d5", .5] : null;
       },
     },
+    anvil: {
+      under: c => c.glow(c.cx, c.cy + c.R * .2, c.R * 1.1, "#ec9a4a", .16),
+      cell(u, v, r, t) {
+        if (r > 1.06) return null;
+        // The anvil: a waisted block with a horn, sparks circling above it.
+        const top = Math.abs(v - .15) < .1 && u > -.62 && u < .45, horn = v > .07 && v < .2 && u >= .45 && u < .45 + (.2 - v) * 2.6;
+        const waist = v >= .25 && v < .55 && Math.abs(u + .08) < .2 + (v - .25) * .3, foot = v >= .55 && v < .66 && Math.abs(u + .08) < .42;
+        if (top || horn) return ["#", "#b8bec6", .85];
+        if (waist || foot) return ["%", "#7f858c", .75];
+        if (Math.abs(v - .02) < .035 && Math.abs(u + .05) < .28) return ["=", "#ffb35a", .7 + .3 * Math.sin(t * 3)];
+        for (let i = 0; i < 7; i++) {
+          const a = t * 1.3 + i * .9, rr = .55 + .1 * Math.sin(t * 2 + i), x = Math.cos(a) * rr, y = -.35 + Math.sin(a) * rr * .45;
+          if (Math.hypot(u - x, (v - y) * 1.3) < .06) return ["*", i % 2 ? "#ffd27a" : "#ff8a3a", .9];
+        }
+        return null;
+      },
+    },
+    relay: {
+      under: c => c.glow(c.cx, c.cy, c.R * 1.15, "#a49ad6", .14),
+      cell(u, v, r, t) {
+        if (r > 1.06) return null;
+        // A lattice mast; rings travel outwards from its light.
+        const w = .05 + (v + .7) * .2;
+        if (v > -.7 && v < .75 && (Math.abs(Math.abs(u) - w) < .035 || (Math.abs(u) < w && Math.abs(((v + 2) * 7) % 1 - .5) < .1))) return ["#", "#c0c6cc", .8];
+        if (Math.hypot(u, (v + .78) * 1.2) < .07) return ["@", "#ff5a4a", Math.sin(t * 3) > 0 ? 1 : .4];
+        const ring = (Math.hypot(u, v + .78) - (t * .35) % 1) % .33;
+        if (Math.abs(ring) < .03 && v < .2) return ["·", "#b7aef0", .6 * (1 - Math.hypot(u, v + .78))];
+        return hash(Math.round(u * 30), Math.round(v * 30), 7) > .985 ? ["·", "#dfe4f6", .5] : null;
+      },
+    },
+    lantern: {
+      under: c => c.glow(c.cx, c.cy, c.R * 1.2, "#f2b45a", .2),
+      cell(u, v, r, t) {
+        if (r > 1.06) return null;
+        // A lantern with little lights (the companions) circling slowly.
+        if (Math.abs(u) < .22 && v > -.3 && v < .3) return [Math.abs(u) > .17 || Math.abs(v) > .25 ? "|" : "@", Math.abs(u) > .17 ? "#8a6a4a" : "#ffd27a", .9];
+        if (Math.abs(u) < .28 && Math.abs(v + .36) < .05) return ["=", "#8a6a4a", .9];
+        if (Math.abs(u) < .06 && v < -.38 && v > -.55) return ["|", "#8a6a4a", .8];
+        for (let i = 0; i < 8; i++) {
+          const a = t * .4 + i * .785, x = Math.cos(a) * .72, y = Math.sin(a) * .55;
+          if (Math.hypot(u - x, v - y) < .07) return ["✦", ["#9fc779", "#76bdc7", "#e5be68", "#dc8e83"][i % 4], .85];
+        }
+        return null;
+      },
+    },
+    wardencore: {
+      under: c => c.glow(c.cx, c.cy, c.R * 1.2, "#ef5a4a", .2),
+      cell(u, v, r, t) {
+        if (r > 1.04) return null;
+        // A machine heart: armoured plates around a beating red core.
+        const beat = .32 + .05 * Math.max(0, Math.sin(t * 4));
+        if (r < beat) return [ramp(1 - r / beat), r < beat * .5 ? "#ffd0c0" : "#ef5a4a", .95];
+        const a = Math.atan2(v, u) + t * .2, plate = Math.abs(Math.sin(a * 3)) > .25;
+        if (r > .5 && r < .9 && plate) return [r > .82 ? "=" : "#", "#8a9098", .45 + .4 * (1 - r)];
+        if (r > .9) return ["·", "#ef8a7a", .5];
+        return null;
+      },
+    },
   };
 
   // ---------------------------------------------------------- the canvas

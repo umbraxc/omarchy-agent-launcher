@@ -1179,6 +1179,160 @@
    "stat": "allOthers",
    "goal": 98,
    "category": "legend"
+  },
+  {
+   "id": "jack-of-all-trades",
+   "name": "Jack of All Trades",
+   "description": "Reach a total level of 75 across the Outpost's skills.",
+   "icon": "\u2736\ufe0e",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "outpost:total",
+   "goal": 75,
+   "category": "outpost"
+  },
+  {
+   "id": "outpost-veteran",
+   "name": "Outpost Veteran",
+   "description": "Reach a total level of 500 in Umbra Outpost.",
+   "icon": "\u2737\ufe0e",
+   "tier": "silver",
+   "points": 25,
+   "stat": "outpost:total",
+   "goal": 500,
+   "category": "outpost"
+  },
+  {
+   "id": "pillar-of-the-valley",
+   "name": "Pillar of the Valley",
+   "description": "Reach a total level of 1,200 in Umbra Outpost.",
+   "icon": "\u2739\ufe0e",
+   "tier": "gold",
+   "points": 50,
+   "stat": "outpost:total",
+   "goal": 1200,
+   "category": "outpost"
+  },
+  {
+   "id": "specialist",
+   "name": "Specialist",
+   "description": "Raise any Outpost skill to level 50.",
+   "icon": "\u25c6\ufe0e",
+   "tier": "silver",
+   "points": 25,
+   "stat": "outpost:maxskill",
+   "goal": 50,
+   "category": "outpost"
+  },
+  {
+   "id": "ninety-nine",
+   "name": "Ninety-Nine",
+   "description": "Raise an Outpost skill to level 99.",
+   "icon": "\u265b\ufe0e",
+   "tier": "legendary",
+   "points": 100,
+   "stat": "outpost:maxskill",
+   "goal": 99,
+   "category": "outpost"
+  },
+  {
+   "id": "a-friend-in-the-valley",
+   "name": "A Friend in the Valley",
+   "description": "Find your first Outpost companion.",
+   "icon": "\u2740\ufe0e",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "outpost:companions",
+   "goal": 1,
+   "category": "outpost"
+  },
+  {
+   "id": "the-menagerie",
+   "name": "The Menagerie",
+   "description": "Gather eight companions at the Outpost.",
+   "icon": "\u273f\ufe0e",
+   "tier": "gold",
+   "points": 50,
+   "stat": "outpost:companions",
+   "goal": 8,
+   "category": "outpost"
+  },
+  {
+   "id": "everyones-home",
+   "name": "Everyone's Home",
+   "description": "Find every one of the Outpost's companions.",
+   "icon": "\u2741\ufe0e",
+   "tier": "legendary",
+   "points": 100,
+   "stat": "outpost:companions",
+   "goal": 17,
+   "category": "outpost"
+  },
+  {
+   "id": "beyond-the-valley",
+   "name": "Beyond the Valley",
+   "description": "Clear all four Outpost expeditions.",
+   "icon": "\u2691\ufe0e",
+   "tier": "gold",
+   "points": 50,
+   "stat": "outpost:expeditions",
+   "goal": 4,
+   "category": "outpost"
+  },
+  {
+   "id": "bounty-regular",
+   "name": "Regular at the Board",
+   "description": "Complete ten Outpost bounties.",
+   "icon": "\u272a\ufe0e",
+   "tier": "silver",
+   "points": 25,
+   "stat": "outpost:bounties",
+   "goal": 10,
+   "category": "outpost"
+  },
+  {
+   "id": "valley-defender",
+   "name": "Valley Defender",
+   "description": "Defeat a thousand enemies around the Outpost.",
+   "icon": "\u2694\ufe0e",
+   "tier": "silver",
+   "points": 25,
+   "stat": "outpost:kills",
+   "goal": 1000,
+   "category": "outpost"
+  },
+  {
+   "id": "workshop-hum",
+   "name": "Workshop Hum",
+   "description": "Craft five thousand items at the Outpost.",
+   "icon": "\u22a4\ufe0e",
+   "tier": "silver",
+   "points": 25,
+   "stat": "outpost:crafted",
+   "goal": 5000,
+   "category": "outpost"
+  },
+  {
+   "id": "on-the-air",
+   "name": "On the Air",
+   "description": "Tune fifteen ranks of Outpost broadcasts.",
+   "icon": "\u25c7\ufe0e",
+   "tier": "gold",
+   "points": 50,
+   "stat": "outpost:broadcasts",
+   "goal": 15,
+   "category": "outpost"
+  },
+  {
+   "id": "true-mastery",
+   "name": "True Mastery",
+   "description": "Bring one Outpost recipe to mastery 99.",
+   "icon": "\u2726\ufe0e",
+   "tier": "gold",
+   "points": 50,
+   "stat": "outpost:mastery99",
+   "goal": 1,
+   "category": "outpost"
   }
  ],
  "rewards": [
@@ -1534,6 +1688,42 @@
    "description": "Your name in gold.",
    "unlock": {
     "rank": "Legend"
+   }
+  },
+  {
+   "id": "anvil",
+   "kind": "orb",
+   "name": "Anvil Spark",
+   "description": "A forge-lit anvil throwing sparks in a slow orbit.",
+   "unlock": {
+    "achievement": "workshop-hum"
+   }
+  },
+  {
+   "id": "relay",
+   "kind": "orb",
+   "name": "Signal Tower",
+   "description": "A lattice mast in the dark, sending rings into the night.",
+   "unlock": {
+    "achievement": "on-the-air"
+   }
+  },
+  {
+   "id": "lantern",
+   "kind": "orb",
+   "name": "Companion Lantern",
+   "description": "A warm lantern with small lights gathered around it.",
+   "unlock": {
+    "achievement": "the-menagerie"
+   }
+  },
+  {
+   "id": "wardencore",
+   "kind": "orb",
+   "name": "Warden Core",
+   "description": "The north's old machine heart, humming red.",
+   "unlock": {
+    "achievement": "beyond-the-valley"
    }
   }
  ]

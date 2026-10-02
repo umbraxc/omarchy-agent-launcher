@@ -178,8 +178,10 @@ UMBRA_GUIDE = (
     "waypoints, measuring, clickable country files with facts, and safety levels per country. "
     "FARMING: an offline planner with edible crops and common livestock, editable estimates for output, "
     "calories, seed, feed, work, climate and soil. Its bundled figures are rough planning defaults, not local advice. "
-    "UMBRA OUTPOST: an optional fictional settlement game with eight resources, upgrades and two short expeditions; "
-    "it progresses offline and keeps its save separate from the real Farming planner. "
+    "UMBRA OUTPOST (Ctrl+B): an optional fictional idle game. One action at a time trains 21 skills (Forestry, Salvaging, Fishing, "
+    "Foraging, Trapping, Quarrying, Cooking, Metalwork, Carpentry, Tailoring, Remedies, Tinkering, Hearthkeeping, Signals, Scouting and "
+    "combat skills); items fill a stockpile; there are buildings, a Trader, gear, battles, four expeditions, bounties and companions. "
+    "It progresses offline for up to a day and keeps its save separate from the real Farming planner; its items are fictional. "
     "SIGNALS & RADAR (Ctrl+J): nearby Wi-Fi and Bluetooth signals on a radar, INTEL, a DEVICES list that "
     "remembers every device heard and marks new ones, the device's vitals, and a KILL SWITCH that turns all radios off at once. "
     "DOWNLOADS (maps, library, AI model, manuals) can be paused and resumed from the button at the top. "
@@ -1857,30 +1859,7 @@ def _streak(days):
 def _stat(st, stat):
     counts, sets = st["counts"], st["sets"]
     if stat.startswith("outpost:"):
-        game = read_json(OUTPOST_FILE, {})
-        stations = game.get("stations", {}) if isinstance(game, dict) else {}
-        resources = game.get("resources", {}) if isinstance(game, dict) else {}
-        completed = game.get("completed", []) if isinstance(game, dict) else []
-        if not isinstance(stations, dict) or not isinstance(resources, dict) or not isinstance(completed, list):
-            return 0
-        key = stat[8:]
-        levels = [max(0, min(5, stations.get(name, 0))) for name in outpost.STATIONS
-                  if type(stations.get(name, 0)) is int]
-        if key == "stations":
-            return sum(level > 0 for level in levels)
-        if key == "upgrades":
-            return max(0, sum(levels) - 3)  # three stations start at level one
-        if key == "mastered":
-            return sum(level == 5 for level in levels)
-        if key == "stockpile":
-            return sum(resources.get(name, 0) >= 50 for name in outpost.RESOURCES)
-        if key == "stories":
-            return len(set(completed) & set(outpost.ROUTES))
-        if key.startswith("route:"):
-            return int(key[6:] in completed)
-        if key.startswith("station:"):
-            return max(0, min(5, stations.get(key[8:], 0))) if key[8:] in outpost.STATIONS else 0
-        return 0
+        return outpost.stat(OUTPOST_FILE, stat[8:])
     if stat.startswith("topic:"):
         return st["topics"].get(stat[6:], 0)
     if stat == "topicsCovered":
@@ -2294,6 +2273,9 @@ def ai_device():
 # until there are a few. A typical answer reads a prompt of persona, profile
 # and sources and writes a few paragraphs.
 SPEED_FILE = os.path.join(DATA_DIR, "speed.json")
+# Conversation scenery (ui/scenery-lib.js), as History and settings accept it.
+SCENERY_IDS = {"mountains", "forest", "lake", "lighthouse", "shore", "valley", "waterfall", "desert", "winter", "storm",
+               "aurora", "cave", "farm", "campfire", "ruins", "meadow", "orchard", "dawn", "stars", "rain"}
 SPEED_LOCK = threading.Lock()
 TYPICAL_PROMPT_TOKENS, TYPICAL_ANSWER_TOKENS = 1800, 380   # measured on real answers with sources
 ROUGH_SECONDS = {"fast": 60, "steady": 150, "slow": 300}   # a laptop processor, by the catalog's speed class
@@ -3104,6 +3086,10 @@ def apply_settings(update):
             settings["radioVolume"] = round(max(0.0, min(1.0, float(update["radioVolume"]))), 2)
         if update.get("cpuLimit") in CPU_LIMITS:
             settings["cpuLimit"] = update["cpuLimit"]
+        if type(update.get("sceneryAt")) is int and 0 < update["sceneryAt"] < 4102444800000:
+            settings["sceneryAt"] = update["sceneryAt"]
+        if update.get("sceneryScene") in SCENERY_IDS:
+            settings["sceneryScene"] = update["sceneryScene"]
         if update.get("aiDevice") in ("cpu", "gpu"):
             settings["aiDevice"] = update["aiDevice"]
         for key in ("scenario", "personality"):
@@ -3591,7 +3577,7 @@ def history_save(conv, keep_time=False):
             "answerAt": m.get("answerAt") if type(m.get("answerAt")) is int and 0 < m["answerAt"] < 4102444800000 else None,
             "clockOffsetMinutes": m.get("clockOffsetMinutes") if type(m.get("clockOffsetMinutes")) is int and -720 <= m["clockOffsetMinutes"] <= 720 else 0,
             "sky": bool(m.get("sky")),
-            "scene": str(m.get("scene", ""))[:20] if m.get("scene") in ("dawn", "forest", "shore", "stars") else "",
+            "scene": m["scene"] if m.get("scene") in SCENERY_IDS else "",
             "sources": sources,
         })
     now = int(time.time() * 1000)
@@ -3992,6 +3978,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"catalog": farm_catalog(), "plan": get_farm()})
         if path == "/api/outpost":
             return self.send_json(outpost.interact(OUTPOST_FILE))
+        if path == "/api/outpost/data":
+            return self.send_json(outpost.data())
         if path == "/api/greeting":
             return self.send_json(greeting())
         if path == "/api/starters":

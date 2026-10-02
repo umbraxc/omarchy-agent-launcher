@@ -24,7 +24,7 @@
   }
   function fill() {
     menu.innerHTML = tabs().map(el => {
-      const label = el.id === "dl-btn" ? "Downloads" : (el.dataset.tip || el.title || el.id).split("|")[0];
+      const label = el.id === "dl-btn" ? "DOWNLOADS" : window.UMBRA_TAB_NAMES?.[el.id] || (el.dataset.tip || el.title || el.id).split("|")[0].toUpperCase();
       const active = el.classList.contains("on");
       const progress = el.querySelector(".dl-pct")?.textContent || "";
       return `<button type="button" role="menuitem" data-for="${el.id}" class="${active ? "on" : ""}">${el.querySelector(".g")?.outerHTML || ""}<span>${escapeHtml(label)}</span>${progress ? `<small>${escapeHtml(progress)}</small>` : ""}</button>`;

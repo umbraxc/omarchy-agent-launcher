@@ -264,7 +264,7 @@
     ["#maps-btn", "MAPS", "Offline maps with a military look, down to street level: download a country or any area, search towns, streets, water and coordinates. Right-click for waypoints (15 marker types), measuring and range rings. Click a country's name for its file and your own safety level."],
     ["#fieldkit-btn", "FIELD KIT", "Tools that matter in an emergency. MEDIC: CPR metronome, timers, triage, coma scale, burns and child-dose calculators, a patient chart with handover reports. SUN & MOON with a live Earth. SUPPLIES. A CALENDAR that also shows when water and food run out. The VAULT for your arsenal and valuables. TRAINING: Morse, radio, grid references, compass, and field manuals to download. Printable CARDS."],
     ["#farming-btn", "FARMING", "An offline field planner for edible crops and common livestock. Choose an item to see animated field art, care, space, climate, and daily or weekly estimates; adjust the numbers for your plan. Ctrl+Shift+F opens it."],
-    ["#outpost-btn", "UMBRA OUTPOST", "A separate fictional settlement game. Build stations, gather eight resources while Umbra is closed, and follow two short expedition stories."],
+    ["#outpost-btn", "UMBRA OUTPOST", "A fictional idle game of its own: 21 skills, a stockpile, gear, battles and expeditions. It keeps going while Umbra is closed."],
     ["#radar-btn", "SIGNALS & RADAR", "The Wi-Fi networks and Bluetooth devices around you on a radar, nearer the centre when stronger; click one for its details. Plus your device's vitals. No internet needed."],
     ["#dl-btn", "DOWNLOADS", "Shows while something downloads (maps, library, AI model): pause, resume or cancel it here. Downloads go on after a restart."],
     ["#theme-btn", "THEMES", "Pick a colour theme, follow your Omarchy theme, or design your own."],
@@ -545,7 +545,7 @@
     const MODES = [
       ["quick", "QUICK START", "About a minute", "Your name, continent, my AI, the library and a look. The basics, then straight in.", true],
       ["full", "FULL BRIEFING", "About five minutes", "Everything: your continent and profile, health notes and ID card, a password, scenarios, personalities, comfort and power, and every tool on screen."],
-      ["outpost", "OUTPOST TRAIL", "A short game tour", "Set your local clock, see the eight camps and resources, and learn how upgrades and expedition stories work."],
+      ["outpost", "OUTPOST TRAIL", "A short game tour", "Set your local clock, then meet the Outpost: skills, the stockpile, buildings and the first battles."],
       ["skip", "SKIP", "Straight in", "Set your continent later in Profile, and the AI in Core (click STATUS). Each screen explains itself the first time."],
     ];
     return new Promise((resolve, reject) => {
@@ -609,10 +609,10 @@
     await postSettings({ clockOffsetMinutes });
     if (window.prefs) window.prefs.clockOffsetMinutes = clockOffsetMinutes;
     if (mode === "outpost") {
-      a = await say("**Umbra Outpost** is a small fictional world beside your real tools. Eight camps gather resources while you're away; upgrade them to grow faster. Two short expeditions reveal stories through choices.");
+      a = await say("**Umbra Outpost** is a fictional idle game beside your real tools. Train skills one action at a time (felling trees, fishing, cooking, forging) and everything you make fills the stockpile. Buildings, gear, battles and expeditions grow from there, and it all keeps going while you're away.");
       await choose(a, [["SHOW ME THE OUTPOST ▸", "go", true]]);
       await spotlight(false, true);
-      a = await say("Open the Outpost now. Hover the camps to see live production; watch the resource bars; explore the upgrades and the two expedition stories. **Close the Outpost tab** when you're ready to finish the tour.");
+      a = await say("Open the Outpost now. Try **Forestry** on the left and press **START** on the birch tree, then look around: the stockpile, the buildings in the valley, the Trader. **Close the Outpost tab** when you're ready to finish the tour.");
       await choose(a, [["OPEN OUTPOST ▸", "open", true]]);
       document.getElementById("outpost-btn")?.click();
       if (AUTO) setTimeout(() => window.closeOutpost?.(), 1700);

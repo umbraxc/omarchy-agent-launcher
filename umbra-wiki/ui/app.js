@@ -220,6 +220,9 @@ const Sound = (() => {
     "lock": ["LOCK", "Secure this window"],
     "settings-btn": ["SETTINGS", "Adjust Umbra"],
   };
+  // The tab menu names its rows from here: tooltips change with state
+  // ("Lock the screen", "Sound on · …"), the names don't.
+  window.UMBRA_TAB_NAMES = Object.fromEntries(Object.entries(labels).map(([id, [title]]) => [id, title]));
   const card = document.createElement("div");
   card.className = "nav-callout";
   card.hidden = true;
@@ -2145,7 +2148,7 @@ async function ask(question, shownAs = "") {
     question, shown: shownAs, answer: shown, rawAnswer: text || shown,
     offer: stopped || !completed || failure ? "" : next, sources, online, contextNote,
     userAt, answerAt: Date.now(), clockOffsetMinutes, sky: skyRequested,
-    scene: !stopped && window.UmbraChill ? UmbraChill.select(question, chat.length / 2) : "",
+    scene: !stopped && window.UmbraChill ? UmbraChill.select(question, chat.length / 2, { answer: shown, sky: skyRequested, failed: !completed || failure, history: chat }) : "",
     persona: window.loadoutPersona || "",
     meta: stopped ? "" : !completed || failure ? "INTERRUPTED · " + (online ? "ONLINE" : "OFFLINE")
       : meta ? `${meta.tokens} TOKENS · ${meta.seconds}s · ${sources.length} SOURCES · ${online ? "ONLINE" : "OFFLINE"}` : "",
