@@ -574,6 +574,27 @@ def mastery_pool_cap(skill):
 ACTIVE_SKILLS = [s for s in SKILLS if SKILLS[s]["kind"] in ("gather", "craft") or s in ("hearth", "signals")]
 
 
+# ------------------------------------------------------------- pacing
+# One Melvor-like pace for every skill: the best XP per second at a level
+# rises from about 3 at level 1 to about 15 at 99, so level 99 takes
+# roughly 280 hours of play before bonuses (Melvor-like). A recipe faster than that takes
+# longer (up to 20 s); beyond 20 s it gives less XP instead.
+def _pace(level):
+    return 3.2 + .115 * level
+
+
+MAX_SECONDS = 20.0
+for _r in RECIPES.values():
+    _target = _pace(_r["level"])
+    if _r["xp"] / _r["seconds"] > _target:
+        _t = _r["xp"] / _target
+        if _t <= MAX_SECONDS:
+            _r["seconds"] = round(_t, 1)
+        else:
+            _r["seconds"] = MAX_SECONDS
+            _r["xp"] = round(_target * MAX_SECONDS, 1)
+
+
 def export():
     """Everything the UI needs to draw the game."""
     return {"skills": SKILLS, "items": ITEMS, "recipes": RECIPES, "enemies": ENEMIES, "areas": AREAS, "expeditions": EXPEDITIONS,
