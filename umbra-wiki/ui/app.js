@@ -405,6 +405,16 @@ let currentTheme = "";
 // The Omarchy theme only loads on Omarchy, so it also tells the tour and
 // notes whether Omarchy features (its theme, its top bar) exist here.
 const onOmarchy = () => themes.some((t) => t.id === "auto");
+// "NVIDIA Corporation GA107M [GeForce RTX 3050 Mobile]" reads as its product name.
+const gpuCardName = (name) => (name || "").replace(/^.*\[(.+)\]$/, "$1");
+// A typical answer time in words: "about 40 seconds", "about 2.5 minutes"
+// (a ½ in the interface font reads like a %).
+function fmtAnswerTime(seconds) {
+  if (seconds < 50) return `about ${Math.max(5, Math.round(seconds / 5) * 5)} seconds`;
+  if (seconds < 75) return "about a minute";
+  if (seconds >= 600) return `about ${Math.round(seconds / 60)} minutes`;
+  return `about ${Math.round(seconds / 30) / 2} minutes`;
+}
 const THEME_VARS = {
   bg: "--bg", bg1: "--bg-1", bg2: "--bg-2", bg3: "--bg-3", line: "--line", muted: "--muted",
   fg: "--fg", fgBright: "--fg-bright", dim: "--dim", faint: "--faint",

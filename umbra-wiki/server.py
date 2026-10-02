@@ -2287,6 +2287,75 @@ def ai_device():
     return choice if choice in ("cpu", "gpu") else "gpu"
 
 
+# ---------------------------------------------------------------- answer speed
+
+# How long an answer takes here: the average of the latest real answers for
+# this model, device and processor limit, or a short timed test of the model
+# until there are a few. A typical answer reads a prompt of persona, profile
+# and sources and writes a few paragraphs.
+SPEED_FILE = os.path.join(DATA_DIR, "speed.json")
+SPEED_LOCK = threading.Lock()
+TYPICAL_PROMPT_TOKENS, TYPICAL_ANSWER_TOKENS = 1800, 380   # measured on real answers with sources
+ROUGH_SECONDS = {"fast": 60, "steady": 150, "slow": 300}   # a laptop processor, by the catalog's speed class
+BENCH_TEXT = ("Water is the first priority after shelter in most emergencies. A person needs about two litres a day "
+              "to drink, more in heat or during hard work, and more again for cooking and washing. Store it in clean, "
+              "food-grade containers away from sunlight, label them with the date, and rotate them every six months. "
+              "When stored water runs out, collect rain from a clean roof or tarp, and treat anything from rivers, "
+              "lakes or ponds before drinking it: boil it, use a tested filter, or add the right dose of chlorine. ") * 3
+
+
+def speed_key(model=None):
+    return f"{model or MODEL}|{ai_device()}|{cpu_limit()}"
+
+
+def record_speed(seconds, model=None):
+    """Remember how long a real answer took, from question to last word."""
+    with SPEED_LOCK:
+        data = read_json(SPEED_FILE, {})
+        entry = data.setdefault(speed_key(model), {})
+        entry["answers"] = (entry.get("answers", []) + [round(seconds, 1)])[-12:]
+        write_json(SPEED_FILE, data)
+
+
+def benchmark():
+    """Time the model on a short prompt and estimate a typical answer from its
+    reading and writing speeds. Refused while an answer is being written."""
+    if ANSWER_COUNT:
+        raise ValueError("Umbra is answering right now; measure again in a moment.")
+    nonce = f"[{time.time():.6f}] "   # a fresh prompt, so Ollama can't reuse a cached reading
+    body = json.dumps(think_off({"model": MODEL, "prompt": nonce + "Summarise in one sentence: " + BENCH_TEXT, "stream": False,
+                                 "keep_alive": "30m", "options": ai_options(num_predict=32, temperature=0)})).encode()
+    r = json.loads(urllib.request.urlopen(urllib.request.Request(
+        OLLAMA + "/api/generate", body, {"Content-Type": "application/json"}), timeout=90).read())
+    read = r.get("prompt_eval_count", 0) / max(r.get("prompt_eval_duration", 0) / 1e9, 1e-3)
+    write = r.get("eval_count", 0) / max(r.get("eval_duration", 0) / 1e9, 1e-3)
+    if read <= 0 or write <= 0:
+        raise ValueError("The AI didn't report its speed.")
+    estimate = TYPICAL_PROMPT_TOKENS / read + TYPICAL_ANSWER_TOKENS / write
+    with SPEED_LOCK:
+        data = read_json(SPEED_FILE, {})
+        data.setdefault(speed_key(), {}).update(bench=round(estimate, 1), benchAt=int(time.time()))
+        write_json(SPEED_FILE, data)
+    return speed_status()
+
+
+def speed_status():
+    """The typical answer time here, and where the figure comes from."""
+    entry = read_json(SPEED_FILE, {}).get(speed_key(), {})
+    answers, device = entry.get("answers", []), ai_device()
+    out = {"model": MODEL, "device": device, "cpuLimit": cpu_limit(), "cpu": system_info_cpu(),
+           "gpu": gpu_static()["name"] if device == "gpu" else ""}
+    if len(answers) >= 3:
+        out.update(source="answers", seconds=round(sum(answers) / len(answers)), samples=len(answers))
+    elif entry.get("bench"):
+        out.update(source="measured", seconds=round(entry["bench"]))
+    else:
+        info = next((m for m in MODEL_CHOICES if m["id"] == MODEL), {})
+        seconds = ROUGH_SECONDS.get(info.get("speed"), 90) * (100 / cpu_limit()) ** .5
+        out.update(source="rough", seconds=round(seconds / (4 if device == "gpu" else 1)))
+    return out
+
+
 def gpu_status():
     """Live graphics figures for Settings: the card's use where the driver
     reports it, and how much of the loaded model sits in graphics memory."""
@@ -3943,6 +4012,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(cpu_status())
         if path == "/api/gpu":
             return self.send_json(gpu_status())
+        if path == "/api/speed":
+            return self.send_json(speed_status())
         if path == "/api/achievements":
             return self.send_json(achievements())
         if path == "/api/update-auto":
@@ -4178,6 +4249,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(save_farm(self.read_json()))
             except (ValueError, TypeError) as e:
                 return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/speed":
+            try:
+                return self.send_json(benchmark())
+            except (OSError, ValueError) as e:
+                return self.send_json({**speed_status(), "error": str(e)}, 409 if isinstance(e, ValueError) else 503)
         if self.path == "/api/outpost":
             try:
                 result = outpost.interact(OUTPOST_FILE, self.read_json())
@@ -4635,6 +4711,7 @@ def offer_context(question, history):
 
 
 def answer(req, emit):
+    started = time.time()
     question = str(req.get("question", "")).strip()
     history = req.get("history") or []
     previous, follows_offer, sky_request = offer_context(question, history)
@@ -4861,6 +4938,7 @@ def answer(req, emit):
         emit({"type": "next", "text": follow})
     record("question", question, online=online, offgrid=offgrid, turn=len(history) // 2 + 1)
     if done_event:
+        record_speed(time.time() - started, answer_model)
         emit(done_event)
 
 

@@ -177,12 +177,14 @@
       const next = document.createElement("div");
       items.forEach((it) => {
         const c = document.createElement("button");
-        c.className = "tour-card" + (it.id === current ? " on" : "");
+        c.className = "tour-card" + (it.id === current ? " on" : "") + (it.disabled ? " unavailable" : "");
         c.innerHTML = `${it.swatch || ""}<b></b><small></small>`;
         c.querySelector("b").textContent = it.name;
         c.querySelector("small").textContent = it.line || "";
+        if (it.disabled) c.setAttribute("aria-disabled", "true");
         c.addEventListener("mouseenter", Sound.hover);
         c.addEventListener("click", () => {
+          if (it.disabled) { Sound.error(); return; }
           grid.querySelectorAll(".tour-card").forEach((x) => x.classList.remove("on"));
           c.classList.add("on");
           onPick(it.id);
@@ -449,6 +451,32 @@
   }
 
   // A colour theme, applied at once.
+  // With those choices made, time a short piece of real work and say what a
+  // typical answer will take on this computer. Capped, so the tour moves on.
+  async function stepSpeed(hardware) {
+    const a = await say("Let me time myself on this computer…");
+    const meter = document.createElement("div");
+    meter.className = "tour-meter";
+    meter.innerHTML = "<i></i><span>MEASURING</span>";
+    a.appendChild(meter);
+    wake();
+    // The test keeps running on the backend if the tour moves on first; its
+    // result still reaches Settings.
+    const stop = new AbortController(), cap = setTimeout(() => stop.abort(), 40000);
+    skipHooks.push(() => stop.abort());
+    let speed = AUTO ? null : await fetch("/api/speed", { method: "POST", signal: stop.signal }).then((r) => r.json()).catch(() => null);
+    clearTimeout(cap);
+    if (!speed || !speed.seconds || speed.error) speed = await fetch("/api/speed").then((r) => r.json()).catch(() => null);
+    meter.remove();
+    if (skipped) throw SKIP;
+    if (!speed || !speed.seconds) return;
+    const on = `${speed.model} on your ${hardware || speed.cpu}`;
+    await say(speed.source === "rough"
+      ? `As a rough guide, a typical answer takes **${fmtAnswerTime(speed.seconds)}** here (${on}). **Settings** can time it properly later.`
+      : `On this computer a typical answer takes **${fmtAnswerTime(speed.seconds)}** (${on}). Quick chats are faster, long answers with many sources slower. ` +
+        "**Settings** keeps the average of your real answers.");
+  }
+
   async function stepTheme(themeList) {
     let a;
     a = await say("Let's make this place yours. **Pick a theme.** It applies right away, and you can change it any time from the palette button" +
@@ -745,13 +773,28 @@
         Sound.click();
       });
     }
-    a = await say("**How hard may I work your processor** while I write? Lower keeps a laptop cooler and quieter; answers take longer.");
+    // Where I think: a usable graphics card boosts the processor, never
+    // replaces it. Without one, its choice shows but can't be picked.
+    const gpu = await fetch("/api/gpu").then((r) => r.json()).catch(() => null);
+    const gpuOk = !!(gpu && gpu.available), card = gpuCardName(gpu && gpu.name);
+    let device = gpuOk ? gpu.device : "cpu";
+    a = await say(gpuOk
+      ? `**Where should I think?** Your graphics card, the **${card}**, can take as much of me as fits in its memory while the processor runs the rest: usually much faster answers.`
+      : "**Where should I think?** I run on your processor. A graphics card can speed me up, but this computer doesn't have one I can use.");
+    await cards(a, [
+      { id: "gpu", name: gpuOk ? "CPU + GPU  ★" : "CPU + GPU", line: gpuOk ? "Graphics boost: the fastest answers" : "Not available on this machine", disabled: !gpuOk },
+      { id: "cpu", name: gpuOk ? "CPU" : "CPU  ★", line: gpuOk ? "Processor only; the card stays free" : "Processor only" },
+    ], device, (id) => { device = id; Sound.click(); });
+    if (gpuOk) await postSettings({ aiDevice: device });
+    a = await say("**How hard may I work your processor** while I write? Lower keeps a laptop cooler and quieter; answers take longer." +
+      (device === "gpu" ? " With the graphics card, this is the processor's share." : ""));
     await cards(a, [
       { id: "100", name: "Full  ★", line: "Fastest answers" },
       { id: "75", name: "Strong", line: "Most of the processor" },
       { id: "50", name: "Balanced", line: "Half: cooler and quieter" },
       { id: "25", name: "Light", line: "Gentle on the battery and fans; slow" },
     ], String(settings.cpuLimit || 100), (id) => { postSettings({ cpuLimit: Number(id) }); if (window.prefs) window.prefs.cpuLimit = Number(id); Sound.click(); });
+    await stepSpeed(device === "gpu" ? `${card} and processor` : "");
     let offgridChoice = settings.offgrid || "auto";
     a = await say("One more, and it matters off the grid: **off-grid mode**, my battery saver. It stops the animations, keeps me quiet, " +
       "skips my extra AI work and makes my answers shorter, so the battery lasts. \"On battery\" switches it on by itself when you unplug.");

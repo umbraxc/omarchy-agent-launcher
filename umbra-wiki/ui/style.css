@@ -1473,6 +1473,15 @@ body:has(.corepanel:not([hidden])) .tour-skip { right: calc(min(560px, 100%) + 2
 .tour-card.on b::after { content: " ✓"; color: var(--signal); }
 .tour-card b { color: var(--fg-bright); font-size: 12px; letter-spacing: .08em; }
 .tour-card small { color: var(--dim); font-size: 10.5px; line-height: 1.4; }
+.tour-card.unavailable { cursor: not-allowed; opacity: .55; }
+.tour-card.unavailable:hover { border-color: var(--line); }
+.tour-card.unavailable small { color: var(--red); }
+/* A thin scanning bar while Umbra times itself. */
+.tour-meter { display: flex; align-items: center; gap: 12px; margin-top: 12px; font-size: 10px; letter-spacing: .25em; color: var(--signal); }
+.tour-meter i { position: relative; width: 180px; height: 3px; overflow: hidden; background: var(--line); }
+.tour-meter i::after { content: ""; position: absolute; top: 0; bottom: 0; width: 40%; background: var(--signal); animation: tour-meter 1.3s ease-in-out infinite; }
+@keyframes tour-meter { from { left: -40%; } to { left: 100%; } }
+body.reduce-motion .tour-meter i::after { animation: none; left: 0; width: 100%; opacity: .5; }
 .tour-sw { display: flex; gap: 3px; margin-bottom: 5px; }
 .tour-sw i { width: 14px; height: 14px; border: 1px solid rgba(128, 128, 128, .35); }
 

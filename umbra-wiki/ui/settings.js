@@ -129,7 +129,7 @@
   // Words people might search for that aren't written in a section, so
   // "cpu", "mic" or "dark" still find the right place.
   const KEYWORDS = {
-    PERFORMANCE: "cpu processor performance speed fast slow hot fan heat temperature memory ram cores threads limit battery graph gpu graphics card video nvidia amd cuda rocm vulkan vram boost",
+    PERFORMANCE: "cpu processor performance speed fast slow hot fan heat temperature memory ram cores threads limit battery graph gpu graphics card video nvidia amd cuda rocm vulkan vram boost typical answer time speed slow measure benchmark how long",
     SOUND: "notification notifications popup pop-up alert achievement ding audio volume speaker speakers headphones mute quiet loud output input microphone mic beep",
     "HEADER BUTTONS": "hide show icons toolbar top buttons header",
     "MAPS & PLACES": "maps map downloaded areas countries waypoints places delete remove space disk",
@@ -344,6 +344,8 @@
           <button type="button" class="seg-step" role="radio" data-dev="cpu"><b>CPU</b><small>PROCESSOR ONLY</small></button>
           <button type="button" class="seg-step" role="radio" data-dev="gpu"><b>CPU + GPU</b><small>GRAPHICS BOOST</small></button>
         </div>
+        <div class="set-row set-speed"><span class="set-text"><b>Typical answer</b><small class="speed-note">Checking…</small></span>
+          <button class="ghost set-measure" title="Time a short piece of work on this computer">MEASURE</button></div>
         <div class="set-row"><span class="set-text"><b>AI processor limit</b><small class="cpu-limit-note">How much of the processor
           Umbra's AI may use while it writes. Lower keeps your computer cooler and quieter; answers take longer.</small></span></div>
         <div class="seg" role="slider" tabindex="0" aria-label="AI processor limit" aria-valuemin="25" aria-valuemax="100">
@@ -678,7 +680,7 @@
       const res = await fetch("/api/model", {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: select.value }),
       }).catch(() => null);
-      if (res && res.ok) { Sound.theme(); refreshStatus(); } else { Sound.error(); select.value = select.dataset.current || ""; }
+      if (res && res.ok) { Sound.theme(); refreshStatus(); refreshSpeed(); } else { Sound.error(); select.value = select.dataset.current || ""; }
     });
     fillModels(models);
     setupCpu();
@@ -784,8 +786,7 @@
   const CPU_POINTS = 60;
   let cpuTimer = 0, cpuInfo = null, gpuInfo = null;
   const gpuMode = () => !!(gpuInfo && gpuInfo.available && gpuInfo.device === "gpu");
-  // "NVIDIA Corporation GA107M [GeForce RTX 3050 Mobile]" reads as its product name.
-  const cardName = (name) => (name || "").replace(/^.*\[(.+)\]$/, "$1");
+  const cardName = gpuCardName;
 
   async function setupDevice() {
     const seg = body.querySelector(".seg-dev"), note = body.querySelector(".dev-note");
@@ -822,11 +823,40 @@
       if (b.dataset.dev === gpuInfo.device) return;
       gpuInfo.device = b.dataset.dev;
       show(gpuInfo.device);
-      save({ aiDevice: gpuInfo.device });
+      save({ aiDevice: gpuInfo.device }).then(refreshSpeed);
       Sound.click();
       swapGraph();
     };
     swapGraph(false);
+  }
+
+  // How long a typical answer takes here: the average of the latest real
+  // answers, a timed test, or a rough guide for the model, in that order.
+  async function refreshSpeed() {
+    const note = body.querySelector(".speed-note");
+    if (!note) return;
+    const sp = await fetch("/api/speed").then((r) => r.json()).catch(() => null);
+    if (!sp || !body.contains(note)) return;
+    showSpeed(sp);
+  }
+  function showSpeed(sp) {
+    const note = body.querySelector(".speed-note");
+    if (!note) return;
+    const time = fmtAnswerTime(sp.seconds), on = `${sp.model} on the ${sp.device === "gpu" ? "graphics card and processor" : "processor"}`;
+    note.textContent = sp.source === "answers"
+      ? `${time[0].toUpperCase() + time.slice(1)}: the average of your last ${sp.samples} answers (${on}).`
+      : sp.source === "measured"
+        ? `${time[0].toUpperCase() + time.slice(1)}, measured on this computer (${on}). After a few answers this becomes the average of your own.`
+        : `Roughly ${time.replace(/^about /, "")}, a rough guide for ${sp.model}. MEASURE times it on this computer.`;
+  }
+  async function measureSpeed(button) {
+    button.disabled = true; button.textContent = "MEASURING…";
+    Sound.click();
+    const sp = await fetch("/api/speed", { method: "POST" }).then((r) => r.json()).catch(() => null);
+    button.disabled = false; button.textContent = "MEASURE";
+    if (!sp) { Sound.error(); return; }
+    showSpeed(sp);
+    if (sp.error) { Sound.error(); body.querySelector(".speed-note").textContent = sp.error; } else Sound.done();
   }
 
   // The big graph changes its subject with the device: processor or card.
@@ -862,7 +892,7 @@
     const choose = (v) => {
       if (v === (prefs.cpuLimit || 100)) return show(v);
       show(v);
-      save({ cpuLimit: v });
+      save({ cpuLimit: v }).then(refreshSpeed);
       Sound.click();
     };
     // Click a step, or drag along the bar.
@@ -881,6 +911,8 @@
     });
     show(prefs.cpuLimit || 100);
     setupDevice();
+    refreshSpeed();
+    body.querySelector(".set-measure").onclick = (e) => measureSpeed(e.currentTarget);
     clearInterval(cpuTimer);
     updateCpu();
     cpuTimer = setInterval(updateCpu, window.offgrid ? 3000 : 1000);
