@@ -855,7 +855,7 @@
     if (!$o(".op-layer").hidden && V?.state.away) { refresh({ type: "ack" }); return; }
     close();
   });
-  const otherPanels = ["maps", "fieldkit", "farming", "radar", "loadout", "history", "library", "themes", "settings", "core"];
+  const otherPanels = ["maps", "fieldkit", "farming", "friends", "radar", "loadout", "history", "library", "themes", "settings", "core"];
   new MutationObserver(() => { if (!panel.hidden && otherPanels.some((id) => document.getElementById(id)?.hidden === false)) close(); })
     .observe(document.body, { subtree: true, attributes: true, attributeFilter: ["hidden"] });
   setInterval(tick, 100);

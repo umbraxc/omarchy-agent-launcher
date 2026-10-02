@@ -10,6 +10,7 @@ machine; ONLINE mode, switched on per question from the UI, also searches
 Wikipedia.
 """
 
+import base64
 import glob
 import html
 import json
@@ -32,6 +33,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import maps  # noqa: E402  (offline maps: maps.py next to this file)
 import transfers
+import camp
 import linked_library
 import outpost
 import sky
@@ -1950,7 +1952,7 @@ def record(event, value=None, **info):
         elif event in ("suggestions", "sources", "stops", "voice", "backups", "usbExports", "tour", "password",
                        "cprMinutes", "morseLetters", "drills", "timers", "sunChecks", "cards", "quartermaster",
                        "coreOpened", "radarOpened", "killSwitch", "vault", "quickActions", "measures", "exports",
-                       "quietScene", "pulse500", "webSaves"):
+                       "quietScene", "pulse500", "webSaves", "friends", "campMessages", "campLinks"):
             counts[event] = counts.get(event, 0) + 1
         elif event in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
                        "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries", "modelsTried", "medicTools", "farmItems", "radioTracks"):
@@ -3064,10 +3066,10 @@ def apply_settings(update):
             if isinstance(update.get(key), bool):
                 settings[key] = update[key]
         if isinstance(update.get("hiddenControls"), list):
-            allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "fieldkit-btn", "farming-btn", "radar-btn", "theme-btn", "sound", "lock"}
+            allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "fieldkit-btn", "farming-btn", "outpost-btn", "friends-btn", "radar-btn", "theme-btn", "sound", "lock"}
             settings["hiddenControls"] = [c for c in update["hiddenControls"] if c in allowed]
         if isinstance(update.get("headerOrder"), list):
-            allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "fieldkit-btn", "farming-btn", "radar-btn", "theme-btn", "sound", "lock"}
+            allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "fieldkit-btn", "farming-btn", "outpost-btn", "friends-btn", "radar-btn", "theme-btn", "sound", "lock"}
             settings["headerOrder"] = list(dict.fromkeys(c for c in update["headerOrder"] if isinstance(c, str) and c in allowed))
         if update.get("background") in ("rain", "rise", "rings", "stars", "forest", "snow", "aurora",
                                          "embers", "radar", "none"):
@@ -4115,6 +4117,16 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(omarchy_theme() or {})
         if path == "/api/library":
             return self.send_json(library())
+        if path == "/api/card":
+            card = CAMP.card()
+            return self.send_json({"card": card, "code": camp.encode(card), "prefs": card_prefs(), "signed": bool(card.get("sig"))})
+        if path == "/api/friends":
+            return self.send_json({"friends": CAMP.friends(), "me": CAMP.my_id, "camp": {**CAMP.status(), **camp_firewall()}})
+        if path == "/api/camp":
+            return self.send_json({**CAMP.status(), **camp_firewall()})
+        if path == "/api/friends/chat":
+            fid = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("id", [""])[0][:40]
+            return self.send_json({"messages": CAMP.chat(fid), "online": fid in CAMP.links})
         if path == "/api/web/browsers":
             return self.send_json(web_browsers())
         if path == "/":
@@ -4492,6 +4504,44 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json({"ok": False}, 400)
             open_path(url)
             return self.send_json({"ok": True})
+        if self.path.startswith(("/api/card", "/api/friends", "/api/camp")):
+            req = self.read_json()
+            try:
+                if self.path == "/api/card":
+                    set_card_prefs(req)
+                    card = CAMP.card()
+                    return self.send_json({"card": card, "code": camp.encode(card), "prefs": card_prefs(), "signed": bool(card.get("sig"))})
+                if self.path == "/api/card/export":
+                    return self.send_json(export_card(req))
+                if self.path == "/api/friends/import":
+                    out = CAMP.import_code(str(req.get("code", ""))[:20000])
+                    record("friends")
+                    return self.send_json(out)
+                if self.path == "/api/friends/choose":
+                    return self.send_json(choose_card_file())
+                if self.path == "/api/friends/remove":
+                    CAMP.remove(str(req.get("id", ""))[:40])
+                    return self.send_json({"ok": True})
+                if self.path == "/api/friends/chat":
+                    msg = CAMP.say(str(req.get("id", ""))[:40], str(req.get("text", "")))
+                    record("campMessages")
+                    return self.send_json({"ok": True, "message": msg})
+                if self.path == "/api/camp":
+                    return self.send_json(CAMP.set_enabled(bool(req.get("on"))))
+                if self.path == "/api/camp/firewall":
+                    return self.send_json(camp_firewall(str(req.get("action", ""))))
+                if self.path == "/api/camp/link":
+                    threading.Thread(target=CAMP.link, args=(str(req.get("id", ""))[:40],), daemon=True).start()
+                    return self.send_json({"ok": True})
+                if self.path == "/api/camp/confirm":
+                    CAMP.confirm(str(req.get("id", ""))[:40], bool(req.get("ok")))
+                    if req.get("ok"):
+                        record("campLinks")
+                    return self.send_json({"ok": True})
+            except (ValueError, OSError) as exc:
+                return self.send_json({"ok": False, "message": str(exc)}, 400)
+            self.send_error(404)
+            return
         if self.path == "/api/web/save":
             try:
                 return self.send_json(save_web_page(self.read_json()))
@@ -5036,6 +5086,204 @@ def web_remark_request(req):
         return {"busy": True}
     # A newer remark request (the user moved on) cancels this one.
     return web_remark(req, lambda: WEB_REMARK_SEQ != mine)
+
+
+# ------------------------------------------------------- Friends and Camp
+
+CARD_FIELDS = ("callsign", "character", "title", "nameFx", "orb", "rank", "achievements", "badges", "outpost",
+               "skills", "motto", "since", "scenario")
+CARD_DEFAULTS = {"fields": {k: k not in ("scenario",) for k in CARD_FIELDS}, "motto": "", "frame": "flames",
+                 "bg": "campfire", "accent": "signal"}
+_card_cache = {"at": 0, "card": None}
+
+
+def card_prefs():
+    saved = read_json(SETTINGS_FILE, {}).get("card") or {}
+    prefs = {**CARD_DEFAULTS, **{k: v for k, v in saved.items() if k in CARD_DEFAULTS}}
+    prefs["fields"] = {**CARD_DEFAULTS["fields"], **{k: bool(v) for k, v in (saved.get("fields") or {}).items() if k in CARD_FIELDS}}
+    return prefs
+
+
+def set_card_prefs(update):
+    with SETTINGS_LOCK:
+        settings = read_json(SETTINGS_FILE, {})
+        prefs = card_prefs()
+        if isinstance(update.get("fields"), dict):
+            prefs["fields"].update({k: bool(v) for k, v in update["fields"].items() if k in CARD_FIELDS})
+        if isinstance(update.get("motto"), str):
+            prefs["motto"] = re.sub(r"[\x00-\x1f\x7f]", "", update["motto"])[:90]
+        for key, allowed in (("frame", camp.FRAMES), ("bg", camp.SCENES), ("accent", camp.ACCENTS)):
+            if update.get(key) in allowed:
+                prefs[key] = update[key]
+        if prefs["frame"] == "gold":   # the Last Light frame comes with Prestige IV
+            try:
+                if outpost.interact(OUTPOST_FILE)["state"].get("prestige", 0) < 4:
+                    prefs["frame"] = "flames"
+            except Exception:
+                prefs["frame"] = "flames"
+        settings["card"] = prefs
+        write_json(SETTINGS_FILE, settings)
+    _card_cache["at"] = 0
+    threading.Thread(target=CAMP.push_card, daemon=True).start()
+    return prefs
+
+
+def card_raw():
+    """The public profile card: only what the user chose to show, built from
+    the profile, the Locker, achievements and the Outpost. Never health,
+    location, contacts, conversations or files."""
+    if _card_cache["card"] and time.time() - _card_cache["at"] < 5:
+        return _card_cache["card"]
+    prefs = card_prefs()
+    f = prefs["fields"]
+    profile = get_profile()
+    settings = read_json(SETTINGS_FILE, {})
+    c = {"n": str(profile.get("name") or "Survivor")[:40],
+         "st": {"f": prefs["frame"], "bg": prefs["bg"], "ac": prefs["accent"]}}
+    if f["callsign"] and profile.get("callsign"):
+        c["cs"] = profile["callsign"]
+    if f["character"]:
+        c["ch"] = profile.get("character") or {}
+        if profile.get("color"):
+            c["c"] = profile["color"]
+    try:
+        ach = achievements()
+    except Exception:
+        ach = {}
+    if f["title"] and settings.get("title") not in (None, "", "none"):
+        c["t"] = settings["title"]
+    if f["nameFx"] and settings.get("nameFx") not in (None, "", "plain"):
+        c["fx"] = settings["nameFx"]
+    if f["orb"]:
+        c["o"] = settings.get("orb") or "globe"
+    if f["rank"] and ach.get("rank"):
+        c["r"], c["p"] = ach["rank"], ach.get("points", 0)
+    if f["achievements"] and ach.get("achievements"):
+        c["a"] = sum(1 for a in ach["achievements"] if a.get("earned"))
+        c["at"] = len(ach["achievements"])
+    if f["badges"] and profile.get("badges"):
+        c["b"] = [b for b in profile["badges"] if isinstance(b, str)][:4]
+    if f["outpost"]:
+        try:
+            v = outpost.interact(OUTPOST_FILE)
+            op = {"tl": v.get("totalLevel", 0), "pr": v["state"].get("prestige", 0), "cb": v.get("combatLevel", 0),
+                  "h": int(v["state"].get("playtime", 0) // 3600)}
+            if f["skills"]:
+                op["top"] = sorted(([k, l] for k, l in (v.get("levels") or {}).items()), key=lambda x: -x[1])[:3]
+            c["op"] = op
+        except Exception:
+            pass
+    if f["motto"] and prefs["motto"]:
+        c["m"] = prefs["motto"]
+    if f["since"] and profile.get("since"):
+        since = profile["since"]
+        if isinstance(since, (int, float)) or str(since).isdigit():
+            since = float(since) / (1000 if float(since) > 1e11 else 1)
+            c["s"] = time.strftime("%Y-%m", time.localtime(since))
+        else:
+            c["s"] = str(since)[:7]
+    if f["scenario"]:
+        c["sc"] = str(current_scenario().get("name", ""))[:30]
+    _card_cache.update(at=time.time(), card=c)
+    return c
+
+
+def cards_dir():
+    return os.path.join(os.path.dirname(saved_pages_dir()), "Umbra Friend Cards")
+
+
+def export_card(req):
+    """Save my card as a .umbracard file and its QR picture (Documents, or a USB drive)."""
+    card = CAMP.card()
+    code = camp.encode(card)
+    target = str(req.get("target", ""))
+    folder = cards_dir()
+    if target and target != "documents":
+        drive = next((d for d in drives() if d.get("path") == target), None)
+        if not drive:
+            raise ValueError("That drive isn't connected any more.")
+        folder = os.path.join(target, "Umbra Friend Cards")
+    os.makedirs(folder, exist_ok=True)
+    base = re.sub(r"[^A-Za-z0-9 ._-]+", "", card["n"]).strip() or "Umbra"
+    path = os.path.join(folder, base + ".umbracard")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(f"Umbra profile card of {card['n']}. Import it in Umbra: Friends > Add a friend.\n{code}\n")
+    png = req.get("png")
+    if isinstance(png, str) and len(png) < 4_000_000 and re.fullmatch(r"[A-Za-z0-9+/=]+", png[:200]):
+        with open(os.path.join(folder, base + " card.png"), "wb") as f:
+            f.write(base64.b64decode(png))
+    if req.get("open"):
+        open_path(folder)
+    return {"ok": True, "path": path, "folder": folder}
+
+
+def choose_card_file():
+    """A native chooser for a .umbracard file or a picture of a card's QR code."""
+    if WINDOWS:
+        script = ("[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; Add-Type -AssemblyName System.Windows.Forms; "
+                  "$d=New-Object System.Windows.Forms.OpenFileDialog; $d.Filter='Profile cards|*.umbracard;*.png;*.jpg;*.jpeg;*.txt'; "
+                  "if($d.ShowDialog() -eq 'OK') { $d.FileName }")
+        cmd = ["powershell.exe", "-NoProfile", "-STA", "-Command", script]
+    elif shutil.which("zenity"):
+        cmd = ["zenity", "--file-selection", "--title=Add a friend's profile card",
+               "--file-filter=Profile cards and QR pictures | *.umbracard *.png *.jpg *.jpeg *.txt"]
+    else:
+        raise ValueError("No file chooser is installed: drop the file on the Friends screen instead")
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    path = result.stdout.strip()
+    if result.returncode or not path:
+        return {}
+    if os.path.getsize(path) > 12_000_000:
+        raise ValueError("That file is too large to be a card.")
+    data = open(path, "rb").read()
+    if path.lower().endswith((".png", ".jpg", ".jpeg")):
+        kind = "image/png" if path.lower().endswith(".png") else "image/jpeg"
+        return {"image": f"data:{kind};base64," + base64.b64encode(data).decode()}
+    return {"code": data.decode("utf-8", "replace")[:20000]}
+
+
+def camp_firewall(action=""):
+    """Linux with ufw (Omarchy turns it on): incoming connections are blocked,
+    so the Camp Network can't hear other Umbras. Opening means two rules, for
+    the Camp's two ports and only from this local network; pkexec asks for the
+    password."""
+    if WINDOWS or not shutil.which("ufw"):
+        return {"firewall": "", "network": ""}
+    if not action and time.time() - _fw_cache["at"] < 30:
+        return dict(_fw_cache["out"])
+    try:
+        active = subprocess.run(["systemctl", "is-active", "ufw"], capture_output=True, text=True, timeout=5).stdout.strip() == "active"
+    except (OSError, subprocess.SubprocessError):
+        active = False
+    net = camp.local_network()
+    out = {"firewall": "ufw" if active else "", "network": net, "opened": bool(read_json(SETTINGS_FILE, {}).get("campFirewall"))}
+    if action in ("open", "close") and active and net:
+        verb = [] if action == "open" else ["delete"]
+        cmds = [["pkexec", "ufw"] + verb + ["allow", "proto", proto, "from", net, "to", "any", "port", str(port), "comment", "Umbra Camp"]
+                for proto, port in (("udp", camp.UDP_PORT), ("tcp", camp.TCP_PORT))]
+        import shlex
+        script = " && ".join(shlex.join(c[1:]) for c in cmds)
+        r = subprocess.run(["pkexec", "sh", "-c", script], capture_output=True, text=True, timeout=300)
+        if r.returncode:
+            raise ValueError("The firewall wasn't changed" + (" (the password prompt was closed)." if r.returncode in (126, 127) else "."))
+        with SETTINGS_LOCK:
+            settings = read_json(SETTINGS_FILE, {})
+            settings["campFirewall"] = action == "open"
+            write_json(SETTINGS_FILE, settings)
+        out["opened"] = action == "open"
+    _fw_cache.update(at=time.time(), out=dict(out))
+    return out
+
+
+_fw_cache = {"at": 0, "out": {}}
+
+
+def camp_notify(kind, name):
+    if kind == "message":
+        play_sound("beep")
+
+
+CAMP = camp.Camp(CONFIG_DIR, DATA_DIR, lambda: card_raw(), camp_notify)
 
 
 def message_parts(question):

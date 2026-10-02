@@ -214,6 +214,7 @@ const Sound = (() => {
     "fieldkit-btn": ["FIELD KIT", "Medic, sky, supplies and training"],
     "farming-btn": ["FARMING", "Crops, livestock and food production"],
     "outpost-btn": ["UMBRA OUTPOST", "Build a settlement and explore two stories"],
+    "friends-btn": ["FRIENDS", "Profile cards and the Camp Network"],
     "radar-btn": ["SIGNALS & RADAR", "Nearby signals and device status"],
     "theme-btn": ["THEMES", "Choose Umbra's look"],
     "sound": ["SOUND", "Interface audio"],
@@ -229,7 +230,7 @@ const Sound = (() => {
   card.innerHTML = "<b></b><small></small>";
   document.body.appendChild(card);
   const mainVisible = () => !document.body.classList.contains("touring") && !document.body.classList.contains("locked") &&
-    !["#maps", "#fieldkit", "#farming", "#outpost", "#radar", "#loadout", "#history", "#library", "#themes", "#settings", "#core"].some((s) => {
+    !["#maps", "#fieldkit", "#farming", "#outpost", "#friends", "#radar", "#loadout", "#history", "#library", "#themes", "#settings", "#core"].some((s) => {
       const el = $(s); return el && !el.hidden;
     });
   const hide = () => { card.hidden = true; };
@@ -256,7 +257,7 @@ const Sound = (() => {
 // quiet minute on the main screen, one gentle signal crosses their icons.
 (() => {
   const bar = document.querySelector(".controls");
-  const panels = ["maps", "fieldkit", "farming", "outpost", "radar", "loadout", "history", "library", "themes", "settings", "core"];
+  const panels = ["maps", "fieldkit", "farming", "outpost", "friends", "radar", "loadout", "history", "library", "themes", "settings", "core"];
   const atHome = () => !document.hidden && !document.body.classList.contains("locked") &&
     !document.body.classList.contains("touring") && panels.every((id) => document.getElementById(id)?.hidden !== false);
   let idle = 0, wave = 0;
@@ -2666,7 +2667,7 @@ const SHORTCUTS = [
   ["Ctrl + H", "History"], ["Ctrl + Shift + H", "Search all conversations in History"],
   ["Ctrl + E", "Export this conversation"], ["Ctrl + L", "Library and field manual"], ["Ctrl + P", "Your profile"],
   ["Ctrl + O", "Loadout: scenario and personality"], ["Ctrl + G", "Maps"], ["Ctrl + K", "Field kit: medic, sun & moon, supplies, vault, training"], ["Ctrl + J", "Signals & radar"], ["Ctrl + T", "Themes"], ["Ctrl + M", "Mute or unmute sounds"],
-  ["Ctrl + Shift + F", "Farming planner"], ["Ctrl + B", "Umbra Outpost"],
+  ["Ctrl + Shift + F", "Farming planner"], ["Ctrl + B", "Umbra Outpost"], ["Ctrl + U", "Friends and the Camp Network"],
   ["Ctrl + ,", "Settings"], ["Ctrl + wheel", "Zoom in or out (also Ctrl + plus / minus; Ctrl + 0 resets)"], ["F1", "This list"],
   ["Shift + drag", "Rearrange top tabs (Settings stays fixed)"],
   ["Ctrl + L", "Online, in the browser: the address bar"], ["Ctrl + T", "Online, in the browser: a new tab"], ["Ctrl + W", "Online, in the browser: close the tab"],
@@ -2708,6 +2709,7 @@ document.addEventListener("keydown", (e) => {
     k: () => window.toggleFieldKit && window.toggleFieldKit(),
     j: () => window.toggleRadar && window.toggleRadar(),
     b: () => window.toggleOutpost && window.toggleOutpost(),
+    u: () => window.toggleFriends && window.toggleFriends(),
     m: () => setMuted(!Sound.muted),
     ",": () => window.openSettings && window.openSettings(),
   };

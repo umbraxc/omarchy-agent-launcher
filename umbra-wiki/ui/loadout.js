@@ -100,6 +100,13 @@
       grid.dataset.tab = "profile";
       return;
     }
+    overlay.classList.toggle("cardtab", state.tab === "card");
+    if (state.tab === "card") {
+      if (state.stopAnim) state.stopAnim();
+      grid.dataset.tab = "card";
+      state.stopAnim = window.UmbraCard ? window.UmbraCard.editor(grid, detail) : null;
+      return;
+    }
     if (state.tab === "achievements" || state.tab === "locker") {
       if (state.stopAnim) state.stopAnim();
       state.stopAnim = null;

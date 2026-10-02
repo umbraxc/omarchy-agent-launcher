@@ -280,6 +280,28 @@ Farming plan or supplies.
 ![Umbra Outpost: Forestry at level 81, with a 3D ASCII forest and every tree drawn in 3D](docs/outpost.png)
 ![Prestige rewards: four tiers, each with its own orb, title and name effect](docs/outpost-prestige.png)
 
+### Friends and the Camp Network
+
+Your **profile card** shows who you are in Umbra: your character, title, name
+effect, orb, rank, achievements and Outpost level, on an animated card with a
+3D ASCII landscape behind and a frame of your choice (flames, caution tape,
+aurora, static, circuit, frost, and a gold frame at Prestige IV). Shape it in
+**Profile › Card**: pick what's shown, a colour and a motto. Only the card is
+ever shared, never your health notes, location, conversations or files.
+
+Share it as a **QR code**, a **.umbracard** file or a code; friends add it in
+**Friends › Add a friend** (Ctrl+U), from the file, a picture of the QR code
+or the code. Cards are signed by the Umbra that made them, so a friend can
+tell a card really comes from you.
+
+On the same Wi-Fi or phone hotspot, the **Camp Network** links Umbras
+directly, with no internet: turn it on, link once by checking that both
+screens show the same six-digit code, and friends see each other's cards live
+and can chat. Links are encrypted end to end (X25519, ChaCha20-Poly1305). The
+Camp is off until you turn it on and goes quiet when Umbra's window closes.
+If your firewall (ufw) blocks it, the Camp screen offers to allow its two
+ports from your local network only.
+
 ### Conversation scenery
 
 When a conversation is about a place or the outdoors, Umbra may show a 3D
@@ -653,6 +675,7 @@ Umbra Wiki speaks and understands English.
 | Ctrl+K | field kit |
 | Ctrl+J | signals & radar (S scans again) |
 | Ctrl+Shift+F | farming planner |
+| Ctrl+U | friends and the Camp Network |
 | Shift+drag a top tab | rearrange top tabs; Settings stays fixed |
 | Ctrl+T | themes |
 | Ctrl+M | mute |

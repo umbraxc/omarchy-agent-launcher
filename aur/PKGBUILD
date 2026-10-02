@@ -7,7 +7,7 @@ pkgdesc="Offline survival assistant: a local AI that answers from an offline lib
 arch=('any')
 url="https://github.com/umbraxc/omarchy-umbra"
 license=('MIT')
-depends=('python' 'python-gobject' 'python-cairo' 'gtk3' 'glib2' 'webkit2gtk-4.1' 'ollama' 'kiwix-tools' 'jq' 'curl' 'pciutils' 'hwdata'
+depends=('python' 'python-gobject' 'python-cairo' 'python-cryptography' 'gtk3' 'glib2' 'webkit2gtk-4.1' 'ollama' 'kiwix-tools' 'jq' 'curl' 'pciutils' 'hwdata'
          'xdg-utils' 'xdg-user-dirs' 'libnotify' 'hicolor-icon-theme' 'ttf-jetbrains-mono-nerd')
 optdepends=('pipewire-audio: sounds and voice recording'
             'libpulse: sounds on systems that use PulseAudio'
@@ -27,7 +27,7 @@ package() {
 
   install -d "$app"
   cp -r ui sounds "$app/"
-  install -m644 server.py maps.py pmtiles.py radar.py transfers.py linked_library.py outpost.py outpost_data.py sky.py manuals.json facts.json fieldmanual.json knowledge.json library.json packs.json achievements.json farming.json "$app/"
+  install -m644 server.py maps.py pmtiles.py radar.py transfers.py linked_library.py outpost.py outpost_data.py camp.py sky.py manuals.json facts.json fieldmanual.json knowledge.json library.json packs.json achievements.json farming.json "$app/"
   install -Dm644 maps/world.mbtiles maps/countries.json maps/atlas.json -t "$app/maps/"
   install -m755 fetch-archive.sh uninstall.sh "$app/"
 

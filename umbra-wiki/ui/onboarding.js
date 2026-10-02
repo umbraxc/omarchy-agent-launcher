@@ -265,6 +265,7 @@
     ["#fieldkit-btn", "FIELD KIT", "Tools that matter in an emergency. MEDIC: CPR metronome, timers, triage, coma scale, burns and child-dose calculators, a patient chart with handover reports. SUN & MOON with a live Earth. SUPPLIES. A CALENDAR that also shows when water and food run out. The VAULT for your arsenal and valuables. TRAINING: Morse, radio, grid references, compass, and field manuals to download. Printable CARDS."],
     ["#farming-btn", "FARMING", "An offline field planner for edible crops and common livestock. Choose an item to see animated field art, care, space, climate, and daily or weekly estimates; adjust the numbers for your plan. Ctrl+Shift+F opens it."],
     ["#outpost-btn", "UMBRA OUTPOST", "A fictional idle game of its own: 21 skills, a stockpile, gear, battles and expeditions. It keeps going while Umbra is closed."],
+    ["#friends-btn", "FRIENDS", "Your friends' profile cards. Share yours (Profile › Card: a QR code, a file or a code) and add theirs; or meet on the Camp Network: Umbras on the same Wi-Fi or hotspot link directly, encrypted, with no internet, to chat and see each other's cards live. Only profile cards are shared."],
     ["#radar-btn", "SIGNALS & RADAR", "The Wi-Fi networks and Bluetooth devices around you on a radar, nearer the centre when stronger; click one for its details. Plus your device's vitals. No internet needed."],
     ["#dl-btn", "DOWNLOADS", "Shows while something downloads (maps, library, AI model): pause, resume or cancel it here. Downloads go on after a restart."],
     ["#theme-btn", "THEMES", "Pick a colour theme, follow your Omarchy theme, or design your own."],
@@ -278,7 +279,7 @@
 
   // Both visual tours introduce every main tab. The short tour keeps fewer
   // explanatory steps outside the header.
-  const QUICK_SPOTS = [".cell.status", "#loadout-btn", "#history-btn", "#library-btn", "#maps-btn", "#fieldkit-btn", "#farming-btn", "#outpost-btn", "#radar-btn", "#dl-btn", "#theme-btn", "#sound", "#lock", "#settings-btn", "#q"];
+  const QUICK_SPOTS = [".cell.status", "#loadout-btn", "#history-btn", "#library-btn", "#maps-btn", "#fieldkit-btn", "#farming-btn", "#outpost-btn", "#friends-btn", "#radar-btn", "#dl-btn", "#theme-btn", "#sound", "#lock", "#settings-btn", "#q"];
 
   function spotlight(quick = false, outpostOnly = false) {
     return new Promise((resolve, reject) => {
