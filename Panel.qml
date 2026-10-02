@@ -279,13 +279,25 @@ Panel {
     onTriggered: root.refresh()
   }
 
+  TextMetrics {
+    id: wordmark
+    text: "UM"
+    font.family: root.fontFamily
+    font.pixelSize: Math.max(8, Math.round(Style.font.caption * 0.9))
+    font.bold: true
+    font.letterSpacing: Style.space(1)
+  }
+  readonly property real wordmarkExtra: Style.space(4) + Math.ceil(wordmark.tightBoundingRect.x + wordmark.tightBoundingRect.width)
+
   BarIconButton {
     id: button
     anchors.fill: parent
     bar: root.bar
-    // A small wordmark makes the refreshed widget recognizable on the bar.
-    slotSize: Style.bar.iconSlot + (vertical ? 0 : Style.space(24))
-    opticalSize: Style.bar.iconCanvas + (vertical ? 0 : Style.space(24))
+    // A small wordmark makes the refreshed widget recognizable on the bar. The
+    // slot grows by exactly the wordmark's width, so the gaps on both sides
+    // match the other icons'.
+    slotSize: Style.bar.iconSlot + (vertical ? 0 : root.wordmarkExtra)
+    opticalSize: Style.bar.iconCanvas + (vertical ? 0 : root.wordmarkExtra)
     iconComponent: Component {
       Item {
         UmbraMark {
