@@ -2,7 +2,7 @@
 pkgname=umbra-wiki
 pkgver=3.2.2
 pkgrel=1
-_commit=626607663855786a5cce3bd65c598c92c47ceeae   # exact 3.2.1 release source
+_commit=92110bb43bf3b4c4798f0e6f74c3eedbd30fb28e   # exact 3.2.2 release source
 pkgdesc="Offline survival assistant: a local AI that answers from an offline library, with sources"
 arch=('any')
 url="https://github.com/umbraxc/omarchy-umbra"
@@ -20,7 +20,7 @@ optdepends=('pipewire-audio: sounds and voice recording'
             'poppler: read text from linked PDF files')
 install=umbra-wiki.install
 source=("$pkgname-$pkgver-$pkgrel.tar.gz::https://github.com/umbraxc/omarchy-umbra/releases/download/v$pkgver/umbra-wiki-$pkgver-source.tar.gz")
-sha256sums=('ec82ff2488dc015115591c487f086275a87fe85ce84c7741c21fccec15fe5a18')
+sha256sums=('20646d03b3b12fc160a44d2f3eee7ec2a94f75b8a9dfde40baea3a546ceda882')
 
 package() {
   cd "omarchy-umbra-$_commit/umbra-wiki"
