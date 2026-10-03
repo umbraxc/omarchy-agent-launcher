@@ -14,7 +14,7 @@
   window.prefs = { ...DEFAULTS, hiddenControls: [], pinnedControls: [], headerOrder: [] };
   // Header buttons that can be hidden (Settings itself always stays).
   const CONTROLS = [["loadout-btn", "Profile & loadout"], ["history-btn", "History"], ["library-btn", "Library"], ["maps-btn", "Maps"], ["galaxy-btn", "Galaxy"], ["fieldkit-btn", "Field kit"], ["farming-btn", "Farming"], ["outpost-btn", "Umbra Outpost"], ["friends-btn", "Friends"],
-                    ["radar-btn", "Signals & radar"], ["theme-btn", "Themes"], ["sound", "Sound"], ["lock", "Lock"]];
+                    ["radar-btn", "Signals & LoRa"], ["theme-btn", "Themes"], ["sound", "Sound"], ["lock", "Lock"]];
   const panel = $("#settings");
   let pullTimer = 0;
   let packagedInstall = false;   // installed with pacman (the AUR): removal goes through pacman

@@ -178,7 +178,10 @@ UMBRA_GUIDE = (
     "ammunition, defence gear, valuables and data backups; TRAINING tab with Morse by ear and by hand, a Morse "
     "challenge, a signal lamp, the phonetic alphabet, radio procedure, grid references, compass and pace count, "
     "SALUTE reports, drills, knots, and MANUALS (US Army field manuals and civil-defence guides to download "
-    "and read); CARDS tab that prints pocket cards and an ID and medical card. "
+    "and read), and first of all SCENARIO DRILLS: 15 short situations (a dry tap, a winter power cut, lost at dusk, a deep cut, "
+    "a flash flood, a heat wave, hypothermia, a wildfire, ten minutes to evacuate, choking, a boat adrift, a snake bite, a cave, "
+    "and two fictional ones: a zombie outbreak and a Mars habitat breach) told in scored decisions at Recruit, Veteran or "
+    "Hardcore level, with a debrief; CARDS tab that prints pocket cards and an ID and medical card. "
     "MAPS (Ctrl+G): offline world map, downloadable detailed areas, search, coordinates and MGRS, "
     "waypoints, measuring, safety levels per country, and clickable country names: a country card with travel "
     "essentials (emergency number, plugs, mains voltage, driving side, calling code), and from it the FULL COUNTRY FILE "
@@ -192,7 +195,11 @@ UMBRA_GUIDE = (
     "it's made of). Diving at the Earth offers to LAND back on the Maps. Distances are squeezed so everything fits. "
     "FRIENDS (Ctrl+U): friends' profile cards, shared as a QR code, a .umbracard file or a code; the CAMP NETWORK links "
     "Umbras on the same Wi-Fi or hotspot directly and encrypted, with no internet, to chat and see cards live. Only the "
-    "profile card is ever shared. Your own card is edited in Profile, CARD tab (frame, background, colour, motto, fields). "
+    "profile card is ever shared. Your own card is edited in Profile, CARD tab (frame, background, colour, motto, fields); "
+    "it opens a DOSSIER at its side (Galaxy, Earth, drills, habits, look, shared waypoints, check-in), each part shared only if "
+    "chosen. CHECK IN (top of Friends): OK, need help, away or on the move, with a note, a place and how often friends can "
+    "expect one; overdue check-ins are marked. SHARED LIST (Friends tab): one supply list for everyone linked. Friends' "
+    "shared waypoints and check-ins appear on the Maps in their colour; waypoints can be sent in Camp messages. "
     "UMBRA ONLINE (going online): a web browser beside the conversation that reads pages with the user, can summarise "
     "a page, explain a selection, look at the screen, and save pages and PDFs to the Library for offline reading. "
     "FARMING: an offline planner with edible crops and common livestock, editable estimates for output, "
@@ -204,8 +211,19 @@ UMBRA_GUIDE = (
     "item can be thrown away from the Stockpile. It runs at full pace while Umbra is open (any tab); once Umbra is closed "
     "the first two minutes count fully, then a tenth of the pace, for up to a day, with a summary the next time Umbra opens. "
     "Its save is separate from the real Farming planner; its items are fictional. "
-    "SIGNALS & RADAR (Ctrl+J): nearby Wi-Fi and Bluetooth signals on a radar, INTEL, a DEVICES list that "
-    "remembers every device heard and marks new ones, the device's vitals, and a KILL SWITCH that turns all radios off at once. "
+    "SIGNALS (Ctrl+J), two modes. RADAR: nearby Wi-Fi and Bluetooth signals on a radar, INTEL, a DEVICES list that "
+    "remembers every device heard and marks new ones, the device's vitals, a KILL SWITCH that turns all radios off at once, and "
+    "JOIN on a Wi-Fi network to connect to it. LORA MESH: Meshtastic radios (Heltec, LilyGO T-Beam, RAK WisBlock, SenseCAP "
+    "T1000-E, T-Deck…) send text, check-ins, positions and waypoints over 2 to 10 km and more with no phone network or "
+    "internet, each radio relaying the others; Umbra guides the setup (what to buy, antenna first, the web flasher, its radio "
+    "software, plugging in by USB, region and name, a private encrypted channel shared by QR), then shows the radios on a "
+    "scope, the mesh chat and the radio's settings; radios with a position appear on the Maps. "
+    "UMBRA'S VOICE: Umbra can read answers aloud with an offline voice (a 354 MB download), always or only when the question "
+    "was spoken (F9); every personality has its own voice, Umbra's own is female or male. The speaker next to the microphone "
+    "opens the options; every answer has a LISTEN button; also in Settings. "
+    "THE COMMAND LINE (Ctrl+Space, or hold Ctrl): a terminal above the prompt to find anything (tabs, tools, Field Manual "
+    "pages, drills, worlds, personalities, themes) and run commands like theme frost, voice male, map Lisbon, checkin ok, "
+    "drill flood, find water, help. "
     "DOWNLOADS (maps, library, AI model, manuals) can be paused and resumed from the button at the top. "
     "Every screen shows a short first-look guide the first time; the welcome tour can be replayed from Settings. LIBRARY (Ctrl+L): offline collections and the built-in Umbra Field Manual. HISTORY (Ctrl+H) "
     "with folders (each with a brief you keep in mind); PROFILE (name, callsign, skills, health, blood type, allergies, "
@@ -221,7 +239,7 @@ UMBRA_GUIDE = (
     "(the crew, figures from history, characters) are grouped; the user can create their own. The welcome tour "
     "can be replayed from Settings as a quick start or a full briefing. Everything works offline; only online mode, downloads and the update check use "
     "the internet. In the prompt, Tab opens quick actions. When you mention a tool, name it exactly as above. "
-    "The only keyboard shortcuts are: Ctrl+K Field Kit, Ctrl+G Maps, Ctrl+Shift+G Galaxy, Ctrl+U Friends, Ctrl+J Signals & Radar, Ctrl+B Umbra Outpost, Ctrl+Shift+F Farming, Ctrl+L Library, Ctrl+H History, "
+    "The only keyboard shortcuts are: Ctrl+Space the command line, Ctrl+K Field Kit, Ctrl+G Maps, Ctrl+Shift+G Galaxy, Ctrl+U Friends, Ctrl+J Signals & Radar, Ctrl+B Umbra Outpost, Ctrl+Shift+F Farming, Ctrl+L Library, Ctrl+H History, "
     "Ctrl+P Profile, Ctrl+O Loadout, Ctrl+T Themes, Ctrl+, Settings, F1 all shortcuts, and Ctrl + mouse wheel (or Ctrl + plus / "
     "minus, Ctrl+0 to reset) to zoom every screen (also Settings, Zoom); never invent others. The Calendar, Vault, "
     "Medic, Supplies and Training are tabs inside the Field Kit; to add a reminder, open the Field Kit, go to CALENDAR and "
@@ -262,6 +280,39 @@ FEATURE_NOTES = [
     (r"loadout|(?:umbra'?s|new|which|what|more) (?:scenarios?|personalit(?:y|ies))|create (?:a |my own )?(?:scenario|personality)", "LOADOUT (Ctrl+O): a SCENARIO is the situation you're in or what you're here "
      "for (34, grouped as everyday, outdoors, emergency, fiction and learn & create), a PERSONALITY is how Umbra talks (30: "
      "the crew, figures from history, characters). The facts never change, only the focus and the voice. You can create your own."),
+    (r"(?:scenario|training) drills?|drills? in (?:umbra|the field kit)|tabletop|recruit, veteran|hardcore (?:drill|level|mode)", "SCENARIO DRILLS (Field Kit, TRAINING, "
+     "first tab): 15 situations told in 4 or 5 decisions, each scored: everyday (heat wave, ten minutes to evacuate, choking), "
+     "outdoors (lost at dusk, whiteout, night sea, a snake bite, a cave), emergency (dry taps, lights out, a deep cut, rising water, "
+     "smoke on the ridge) and fiction (a zombie outbreak, a Mars hull breach). RECRUIT gives feedback after every choice, VETERAN "
+     "only at the end, HARDCORE adds 20 seconds a decision and a surprise complication. The debrief shows each decision, the "
+     "Field Manual page to read, and can hand the run to Umbra for a personal debrief. Best scores go on the profile card."),
+    (r"(?:your|umbra'?s) voice|read (?:it |your answers? |answers? |this )?aloud|speak (?:the |your )?answers?|text to speech|voice out|hear (?:you|umbra)|male voice|female voice", "UMBRA'S VOICE: "
+     "answers read aloud with a natural offline voice (Kokoro). Get it once (354 MB, with internet) from the speaker button next to "
+     "the microphone, Settings › Umbra's voice, or the welcome tour. Then choose READ ALOUD: off, always, or when I speak (only "
+     "answers to questions spoken with F9). Umbra's own voice is female or male; every personality has its own (Marcus Aurelius "
+     "deep and slow, the Radio Operator through a radio band, Unit 7 synthetic…), with ▶ HEAR in Profile › Personality. Every "
+     "answer has a LISTEN button; Esc or the speaker stops it."),
+    (r"command palette|ctrl ?\+ ?space|umbra'?s (?:command line|terminal)|(?:command line|terminal) in umbra|(?:the|this) (?:app'?s )?command line in (?:umbra|the app)", "THE COMMAND LINE (Ctrl+Space, or hold Ctrl and "
+     "pick it): a terminal in the theme's colour above the prompt. Type to find anything (tabs, tools, Field Manual pages, drills, "
+     "worlds, personalities, scenarios, themes, start screens) and press Enter, or give commands: help, open, theme, bg, transition, "
+     "persona, scenario, voice on/off/mic/male/female, say, mute, volume, map <place>, galaxy <world>, drill <name>, checkin "
+     "ok/help/away/moving, find <words> (all saved chats), ask, new, export, offgrid, zoom, lock, status, time. Up arrow brings "
+     "back earlier commands, Tab completes."),
+    (r"lora(?: radio| mesh)?|meshtastic|mesh (?:radio|chat)|t-?beam|heltec|rak ?wisblock", "LORA MESH (Signals, LORA MESH "
+     "mode): Meshtastic radios talk directly over 2 to 10 km (more from high ground) on free radio bands, no phone network, "
+     "internet or licence, each radio relaying the others; messages are short (about 200 characters). To start: get two radios "
+     "(Heltec V3 the cheapest, LilyGO T-Beam Supreme with GPS, RAK WisBlock for relays, SenseCAP T1000-E card-sized, T-Deck Plus "
+     "with a keyboard) in your region's band (868 MHz Europe and UK, 915 MHz Americas and Australia); screw the antenna on BEFORE "
+     "powering; put Meshtastic on them with the web flasher (flasher.meshtastic.org, Chrome or Edge); install Umbra's radio "
+     "software from the LoRa screen; plug in by USB (Umbra finds it, and asks once to allow serial ports, then log out and in); "
+     "set the region and a name; optionally make a private encrypted channel and share it by QR. Then: the radios on a scope, the "
+     "mesh chat with delivery marks, I'm OK, positions and waypoints, trace route, and radios on the Maps."),
+    (r"check[- ]?in (?:button|for (?:my )?friends|on the camp|in umbra)|check in for my friends|i'?m ok button|overdue check[- ]?ins?|shared (?:supply )?list|card'?s dossier|dossier (?:on|of) (?:my|the) card|shared waypoints?|friend'?s waypoints", "CAMP FEATURES (Friends): CHECK IN (button "
+     "at the top): OK, need help, away or on the move, a note, a place from your waypoints, and how often friends can expect one; "
+     "linked friends see it at once, others when you share your card; overdue check-ins are marked. SHARED LIST tab: one supply "
+     "list for everyone linked, synced over the Camp Network. The profile card's DOSSIER slides out of its side: check-in, Galaxy, "
+     "Earth, drills, habits, look and shared waypoints, each shared only if chosen in Profile › Card; friends' waypoints show on "
+     "your Maps ringed in their colour."),
     (r"(?:umbra'?s|local|new|bigger|which) ai models?|which model|core panel|the core (?:tab|screen|panel)", "THE CORE (click STATUS in the top bar): the health of every system and the "
      "local AI models, from SPARK (tiny) and RANGER (the default) to COMMAND, and for big computers CIPHER, TITAN, STRATEGIST, "
      "ADMIRAL and ATLAS. Each says what it's good at, how well it fits this computer, and one is marked recommended; models "
@@ -323,7 +374,10 @@ ABOUT_UMBRA = re.compile(r"\b(umbra|this app|the app|your (features|tools|functi
                          r"(?:new|my|get a|unlock)(?: new)? titles?|name effects?|card frames?|loadout|"
                          r"start[- ]?screens?(?: backgrounds?)?|(?:new|which|what|unlock|get|my|more|locked) transitions?|transitions? (?:in|for|on) (?:umbra|the app|the locker|settings)|(?:my|next|new|highest) rank|rank (?:after|above|comes)|ranks? in umbra|warlord|mythic rank|immortal rank|(?:the )?reaper (?:start|background|screen)|burning skulls|watching eye|event horizon background|"
                          r"(?:umbra'?s|new|which|what|more) (?:scenarios?|personalit(?:y|ies))|"
-                         r"(?:umbra'?s|local|new|bigger|which) ai models?|which model|core panel)\b", re.I)
+                         r"(?:umbra'?s|local|new|bigger|which) ai models?|which model|core panel|"
+                         r"(?:scenario|training) drills?|(?:your|umbra'?s) voice|read (?:it |your answers? |answers? |this )?aloud|command palette|ctrl ?\+ ?space|umbra'?s (?:command line|terminal)|(?:command line|terminal) in umbra|(?:the|this) (?:app'?s )?command line in (?:umbra|the app)|"
+                         r"lora(?: radio| mesh)?|meshtastic|mesh (?:radio|chat)|check[- ]?in (?:button|for (?:my )?friends|on the camp|in umbra)|check in for my friends|"
+                         r"shared (?:supply )?list|card'?s dossier)\b", re.I)
 
 STOPWORDS = set("""
 a an the and or but if then so of to in on at by for from with without about into over under
@@ -3134,12 +3188,14 @@ def reset_umbra():
     the library and config.json (model, library folder) are kept."""
     MANUAL_DOWNLOADS.control("cancel")
     for path in (SETTINGS_FILE, PROFILE_FILE, CUSTOM_THEMES_FILE, PERSONALITIES_FILE, SCENARIOS_FILE, LOCK_FILE, ACH_FILE,
-                 WAYPOINTS_FILE, SUPPLIES_FILE, FARM_FILE, OUTPOST_FILE, SAFETY_FILE, FOLDERS_FILE, VAULT_FILE, radar.KNOWN_FILE, CALENDAR_FILE, MANUALS_STATE, STYLE_FILE):
+                 WAYPOINTS_FILE, SUPPLIES_FILE, FARM_FILE, OUTPOST_FILE, SAFETY_FILE, FOLDERS_FILE, VAULT_FILE, radar.KNOWN_FILE, CALENDAR_FILE, MANUALS_STATE, STYLE_FILE,
+                 DRILLS_FILE, LORA.msgs_file):
         try:
             os.remove(path)
         except OSError:
             pass
     shutil.rmtree(HISTORY_DIR, ignore_errors=True)
+    LORA.messages = []
     try:
         os.remove(STARTERS_CACHE)
     except OSError:
@@ -3630,7 +3686,7 @@ def backup(include_history, target=""):
         "settings": read_json(SETTINGS_FILE, {}), "profile": get_profile(),
         "themes": custom_themes(), "personalities": custom_personalities(), "scenarios": custom_scenarios(),
         "achievements": read_json(ACH_FILE, {}), "waypoints": get_waypoints(), "supplies": get_supplies(), "farm": get_farm(),
-        "outpost": read_json(OUTPOST_FILE, {}),
+        "outpost": read_json(OUTPOST_FILE, {}), "drills": read_json(DRILLS_FILE, {}),
         "safety": get_safety()["levels"], "folders": get_folders()["folders"], "vault": get_vault(), "calendar": get_calendar()["events"],
         "history": [read_json(history_path(i["id"]), {}) for i in history_list()["items"]] if include_history else [],
     }
@@ -3649,6 +3705,14 @@ def restore(data):
     if isinstance(data.get("profile"), dict):
         save_profile(data["profile"])
     restore_achievements(data.get("achievements"))
+    drills = data.get("drills")
+    if isinstance(drills, dict) and isinstance(drills.get("drills"), dict):   # scenario drill results, checked like new ones
+        known, clean = drill_ids(), {}
+        for did, v in drills["drills"].items():
+            if did in known and isinstance(v, dict):
+                clean[did] = {"best": max(0, min(100, int(v.get("best", 0) or 0))), "runs": max(0, int(v.get("runs", 0) or 0)),
+                              "levels": {k: max(0, min(100, int(x))) for k, x in (v.get("levels") or {}).items() if k in ("recruit", "veteran", "hardcore") and isinstance(x, int)}}
+        write_json(DRILLS_FILE, {"drills": clean, "done": max(0, int(drills.get("done", 0) or 0)), "perfect": max(0, int(drills.get("perfect", 0) or 0))})
     if isinstance(data.get("supplies"), dict) and data["supplies"]:
         try:
             save_supplies(data["supplies"])

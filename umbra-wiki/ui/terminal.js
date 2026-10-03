@@ -22,7 +22,7 @@ window.UmbraTerminal = (() => {
     ["Maps", "maps-btn", "Offline maps, waypoints, country files, wonders"], ["Galaxy", "galaxy-btn", "The solar system, live"],
     ["Field Kit", "fieldkit-btn", "Medic, sun & moon, supplies, calendar, vault, training, cards"], ["Farming", "farming-btn", "Crops and livestock planner"],
     ["Umbra Outpost", "outpost-btn", "The idle game"], ["Friends", "friends-btn", "Profile cards, Camp Network, shared list"],
-    ["Signals & Radar", "radar-btn", "Wi-Fi and Bluetooth around you"], ["History", "history-btn", "Saved conversations"],
+    ["Signals & Radar", "radar-btn", "Wi-Fi and Bluetooth around you"], ["LoRa mesh", "radar-btn", "Meshtastic radios: messages over kilometres"], ["History", "history-btn", "Saved conversations"],
     ["Library", "library-btn", "Offline collections and the Field Manual"], ["Themes", "theme-btn", "Colour themes"],
     ["Settings", "settings-btn", "Everything adjustable"], ["Profile & Loadout", "loadout-btn", "Profile, achievements, Locker, card"],
   ];
@@ -33,7 +33,7 @@ window.UmbraTerminal = (() => {
   async function build() {
     const idx = [];
     const add = (kind, label, hint, run, words = "") => idx.push({ kind, label, hint, run, key: `${label} ${words} ${hint}`.toLowerCase() });
-    TABS.forEach(([n, id, h]) => add("TAB", n, h, () => { closeAll(); click(id); }));
+    TABS.forEach(([n, id, h]) => add("TAB", n, h, () => { closeAll(); if (n === "LoRa mesh") window.openLora?.(); else click(id); }, n === "LoRa mesh" ? "meshtastic radio" : ""));
     KIT.forEach(([t, n]) => add("FIELD KIT", n, "Field Kit", () => { closeAll(); window.UmbraFieldKit?.open(t); }));
     TRAIN.forEach(([t, n]) => add("TRAINING", n, "Field Kit › Training", () => { closeAll(); window.UmbraFieldKit?.open("training", t); }));
     LOADOUT.forEach(([t, n]) => add("PROFILE", n, "Profile & Loadout", () => { closeAll(); window.openLoadout?.(t); }));

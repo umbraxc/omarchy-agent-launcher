@@ -267,7 +267,7 @@
     ["#farming-btn", "FARMING", "An offline field planner for edible crops and common livestock. Choose an item to see animated field art, care, space, climate, and daily or weekly estimates; adjust the numbers for your plan. Ctrl+Shift+F opens it."],
     ["#outpost-btn", "UMBRA OUTPOST", "A fictional idle game of its own: 21 skills, a stockpile, buildings in the Valley, the Trader, gear you see on your character, battles, expeditions, bounties and companions, all in 3D characters. It keeps full pace while Umbra is open on any tab, and goes on slower once Umbra is closed."],
     ["#friends-btn", "FRIENDS", "Your friends' profile cards. Share yours (Profile › Card: a QR code, a file or a code) and add theirs; or meet on the Camp Network: Umbras on the same Wi-Fi or hotspot link directly, encrypted, with no internet, to chat and see each other's cards live. Only profile cards are shared."],
-    ["#radar-btn", "SIGNALS & RADAR", "The Wi-Fi networks and Bluetooth devices around you on a radar, nearer the centre when stronger; click one for its details. Plus your device's vitals. No internet needed."],
+    ["#radar-btn", "SIGNALS", "Two modes. RADAR: the Wi-Fi networks and Bluetooth devices around you, nearer the centre when stronger; click one for its details, or JOIN a Wi-Fi network. LORA MESH: Meshtastic radios that send messages and check-ins over kilometres with no network at all; Umbra walks you through getting and setting them up."],
     ["#dl-btn", "DOWNLOADS", "Shows while something downloads (maps, library, AI model): pause, resume or cancel it here. Downloads go on after a restart."],
     ["#theme-btn", "THEMES", "Pick a colour theme, follow your Omarchy theme, or design your own."],
     ["#sound", "SOUND", "Open sound controls, adjust effects and notifications, or play longer offline nature and instrumental radio tracks. The same choices appear in Settings."],
@@ -849,6 +849,8 @@
       "- **Export** conversations or the manual to a file or a USB stick, and **back up** your whole Umbra from Settings.\n" +
       "- Every download can be **paused and resumed**, even after a restart; a chime tells you when it's done.\n" +
       "- After an update, I'll show you **what's new**, once.\n" +
+      "- Press **Ctrl+Space** for the **command line**: find anything in Umbra, or type a command like `theme frost` or `map Lisbon`. `help` lists them.\n" +
+      "- Try a **scenario drill** in Field Kit › Training: a short situation where your decisions are scored.\n" +
       "- Press **F1** any time for the keyboard shortcuts." +
       (onOmarchy() ? "\n- On Omarchy, the **Umbra icon in the top bar** opens me, shows your loadout and a new field note every hour, and lights up when an answer is waiting." : ""));
     a = await say(`That's the tour${who !== "friend" ? `, **${who}**` : ""}. You can replay it any time from **Settings**. Ready when you are.`);

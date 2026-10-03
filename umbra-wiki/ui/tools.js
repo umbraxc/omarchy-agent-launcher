@@ -36,7 +36,7 @@
     farming: ["Farming", "Offline crops, livestock and food production planner", G.farm,
       /\b(farm|farming|crop|crops|grow(ing)? (food|vegetables?|wheat|rice)|livestock|planting|harvest|soil fertility|garden yield)/i,
       () => window.toggleFarming && toggleFarming(true)],
-    radar: ["Signals & radar", "Nearby Wi-Fi and Bluetooth signals around you, and your device's vitals", G.radar,
+    radar: ["Signals", "Nearby Wi-Fi and Bluetooth signals, your device's vitals, and the LoRa mesh", G.radar,
       /\b(wi-?fi|bluetooth|wireless|signal strength|nearby (networks|devices)|scan(ning)? for|radar|hotspot|access point)/i,
       () => window.toggleRadar && toggleRadar(true)],
     library: ["Library", "Offline collections: medicine, repairs, outdoors, water, food", G.book,

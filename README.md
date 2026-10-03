@@ -356,6 +356,35 @@ Camp is off until you turn it on and goes quiet when Umbra's window closes.
 If your firewall (ufw) blocks it, the Camp screen offers to allow its two
 ports from your local network only.
 
+A card also opens a **dossier** at its side: your check-in, the worlds and
+moons you've visited in the Galaxy, country files and wonders, drills,
+streak and questions, your start screen and transition, and the waypoints
+you chose to share, each part shared only if you want. **Check in** (top of
+Friends) says you're OK, need help, are away or on the move, with a note, a
+place and how often friends can expect one; overdue check-ins are marked.
+Friends' shared waypoints and check-ins appear on your Maps, ringed in
+their colour, and you can send a waypoint in a Camp message. The **shared
+list** is one supply list for everyone linked, synced over the Camp.
+
+### Umbra's voice
+
+Umbra can **read its answers aloud** with a natural offline voice (Kokoro,
+open source): one download of about 354 MB, then no internet. Choose when:
+always, or only when you asked out loud (F9). Umbra's own voice is female or
+male, and every personality has its own: Marcus Aurelius deep and slow, the
+Sergeant clipped, Nana soft, the Radio Operator through a radio band, Unit 7
+synthetic, the Wizard with a hall's echo. It starts speaking while the
+answer is still being written. The speaker beside the microphone opens the
+options; every answer has a LISTEN button.
+
+### The command line
+
+**Ctrl+Space** (or hold Ctrl) opens a terminal in your theme's colour above
+the prompt. Type to find anything (tabs, tools, Field Manual pages, drills,
+worlds, personalities, scenarios, themes, start screens) and press Enter, or
+give a command: `theme frost`, `voice male`, `map Lisbon`, `galaxy saturn`,
+`drill flood`, `checkin ok`, `find water`, `persona marcus`. `help` lists them.
+
 ### Conversation scenery
 
 When a conversation is about a place or the outdoors, Umbra may show a 3D
@@ -415,7 +444,14 @@ The tools that can matter between life and death, all offline (Ctrl+K):
   **inspect view** with its ASCII drawing, parts called out, specifications,
   and the rounds you have for it. Stored on your computer only, behind the
   password (not encrypted).
-- **Training:** **field manuals** to download and read (nine US Army field
+- **Training:** **scenario drills** first: 15 short situations (a dry tap
+  on day three of a blackout, a winter power cut, lost at dusk, a deep cut,
+  a flash flood, a heat wave, hypothermia, a wildfire, ten minutes to
+  evacuate, choking, a boat adrift, a snake bite, a cave, plus a zombie
+  outbreak and a Mars hull breach) told in scored decisions, staged in 3D
+  ASCII scenes, at Recruit, Veteran or Hardcore level (a clock and a
+  surprise), with a debrief and the Field Manual page to read. Then
+  **field manuals** to download and read (nine US Army field
   manuals, Sweden's civil-defence brochure, FEMA's preparedness guide),
   Morse by ear and by hand, a **Morse challenge** (key the
   word or sentence shown, for points and a streak), a **signal lamp**, the
@@ -446,7 +482,20 @@ nothing. DEVICES remembers everything the radar has heard, in range or not,
 and marks new ones. INTEL sums up bands, security, makers and open networks, the EVENT
 LOG records contacts appearing, leaving, closing in or fading, and the **kill
 switch** turns Wi-Fi, mobile data and Bluetooth off at once (and back on).
-Full screen with F.
+Full screen with F. Click a Wi-Fi network to **join** it (NetworkManager or
+iwd; the password goes straight to your system).
+
+The second mode, **LoRa mesh**, works with **Meshtastic** radios: small,
+cheap LoRa radios that send messages, check-ins, positions and waypoints
+over 2 to 10 km and more, with no phone network, no internet and no licence,
+each radio relaying the others. Without a radio, Umbra explains it and walks
+you through it: which radios to buy (with a search), antenna first, the
+official web flasher, its radio software (installed on request), plugging in
+by USB (it recognises Meshtastic boards by their USB IDs and never touches a
+modem or GPS), region and name. With a radio: its status, the radios around
+on a scope by signal and hops, the mesh chat with delivery marks, I'm OK,
+positions and waypoints, trace route, a private encrypted channel shared by
+QR, and the radios with a position on your Maps.
 
 ### History, export and backup
 
@@ -728,7 +777,8 @@ Umbra Wiki speaks and understands English.
 | Ctrl+P / Ctrl+O | profile / loadout |
 | Ctrl+G | maps (inside: / search, W waypoint, M measure, G grid, F full screen, + and − zoom) |
 | Ctrl+K | field kit |
-| Ctrl+J | signals & radar (S scans again) |
+| Ctrl+J | signals: radar (S scans again) and the LoRa mesh |
+| Ctrl+Space | the command line: find anything, run commands |
 | Ctrl+Shift+F | farming planner |
 | Ctrl+U | friends and the Camp Network |
 | Ctrl+T | themes |
