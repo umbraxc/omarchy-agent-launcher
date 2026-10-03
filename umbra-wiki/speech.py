@@ -82,6 +82,7 @@ class Speech:
         self.todo = queue.Queue()
         self.ready = queue.Queue()
         self.pending = []                   # clips for the window to play (Windows)
+        self.answering = 0                  # spoken answers still being written
         self.playing = None
         self.speaking = False
         threading.Thread(target=self._synth_loop, daemon=True).start()
@@ -319,8 +320,10 @@ class Speech:
                 continue
             vol = self.settings().get("voiceVolume", 0.85)
             cmd = self.player(clip, vol)
-            if cmd is None:   # the window plays it
-                self.pending.append({"gen": gen, "url": "/api/voice/clip?id=" + os.path.basename(clip)[:-4]})
+            if cmd is None:   # the window plays it (it keeps the speaker lit while its queue plays)
+                self.pending.append({"gen": gen, "url": "/api/speech/clip?id=" + os.path.basename(clip)[:-4]})
+                if self.todo.empty() and self.ready.empty():
+                    self.speaking = False
                 continue
             try:
                 self.playing = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

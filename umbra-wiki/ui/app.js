@@ -2544,7 +2544,6 @@ function showVoice(v) {
   if (voice.state === "transcribing" && v.state === "idle") { window.track?.("voice"); window.UmbraSpeech?.heardVoice(); }   // words came in by voice
   voice = { ...voice, ...v };
   mic.classList.toggle("rec", voice.state === "recording");
-  mic.classList.toggle("busy", voice.state === "transcribing");
   mic.classList.toggle("off", !voice.available);
   mic.classList.toggle("busy", voice.state === "transcribing" || !!voice.own?.install?.active);
   mic.hidden = false;

@@ -123,7 +123,7 @@ window.UmbraSpeech = (() => {
   }
   function stop() {
     post("/api/speech/stop");
-    queue = []; if (audio) { audio.pause(); audio = null; }
+    clearInterval(poll); queue = []; if (audio) { audio.pause(); audio = null; }
     st.speaking = false; document.body.classList.remove("speaking"); paint();
   }
   // While Umbra speaks: the speaker glows (click it to stop), and on Windows
@@ -131,13 +131,16 @@ window.UmbraSpeech = (() => {
   function speakingSoon() {
     st.speaking = true; document.body.classList.add("speaking"); paint();
     clearInterval(poll);
-    let idle = 0;
+    // Until the first sentence is ready (the AI may still be thinking), keep waiting, up to two minutes.
+    let idle = 0, started = false;
+    const since = Date.now();
     poll = setInterval(async () => {
       const r = await fetch("/api/speech/pending").then((x) => x.json()).catch(() => null);
       if (!r) return;
       for (const c of r.clips || []) queue.push(c.url);
+      if (r.speaking || queue.length || audio) started = true;
       playNext();
-      if (!r.speaking && !queue.length && !audio) { if (++idle > 3) { clearInterval(poll); st.speaking = false; document.body.classList.remove("speaking"); paint(); } } else idle = 0;
+      if ((started || Date.now() - since > 120000) && !r.speaking && !queue.length && !audio) { if (++idle > 3) { clearInterval(poll); st.speaking = false; document.body.classList.remove("speaking"); paint(); } } else idle = 0;
     }, 500);
   }
   function playNext() {

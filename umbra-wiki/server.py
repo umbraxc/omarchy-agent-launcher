@@ -4560,7 +4560,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/lora":
             return self.send_json(LORA.status(take=True))
         if path == "/api/speech/pending":
-            return self.send_json({"clips": SPEECH.take_pending(), "speaking": SPEECH.status()["speaking"]})
+            return self.send_json({"clips": SPEECH.take_pending(), "speaking": SPEECH.status()["speaking"] or SPEECH.answering > 0})
         if path == "/api/speech/clip":
             clip = SPEECH.clip_path(urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("id", [""])[0])
             if not clip:
@@ -5817,8 +5817,9 @@ def speech_settings():
 
 
 def speech_player(path, volume):
-    """How a voice clip is played: the backend on Linux (like Umbra's sounds), the window on Windows."""
-    if WINDOWS:
+    """How a voice clip is played: the backend on Linux (like Umbra's sounds), the window on Windows
+    (UMBRA_WINDOW_AUDIO=1 tests the window's way on Linux)."""
+    if WINDOWS or os.environ.get("UMBRA_WINDOW_AUDIO"):
         return None
     if not path:
         return []
@@ -6086,10 +6087,12 @@ def answer(req, emit):
     if req.get("speak") and SPEECH.installed():
         gen = SPEECH.say("", None)   # stops anything still being said
         emit, flush = speak_answer(emit, gen)
+        SPEECH.answering += 1   # the window keeps listening while the answer is written
         try:
             return _answer(req, emit)
         finally:
             flush()
+            SPEECH.answering -= 1
             record("spokenAnswers")
     return _answer(req, emit)
 
