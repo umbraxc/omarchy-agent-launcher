@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.2.1
+
+### Highlights
+
+- Galaxy, a new tab: the solar system in 3D ASCII, live. Every planet and moon is where it is right now, the Earth turns under the real Sun with city lights on its night side, among the true stars, the Milky Way and Andromeda. Fly around freely, speed up time, and open a live file for any world.
+- Maps and Galaxy are linked: keep zooming out of the whole world to leave orbit, and dive at the Earth to land back on the Maps where you were.
+- Full country files: a country's card grows into an almost full-screen file with a turning globe and eleven sections, from travel essentials (emergency numbers, plugs, mains, driving side) to people, economy, energy and heritage.
+- 28 wonders of the world stand on the map as animated 3D ASCII dioramas: hover to see them turn, click for a large model and their story.
+- Friends: share your profile card as a QR code, file or code, and meet friends on the Camp Network, Umbras linked directly and encrypted on the same Wi-Fi, with no internet.
+- Umbra Outpost comes alive: 3D creatures, companions, a trader's stall and your character in the gear you wear; richer scenes for every skill and the Valley; smoother progress bars; more stockpile room at the Trader and a way to throw items away. It keeps full pace while Umbra is open on any tab.
+- Conversations stay on topic after a web page summary or a question from another tab, with better-matched sources; pin your favourite tabs beside the menu.
+
 ## 3.2.0
 
 ### Highlights

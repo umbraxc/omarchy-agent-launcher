@@ -16,6 +16,9 @@ and no subscription. Nothing you ask leaves your machine.
   and a built-in field manual covers the critical basics.
 - **Farming field planner**: explore edible crops and livestock through
   animated ASCII field cards, then adjust land, care, feed and food estimates.
+- **Maps and the Galaxy**: offline maps with full country files and 28 wonders
+  of the world in 3D ASCII; zoom out far enough and you leave orbit for a live
+  solar system where every planet and moon is where it is right now.
 - **Umbra Outpost**: an optional idle game with 21 skills, 236 items in 3D
   ASCII art, gear, battles, expeditions, bounties and companions, all offline.
 - **Made to be lived with**: scenarios and personalities, a welcome tour,
@@ -230,9 +233,27 @@ slid and scaled.
 - **Country files:** every country's name can be clicked. The camera centres
   on it, its outline lights up and a dark data window glitches in, tied to
   the country by a pointed line: the flag, an ASCII drawing of the country,
-  the capital and main cities with coordinates and MGRS, languages,
-  population, currency, time zone, climate, terrain, resources, hazards,
-  neighbours, drinking water and doctors (from the CIA World Factbook).
+  travel essentials at a glance (emergency number, plugs, mains, driving
+  side, calling code), the capital and main cities with coordinates and MGRS,
+  languages, population, currency, time zone, climate, terrain, resources,
+  hazards, neighbours, drinking water and doctors.
+- **Full country files:** click the name again (or FULL COUNTRY FILE) and the
+  card grows into an almost full-screen file with a turning 3D globe centred
+  on the country and eleven sections: overview, travel essentials (emergency
+  numbers, drawings of the plug types, mains, a road showing the driving
+  side), people (an age pyramid, beliefs, cities), the land (relief, land
+  use, neighbours, hazards), water and health, the economy (what it makes,
+  trade partners), energy, connections, heritage (UNESCO sites and wonders),
+  government and security, and sources. From the CIA World Factbook and
+  Wikidata, bundled, so it works offline.
+- **Wonders:** 28 landmarks of the world (the Pyramids, the Great Wall,
+  Machu Picchu, the Taj Mahal, Angkor Wat, the Eiffel Tower… and Everest,
+  Victoria Falls, the Great Barrier Reef, Uluru…) stand on the map as small
+  3D ASCII dioramas, each with its own sky and life. Hover one to see it turn;
+  click it for a large model you can turn and zoom, with its numbers, story
+  and tips (L shows or hides them).
+- **Leave orbit:** keep zooming out of the whole world and Umbra offers to
+  take you up to the Galaxy, right above where you were.
 - **Safety levels of your own:** mark countries safe, caution, avoid or
   danger in their file, and the map colours them at every zoom, with a key
   (the shield button turns the layer on and off).
@@ -250,6 +271,7 @@ tooltip that says what it does.
 
 ![Maps, topographic style with relief and contours](docs/maps-topo.png)
 ![Maps, tactical style with a country file](docs/maps-tactical.png)
+![A full country file: travel essentials, people and a turning globe](docs/country.png)
 
 ### Farming
 
@@ -262,6 +284,24 @@ yearly output. Open it with **Ctrl+Shift+F**.
 Hold **Shift** and drag any top tab to put your most used tools first. The
 Settings tab stays anchored. Your tab order is saved on this computer.
 
+### Galaxy
+
+The **Galaxy** tab is the solar system in 3D ASCII, as it is right now: the
+planets follow NASA JPL's orbital elements, the Earth turns under the real
+Sun with its night side lit by cities, and the Moon is where it is in
+tonight's sky. Saturn's and Uranus's rings, 21 moons, the asteroid and
+Kuiper belts, the named stars at their true places, the Milky Way,
+Andromeda and the Magellanic Clouds. The camera never rests: it slowly
+circles the chosen world (the Earth at first). Drag to turn, scroll to come
+closer, fly freely with W A S D, and run time from paused to a year a
+second. Click any world for its file: a turning portrait, its distance,
+speed and spin right now, its age, size, gravity, air, what it's made of,
+its resources and the missions that visited it. Dive at the Earth and you
+land back on the Maps, right below you. Distances are squeezed so everything
+fits (true scale on request) and sizes enlarged so the planets can be seen.
+
+![The Galaxy: Saturn, its rings and moons, where they are right now](docs/galaxy.png)
+
 ### Umbra Outpost
 
 The **Umbra Outpost** tab (Ctrl+B) is a separate fictional idle game. Train
@@ -273,7 +313,7 @@ stockpile, each drawn in 3D ASCII, with a hover card showing what it does and
 where it comes from. Gear up, fight in six areas, clear four expeditions (the
 first two end with the original story choices), take bounties and find 17
 companions. Eight buildings grow to level 10 and keep producing supplies, and
-everything keeps going while you're away (at a tenth of the pace after the first two minutes, for up to a day), with a summary when you return. The Outpost profile shows your total level and settings (including a reset); at total levels 1,000, 1,300, 1,600 and 2,079 you can Prestige, restarting the run for a lasting bonus, small perks and Locker rewards: four orbs, titles and name effects. The save stays
+everything keeps going: at full pace while Umbra is open, on any tab, and once Umbra is closed at a tenth of the pace after the first two minutes, for up to a day, with a summary the next time you open it. Every enemy, companion and the trader are drawn in 3D ASCII, the Gear tab shows your character wearing what you equip, and every skill has its own detailed scene. The Outpost profile shows your total level and settings (including a reset); at total levels 1,000, 1,300, 1,600 and 2,079 you can Prestige, restarting the run for a lasting bonus, small perks and Locker rewards: four orbs, titles and name effects. The save stays
 on this device and is included in Umbra backups; it never changes your real
 Farming plan or supplies.
 
@@ -306,7 +346,8 @@ ports from your local network only.
 
 When a conversation is about a place or the outdoors, Umbra may show a 3D
 ASCII landscape under its answer: twenty scenes from alpine peaks and a
-lighthouse at night to an aurora, a waterfall and a campfire. At most one
+lighthouse at night to an aurora, a waterfall and a campfire (space topics
+get the starry sky). Never under an answer about a web page. At most one
 appears an hour, unless the conversation clearly moves to a new subject, and
 never for emergencies or in off-grid mode.
 
