@@ -1311,6 +1311,61 @@
    "secret": true
   },
   {
+   "id": "tabletop",
+   "name": "Tabletop",
+   "description": "Complete a scenario drill in Field Kit \u203a Training.",
+   "icon": "\udb82\udf5f",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "scenarioDrills",
+   "goal": 1,
+   "category": "fieldkit"
+  },
+  {
+   "id": "flawless",
+   "name": "Flawless",
+   "description": "Finish a scenario drill with a perfect score.",
+   "icon": "\udb82\udf5f",
+   "tier": "silver",
+   "points": 25,
+   "stat": "drillsPerfect",
+   "goal": 1,
+   "category": "fieldkit"
+  },
+  {
+   "id": "every-scenario",
+   "name": "Every Scenario",
+   "description": "Complete all fifteen scenario drills.",
+   "icon": "\udb82\udf5f",
+   "tier": "gold",
+   "points": 50,
+   "stat": "drillsDone",
+   "goal": 15,
+   "category": "fieldkit"
+  },
+  {
+   "id": "seasoned",
+   "name": "Seasoned",
+   "description": "Run 50 scenario drills.",
+   "icon": "\udb82\udf5f",
+   "tier": "gold",
+   "points": 50,
+   "stat": "scenarioDrills",
+   "goal": 50,
+   "category": "fieldkit"
+  },
+  {
+   "id": "ice-in-the-veins",
+   "name": "Ice in the Veins",
+   "description": "Five perfect scenario drills on Hardcore. Few keep their head like this.",
+   "icon": "\udb82\udf5f",
+   "tier": "legendary",
+   "points": 100,
+   "stat": "hardcorePerfect",
+   "goal": 5,
+   "category": "fieldkit"
+  },
+  {
    "id": "lamplighter",
    "name": "Lamplighter",
    "description": "Light the first new camp at Umbra Outpost.",
@@ -1439,7 +1494,7 @@
    "tier": "legendary",
    "points": 100,
    "stat": "allOthers",
-   "goal": 138,
+   "goal": 143,
    "category": "legend"
   },
   {
@@ -2284,6 +2339,24 @@
    "description": "Shown after your name in conversations and on your profile.",
    "unlock": {
     "achievement": "camp-ledger"
+   }
+  },
+  {
+   "id": "unbreakable",
+   "kind": "title",
+   "name": "Unbreakable",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "ice-in-the-veins"
+   }
+  },
+  {
+   "id": "drill-instructor",
+   "kind": "title",
+   "name": "Drill Instructor",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "every-scenario"
    }
   },
   {

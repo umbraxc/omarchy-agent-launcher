@@ -2031,7 +2031,7 @@ def _stat(st, stat):
         return max(_streak(st["days"]), counts.get("bestStreak", 0))
     if stat in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
                 "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries", "modelsTried", "medicTools", "radioTracks",
-                "worlds", "moons", "wonders", "dossiers", "checkins"):
+                "worlds", "moons", "wonders", "dossiers", "checkins", "drillsDone"):
         return len(sets.get(stat, []))
     if stat == "friends":   # the friends you have (importing the same card twice counts once)
         try:
@@ -2122,11 +2122,12 @@ def record(event, value=None, **info):
                        "coreOpened", "radarOpened", "killSwitch", "vault", "quickActions", "measures", "exports",
                        "quietScene", "pulse500", "webSaves", "friends", "campMessages", "campLinks",
                        "galaxyOpened", "leftOrbit", "landings", "timeWarp", "cardShares",
-                       "sharedWaypoints", "listEdits", "waypointsSent", "friendLayer"):
+                       "sharedWaypoints", "listEdits", "waypointsSent", "friendLayer",
+                       "scenarioDrills", "drillsPerfect", "hardcorePerfect"):
             counts[event] = counts.get(event, 0) + 1
         elif event in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
                        "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries", "modelsTried", "medicTools", "farmItems", "radioTracks",
-                       "worlds", "moons", "wonders", "dossiers", "checkins"):
+                       "worlds", "moons", "wonders", "dossiers", "checkins", "drillsDone"):
             values = value if event == "farmItems" and isinstance(value, list) else [value]
             known = set(sets.get(event, []))
             for raw in values[:80]:
@@ -4392,6 +4393,8 @@ class Handler(BaseHTTPRequestHandler):
                                    "signed": bool(card.get("sig")), "checkin": read_json(SETTINGS_FILE, {}).get("checkin")})
         if path == "/api/camp/list":
             return self.send_json({"items": CAMP.shared_list()})
+        if path == "/api/drills":
+            return self.send_json(get_scenario_drills())
         if path == "/api/friends/waypoints":
             return self.send_json({"friends": friend_waypoints()})
         if path == "/api/friends":
@@ -4701,6 +4704,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(save_waypoints(self.read_json().get("waypoints")))
             except ValueError as e:
                 return self.send_json({"error": str(e)}, 400)
+        if self.path == "/api/drills/result":
+            try:
+                return self.send_json({"ok": True, **drill_result(self.read_json())})
+            except ValueError as e:
+                return self.send_json({"ok": False, "message": str(e)}, 400)
         if self.path == "/api/achievements/event":
             req = self.read_json()
             event, value = str(req.get("event", "")), req.get("value")
@@ -5510,6 +5518,55 @@ def card_raw():
         c["ci"] = ci
     _card_cache.update(at=time.time(), card=c)
     return c
+
+
+DRILLS_FILE = os.path.join(DATA_DIR, "scenario-drills.json")
+
+
+@lru_cache(maxsize=1)
+def drill_ids():
+    try:
+        return {d["id"] for d in json.load(open(os.path.join(APP_DIR, "ui", "drills.json"), encoding="utf-8"))["drills"]}
+    except (OSError, ValueError, KeyError):
+        return set()
+
+
+def get_scenario_drills():
+    """Scenario drills played: how many, the best score, perfect runs, and each drill's best."""
+    d = read_json(DRILLS_FILE, {})
+    per = d.get("drills") if isinstance(d.get("drills"), dict) else {}
+    return {"done": int(d.get("done", 0)), "best": max([v.get("best", 0) for v in per.values()] or [0]),
+            "perfect": int(d.get("perfect", 0)), "drills": per}
+
+
+def drill_result(req):
+    did = str(req.get("id", ""))
+    if did not in drill_ids():
+        raise ValueError("unknown drill")
+    try:
+        score = max(0, min(100, int(req.get("score", 0))))
+    except (TypeError, ValueError):
+        raise ValueError("bad score")
+    level = req.get("level") if req.get("level") in ("recruit", "veteran", "hardcore") else "recruit"
+    d = read_json(DRILLS_FILE, {})
+    per = d.setdefault("drills", {})
+    me = per.setdefault(did, {"best": 0, "runs": 0, "levels": {}})
+    me["runs"] += 1
+    me["best"] = max(me["best"], score)
+    me["levels"][level] = max(me["levels"].get(level, 0), score)
+    me["last"] = int(time.time() * 1000)
+    d["done"] = int(d.get("done", 0)) + 1
+    if score == 100:
+        d["perfect"] = int(d.get("perfect", 0)) + 1
+    write_json(DRILLS_FILE, d)
+    record("scenarioDrills")
+    record("drillsDone", did)
+    if score == 100:
+        record("drillsPerfect")
+        if level == "hardcore":
+            record("hardcorePerfect")
+    _card_cache["at"] = 0
+    return get_scenario_drills()
 
 
 CHECKIN_EVERY = (0, 2, 4, 6, 8, 12, 24, 48)

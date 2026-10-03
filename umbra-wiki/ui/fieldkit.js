@@ -670,7 +670,7 @@
     Z: "--..", 1: ".----", 2: "..---", 3: "...--", 4: "....-", 5: ".....", 6: "-....", 7: "--...", 8: "---..", 9: "----.", 0: "-----" };
   const FROM = Object.fromEntries(Object.entries(MORSE).map(([k, v]) => [v, k]));
   const WORDS = ["SOS", "HELP", "WATER", "FIRE", "SAFE", "NORTH", "CAMP", "MEDIC", "FOOD", "SHELTER", "RADIO", "EAST", "WEST", "SOUTH", "OK", "HURT", "COME", "WAIT"];
-  let sub = "morse", wpm = store.get("wpm", 15);
+  let sub = "scenarios", wpm = store.get("wpm", 15);
   const unit = () => 1.2 / wpm;   // the length of a dot, in seconds
   // Plays text as Morse on the audio clock; returns when it's done.
   function playMorse(text, onSymbol) {
@@ -691,9 +691,9 @@
   }
 
   function training(body) {
-    body.innerHTML = `<div class="fk-subtabs pf-choice">${[["morse", "MORSE"], ["challenge", "MORSE CHALLENGE"], ["lamp", "SIGNAL LAMP"], ["phonetic", "PHONETIC"],
+    body.innerHTML = `<div class="fk-subtabs pf-choice">${[["scenarios", "SCENARIO DRILLS"], ["morse", "MORSE"], ["challenge", "MORSE CHALLENGE"], ["lamp", "SIGNAL LAMP"], ["phonetic", "PHONETIC"],
       ["radio", "RADIO"], ["grid", "GRID REFS"], ["compass", "COMPASS"], ["salute", "SALUTE"], ["manuals", "MANUALS"], ["drill", "DAILY DRILL"], ["knots", "KNOTS"]]
-      .filter(([k]) => ["morse", "lamp", "drill", "knots"].includes(k) || window.UmbraTraining)
+      .filter(([k]) => ["morse", "lamp", "drill", "knots"].includes(k) || (k === "scenarios" ? window.UmbraDrills : window.UmbraTraining))
       .map(([k, n]) => `<button data-s="${k}">${n}</button>`).join("")}</div><div class="fk-sub"></div>`;
     body.querySelectorAll(".fk-subtabs button").forEach((b) => b.addEventListener("click", () => { sub = b.dataset.s; Sound.click(); showSub(body); }));
     showSub(body);
@@ -703,7 +703,8 @@
     const box = body.querySelector(".fk-sub");
     const T = window.UmbraTraining;
     const K = { MORSE, FROM, audio, unit, wpm: () => wpm, playMorse };
-    ({ morse: morseTab, lamp: lampTab, drill: drillTab, knots: knotsTab, challenge: (b) => T.challenge(b, K), phonetic: T && T.phonetic,
+    window.UmbraDrills?.stop();
+    ({ scenarios: (b) => window.UmbraDrills.render(b), morse: morseTab, lamp: lampTab, drill: drillTab, knots: knotsTab, challenge: (b) => T.challenge(b, K), phonetic: T && T.phonetic,
        radio: T && T.radio, grid: T && T.grid, compass: T && T.compass, salute: T && T.salute, manuals: T && T.manuals }[sub] || morseTab)(box);
   }
 

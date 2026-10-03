@@ -1,0 +1,1691 @@
+{
+ "drills": [
+  {
+   "id": "dry-taps",
+   "name": "Dry Taps",
+   "group": "emergency",
+   "scene": "valley",
+   "manual": "water",
+   "time": "GRID DOWN · DAY 3 · 07:40",
+   "brief": "The power has been out for three days. This morning the tap coughs air and stops. You have 4 litres of bottled water, two kids, a camping stove and a full water heater in the basement.",
+   "start": "a",
+   "nodes": {
+    "a": {
+     "text": "The tap is dry. What do you do first?",
+     "choices": [
+      {
+       "t": "Take stock: count every litre in the house, including the water heater and the toilet cisterns",
+       "p": 10,
+       "f": "Right. Knowing what you have comes first: a 150-litre water heater is often the biggest store in a home.",
+       "n": "b"
+      },
+      {
+       "t": "Ration everyone to half a cup a day to make the bottles last",
+       "p": 0,
+       "f": "Dangerous. Rationing below need causes dehydration fast, especially in children. Drink normally and find more water.",
+       "n": "b"
+      },
+      {
+       "t": "Drive around looking for a shop that's open",
+       "p": 5,
+       "f": "Possible, but you burn fuel and time with no plan. Take stock of what's at home first.",
+       "n": "b"
+      }
+     ]
+    },
+    "b": {
+     "text": "The water heater holds about 150 litres. How do you use it?",
+     "choices": [
+      {
+       "t": "Turn off its power and gas, close the inlet, then drain from the valve at the bottom",
+       "p": 10,
+       "f": "Correct. Cut the energy first so it can't heat dry, and close the inlet so dirty mains water can't flow in.",
+       "n": "c"
+      },
+      {
+       "t": "Open the drain valve straight away",
+       "p": 5,
+       "f": "It works, but the heater may still try to heat, and contaminated mains water could be drawn in when supply returns. Shut it off first.",
+       "n": "c"
+      },
+      {
+       "t": "Leave it: water from a heater isn't safe",
+       "p": 0,
+       "f": "It's one of the safest stores you have. Sediment settles; treat it if it looks cloudy.",
+       "n": "c"
+      }
+     ]
+    },
+    "c": {
+     "text": "Rain starts falling. Your barrel fills with roof water. Is it ready to drink?",
+     "choices": [
+      {
+       "t": "No: let it settle, filter it through a cloth, then boil it for a minute",
+       "p": 10,
+       "f": "Exactly. Roof runoff carries droppings and dirt; clear it, then treat it. Boiling is the most reliable method.",
+       "n": "d"
+      },
+      {
+       "t": "Yes, rain is pure",
+       "p": 0,
+       "f": "Rain is clean, roofs and gutters are not. Always treat collected rainwater before drinking.",
+       "n": "d"
+      },
+      {
+       "t": "Add a splash of bleach and drink it right away",
+       "p": 5,
+       "f": "Bleach works, but measured (about 2 drops per litre of clear water) and only after a 30-minute wait.",
+       "n": "d"
+      }
+     ]
+    },
+    "d": {
+     "text": "Your stove fuel is low. How do you keep making water safe?",
+     "choices": [
+      {
+       "t": "Switch to unscented bleach for clear water and save the stove for cooking",
+       "p": 10,
+       "f": "Good. Two drops per litre, stir, wait 30 minutes, and it should smell faintly of chlorine.",
+       "n": "e"
+      },
+      {
+       "t": "Boil it for 20 minutes to be extra sure",
+       "p": 0,
+       "f": "Wasteful. One rolling minute is enough (three above 2,000 m); longer only burns the fuel you're short of.",
+       "n": "e"
+      },
+      {
+       "t": "Leave clear bottles of it in strong sunlight for a day (SODIS)",
+       "p": 5,
+       "f": "A real method for clear water in full sun, about six hours. Slow, but it saves fuel.",
+       "n": "e"
+      }
+     ]
+    },
+    "e": {
+     "end": "Day four comes with water to spare. You found your hidden stores, treated what you collected, and nobody went thirsty."
+    }
+   }
+  },
+  {
+   "id": "lights-out",
+   "name": "Lights Out",
+   "group": "emergency",
+   "scene": "winter",
+   "manual": "outage",
+   "time": "WINTER STORM · NIGHT ONE · 21:15",
+   "brief": "A storm brings the lines down. It is minus 8 °C outside and the house is cooling fast. You have a petrol generator in the garage, a gas barbecue, blankets and candles.",
+   "start": "a",
+   "nodes": {
+    "a": {
+     "text": "The heating is off. How do you keep everyone warm tonight?",
+     "choices": [
+      {
+       "t": "Move everyone into one small room, close the doors, cover the windows and layer up",
+       "p": 10,
+       "f": "Right. Heat one small space, not a whole house: blankets over windows, towels at door gaps.",
+       "n": "b"
+      },
+      {
+       "t": "Bring the gas barbecue indoors and light it for heat",
+       "p": 0,
+       "f": "Deadly. Barbecues and camping heaters indoors make carbon monoxide, which kills silently.",
+       "n": "b"
+      },
+      {
+       "t": "Run the oven with the door open",
+       "p": 0,
+       "f": "Unsafe: gas ovens release carbon monoxide and electric ones won't work anyway. Never heat a home with an oven.",
+       "n": "b"
+      }
+     ]
+    },
+    "b": {
+     "text": "Where do you run the generator?",
+     "choices": [
+      {
+       "t": "Outside, at least 6 metres from the house, with the exhaust pointing away from doors and windows",
+       "p": 10,
+       "f": "Correct. And keep a battery carbon monoxide alarm in the room where you sleep.",
+       "n": "c"
+      },
+      {
+       "t": "In the garage with the door open",
+       "p": 0,
+       "f": "A classic killer. Fumes build up in garages and seep into the house even with the door open.",
+       "n": "c"
+      },
+      {
+       "t": "By an open window so the cable reaches",
+       "p": 0,
+       "f": "Exhaust drifts straight in. Keep it far from every opening.",
+       "n": "c"
+      }
+     ]
+    },
+    "c": {
+     "text": "Your daughter says she has a headache and feels dizzy and sick. So do you.",
+     "choices": [
+      {
+       "t": "Get everyone outside into fresh air now and call emergency services",
+       "p": 10,
+       "f": "Right. Headache, dizziness and nausea in several people at once points to carbon monoxide. Get out first, then call.",
+       "n": "d"
+      },
+      {
+       "t": "Give her paracetamol and put her to bed",
+       "p": 0,
+       "f": "Sleeping in CO can be fatal. Several people with the same symptoms means: get out, now.",
+       "n": "d"
+      },
+      {
+       "t": "Open a window and wait to see if it passes",
+       "p": 5,
+       "f": "Air helps, but leaving the building and calling is the safe response.",
+       "n": "d"
+      }
+     ]
+    },
+    "d": {
+     "text": "The CO source is fixed and the night goes on. How do you light the room?",
+     "choices": [
+      {
+       "t": "Torches and battery lanterns; candles only in sturdy holders you watch",
+       "p": 10,
+       "f": "Good. House fires climb sharply in power cuts, mostly from candles.",
+       "n": "e"
+      },
+      {
+       "t": "A ring of candles round the bed so it stays lit all night",
+       "p": 0,
+       "f": "A fire risk while everyone's asleep. Never leave flames burning unwatched.",
+       "n": "e"
+      },
+      {
+       "t": "Leave the room dark to save batteries",
+       "p": 5,
+       "f": "Safe, but a dim light helps you move and spot trouble. Use one lantern on low.",
+       "n": "e"
+      }
+     ]
+    },
+    "e": {
+     "end": "Morning comes cold but safe. One warm room, a generator well outside, and a CO scare caught in time."
+    }
+   }
+  },
+  {
+   "id": "lost-at-dusk",
+   "name": "Lost at Dusk",
+   "group": "outdoors",
+   "scene": "forest",
+   "manual": "navigation",
+   "time": "DAY HIKE · 17:50 · SUNSET IN 40 MIN",
+   "brief": "You left the trail to follow a stream and now nothing looks familiar. No phone signal. You told a friend your route and that you'd be back by 19:00. You have a jacket, a headlamp, a whistle, half a litre of water and a snack.",
+   "start": "a",
+   "nodes": {
+    "a": {
+     "text": "You realise you're lost. What now?",
+     "choices": [
+      {
+       "t": "STOP: stand still, breathe, think, look around, then plan",
+       "p": 10,
+       "f": "Right. Stop, Think, Observe, Plan. Most people who get badly lost made it worse by hurrying on.",
+       "n": "b"
+      },
+      {
+       "t": "Walk faster in the direction that feels right to beat the dark",
+       "p": 0,
+       "f": "Panic walking takes you further from where searchers will look and burns your energy.",
+       "n": "b"
+      },
+      {
+       "t": "Climb the steep slope to look for the trail",
+       "p": 5,
+       "f": "Height can help you see, but a steep climb at dusk risks a fall. Think first.",
+       "n": "b"
+      }
+     ]
+    },
+    "b": {
+     "text": "Forty minutes of light left, and you can't place yourself.",
+     "choices": [
+      {
+       "t": "Stay put: someone knows your route, so prepare a sheltered spot before dark",
+       "p": 10,
+       "f": "Correct. When people know where you went, staying put makes you far easier to find.",
+       "n": "c"
+      },
+      {
+       "t": "Keep moving by headlamp through the night",
+       "p": 0,
+       "f": "Night walking off-trail is how ankles break and people fall. Stop and shelter.",
+       "n": "c"
+      },
+      {
+       "t": "Follow the stream downhill: it leads somewhere",
+       "p": 5,
+       "f": "Streams can lead to roads, but also to gorges and waterfalls. Not in the dark.",
+       "n": "c"
+      }
+     ]
+    },
+    "c": {
+     "text": "It's getting cold. How do you set up for the night?",
+     "choices": [
+      {
+       "t": "Find shelter from the wind, put a thick layer of dry leaves under you, then put the jacket on",
+       "p": 10,
+       "f": "Good. The ground steals heat faster than the air: insulation beneath you matters most.",
+       "n": "d"
+      },
+      {
+       "t": "Lie down on the bare ground and wrap the jacket round you",
+       "p": 5,
+       "f": "The jacket helps, but the cold ground draws heat all night. Insulate underneath.",
+       "n": "d"
+      },
+      {
+       "t": "Stand up all night to stay alert",
+       "p": 0,
+       "f": "Exhausting, and you'll lose heat. Rest, insulated and out of the wind.",
+       "n": "d"
+      }
+     ]
+    },
+    "d": {
+     "text": "Past 21:00 you hear voices far off and see torches.",
+     "choices": [
+      {
+       "t": "Blow three sharp blasts on the whistle, wait, repeat, and wave your headlamp",
+       "p": 10,
+       "f": "Right. Three of anything is a distress call, and a whistle carries much further than a voice.",
+       "n": "e"
+      },
+      {
+       "t": "Run towards the lights",
+       "p": 0,
+       "f": "Running in the dark risks injury, and you might lose them. Let them come to you.",
+       "n": "e"
+      },
+      {
+       "t": "Shout until they answer",
+       "p": 5,
+       "f": "It can work, but voices fade quickly and wear you out. The whistle is better.",
+       "n": "e"
+      }
+     ]
+    },
+    "e": {
+     "end": "The search team reaches you at 21:40, cold but unhurt. Staying put and signalling right brought them straight to you."
+    }
+   }
+  },
+  {
+   "id": "deep-cut",
+   "name": "The Deep Cut",
+   "group": "emergency",
+   "scene": "mountains",
+   "manual": "bleeding",
+   "time": "TRAIL · 11:20 · 2 H FROM THE ROAD",
+   "brief": "Your friend slips on wet rock and slashes their thigh on a sharp edge. Bright red blood is pulsing out fast. You have a first-aid kit with gauze and a tourniquet, and one bar of signal.",
+   "start": "a",
+   "nodes": {
+    "a": {
+     "text": "The blood is spurting. First move?",
+     "choices": [
+      {
+       "t": "Press hard directly on the wound with gauze or anything to hand, and keep pressing",
+       "p": 10,
+       "f": "Right. Firm, direct pressure is the first answer to severe bleeding. Don't lift to look.",
+       "n": "b"
+      },
+      {
+       "t": "Clean the wound with water first",
+       "p": 0,
+       "f": "No time. Severe bleeding can kill in minutes. Pressure first, cleaning much later.",
+       "n": "b"
+      },
+      {
+       "t": "Run for help",
+       "p": 0,
+       "f": "They could bleed out while you're gone. Control the bleeding, then call.",
+       "n": "b"
+      }
+     ]
+    },
+    "b": {
+     "text": "Blood soaks straight through the gauze and keeps coming.",
+     "choices": [
+      {
+       "t": "Put the tourniquet on high and tight above the wound, tighten until it stops, note the time",
+       "p": 10,
+       "f": "Correct. For life-threatening limb bleeding pressure can't stop, a tourniquet saves lives. Note the time.",
+       "n": "c"
+      },
+      {
+       "t": "Peel off the soaked gauze and put clean gauze on",
+       "p": 0,
+       "f": "Removing it tears away the forming clot. Add more on top and press harder, or go to the tourniquet.",
+       "n": "c"
+      },
+      {
+       "t": "Press harder and wait ten more minutes",
+       "p": 5,
+       "f": "Harder pressure can work, but blood soaking through and still pulsing means: tourniquet now.",
+       "n": "c"
+      }
+     ]
+    },
+    "c": {
+     "text": "The bleeding has stopped. Now?",
+     "choices": [
+      {
+       "t": "Call emergency services with your location and say a tourniquet is on, and the time it went on",
+       "p": 10,
+       "f": "Right. Rescuers need the place, the injury and the tourniquet time.",
+       "n": "d"
+      },
+      {
+       "t": "Loosen the tourniquet every few minutes so the leg gets blood",
+       "p": 0,
+       "f": "Don't. Loosening can restart the bleeding. Leave it for the professionals.",
+       "n": "d"
+      },
+      {
+       "t": "Help them walk out to the road",
+       "p": 0,
+       "f": "Walking raises blood loss and shock. Keep them still and bring help in.",
+       "n": "d"
+      }
+     ]
+    },
+    "d": {
+     "text": "Your friend is pale, cold and clammy, and breathing fast.",
+     "choices": [
+      {
+       "t": "Lay them down, raise the legs if it doesn't hurt, keep them warm, and talk to them",
+       "p": 10,
+       "f": "Good. That's shock: keep them lying, warm and calm while help comes.",
+       "n": "e"
+      },
+      {
+       "t": "Give them lots of water to replace the blood",
+       "p": 0,
+       "f": "No food or drink: they may need surgery, and it can make them vomit. Wet the lips if needed.",
+       "n": "e"
+      },
+      {
+       "t": "Sit them up so they can breathe better",
+       "p": 5,
+       "f": "Lying down is better for shock unless they struggle to breathe.",
+       "n": "e"
+      }
+     ]
+    },
+    "e": {
+     "end": "The helicopter lifts your friend out 50 minutes later. Pressure, a tourniquet and a clear call kept them alive."
+    }
+   }
+  },
+  {
+   "id": "rising-water",
+   "name": "Rising Water",
+   "group": "emergency",
+   "scene": "storm",
+   "manual": "flood",
+   "time": "FLASH FLOOD WARNING · 15:05",
+   "brief": "Hours of heavy rain. A flash flood warning is issued for your valley. The creek behind the house is rising quickly, and the main road crosses a low bridge.",
+   "start": "a",
+   "nodes": {
+    "a": {
+     "text": "The warning comes in. What do you do?",
+     "choices": [
+      {
+       "t": "Leave now for higher ground with your go-bag, before the water reaches you",
+       "p": 10,
+       "f": "Right. In a flash flood, minutes matter. Leave early, while the routes are open.",
+       "n": "b"
+      },
+      {
+       "t": "Wait to see whether the creek really floods",
+       "p": 0,
+       "f": "Flash floods arrive in minutes. By the time you see it, the way out may be gone.",
+       "n": "b"
+      },
+      {
+       "t": "Put sandbags round the doors and stay in",
+       "p": 5,
+       "f": "Sandbags help with slow flooding, but a flash flood warning means: go.",
+       "n": "b"
+      }
+     ]
+    },
+    "b": {
+     "text": "On the road, water is flowing across the low bridge. It looks shallow.",
+     "choices": [
+      {
+       "t": "Turn around and take the long way over the hill",
+       "p": 10,
+       "f": "Correct. Turn around, don't drown: 30 cm of moving water can float a car.",
+       "n": "c"
+      },
+      {
+       "t": "Drive through slowly in a low gear",
+       "p": 0,
+       "f": "Most flood deaths happen in vehicles. You can't see the depth, or whether the road underneath is gone.",
+       "n": "c"
+      },
+      {
+       "t": "Wade across to check how deep it is",
+       "p": 0,
+       "f": "15 cm of fast water can knock you off your feet. Never walk into flood water.",
+       "n": "c"
+      }
+     ]
+    },
+    "c": {
+     "text": "The detour is blocked too. Water is rising around the car.",
+     "choices": [
+      {
+       "t": "Leave the car now and climb to the highest ground you can reach",
+       "p": 10,
+       "f": "Right. A car can be swept away in moments. Get out and up while you still can.",
+       "n": "d"
+      },
+      {
+       "t": "Stay in the car and call for help",
+       "p": 0,
+       "f": "Cars float and roll in moving water. Get out and climb if you can do it safely.",
+       "n": "d"
+      },
+      {
+       "t": "Try to push the car to higher ground",
+       "p": 0,
+       "f": "Wasted strength. Leave it and save yourselves.",
+       "n": "d"
+      }
+     ]
+    },
+    "d": {
+     "text": "You're safe on a rise above the water. Now?",
+     "choices": [
+      {
+       "t": "Stay there, keep warm, call emergency services with your location, and wait for the water to drop",
+       "p": 10,
+       "f": "Good. Stay out of the water: it carries debris, sewage and live wires.",
+       "n": "e"
+      },
+      {
+       "t": "Walk back through the shallows once the rain stops",
+       "p": 0,
+       "f": "Receding water can still be fast, and the ground underneath may be gone.",
+       "n": "e"
+      },
+      {
+       "t": "Head to the creek to see how bad it is",
+       "p": 0,
+       "f": "Banks collapse in floods. Stay well away.",
+       "n": "e"
+      }
+     ]
+    },
+    "e": {
+     "end": "The flood peaks two hours later and you watch it from high ground. Leaving early and turning around saved you."
+    }
+   }
+  },
+  {
+   "id": "heat-wave",
+   "name": "Heat Wave",
+   "group": "everyday",
+   "scene": "desert",
+   "manual": "heatstroke",
+   "time": "HEAT WAVE · 41 °C · 15:30",
+   "brief": "The fourth day over 40 °C. You check on your elderly neighbour, Mr Haas. He lives alone with no air conditioning.",
+   "start": "a",
+   "nodes": {
+    "a": {
+     "text": "He's sweating heavily, pale, dizzy, with cramps, but he talks normally.",
+     "choices": [
+      {
+       "t": "Move him somewhere cool, loosen his clothes, give him water to sip and cool his skin",
+       "p": 10,
+       "f": "Right. Heavy sweating, dizziness and cramps while alert sounds like heat exhaustion. Cool him and give fluids.",
+       "n": "b"
+      },
+      {
+       "t": "Tell him to lie down in his bedroom and rest",
+       "p": 5,
+       "f": "Rest helps, but a hot room won't cool him. Find somewhere cooler.",
+       "n": "b"
+      },
+      {
+       "t": "Give him a cold beer to cool down",
+       "p": 0,
+       "f": "Alcohol dehydrates. Water or an oral rehydration drink.",
+       "n": "b"
+      }
+     ]
+    },
+    "b": {
+     "text": "Twenty minutes later he's confused, his skin is hot and dry, and he stumbles.",
+     "choices": [
+      {
+       "t": "Call emergency services now: this is heatstroke, then cool him as fast as you can",
+       "p": 10,
+       "f": "Correct. Confusion plus hot skin means heatstroke, a medical emergency. Call, then cool.",
+       "n": "c"
+      },
+      {
+       "t": "Let him sleep it off",
+       "p": 0,
+       "f": "Heatstroke can kill within hours. He needs emergency care now.",
+       "n": "c"
+      },
+      {
+       "t": "Keep giving him water and watch",
+       "p": 0,
+       "f": "He may not swallow safely, and water alone won't cool him fast enough. Call now.",
+       "n": "c"
+      }
+     ]
+    },
+    "c": {
+     "text": "How do you cool him while you wait?",
+     "choices": [
+      {
+       "t": "Wet his skin with cool water and fan him; cold packs at the neck, armpits and groin",
+       "p": 10,
+       "f": "Right. Evaporation and cold at the big blood vessels cool fastest.",
+       "n": "d"
+      },
+      {
+       "t": "Wrap him in a warm blanket so he doesn't get a chill",
+       "p": 0,
+       "f": "The opposite of what he needs. Strip layers and cool him.",
+       "n": "d"
+      },
+      {
+       "t": "Make him drink a lot quickly",
+       "p": 0,
+       "f": "A confused person can choke. Don't force fluids.",
+       "n": "d"
+      }
+     ]
+    },
+    "d": {
+     "text": "The ambulance takes him. What about tomorrow?",
+     "choices": [
+      {
+       "t": "Set a plan: check on him twice a day, and find him a cool place to spend the afternoons",
+       "p": 10,
+       "f": "Good. Heat waves hit people who live alone hardest. Regular checks save lives.",
+       "n": "e"
+      },
+      {
+       "t": "Leave him a fan and some water",
+       "p": 5,
+       "f": "Kind, but in extreme heat a fan alone isn't enough. Checks and a cool place matter.",
+       "n": "e"
+      },
+      {
+       "t": "Nothing more: it was a one-off",
+       "p": 0,
+       "f": "The heat isn't over. Plan for the next days.",
+       "n": "e"
+      }
+     ]
+    },
+    "e": {
+     "end": "Mr Haas is home two days later. Your quick call and fast cooling made the difference."
+    }
+   }
+  },
+  {
+   "id": "whiteout",
+   "name": "Whiteout",
+   "group": "outdoors",
+   "scene": "aurora",
+   "manual": "hypothermia",
+   "time": "SNOWSHOE TRIP · −12 °C · 16:10",
+   "brief": "A whiteout pins you and your friend Lena down at the tree line. She went through thin ice at a creek earlier and her trousers are wet. Now she's shivering hard and stumbling.",
+   "start": "a",
+   "nodes": {
+    "a": {
+     "text": "Lena is shivering, slurring a little, fumbling her gloves. First?",
+     "choices": [
+      {
+       "t": "Get her out of the wind behind trees or snow and insulate her from the ground",
+       "p": 10,
+       "f": "Right. Stop the heat loss first: wind and cold ground are draining her.",
+       "n": "b"
+      },
+      {
+       "t": "Keep walking fast to warm her up",
+       "p": 0,
+       "f": "She's already stumbling. Exhaustion speeds hypothermia. Shelter now.",
+       "n": "b"
+      },
+      {
+       "t": "Rub her arms and legs hard",
+       "p": 0,
+       "f": "Rubbing doesn't warm the core and can harm cold tissue. Shelter and insulate.",
+       "n": "b"
+      }
+     ]
+    },
+    "b": {
+     "text": "You're sheltered. Her trousers are soaked.",
+     "choices": [
+      {
+       "t": "Swap the wet clothes for dry ones, quickly, one piece at a time",
+       "p": 10,
+       "f": "Correct. Wet clothing pulls heat away fast. Dry layers, done quickly.",
+       "n": "c"
+      },
+      {
+       "t": "Leave them: undressing will chill her more",
+       "p": 5,
+       "f": "Brief exposure is better than hours in wet clothes. Change them fast.",
+       "n": "c"
+      },
+      {
+       "t": "Put your jacket over the wet trousers",
+       "p": 5,
+       "f": "It helps a little, but wet layers keep cooling her. Change them.",
+       "n": "c"
+      }
+     ]
+    },
+    "c": {
+     "text": "She's in dry clothes in your sleeping bag. How do you warm her?",
+     "choices": [
+      {
+       "t": "Warm sweet drinks if she can swallow, warm bottles at her chest and armpits, and get in the bag beside her",
+       "p": 10,
+       "f": "Right. Warm the core gently: chest, armpits, groin, and shared body heat.",
+       "n": "d"
+      },
+      {
+       "t": "Give her a shot of brandy",
+       "p": 0,
+       "f": "Alcohol widens blood vessels and speeds heat loss. Never.",
+       "n": "d"
+      },
+      {
+       "t": "Put her feet and hands in hot water",
+       "p": 0,
+       "f": "Warming limbs first can send cold blood to the heart. Warm the core.",
+       "n": "d"
+      }
+     ]
+    },
+    "d": {
+     "text": "She stops shivering but becomes drowsy and hard to wake.",
+     "choices": [
+      {
+       "t": "Treat it as severe hypothermia: call or signal for rescue, handle her very gently, keep warming",
+       "p": 10,
+       "f": "Correct. Shivering stopping while she gets drowsier is a danger sign, not recovery.",
+       "n": "e"
+      },
+      {
+       "t": "Good, she's warm now: let her sleep",
+       "p": 0,
+       "f": "Shivering stopping can mean the body is giving up. Get help now.",
+       "n": "e"
+      },
+      {
+       "t": "Walk her out to the car",
+       "p": 0,
+       "f": "Sudden movement can trigger heart trouble in severe hypothermia. Handle gently and call.",
+       "n": "e"
+      }
+     ]
+    },
+    "e": {
+     "end": "Mountain rescue reaches you at dusk. Quick shelter, dry clothes and gentle warming kept Lena alive."
+    }
+   }
+  },
+  {
+   "id": "smoke-ridge",
+   "name": "Smoke on the Ridge",
+   "group": "emergency",
+   "scene": "storm",
+   "manual": "wildfire",
+   "time": "FIRE DANGER EXTREME · 13:00",
+   "brief": "Smoke rises over the ridge two valleys away. The wind is strong and blowing your way. No evacuation order has come yet.",
+   "start": "a",
+   "nodes": {
+    "a": {
+     "text": "The smoke is growing. What do you do?",
+     "choices": [
+      {
+       "t": "Leave early: load the go-bag, family and pets, and drive out now, before any order",
+       "p": 10,
+       "f": "Right. Leaving early is the safest choice in a wildfire. Roads clog and close fast.",
+       "n": "b"
+      },
+      {
+       "t": "Wait for the official order",
+       "p": 5,
+       "f": "Orders can come late. When the danger is clear, leaving early is safer.",
+       "n": "b"
+      },
+      {
+       "t": "Climb the ridge to see where the fire is",
+       "p": 0,
+       "f": "Fires move uphill fastest. Never go towards it.",
+       "n": "b"
+      }
+     ]
+    },
+    "b": {
+     "text": "Before you lock up, what do you do with the house?",
+     "choices": [
+      {
+       "t": "Close every window and door, but leave them unlocked for firefighters; move flammable furniture away from windows",
+       "p": 10,
+       "f": "Good. Closed openings stop embers; firefighters may need to get in.",
+       "n": "c"
+      },
+      {
+       "t": "Spend an hour hosing down the roof",
+       "p": 0,
+       "f": "An hour you may not have. Leave early.",
+       "n": "c"
+      },
+      {
+       "t": "Leave the windows open to let smoke out",
+       "p": 0,
+       "f": "Open windows let embers in: most houses burn from embers.",
+       "n": "c"
+      }
+     ]
+    },
+    "c": {
+     "text": "On the road, the smoke thickens and visibility drops.",
+     "choices": [
+      {
+       "t": "Headlights on, drive slowly, windows and vents closed, air recirculating",
+       "p": 10,
+       "f": "Correct. Keep smoke out and drive steadily to your evacuation route.",
+       "n": "d"
+      },
+      {
+       "t": "Pull over and wait for the smoke to clear",
+       "p": 0,
+       "f": "Stopping on a road in a fire front is dangerous. Keep moving on your route.",
+       "n": "d"
+      },
+      {
+       "t": "Speed up to get out faster",
+       "p": 0,
+       "f": "In poor visibility speed causes crashes. Steady and safe.",
+       "n": "d"
+      }
+     ]
+    },
+    "d": {
+     "text": "You reach the evacuation centre. Your son is coughing from the smoke.",
+     "choices": [
+      {
+       "t": "Keep him indoors, wear a fitted N95-type mask outdoors, and get medical help if breathing gets hard",
+       "p": 10,
+       "f": "Right. Fine smoke particles reach deep into the lungs; masks must fit well.",
+       "n": "e"
+      },
+      {
+       "t": "A wet cloth over his mouth is enough",
+       "p": 5,
+       "f": "Better than nothing, but it doesn't filter fine particles. Stay inside and use a proper mask.",
+       "n": "e"
+      },
+      {
+       "t": "It's just smoke, ignore it",
+       "p": 0,
+       "f": "Smoke can trigger serious breathing problems, especially in children.",
+       "n": "e"
+      }
+     ]
+    },
+    "e": {
+     "end": "The fire front reaches your valley that evening, long after you left. Leaving early was the best decision you made."
+    }
+   }
+  },
+  {
+   "id": "go-bag",
+   "name": "Ten Minutes",
+   "group": "everyday",
+   "scene": "dawn",
+   "manual": "kit",
+   "time": "EVACUATION ORDER · 06:12 · LEAVE IN 10 MIN",
+   "brief": "A chemical tanker has overturned nearby. Police knock: leave within ten minutes. Your partner is out; at home are you, your toddler and the dog.",
+   "start": "a",
+   "nodes": {
+    "a": {
+     "text": "Ten minutes. What do you grab first?",
+     "choices": [
+      {
+       "t": "The go-bag, medicines, phone and charger, documents and wallet, then the toddler and the dog",
+       "p": 10,
+       "f": "Right. People, medicines and the go-bag first; things last.",
+       "n": "b"
+      },
+      {
+       "t": "Pack clothes for a week",
+       "p": 0,
+       "f": "Clothes eat your ten minutes. The go-bag covers the first days.",
+       "n": "b"
+      },
+      {
+       "t": "The laptop, photo albums and jewellery",
+       "p": 5,
+       "f": "Understandable, but medicines and documents are what you'll need. Valuables only if there's time.",
+       "n": "b"
+      }
+     ]
+    },
+    "b": {
+     "text": "The dog hides under the bed and won't come out.",
+     "choices": [
+      {
+       "t": "Calm voice, treat or leash, carry him out; if you truly can't, leave water and tell the police there's a pet inside",
+       "p": 10,
+       "f": "Good. Try calmly; if you can't, tell responders: they often rescue pets.",
+       "n": "c"
+      },
+      {
+       "t": "Spend the rest of your time getting him out, whatever it takes",
+       "p": 0,
+       "f": "Your toddler's safety comes first. Tell the responders.",
+       "n": "c"
+      },
+      {
+       "t": "Leave him: pets aren't allowed in shelters",
+       "p": 5,
+       "f": "Many shelters take pets. Try, and tell responders if you can't.",
+       "n": "c"
+      }
+     ]
+    },
+    "c": {
+     "text": "How do you tell your partner?",
+     "choices": [
+      {
+       "t": "Send a text with where you're going, and use your agreed meeting point",
+       "p": 10,
+       "f": "Right. Texts get through when calls fail, and a pre-agreed meeting point avoids searching.",
+       "n": "d"
+      },
+      {
+       "t": "Call again and again until they answer",
+       "p": 5,
+       "f": "Calls clog the network in emergencies. A text gets through more often.",
+       "n": "d"
+      },
+      {
+       "t": "Wait at home until they come back",
+       "p": 0,
+       "f": "Never wait inside an evacuation zone. Leave and send a message.",
+       "n": "d"
+      }
+     ]
+    },
+    "d": {
+     "text": "On the way out, the air smells sharp and your eyes sting.",
+     "choices": [
+      {
+       "t": "Drive away crosswind, windows closed, vents off, air recirculating",
+       "p": 10,
+       "f": "Correct. Move across or away from the plume, and keep outside air out.",
+       "n": "e"
+      },
+      {
+       "t": "Open the windows for fresh air",
+       "p": 0,
+       "f": "The outside air is the danger. Keep the windows closed.",
+       "n": "e"
+      },
+      {
+       "t": "Stop and look at what's going on",
+       "p": 0,
+       "f": "Never go towards a chemical incident. Leave.",
+       "n": "e"
+      }
+     ]
+    },
+    "e": {
+     "end": "You're out in nine minutes, with the go-bag, the child, the dog and the medicine. That's what a ready bag is for."
+    }
+   }
+  },
+  {
+   "id": "choking",
+   "name": "Choking at Dinner",
+   "group": "everyday",
+   "scene": "farm",
+   "manual": "choking",
+   "time": "FAMILY DINNER · 19:40",
+   "brief": "Your uncle is eating steak, laughing, and suddenly clutches his throat. He can't speak.",
+   "start": "a",
+   "nodes": {
+    "a": {
+     "text": "He can't speak or cough, and he's going red. What now?",
+     "choices": [
+      {
+       "t": "Stand behind him, lean him forward and give up to 5 firm back blows between the shoulder blades",
+       "p": 10,
+       "f": "Right. Back blows first, with the heel of your hand, leaning him forward.",
+       "n": "b"
+      },
+      {
+       "t": "Give him water to wash it down",
+       "p": 0,
+       "f": "He can't swallow past a blocked airway. Water can make it worse.",
+       "n": "b"
+      },
+      {
+       "t": "Sweep blindly in his mouth with your fingers",
+       "p": 0,
+       "f": "Blind sweeps can push the blockage deeper. Only remove what you can see.",
+       "n": "b"
+      }
+     ]
+    },
+    "b": {
+     "text": "Still blocked after 5 back blows.",
+     "choices": [
+      {
+       "t": "Give up to 5 abdominal thrusts: fist above the belly button, sharp pulls in and up",
+       "p": 10,
+       "f": "Correct. Then alternate 5 back blows and 5 thrusts, and have someone call emergency services.",
+       "n": "c"
+      },
+      {
+       "t": "Keep giving back blows only",
+       "p": 5,
+       "f": "Back blows alone may not shift it. Alternate with abdominal thrusts.",
+       "n": "c"
+      },
+      {
+       "t": "Wait for the ambulance",
+       "p": 0,
+       "f": "He has only minutes without air. Keep going while someone calls.",
+       "n": "c"
+      }
+     ]
+    },
+    "c": {
+     "text": "Someone's calling. He suddenly goes limp and slides to the floor.",
+     "choices": [
+      {
+       "t": "Lay him on his back, confirm the call is made, and start CPR with chest compressions",
+       "p": 10,
+       "f": "Right. If a choking person becomes unresponsive, start CPR: compressions can clear the blockage.",
+       "n": "d"
+      },
+      {
+       "t": "Keep trying abdominal thrusts on the floor",
+       "p": 5,
+       "f": "For an unresponsive adult, start CPR instead.",
+       "n": "d"
+      },
+      {
+       "t": "Put him in the recovery position and wait",
+       "p": 0,
+       "f": "He isn't breathing. He needs CPR now.",
+       "n": "d"
+      }
+     ]
+    },
+    "d": {
+     "text": "After a few compressions you see a piece of meat in his mouth, and he gasps.",
+     "choices": [
+      {
+       "t": "Remove what you can see, check his breathing, keep him in the recovery position, and still get him checked at hospital",
+       "p": 10,
+       "f": "Correct. Anyone who needed abdominal thrusts or CPR must be checked: thrusts can cause internal injuries.",
+       "n": "e"
+      },
+      {
+       "t": "He's fine now, carry on with dinner",
+       "p": 0,
+       "f": "He needs medical care after thrusts and CPR.",
+       "n": "e"
+      },
+      {
+       "t": "Give him a big glass of water",
+       "p": 0,
+       "f": "Not until he's checked and fully alert.",
+       "n": "e"
+      }
+     ]
+    },
+    "e": {
+     "end": "The paramedics check him over: bruised ribs, nothing worse. You knew the steps and you did them in order."
+    }
+   }
+  },
+  {
+   "id": "night-sea",
+   "name": "Night Sea",
+   "group": "outdoors",
+   "scene": "lighthouse",
+   "manual": "signal",
+   "time": "COASTAL SAIL · 22:30 · 3 NM OFFSHORE",
+   "brief": "The engine dies on your small boat after dark. The wind is pushing you slowly towards a rocky headland. Two of you aboard, a VHF radio, flares, an anchor and life jackets.",
+   "start": "a",
+   "nodes": {
+    "a": {
+     "text": "The engine won't restart. First?",
+     "choices": [
+      {
+       "t": "Life jackets on, both of you, right now",
+       "p": 10,
+       "f": "Right. Before anything else: if you end up in the water, a life jacket keeps you up.",
+       "n": "b"
+      },
+      {
+       "t": "Keep trying to restart the engine",
+       "p": 5,
+       "f": "Worth one more try, but safety gear first.",
+       "n": "b"
+      },
+      {
+       "t": "Open the engine to fix it in the dark",
+       "p": 0,
+       "f": "Not before life jackets, and not while you drift towards rocks.",
+       "n": "b"
+      }
+     ]
+    },
+    "b": {
+     "text": "You're drifting towards the rocks, slowly.",
+     "choices": [
+      {
+       "t": "Drop the anchor to stop the drift",
+       "p": 10,
+       "f": "Correct. If the water is shallow enough, the anchor buys you time and keeps you off the rocks.",
+       "n": "c"
+      },
+      {
+       "t": "Paddle against the wind",
+       "p": 0,
+       "f": "Exhausting and usually useless against wind and current.",
+       "n": "c"
+      },
+      {
+       "t": "Jump in and swim for the shore",
+       "p": 0,
+       "f": "Never leave the boat: it's easier to find, and cold water and rocks kill swimmers.",
+       "n": "c"
+      }
+     ]
+    },
+    "c": {
+     "text": "The anchor drags. The rocks are close. What do you say on VHF channel 16?",
+     "choices": [
+      {
+       "t": "MAYDAY, three times: boat name, position, the danger, two people aboard",
+       "p": 10,
+       "f": "Right. Grave and imminent danger (drifting onto rocks at night) is a Mayday.",
+       "n": "d"
+      },
+      {
+       "t": "PAN-PAN: we have an engine problem",
+       "p": 5,
+       "f": "Pan-pan is for urgent but not immediately life-threatening trouble. Drifting onto rocks is a Mayday.",
+       "n": "d"
+      },
+      {
+       "t": "Call a friend on the phone instead",
+       "p": 0,
+       "f": "Channel 16 reaches the coastguard and every boat nearby. Use it.",
+       "n": "d"
+      }
+     ]
+    },
+    "d": {
+     "text": "The coastguard answers and a lifeboat is on its way.",
+     "choices": [
+      {
+       "t": "Stay with the boat, keep the radio on, and fire a flare when you see the lifeboat",
+       "p": 10,
+       "f": "Correct. Flares are for when rescuers are close enough to see them.",
+       "n": "e"
+      },
+      {
+       "t": "Fire all the flares now so they know where you are",
+       "p": 0,
+       "f": "Flares burn out fast. Save them until the rescuers are in sight.",
+       "n": "e"
+      },
+      {
+       "t": "Turn the radio off to save the battery",
+       "p": 0,
+       "f": "Keep listening: the coastguard may need to reach you.",
+       "n": "e"
+      }
+     ]
+    },
+    "e": {
+     "end": "The lifeboat tows you clear twenty minutes later. Life jackets, the anchor and a clear Mayday did it."
+    }
+   }
+  },
+  {
+   "id": "bitten",
+   "name": "Bitten",
+   "group": "outdoors",
+   "scene": "desert",
+   "manual": "priorities",
+   "time": "DESERT TRAIL · 10:15",
+   "brief": "Your hiking partner steps over a rock and a snake strikes their ankle, then disappears. Two fang marks, and it's starting to hurt.",
+   "start": "a",
+   "nodes": {
+    "a": {
+     "text": "What do you do first?",
+     "choices": [
+      {
+       "t": "Move away from the snake, keep your partner still and calm, and call emergency services",
+       "p": 10,
+       "f": "Right. Stillness slows the venom spreading; help needs to be on its way now.",
+       "n": "b"
+      },
+      {
+       "t": "Try to catch or kill the snake to identify it",
+       "p": 0,
+       "f": "That's how second bites happen. A photo from a distance at most.",
+       "n": "b"
+      },
+      {
+       "t": "Walk quickly back to the car",
+       "p": 0,
+       "f": "Walking pumps venom through the body. Keep them still.",
+       "n": "b"
+      }
+     ]
+    },
+    "b": {
+     "text": "Someone says to cut the wound and suck out the venom.",
+     "choices": [
+      {
+       "t": "No cutting, no sucking, no ice, no tight tourniquet",
+       "p": 10,
+       "f": "Correct. They don't work and can cause serious harm.",
+       "n": "c"
+      },
+      {
+       "t": "Suck the venom out quickly",
+       "p": 0,
+       "f": "Suction removes almost no venom and adds infection.",
+       "n": "c"
+      },
+      {
+       "t": "Tie a tourniquet above the bite",
+       "p": 0,
+       "f": "A tight tourniquet can cost the limb. Not for snakebite.",
+       "n": "c"
+      }
+     ]
+    },
+    "c": {
+     "text": "How do you care for the leg while you wait?",
+     "choices": [
+      {
+       "t": "Remove the shoe and anything tight, keep the leg still and splinted, roughly at heart level",
+       "p": 10,
+       "f": "Right. Swelling comes fast, so off with tight things; stillness slows the venom.",
+       "n": "d"
+      },
+      {
+       "t": "Raise the leg high",
+       "p": 5,
+       "f": "Keep it still, about at heart level, rather than high.",
+       "n": "d"
+      },
+      {
+       "t": "Massage the leg to ease the pain",
+       "p": 0,
+       "f": "Massage spreads venom. Keep it still.",
+       "n": "d"
+      }
+     ]
+    },
+    "d": {
+     "text": "While you wait, they feel faint and sick.",
+     "choices": [
+      {
+       "t": "Lay them down, keep them warm and calm, note the time of the bite and the symptoms for the medics",
+       "p": 10,
+       "f": "Good. The time and how the symptoms changed help the doctors choose the treatment.",
+       "n": "e"
+      },
+      {
+       "t": "Give them painkillers and alcohol to calm them",
+       "p": 0,
+       "f": "No alcohol, and no medicines unless the dispatcher says so.",
+       "n": "e"
+      },
+      {
+       "t": "Give them lots of water",
+       "p": 5,
+       "f": "Sips at most: they may need treatment that requires an empty stomach.",
+       "n": "e"
+      }
+     ]
+    },
+    "e": {
+     "end": "The rescue team arrives with antivenom. Keeping them still and not trying the old myths was exactly right."
+    }
+   }
+  },
+  {
+   "id": "the-cave",
+   "name": "The Cave",
+   "group": "outdoors",
+   "scene": "cave",
+   "manual": "priorities",
+   "time": "CAVE TRIP · 3 H IN · 14:00",
+   "brief": "Deep in a cave, a passage you didn't mark splits three ways and you can't tell which way you came. Two of you, three lights with batteries for maybe six hours, and someone outside knows you're due out by 18:00.",
+   "start": "a",
+   "nodes": {
+    "a": {
+     "text": "You can't find the way back. First?",
+     "choices": [
+      {
+       "t": "Stop and stay together; think about the last place you knew for sure",
+       "p": 10,
+       "f": "Right. Wandering is how people get truly lost underground.",
+       "n": "b"
+      },
+      {
+       "t": "Split up to try two passages at once",
+       "p": 0,
+       "f": "Never split up in a cave. Stay together.",
+       "n": "b"
+      },
+      {
+       "t": "Try each passage quickly, running",
+       "p": 0,
+       "f": "Running in a cave causes falls and drains your lights.",
+       "n": "b"
+      }
+     ]
+    },
+    "b": {
+     "text": "How do you use your lights?",
+     "choices": [
+      {
+       "t": "One light on at a time, the others off, spare batteries kept dry",
+       "p": 10,
+       "f": "Correct. Light is life underground. Ration it.",
+       "n": "c"
+      },
+      {
+       "t": "Everyone's light on full, to see better",
+       "p": 0,
+       "f": "That burns through every battery at once.",
+       "n": "c"
+      },
+      {
+       "t": "All lights off, to save them for later",
+       "p": 5,
+       "f": "Total darkness makes any movement dangerous. One light on is the balance.",
+       "n": "c"
+      }
+     ]
+    },
+    "c": {
+     "text": "You decide to explore one passage carefully.",
+     "choices": [
+      {
+       "t": "Mark every junction with an arrow or a stone cairn, and turn back if it doesn't lead anywhere you know",
+       "p": 10,
+       "f": "Right. Marks keep you from looping and lead rescuers to you.",
+       "n": "d"
+      },
+      {
+       "t": "Go as far as it goes",
+       "p": 0,
+       "f": "Without marks and a turn-back point you can get even more lost.",
+       "n": "d"
+      },
+      {
+       "t": "Remember the way in your head",
+       "p": 5,
+       "f": "Memory fails under stress. Mark it.",
+       "n": "d"
+      }
+     ]
+    },
+    "d": {
+     "text": "Nothing looks familiar, and it's 17:30.",
+     "choices": [
+      {
+       "t": "Go back to the marked junction, stay put, keep warm and conserve light: rescue will come after 18:00",
+       "p": 10,
+       "f": "Correct. Someone knows when you're due. Staying near your marks makes you easy to find.",
+       "n": "e"
+      },
+      {
+       "t": "Keep searching all night",
+       "p": 0,
+       "f": "You'll exhaust yourselves and your lights. Wait for rescue.",
+       "n": "e"
+      },
+      {
+       "t": "Squeeze through a narrow gap that might lead out",
+       "p": 0,
+       "f": "Getting stuck is a real danger. Don't force tight squeezes.",
+       "n": "e"
+      }
+     ]
+    },
+    "e": {
+     "end": "Rescuers follow your marks and find you at 20:10. Patience and light discipline brought you home."
+    }
+   }
+  },
+  {
+   "id": "outbreak",
+   "name": "Outbreak: Day One",
+   "group": "fiction",
+   "scene": "ruins",
+   "manual": "kit",
+   "time": "OUTBREAK · DAY ONE · 18:00",
+   "brief": "Fiction. Reports of violent infected people spread across the city. Sirens everywhere. You're home with a friend, three days of food and a full go-bag.",
+   "start": "a",
+   "nodes": {
+    "a": {
+     "text": "The news says: stay indoors. What now?",
+     "choices": [
+      {
+       "t": "Lock up, close the curtains, fill the bath and every pot with water while it still flows",
+       "p": 10,
+       "f": "Right. In any long crisis, water first: taps may stop soon.",
+       "n": "b"
+      },
+      {
+       "t": "Drive across the city to find your family",
+       "p": 0,
+       "f": "Gridlock and chaos. Call or message first, and shelter in place.",
+       "n": "b"
+      },
+      {
+       "t": "Go to the supermarket for more food",
+       "p": 5,
+       "f": "Crowds are dangerous now. You have three days: shelter first.",
+       "n": "b"
+      }
+     ]
+    },
+    "b": {
+     "text": "Something is banging on the street. How do you stay unnoticed?",
+     "choices": [
+      {
+       "t": "Lights dim and away from windows, no noise, phones on silent",
+       "p": 10,
+       "f": "Good. Light and noise draw attention, from the infected and from looters.",
+       "n": "c"
+      },
+      {
+       "t": "Turn on all the lights so they know someone's home",
+       "p": 0,
+       "f": "In this scenario that's an invitation.",
+       "n": "c"
+      },
+      {
+       "t": "Shout to scare them away",
+       "p": 0,
+       "f": "Noise draws more of them.",
+       "n": "c"
+      }
+     ]
+    },
+    "c": {
+     "text": "Your friend has a bite on the forearm and says it's nothing.",
+     "choices": [
+      {
+       "t": "Clean and dress it, separate rooms, watch for fever, and agree on a plan together",
+       "p": 10,
+       "f": "Right. Care and caution: treat the wound, isolate, and decide together.",
+       "n": "d"
+      },
+      {
+       "t": "Throw your friend out right away",
+       "p": 0,
+       "f": "Panic decisions break groups. Isolate and watch.",
+       "n": "d"
+      },
+      {
+       "t": "Ignore it",
+       "p": 0,
+       "f": "Ignoring a possible infection risks you both.",
+       "n": "d"
+      }
+     ]
+    },
+    "d": {
+     "text": "Day three: the food runs low and the radio talks of an evacuation point 10 km north.",
+     "choices": [
+      {
+       "t": "Plan the route by day, on foot, with the go-bag, avoiding main roads and crowds",
+       "p": 10,
+       "f": "Good. Daylight, a quiet route and light packs: move with a plan.",
+       "n": "e"
+      },
+      {
+       "t": "Go at night when it's quiet",
+       "p": 5,
+       "f": "Quiet, but you'd see little. Daylight is safer for an unknown route.",
+       "n": "e"
+      },
+      {
+       "t": "Stay put until the food is gone",
+       "p": 0,
+       "f": "Waiting until you're weak leaves you no options.",
+       "n": "e"
+      }
+     ]
+    },
+    "e": {
+     "end": "You reach the evacuation point on day four. Water first, quiet shelter and a plan: works in fiction and in real life."
+    }
+   }
+  },
+  {
+   "id": "hull-breach",
+   "name": "Hull Breach",
+   "group": "fiction",
+   "scene": "stars",
+   "manual": "priorities",
+   "time": "MARS · HABITAT 2 · SOL 214 · 03:12",
+   "brief": "Fiction. An alarm wakes you: pressure is dropping in the habitat. The air hisses somewhere in the greenhouse module. Three crew, suits in the airlock, oxygen candles in storage.",
+   "start": "a",
+   "nodes": {
+    "a": {
+     "text": "The alarm is screaming. First?",
+     "choices": [
+      {
+       "t": "Masks on, everyone into the core module, and seal the hatch behind you",
+       "p": 10,
+       "f": "Right. Protect breathing and isolate the leak: the same logic as shutting a door on a fire.",
+       "n": "b"
+      },
+      {
+       "t": "Run to the greenhouse to find the leak",
+       "p": 0,
+       "f": "Going towards a failing section alone, without breathing gear, is how people die.",
+       "n": "b"
+      },
+      {
+       "t": "Wake the crew one by one and talk it over",
+       "p": 5,
+       "f": "Talking costs pressure. Seal first, discuss after.",
+       "n": "b"
+      }
+     ]
+    },
+    "b": {
+     "text": "You're sealed in the core. Pressure is holding. Now?",
+     "choices": [
+      {
+       "t": "Head count, check everyone's oxygen readings, and report to Earth with the time and the readings",
+       "p": 10,
+       "f": "Correct. Head count, vital signs, then report: the order of any emergency.",
+       "n": "c"
+      },
+      {
+       "t": "Open the hatch to check the greenhouse",
+       "p": 0,
+       "f": "Not until you have suits on and a plan.",
+       "n": "c"
+      },
+      {
+       "t": "Go back to sleep and fix it in the morning",
+       "p": 0,
+       "f": "A sealed leak still needs a plan and a report.",
+       "n": "c"
+      }
+     ]
+    },
+    "c": {
+     "text": "Someone must suit up and patch the leak.",
+     "choices": [
+      {
+       "t": "Two go in suits, buddy system, with a time limit and a radio check every minute; one stays at the hatch",
+       "p": 10,
+       "f": "Right. Never work alone in a hostile environment, and set a turn-back time.",
+       "n": "d"
+      },
+      {
+       "t": "One person goes alone to save suits",
+       "p": 0,
+       "f": "Alone, a fall or a suit fault is fatal. Buddy system.",
+       "n": "d"
+      },
+      {
+       "t": "Everyone goes, to be quick",
+       "p": 5,
+       "f": "Someone must stay safe at the hatch to help if things go wrong.",
+       "n": "d"
+      }
+     ]
+    },
+    "d": {
+     "text": "The patch holds. The air is thin in the greenhouse and the plants are struggling.",
+     "choices": [
+      {
+       "t": "Repressurise slowly, check for new leaks, and only then go back to normal shifts",
+       "p": 10,
+       "f": "Good. Confirm it's safe before you relax: a second leak is common after the first.",
+       "n": "e"
+      },
+      {
+       "t": "Open everything up at once to save the plants",
+       "p": 0,
+       "f": "If the patch fails under full pressure, you lose it all.",
+       "n": "e"
+      },
+      {
+       "t": "Abandon the greenhouse module for good",
+       "p": 5,
+       "f": "Safe, but it costs your food supply. A careful recovery is better.",
+       "n": "e"
+      }
+     ]
+    },
+    "e": {
+     "end": "Habitat 2 is whole again by sunrise. Seal, count, report, buddy up: the same logic as any emergency on Earth."
+    }
+   }
+  }
+ ],
+ "complications": [
+  {
+   "text": "Complication: your torch dies and the backup is in the other bag.",
+   "choices": [
+    {
+     "t": "Stop, get the spare calmly, and carry on only with light",
+     "p": 10,
+     "f": "Right. Fix the basics before you go on."
+    },
+    {
+     "t": "Carry on in the dark",
+     "p": 0,
+     "f": "Moving blind is how small problems become big ones."
+    },
+    {
+     "t": "Use your phone's torch and drain the battery",
+     "p": 5,
+     "f": "It works for a moment, but you need the phone to call."
+    }
+   ]
+  },
+  {
+   "text": "Complication: you twist your ankle on the way.",
+   "choices": [
+    {
+     "t": "Stop, check it, strap it firmly, and slow the pace",
+     "p": 10,
+     "f": "Good. A strapped ankle and a slower pace beat a fall."
+    },
+    {
+     "t": "Ignore it and keep the pace",
+     "p": 0,
+     "f": "A sprain walked on can become a break."
+    },
+    {
+     "t": "Take painkillers and run",
+     "p": 0,
+     "f": "Masking pain risks a worse injury."
+    }
+   ]
+  },
+  {
+   "text": "Complication: your phone shows 5% battery.",
+   "choices": [
+    {
+     "t": "Switch to power saving, send one text with your situation and location, then turn it off",
+     "p": 10,
+     "f": "Right. One clear message beats a dead phone."
+    },
+    {
+     "t": "Keep checking the news",
+     "p": 0,
+     "f": "That drains the battery you'll need to call for help."
+    },
+    {
+     "t": "Call several people in turn",
+     "p": 5,
+     "f": "One clear message or call is better: save the battery."
+    }
+   ]
+  },
+  {
+   "text": "Complication: a stranger asks to join you, and they're injured.",
+   "choices": [
+    {
+     "t": "Help with basic first aid and let them come, while keeping your plan",
+     "p": 10,
+     "f": "Good. Helping others matters; keep your plan and your safety in view."
+    },
+    {
+     "t": "Refuse and leave quickly",
+     "p": 5,
+     "f": "Sometimes necessary, but helping when it's safe is usually right."
+    },
+    {
+     "t": "Change your whole plan around them",
+     "p": 0,
+     "f": "Help, but don't abandon a plan that keeps everyone safe."
+    }
+   ]
+  }
+ ]
+}

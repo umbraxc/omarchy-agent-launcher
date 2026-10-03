@@ -27,7 +27,7 @@ window.UmbraGuide = (() => {
     "fk-supplies": ["SUPPLIES", ["Who you look after and what you have stored: see how long water and food last.", "Add best-before dates: they show in the Calendar."]],
     "fk-calendar": ["CALENDAR", ["Click a day to add a reminder with a colour, an importance and a repeat.", "Umbra adds when your water and food run out, best-before dates, timers and the moon. Reminders ring while Umbra is open."]],
     "fk-vault": ["VAULT", ["Your arsenal and valuables, behind your lock password (set one in your Profile).", "Pick items from the library for an inspect view; the rounds on hand are matched to each weapon."]],
-    "fk-training": ["TRAINING", ["Pick a drill along the top: Morse, radio, grid references, compass, SALUTE and more.", "MANUALS downloads real field manuals to read. Drills keep your points and best streak."]],
+    "fk-training": ["TRAINING", ["SCENARIO DRILLS put you in a situation (a dry tap, a flood, a deep cut…) and score your decisions: Recruit, Veteran or Hardcore.", "Or pick a skill along the top: Morse, radio, grid references, compass, SALUTE and more.", "MANUALS downloads real field manuals to read. Drills keep your points and best streak."]],
     "fk-cards": ["CARDS", ["Choose what goes on the cards; the sketch shows the first page.", "They're saved as a page to print, four to a sheet, to keep in your kit."]],
   };
   const seenKey = "umbra-guides-seen";
