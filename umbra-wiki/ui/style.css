@@ -15,6 +15,7 @@
    so nothing here animates or blends a large area. Only small elements move:
    the logo, spinners, blinking signs and the ASCII orb. */
 :root {
+  --voice: #b28cf0;
   --bg: #090909; --bg-1: #0d0d0d; --bg-2: #131313; --bg-3: #1e1e1e;
   --line: #2a2a2a; --muted: #363636;
   --fg: #cbcbcb; --fg-bright: #f0f0f0; --dim: #96969a; --faint: #606060;
@@ -2673,7 +2674,16 @@ body.reduce-motion .zoom-toast { transition: none; }
 .co-say { color: var(--fg); font-size: 11.5px; line-height: 1.45; }
 .co-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
 .co-chips i { font-style: normal; font-size: 9.5px; letter-spacing: .14em; padding: 2px 7px; border: 1px solid var(--line); color: var(--dim); }
-.co-body { flex: 1; overflow-y: auto; padding: 4px 18px 30px; }
+.co-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.co-body { padding: 4px 18px 10px; }
+.co-status, .co-local { padding: 0 18px; } .co-local { padding-bottom: 30px; }
+.co-sbox { position: relative; height: 230px; margin: 6px 0 14px; border: 1px solid var(--line); background: radial-gradient(ellipse at 35% 50%, color-mix(in srgb, var(--net) 9%, transparent), transparent 65%), #04060c; overflow: hidden; }
+.co-sbox.busy { background: radial-gradient(ellipse at 35% 50%, color-mix(in srgb, var(--signal) 10%, transparent), transparent 65%), #04060c; }
+.co-sbox.bad { border-color: var(--red); background: radial-gradient(ellipse at 35% 50%, color-mix(in srgb, var(--red) 12%, transparent), transparent 65%), #04060c; }
+.co-sart { position: absolute; left: 0; top: 0; width: 62%; height: 100%; }
+.co-stext { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); width: 36%; display: grid; gap: 4px; }
+.co-stext small { color: var(--dim); font-size: 9px; letter-spacing: .24em; } .co-stext b { font-size: 18px; letter-spacing: .14em; color: var(--net); } .co-sbox.busy .co-stext b { color: var(--signal); } .co-sbox.bad .co-stext b { color: var(--red); }
+.co-stext span { color: var(--fg); font-size: 11.5px; line-height: 1.5; }
 .co-body.fresh .co-model, .co-body.fresh .co-sys { animation: rise .35s ease-out both; }
 .co-body.fresh .co-sys:nth-child(2) { animation-delay: .04s; } .co-body.fresh .co-sys:nth-child(3) { animation-delay: .08s; }
 .co-body.fresh .co-sys:nth-child(4) { animation-delay: .12s; } .co-body.fresh .co-sys:nth-child(5) { animation-delay: .16s; }
@@ -4259,26 +4269,28 @@ button#speech-btn { display: flex; align-items: center; padding: 8px 9px; margin
   border: 1px solid var(--line); border-left: 1px dashed var(--line); transition: color .15s, border-color .15s; }
 #speech-btn .g { font-size: 15px; line-height: 1; }
 #speech-btn:hover, #speech-btn.on { color: var(--signal); border-color: var(--signal); }
-#speech-btn.live { color: var(--net); }
-body.speaking #speech-btn { color: var(--net); border-color: var(--net); animation: sp-wave 1.1s ease-in-out infinite; }
-@keyframes sp-wave { 50% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--net) 25%, transparent), 0 0 14px color-mix(in srgb, var(--net) 35%, transparent); } }
-.speech-tools { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; padding: 6px 34px 6px 8px; border: 1px solid var(--line); border-left: 2px solid var(--net); background: var(--bg-1); animation: fade .2s ease-out both; }
-.speech-tools .sp-k { color: var(--net); font-size: 9.5px; letter-spacing: .2em; display: inline-flex; gap: 6px; align-items: center; margin-left: 4px; }
+#speech-btn.live { color: var(--voice); }
+body.speaking #speech-btn { color: var(--voice); border-color: var(--voice); animation: sp-wave 1.1s ease-in-out infinite; }
+@keyframes sp-wave { 50% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--voice) 25%, transparent), 0 0 14px color-mix(in srgb, var(--voice) 35%, transparent); } }
+.speech-tools { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; padding: 6px 34px 6px 8px; border: 1px solid var(--line); border-left: 2px solid var(--voice); background: var(--bg-1); animation: fade .2s ease-out both; }
+.speech-tools .sp-k { color: var(--voice); font-size: 9.5px; letter-spacing: .2em; display: inline-flex; gap: 6px; align-items: center; margin-left: 4px; }
 .speech-tools button { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border: 1px solid var(--line); background: var(--bg-2); color: var(--fg-bright); font: 10px var(--font); letter-spacing: .1em; cursor: pointer; }
-.speech-tools button:hover:not(:disabled) { border-color: var(--net); }
+.speech-tools button:hover:not(:disabled) { border-color: var(--voice); }
 .speech-tools button:disabled { opacity: .4; cursor: default; }
 .speech-tools .sp-seg { display: inline-flex; } .speech-tools .sp-seg button { margin-left: -1px; background: none; color: var(--dim); }
-.speech-tools .sp-seg button.on { color: var(--net); border-color: var(--net); background: var(--net-soft, color-mix(in srgb, var(--net) 14%, transparent)); position: relative; }
-.speech-tools .solid { background: var(--net); border-color: var(--net); color: var(--bg); }
-.speech-tools .sp-volume { display: inline-flex; align-items: center; gap: 6px; color: var(--dim); font-size: 10px; } .speech-tools .sp-volume input { width: 90px; accent-color: var(--net); }
+.speech-tools .sp-seg button.on { color: var(--voice); border-color: var(--voice); background: color-mix(in srgb, var(--voice) 14%, transparent); position: relative; }
+.speech-tools .solid { background: var(--voice); border-color: var(--voice); color: var(--bg); }
+.speech-tools .sp-volume { display: inline-flex; align-items: center; gap: 6px; color: var(--dim); font-size: 10px; } .speech-tools .sp-volume input { width: 90px; accent-color: var(--voice); }
 .speech-tools .sp-note { color: var(--dim); font-size: 11px; flex: 1; min-width: 220px; } .speech-tools .sp-err { color: var(--red); font-weight: 600; }
-.speech-tools .sp-dl { width: 140px; height: 4px; background: var(--line); } .speech-tools .sp-dl i { display: block; height: 100%; background: var(--net); transition: width .4s; }
+.speech-tools .sp-dl { width: 140px; height: 4px; background: var(--line); } .speech-tools .sp-dl i { display: block; height: 100%; background: var(--voice); transition: width .4s; }
 .speech-tools .sp-x { position: absolute; right: 6px; top: 6px; background: none; color: var(--dim); }
 .speech-tools .sp-volume input { width: 80px; }
+.speech-tools .sp-volume input, .set-speech input[type=range] { -webkit-appearance: none; appearance: none; height: 3px; background: color-mix(in srgb, var(--voice) 30%, var(--line)); border-radius: 0; cursor: pointer; }
+.speech-tools .sp-volume input::-webkit-slider-thumb, .set-speech input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 9px; height: 12px; background: color-mix(in srgb, var(--voice) 70%, var(--bg)); border: 1px solid var(--voice); border-radius: 0; }
 .msg .label .listen { order: 9; display: inline-flex; align-items: center; gap: 5px; padding: 1px 7px; border: 1px solid var(--line); background: none; color: var(--dim); font: 9px var(--font); letter-spacing: .16em; cursor: pointer; opacity: .55; transition: opacity .15s, color .15s; }
-.msg:hover .label .listen { opacity: 1; } .msg .label .listen:hover { color: var(--net); border-color: var(--net); } .msg .label .listen .g { font-size: 11px; }
+.msg:hover .label .listen { opacity: 1; } .msg .label .listen:hover { color: var(--voice); border-color: var(--voice); } .msg .label .listen .g { font-size: 11px; }
 .lo-voice { display: flex; align-items: center; gap: 8px; margin: 8px 0 4px; padding: 7px 10px; border: 1px dashed var(--line); color: var(--dim); font-size: 11px; }
-.lo-voice .g { color: var(--net); } .lo-voice-d { flex: 1; font-style: italic; } .lo-voice .lo-hear { padding: 3px 8px; font-size: 9.5px; }
+.lo-voice .g { color: var(--voice); } .lo-voice-d { flex: 1; font-style: italic; } .lo-voice .lo-hear { padding: 3px 8px; font-size: 9.5px; }
 
 /* The command line: a terminal in the theme's colour, sliding out of the prompt's top edge. */
 .term { position: relative; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; max-height: 0; overflow: hidden; margin: 0 0 -1px;
@@ -4379,3 +4391,7 @@ body.reduce-motion .term { transition: none; }
 @media (max-width: 1100px) { .lr-setup { grid-template-columns: 1fr; } .lr-main { grid-template-columns: 1fr; grid-auto-rows: minmax(260px, auto); } .lr-nodes, .lr-chat { border: 0; border-top: 1px solid var(--line); } .lr-settings { width: calc(100% - 32px); } }
 .rd-modes button { white-space: nowrap; }
 .lr-step form.lr-host { flex-wrap: wrap; } .lr-step .lr-host label { min-width: 220px; }
+.term-item kbd { display: none; justify-self: end; font-size: 10px; border: 1px solid currentColor; padding: 0 4px; }
+.term-item.on kbd { display: inline-block; } .term-item { grid-template-columns: 96px minmax(0, auto) 1fr auto; }
+.term-run { display: flex; gap: 12px; padding: 5px 12px; background: var(--bg); color: var(--signal); font-size: 11.5px; } .term-run b { letter-spacing: .14em; }
+.term-or { padding: 3px 12px 0; font-size: 8.5px; letter-spacing: .22em; opacity: .6; }

@@ -174,9 +174,16 @@
     clearTimeout(timer);
     timer = setTimeout(load, data && data.pull && data.pull.active ? 2000 : 6000);
     if (!data) { body.innerHTML = `<p class="lib-note">Umbra's background service didn't answer. Restart Umbra.</p>`; shown = ""; return; }
-    const html = `<div class="lib-head">AI</div><div class="co-models">${models()}</div>
-      <div class="lib-head">WHAT'S LOCAL</div><div class="co-systems">${systems()}</div>
+    const html = `<div class="lib-head">AI</div><div class="co-models">${models()}</div>`;
+    const local = `<div class="lib-head">WHAT'S LOCAL</div><div class="co-systems">${systems()}</div>
       <details class="co-legend-box"><summary>WHAT THE STATUS WORDS MEAN</summary><div class="co-legend">${legend()}</div></details>`;
+    const lbox = $("#core .co-local");
+    if (lbox.dataset.html !== local) {
+      const op = lbox.querySelector("details")?.open;
+      lbox.innerHTML = local; lbox.dataset.html = local;
+      if (op) lbox.querySelector("details").open = true;
+    }
+    statusArt();
     if (html === shown) return;
     const keep = body.scrollTop;
     const opened = [...body.querySelectorAll("details[open]")].map((d) => d.closest(".co-model")?.dataset.id || d.className);
@@ -187,6 +194,7 @@
     opened.forEach((id) => { const d = body.querySelector(`.co-model[data-id="${CSS.escape(id || "")}"] details`) || body.querySelector(`details.${CSS.escape(id || "x")}`); if (d) d.open = true; });
     body.scrollTop = keep;
     wire(body);
+    if (wantStatus) { wantStatus = false; const sc = $("#core .co-scroll"); sc.scrollTo({ top: $("#core .co-status").offsetTop - 8 }); }
   }
 
   function wire(body) {
@@ -254,10 +262,62 @@
         <button class="ghost co-close" title="Close · Esc|Back to where you were.">CLOSE ✕</button></span></div>
       <div class="co-hero ok"><pre class="orb co-orb"></pre><div class="co-now"><small>STATUS</small><b class="co-word">…</b><span class="co-say"></span>
         <span class="co-chips"></span></div></div>
-      <div class="co-body"></div>`;
+      <div class="co-scroll"><div class="co-body"></div>
+      <div class="co-status"><div class="lib-head">STATUS</div><div class="co-sbox"><canvas class="co-sart"></canvas>
+        <div class="co-stext"><small>RIGHT NOW</small><b class="co-sword"></b><span class="co-ssay"></span></div></div></div>
+      <div class="co-local"></div></div>`;
     document.body.appendChild(el);
     el.querySelector(".co-close").addEventListener("click", () => toggle(false));
     el.querySelector(".co-refresh").addEventListener("click", () => { Sound.searchstart(); netCheck(); load(); });
+  }
+
+  // The status, drawn: Umbra's core as a 3D ASCII reactor. Calm and blue-green
+  // when ready, spinning up in the signal colour while working or
+  // downloading, flickering red and broken when something's wrong.
+  let artStop = null, artKind = "", wantStatus = false;
+  function statusArt() {
+    const i = currentState(), kind = STATES[i][1], box = $("#core .co-sbox");
+    if (!box) return;
+    box.className = "co-sbox " + kind;
+    box.querySelector(".co-sword").textContent = $("#t-status")?.textContent || STATES[i][0];
+    box.querySelector(".co-ssay").textContent = STATES[i][2];
+    if (kind === artKind && artStop) return;
+    artKind = kind; artStop?.(); artStop = null;
+    if (!window.Ascii3D || document.body.classList.contains("reduce-motion") || window.offgrid) return;
+    const A = Ascii3D, css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+    const col = A.hex(kind === "ok" ? css("--net") || "#5fb8c9" : kind === "busy" ? css("--signal") || "#e8d27c" : css("--red") || "#e06a6a");
+    const hot = A.mix(col, [255, 255, 255], 0.55);
+    const speed = kind === "busy" ? 1.6 : kind === "ok" ? 0.45 : 0.25;
+    const scene = {
+      fps: 16, camera: () => ({ pos: [0, 0.7, 4.2], at: [0, 0, 0], fovV: 36 }), light: [-0.4, 0.7, 0.6], ambient: 0.3, stillTime: 2, shadows: false,
+      map(x, y, z, t, h) { h.m = "core"; return A.sd.sphere(x, y, z, 0.62) + (kind === "bad" ? 0.03 * A.noise3(x * 6, y * 6, z * 6) : 0); },
+      materials: { core: { color: col, shade(c, t) {
+        const n = A.noise3(c.x * 4 + t * speed, c.y * 4, c.z * 4 - t * speed * 0.7);
+        const flick = kind === "bad" ? (Math.sin(t * 23) > 0.6 ? 0.25 : 1) : 1;
+        c.emit = (0.35 + 0.45 * n + 0.2 * Math.sin(t * (kind === "busy" ? 5 : 1.6))) * flick;
+        c.glyph = n > 0.62 ? "@" : n > 0.45 ? "%" : n > 0.3 ? "*" : "+"; c.color = A.mix(col, hot, n);
+      } } },
+      particles(t, put) {
+        const rings = kind === "busy" ? 3 : 2;
+        for (let r = 0; r < rings; r++) {
+          const tilt = 0.5 + r * 0.9, rad = 1.0 + r * 0.22, spin = t * speed * (r % 2 ? -1 : 1) * 1.4;
+          for (let k = 0; k < 64; k++) {
+            if (kind === "bad" && (k + Math.floor(t * 6)) % 7 < 2) continue;   // broken rings
+            const a = (k / 64) * Math.PI * 2 + spin, x = Math.cos(a) * rad, y0 = Math.sin(a) * rad * 0.3;
+            put(x, y0 * Math.cos(tilt) - 0.1, y0 * Math.sin(tilt) + Math.sin(a) * rad * 0.2, k % 8 === 0 ? "◆" : "·", k % 8 === 0 ? hot : col, 0.9);
+          }
+        }
+        if (kind === "busy") for (let k = 0; k < 14; k++) {   // work flowing in
+          const p = (t * 0.9 + k / 14) % 1, a = k * 2.4;
+          put(Math.cos(a) * (2 - 1.4 * p), Math.sin(a * 1.3) * (1.2 - 0.8 * p), Math.sin(a) * (1 - p), "•", hot, p);
+        }
+        if (kind === "bad") for (let k = 0; k < 8; k++) {   // sparks
+          const p = (t * 1.3 + k / 8) % 1, a = k * 0.8 + Math.floor(t) * 1.7;
+          put(Math.cos(a) * (0.65 + p), Math.sin(a) * (0.65 + p) * 0.8, 0.2, "*", hot, 1 - p);
+        }
+      },
+    };
+    try { const v = A.view(box.querySelector(".co-sart"), scene, { cell: 6 }); artStop = () => v.stop(); } catch {}
   }
 
   // Small facts beside the status word.
@@ -282,6 +342,7 @@
       el.hidden = true; open = false;
       clearTimeout(timer); clearInterval(heroTimer);
       if (heroStop) { heroStop(); heroStop = null; el.querySelector(".co-orb").dataset.style = ""; }
+      artStop?.(); artStop = null; artKind = "";
       if (!quiet) Sound.click();
       return;
     }
@@ -291,9 +352,10 @@
     el.hidden = false; open = true;
     shown = "";
     el.querySelector(".co-body").innerHTML = `<p class="lib-note">Reading every system…</p>`;
+    el.querySelector(".co-scroll").scrollTop = 0;
     hero();
     clearInterval(heroTimer);
-    heroTimer = setInterval(() => { hero(); chips(); }, 1000);
+    heroTimer = setInterval(() => { hero(); chips(); statusArt(); }, 1000);
     netCheck();
     load();
     Sound.searchstart();
@@ -302,10 +364,18 @@
 
   build();
   // The header's STATUS and CORE cells open it.
+  // CORE opens on the AI; STATUS opens on the status, drawn.
   document.querySelectorAll(".top .cell.status, .top .cell.core").forEach((c) => {
+    const status = c.classList.contains("status");
     c.classList.add("co-open");
-    c.setAttribute("title", "Core|Every system's condition, and the AI models: what each can do and which suits this computer.");
-    c.addEventListener("click", () => toggle());
+    c.setAttribute("title", status ? "Status|What Umbra is doing right now, drawn live, and every system's condition." : "Core|The AI models: the one in use, what each can do and which suits this computer.");
+    c.addEventListener("click", () => {
+      const el = $("#core"), was = !el.hidden;
+      if (!was) toggle(true);
+      const go = () => { const sc = el.querySelector(".co-scroll"), st = el.querySelector(".co-status"); if (status) sc.scrollTo({ top: st.offsetTop - 8, behavior: was ? "smooth" : "auto" }); else sc.scrollTo({ top: 0, behavior: "smooth" }); };
+      if (!was && status) wantStatus = true;   // once the AI section has loaded above it
+      if (was) go(); else setTimeout(go, 350);
+    });
   });
   document.addEventListener("keydown", (e) => {
     if ($("#core").hidden || !$("#modal").hidden) return;

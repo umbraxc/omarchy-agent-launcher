@@ -78,6 +78,10 @@ window.UmbraTerminal = (() => {
     ["ask <question>", "ask Umbra"], ["new", "new conversation"], ["export", "export this conversation"], ["offgrid on | off | auto", "battery saver"],
     ["zoom <50-200>", "window zoom"], ["lock", "lock the window"], ["status", "how Umbra is doing"], ["time", "local time"], ["clear", "clear this screen"], ["exit", "close the command line"],
   ];
+  const VERBS = new Set(["help", "?", "clear", "exit", "quit", "close", "open", "go", "theme", "bg", "background", "transition", "persona", "personality", "scenario",
+    "voice", "speech", "say", "mute", "unmute", "volume", "map", "maps", "galaxy", "drill", "checkin", "check-in", "find", "search", "ask", "new", "export",
+    "offgrid", "zoom", "lock", "time", "status"]);
+  const isCommand = (text) => VERBS.has(text.trim().split(/\s+/)[0].toLowerCase());
   const best = (q, kinds) => (index || []).filter((x) => !kinds || kinds.includes(x.kind)).map((x) => [score(x, q), x]).filter(([s]) => s > 0).sort((a, b) => b[0] - a[0])[0]?.[1];
   async function run(text) {
     const raw = text.trim();
@@ -145,7 +149,7 @@ window.UmbraTerminal = (() => {
       }
     }
     // Anything else: the highlighted search result, or a question for Umbra.
-    const x = items[sel];
+    const x = sel >= 0 ? items[sel] : null;
     if (x && !x.ask) { print(`▸ ${x.label}`); hide(); x.run(); return; }
     hide(); const q = $("#q"); q.value = raw; q.dispatchEvent(new Event("input")); q.focus();
   }
@@ -171,15 +175,20 @@ window.UmbraTerminal = (() => {
     items = !q ? [] : (index || []).filter((x) => !kinds || kinds.includes(x.kind)).map((x) => [score(x, term), x]).filter(([s]) => s > 0)
       .sort((a, b) => b[0] - a[0]).slice(0, 7).map(([, x]) => x);
     const cmd = COMMANDS.filter(([c]) => q && c.startsWith(verb) && verb.length > 1).slice(0, 2);
+    const command = isCommand(q);
     if (q && !items.length && !cmd.length) items = [{ kind: "ASK", label: `Ask Umbra: “${raw.trim()}”`, hint: "Enter sends it as a question", ask: true }];
-    sel = 0;
-    list.innerHTML = cmd.map(([c, d]) => `<div class="term-cmd"><b>${esc(c)}</b><span>${esc(d)}</span></div>`).join("") +
-      items.map((x, i) => `<button type="button" class="term-item ${i === sel ? "on" : ""}" data-i="${i}"><small>${esc(x.kind)}</small><b>${esc(x.label)}</b><span>${esc(x.hint || "")}</span></button>`).join("");
+    // A command runs as typed: nothing below is picked unless you choose it with ↓.
+    sel = command ? -1 : 0;
+    list.innerHTML = (command ? `<div class="term-run"><b>⏎ RUNS THE COMMAND</b><span>${esc(q)}</span></div>` : "") +
+      cmd.map(([c, d]) => `<div class="term-cmd"><b>${esc(c)}</b><span>${esc(d)}</span></div>`).join("") +
+      (command && items.length ? `<div class="term-or">OR PICK ONE WITH ↓</div>` : "") +
+      items.map((x, i) => `<button type="button" class="term-item ${i === sel ? "on" : ""}" data-i="${i}"><small>${esc(x.kind)}</small><b>${esc(x.label)}</b><span>${esc(x.hint || "")}</span><kbd>⏎</kbd></button>`).join("");
     out.scrollTop = out.scrollHeight;
   }
   function move(d) {
     if (!items.length) return;
-    sel = (sel + d + items.length) % items.length;
+    sel = sel < 0 ? (d > 0 ? 0 : -1) : (sel + d + items.length) % items.length;
+    if (sel < 0 && isCommand(field.value)) { list.querySelectorAll(".term-item").forEach((b) => b.classList.remove("on")); return; }
     list.querySelectorAll(".term-item").forEach((b, i) => b.classList.toggle("on", i === sel));
     Sound.hover();
   }
@@ -204,7 +213,13 @@ window.UmbraTerminal = (() => {
     const stack = document.querySelector(".command-stack");
     stack.insertBefore(el, stack.querySelector("#ask"));
     out = el.querySelector(".term-out"); field = el.querySelector("input"); list = el.querySelector(".term-list");
-    el.querySelector(".term-in").addEventListener("submit", (e) => { e.preventDefault(); const t = field.value; field.value = ""; pastAt = -1; list.innerHTML = ""; run(t).then(() => { if (open) field.focus(); }); });
+    el.querySelector(".term-in").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const t = field.value, x = sel >= 0 ? items[sel] : null;
+      field.value = ""; pastAt = -1; list.innerHTML = "";
+      if (x && !x.ask && isCommand(t)) { echo(x.label); hide(); x.run(); return; }   // picked with ↓
+      run(t).then(() => { if (open) field.focus(); });
+    });
     field.addEventListener("input", () => { pastAt = -1; suggest(); });
     field.addEventListener("keydown", (e) => {
       if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); hide(); }

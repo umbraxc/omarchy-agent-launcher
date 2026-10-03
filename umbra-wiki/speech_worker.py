@@ -37,6 +37,14 @@ def effect(x, sr, fx):
         t = np.arange(len(x)) / sr
         x = 0.55 * x + 0.45 * x * np.sin(2 * np.pi * 52 * t)       # ring modulation
         x = np.round(x * 48) / 48                                   # a touch of grit
+    elif fx == "warm":   # softer highs, a fuller low end: close and kind
+        spec = np.fft.rfft(x); f = np.fft.rfftfreq(len(x), 1 / sr)
+        spec *= np.where(f > 4500, 0.55, 1.0) * np.where(f < 320, 1.18, 1.0)
+        x = np.fft.irfft(spec, n=len(x))
+    elif fx == "bright":   # presence: energetic and forward
+        spec = np.fft.rfft(x); f = np.fft.rfftfreq(len(x), 1 / sr)
+        spec *= np.where((f > 2000) & (f < 6000), 1.3, 1.0)
+        x = np.fft.irfft(spec, n=len(x))
     elif fx == "hall":
         out = x.copy()
         for delay, gain in ((0.09, 0.22), (0.17, 0.12), (0.29, 0.06)):
@@ -79,13 +87,21 @@ class Engine:
         mix = [(n, float(w)) for n, w in req.get("mix") or [["af_heart", 1.0]]]
         total = sum(w for _, w in mix) or 1.0
         voice = sum(self.style(n) * (w / total) for n, w in mix)
-        pitch = min(1.25, max(0.8, float(req.get("pitch", 1.0))))
-        speed = min(1.5, max(0.6, float(req.get("speed", 1.0)))) / pitch
+        # A voice with feeling moves: each sentence a little higher or lower,
+        # a little quicker or slower (the same sentence always the same way).
+        import zlib
+        vary = min(0.12, max(0.0, float(req.get("vary", 0.0))))
+        r = (zlib.crc32(str(req["text"]).encode()) % 2001) / 1000 - 1
+        pitch = min(1.25, max(0.8, float(req.get("pitch", 1.0)) * (1 + vary * r)))
+        speed = min(1.5, max(0.6, float(req.get("speed", 1.0)) * (1 - vary * 0.6 * r))) / pitch
         samples, sr = self.k.create(str(req["text"])[:600], voice=voice, speed=speed, lang="en-us")
         x = np.asarray(samples, dtype=np.float64)
         x = effect(x, sr, req.get("fx") or "")
         peak = np.max(np.abs(x)) or 1.0
         x = np.clip(x / max(peak, 0.85) * 0.92, -1, 1)
+        pause = min(1.2, max(0.0, float(req.get("pause", 0.0))))   # a breath after the sentence
+        if pause:
+            x = np.concatenate([x, np.zeros(int(sr * pause))])
         pcm = (x * 32767).astype("<i2").tobytes()
         out = req["out"]
         tmp = out + ".part"

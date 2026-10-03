@@ -2520,8 +2520,8 @@ def gpu_static():
             return _GPU
         info = system_info()
         cards, accel = info.get("gpus") or [], info.get("accel")
-        vendor = lambda card: ("nvidia" if re.search(r"nvidia|geforce|quadro|rtx", card, re.I) else
-                               "amd" if re.search(r"\bamd\b|radeon|\bati\b", card, re.I) else "other")
+        vendor = lambda card: ("nvidia" if re.search(r"nvidia|geforce|quadro|rtx|10de:", card, re.I) else
+                               "amd" if re.search(r"\bamd\b|radeon|\bati\b|1002:", card, re.I) else "other")
         fits = {"NVIDIA CUDA": "nvidia", "AMD ROCm": "amd"}
         usable = [c for c in cards if accel and (accel not in fits or vendor(c) == fits[accel])]
         if usable:
@@ -2534,7 +2534,7 @@ def gpu_static():
             if supported and not WINDOWS:
                 package = "ollama-cuda" if vendor(name) == "nvidia" else "ollama-rocm"
                 reason = (f"Your graphics card can speed up answers once Ollama's GPU build is installed "
-                          f"(the {package} package), then restart Umbra.")
+                          f"(the {package} package, or ollama-vulkan for any card), then restart Ollama and Umbra.")
             elif supported:
                 reason = "Ollama didn't detect a usable driver for this graphics card. Updating its driver can enable it."
             else:
@@ -2728,6 +2728,46 @@ def system_info_cpu():
     return "Unknown processor"
 
 
+DRM_VENDORS = {"0x10de": "NVIDIA", "0x1002": "AMD Radeon", "0x8086": "Intel"}
+
+
+def drm_gpus():
+    """Graphics cards from the kernel (/sys/class/drm), for systems without lspci."""
+    out = []
+    for dev in sorted(set(os.path.realpath(p) for p in glob.glob("/sys/class/drm/card[0-9]*/device"))):
+        try:
+            vendor = open(os.path.join(dev, "vendor")).read().strip()
+            device = open(os.path.join(dev, "device")).read().strip()
+        except OSError:
+            continue
+        driver = os.path.basename(os.path.realpath(os.path.join(dev, "driver"))) if os.path.exists(os.path.join(dev, "driver")) else ""
+        out.append(f"{DRM_VENDORS.get(vendor, 'Graphics')} graphics card [{vendor[2:]}:{device[2:]}]{f' ({driver})' if driver else ''}")
+    return out
+
+
+def ollama_accel(gpus):
+    """How Ollama can use a graphics card here: its GPU build from Arch's repos or
+    the AUR (ollama-cuda, -rocm, -vulkan, -bin, -git…), or the libraries the
+    ollama.com installer puts next to it."""
+    try:
+        names = subprocess.run(["pacman", "-Qq"], capture_output=True, text=True, timeout=5).stdout.split()
+    except (OSError, subprocess.SubprocessError):
+        names = []
+    pkgs = " ".join(n for n in names if n.startswith("ollama"))
+    libs = " ".join(os.path.basename(p) for base in ("/usr/lib/ollama", "/usr/local/lib/ollama", os.path.expanduser("~/.local/lib/ollama"))
+                    for p in glob.glob(os.path.join(base, "*")))
+    text = (pkgs + " " + libs).lower()
+    cards = " ".join(gpus).lower()
+    nvidia, amd = re.search(r"nvidia|geforce|quadro|rtx|10de", cards), re.search(r"\bamd\b|radeon|\bati\b|1002", cards)
+    if "cuda" in text and (nvidia or shutil.which("nvidia-smi")):
+        return "NVIDIA CUDA"
+    if ("rocm" in text or "hip" in text) and amd:
+        return "AMD ROCm"
+    if "vulkan" in text and gpus:
+        return "Vulkan"
+    return None
+
+
 def system_info():
     """What this computer can do, for choosing a model."""
     cpu = system_info_cpu()
@@ -2749,9 +2789,9 @@ def system_info():
                 gpus.append(re.sub(r"\s*\(rev \w+\)", "", name))
     except (OSError, subprocess.SubprocessError):
         pass
-    accel = winplat.accel(gpus) if WINDOWS else next((kind for pkg, kind in (("ollama-cuda", "NVIDIA CUDA"), ("ollama-rocm", "AMD ROCm"),
-                                         ("ollama-vulkan", "Vulkan"))
-                  if subprocess.run(["pacman", "-Q", pkg], capture_output=True).returncode == 0), None)
+    if not WINDOWS and not gpus:   # no lspci (a minimal Arch): the kernel lists the cards too
+        gpus = drm_gpus()
+    accel = winplat.accel(gpus) if WINDOWS else ollama_accel(gpus)
     # Only advertise paired inference when dedicated graphics memory is known.
     # Integrated/shared-memory graphics and unknown drivers stay solo.
     vram_gb = 0
@@ -2762,6 +2802,13 @@ def system_info():
             vram_gb = max(int(line.strip()) for line in report.stdout.splitlines() if line.strip()) / 1024
         except (OSError, ValueError, subprocess.SubprocessError):
             pass
+    elif accel and not WINDOWS:   # AMD (and others): the kernel reports dedicated memory
+        for f in glob.glob("/sys/class/drm/card[0-9]*/device/mem_info_vram_total"):
+            try:
+                vram_gb = max(vram_gb, int(open(f).read()) / 1024 ** 3)
+            except (OSError, ValueError):
+                pass
+        vram_gb = vram_gb if vram_gb >= 2 else 0   # an integrated chip's small carve-out isn't graphics memory
     os.makedirs(LIBRARY_DIR, exist_ok=True)
     free = shutil.disk_usage(LIBRARY_DIR).free / 1e9
     # The best model this computer runs well (never one it can't).
@@ -5785,7 +5832,7 @@ def persona_speech(pid=None):
     sp = person.get("speech") or {}
     if "f" in sp:
         sp = sp[st["speechGender"]]
-    return {k: sp[k] for k in ("mix", "speed", "pitch", "fx") if k in sp} or {"mix": [["af_heart", 1.0]]}
+    return {k: sp[k] for k in ("mix", "speed", "pitch", "fx", "vary", "pause") if k in sp} or {"mix": [["af_heart", 1.0]]}
 
 
 def speak_answer(emit, gen):

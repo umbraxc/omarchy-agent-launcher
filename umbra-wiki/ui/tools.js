@@ -124,7 +124,10 @@
       const i = info(id);
       if (i) out.push({ kind: "TOOL", icon: i[2], label: i[0], line: i[1], run: () => open(id) });
     }
-    if (!lastRec || !document.querySelector("#feed .msg")) {
+    // The start screen (or nothing else to offer): its questions, and a tool.
+    const intro = document.querySelector("#intro"), r = intro?.getBoundingClientRect();
+    const introInView = r && r.bottom > 80 && r.top < innerHeight - 80;
+    if (!lastRec || !document.querySelector("#feed .msg") || introInView || out.length < 2) {
       // The start screen: a few of its questions, and a tool.
       [...document.querySelectorAll("#intro .prompts > *")].slice(0, 3).forEach((b) => {
         const q = b.dataset.text || b.textContent.trim();

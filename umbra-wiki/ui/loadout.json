@@ -1612,7 +1612,9 @@
           ],
           "speed": 1.0,
           "pitch": 1.0,
-          "desc": "Warm, clear and calm"
+          "desc": "Warm, clear and calm",
+          "vary": 0.03,
+          "pause": 0.12
         },
         "m": {
           "mix": [
@@ -1627,7 +1629,9 @@
           ],
           "speed": 0.98,
           "pitch": 0.98,
-          "desc": "Warm, steady and calm"
+          "desc": "Warm, steady and calm",
+          "vary": 0.03,
+          "pause": 0.12
         }
       }
     },
@@ -1681,7 +1685,9 @@
         ],
         "speed": 1.08,
         "pitch": 0.94,
-        "desc": "Clipped, firm, no wasted words"
+        "desc": "Clipped, firm, no wasted words",
+        "vary": 0.02,
+        "pause": 0.05
       }
     },
     {
@@ -1733,7 +1739,10 @@
         ],
         "speed": 0.9,
         "pitch": 0.95,
-        "desc": "Slow and patient, like the woods"
+        "desc": "Slow and patient, like the woods",
+        "vary": 0.04,
+        "pause": 0.3,
+        "fx": "warm"
       }
     },
     {
@@ -1785,7 +1794,10 @@
         ],
         "speed": 0.98,
         "pitch": 1.0,
-        "desc": "Precise, kind, unhurried"
+        "desc": "Calm, kind, steady under pressure",
+        "vary": 0.03,
+        "pause": 0.15,
+        "fx": "warm"
       }
     },
     {
@@ -1837,7 +1849,9 @@
         ],
         "speed": 1.06,
         "pitch": 1.02,
-        "desc": "Quick and wry"
+        "desc": "Quick and wry",
+        "vary": 0.08,
+        "pause": 0.06
       }
     },
     {
@@ -1889,7 +1903,10 @@
         ],
         "speed": 0.86,
         "pitch": 0.9,
-        "desc": "Gravelly, takes his time"
+        "desc": "Gravelly, takes his time",
+        "vary": 0.08,
+        "pause": 0.35,
+        "fx": "warm"
       }
     },
     {
@@ -1941,7 +1958,10 @@
         ],
         "speed": 1.02,
         "pitch": 1.0,
-        "desc": "Crisp and curious, British"
+        "desc": "Crisp and curious, a spark of wonder",
+        "vary": 0.06,
+        "pause": 0.08,
+        "fx": "bright"
       }
     },
     {
@@ -2047,7 +2067,9 @@
         ],
         "speed": 0.86,
         "pitch": 0.9,
-        "desc": "Deep, slow, measured: a stoic at ease"
+        "desc": "Deep, slow, measured: a stoic at ease",
+        "vary": 0.03,
+        "pause": 0.4
       }
     },
     {
@@ -2099,7 +2121,9 @@
         ],
         "speed": 0.96,
         "pitch": 0.95,
-        "desc": "Steady British resolve"
+        "desc": "Steady British resolve",
+        "vary": 0.04,
+        "pause": 0.2
       }
     },
     {
@@ -2151,7 +2175,10 @@
         ],
         "speed": 0.95,
         "pitch": 1.02,
-        "desc": "Gentle, Victorian, reassuring"
+        "desc": "Gentle, Victorian, reassuring",
+        "vary": 0.04,
+        "pause": 0.2,
+        "fx": "warm"
       }
     },
     {
@@ -2203,7 +2230,9 @@
         ],
         "speed": 1.1,
         "pitch": 1.0,
-        "desc": "Quick, crisp, faintly amused"
+        "desc": "Quick, crisp, faintly amused",
+        "vary": 0.07,
+        "pause": 0.06
       }
     },
     {
@@ -2255,7 +2284,9 @@
         ],
         "speed": 0.88,
         "pitch": 0.92,
-        "desc": "Calm, deliberate, every word weighed"
+        "desc": "Calm, deliberate, every word weighed",
+        "vary": 0.02,
+        "pause": 0.45
       }
     },
     {
@@ -2307,7 +2338,10 @@
         ],
         "speed": 0.95,
         "pitch": 0.93,
-        "desc": "Jolly, gruff, salt in the voice"
+        "desc": "Jolly, gruff, salt in the voice",
+        "vary": 0.09,
+        "pause": 0.2,
+        "fx": "warm"
       }
     },
     {
@@ -2359,7 +2393,9 @@
         ],
         "speed": 1.03,
         "pitch": 1.0,
-        "desc": "Plain, practical, matter-of-fact"
+        "desc": "Plain, practical, matter-of-fact",
+        "vary": 0.04,
+        "pause": 0.1
       }
     },
     {
@@ -2409,9 +2445,12 @@
             0.5
           ]
         ],
-        "speed": 0.92,
-        "pitch": 0.96,
-        "desc": "Earthy and easy-going"
+        "speed": 0.9,
+        "pitch": 0.95,
+        "desc": "Earthy, easy-going, takes the long view",
+        "fx": "warm",
+        "vary": 0.05,
+        "pause": 0.25
       }
     },
     {
@@ -2454,16 +2493,19 @@
         "mix": [
           [
             "af_bella",
-            0.7
+            0.75
           ],
           [
             "af_heart",
-            0.3
+            0.25
           ]
         ],
-        "speed": 1.05,
-        "pitch": 1.03,
-        "desc": "Warm and lively"
+        "speed": 1.06,
+        "pitch": 1.04,
+        "desc": "Warm, lively, full of flavour",
+        "fx": "bright",
+        "vary": 0.08,
+        "pause": 0.08
       }
     },
     {
@@ -2514,8 +2556,11 @@
           ]
         ],
         "speed": 1.12,
-        "pitch": 1.04,
-        "desc": "Upbeat, pushing you on"
+        "pitch": 1.05,
+        "desc": "Upbeat, pushing you on",
+        "fx": "bright",
+        "vary": 0.09,
+        "pause": 0.05
       }
     },
     {
@@ -2565,9 +2610,11 @@
             0.4
           ]
         ],
-        "speed": 0.92,
+        "speed": 0.9,
         "pitch": 1.0,
-        "desc": "Quiet, precise, well-read"
+        "desc": "Hushed, precise, well-read",
+        "vary": 0.03,
+        "pause": 0.25
       }
     },
     {
@@ -2619,7 +2666,9 @@
         ],
         "speed": 1.0,
         "pitch": 0.98,
-        "desc": "Cool and level, like a checklist"
+        "desc": "Cool and level, like a checklist",
+        "vary": 0.02,
+        "pause": 0.12
       }
     },
     {
@@ -2662,16 +2711,19 @@
         "mix": [
           [
             "af_heart",
-            0.5
+            0.65
           ],
           [
-            "bf_alice",
-            0.5
+            "af_bella",
+            0.35
           ]
         ],
-        "speed": 0.86,
-        "pitch": 0.94,
-        "desc": "Soft, slow, endlessly patient"
+        "speed": 0.84,
+        "pitch": 0.95,
+        "desc": "Warm, unhurried, a smile in every word",
+        "fx": "warm",
+        "vary": 0.07,
+        "pause": 0.35
       }
     },
     {
@@ -2723,7 +2775,10 @@
         ],
         "speed": 0.82,
         "pitch": 0.92,
-        "desc": "Serene, with long quiet pauses"
+        "desc": "Serene, with long quiet pauses",
+        "vary": 0.02,
+        "pause": 0.6,
+        "fx": "warm"
       }
     },
     {
@@ -2775,7 +2830,9 @@
         ],
         "speed": 0.98,
         "pitch": 0.98,
-        "desc": "Curious, with a trace of Italy"
+        "desc": "Curious, with a trace of Italy",
+        "vary": 0.07,
+        "pause": 0.15
       }
     },
     {
@@ -2827,7 +2884,9 @@
         ],
         "speed": 0.97,
         "pitch": 1.0,
-        "desc": "Rigorous, with a trace of France"
+        "desc": "Rigorous, with a trace of France",
+        "vary": 0.04,
+        "pause": 0.12
       }
     },
     {
@@ -2879,7 +2938,9 @@
         ],
         "speed": 1.02,
         "pitch": 0.96,
-        "desc": "Intense and visionary"
+        "desc": "Intense and visionary",
+        "vary": 0.06,
+        "pause": 0.1
       }
     },
     {
@@ -2931,7 +2992,10 @@
         ],
         "speed": 1.08,
         "pitch": 1.02,
-        "desc": "Brisk, bright, fearless"
+        "desc": "Brisk, bright, fearless",
+        "vary": 0.06,
+        "pause": 0.08,
+        "fx": "bright"
       }
     },
     {
@@ -2983,7 +3047,9 @@
         ],
         "speed": 0.94,
         "pitch": 0.93,
-        "desc": "A storyteller who has seen the sea"
+        "desc": "A storyteller who has seen the sea",
+        "vary": 0.06,
+        "pause": 0.25
       }
     },
     {
@@ -3084,7 +3150,9 @@
         ],
         "speed": 1.0,
         "pitch": 1.04,
-        "desc": "Lilting, a song in it"
+        "desc": "Lilting, a song in it",
+        "vary": 0.1,
+        "pause": 0.2
       }
     },
     {
@@ -3137,7 +3205,9 @@
         "speed": 0.85,
         "pitch": 0.88,
         "fx": "hall",
-        "desc": "Old, deep, a hall's echo"
+        "desc": "Old, deep, a hall's echo",
+        "vary": 0.06,
+        "pause": 0.35
       }
     }
   ]

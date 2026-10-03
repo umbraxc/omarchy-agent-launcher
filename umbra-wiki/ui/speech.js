@@ -198,6 +198,20 @@ window.UmbraSpeech = (() => {
     });
   }
 
+  // The voice's colour: never the online colour (--net), so nobody thinks the
+  // voice needs the internet. Of the theme's accent, its signal colour and a
+  // violet, the one that stands furthest from --net.
+  function voiceColour() {
+    const css = getComputedStyle(document.documentElement), rgb = (c) => { const m = /^#?([0-9a-f]{6})$/i.exec((c || "").trim()); return m ? [0, 2, 4].map((k) => parseInt(m[1].slice(k, k + 2), 16)) : null; };
+    const net = rgb(css.getPropertyValue("--net")), opts = [css.getPropertyValue("--accent"), "#b28cf0", css.getPropertyValue("--signal")].map((c) => c.trim()).filter(rgb);
+    if (!net || !opts.length) return;
+    const far = (c) => { const x = rgb(c); return Math.hypot(x[0] - net[0], x[1] - net[1], x[2] - net[2]); };
+    const pick = opts.find((c) => far(c) > 140) || opts.sort((a, b) => far(b) - far(a))[0];
+    if (document.documentElement.style.getPropertyValue("--voice") !== pick) document.documentElement.style.setProperty("--voice", pick);
+  }
+  voiceColour();
+  new MutationObserver(() => setTimeout(voiceColour, 50)).observe(document.documentElement, { attributes: true, attributeFilter: ["style", "class", "data-theme"] });
+
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && st.speaking && !document.querySelector(".modal:not([hidden])")) stop(); });
   build();
   refresh();
