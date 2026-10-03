@@ -399,9 +399,10 @@
     const installed = (models.installed || []).map((m) => m.id);
     const modelCards = [
       ...(models.installed || []).map((m) => ({ id: m.id, name: m.id, line: `Already on this computer · ${m.size} GB · ready now` })),
-      ...(models.choices || []).filter((c) => !installed.includes(c.id)).map((c) => ({
+      // Only models this computer can run: never one that needs more memory (or a graphics card) than it has.
+      ...(models.choices || []).filter((c) => !installed.includes(c.id) && !(sys.ramGB && c.ram - 4 > sys.ramGB) && !(c.needsGpu && !sys.accel)).map((c) => ({
         id: c.id, name: c.name + (c.id === sys.recommended ? "  ★" : ""),
-        line: `${c.size} GB download · ${c.line}${c.id === sys.recommended ? " Recommended for this computer." : ""}${sys.ramGB && c.ram > sys.ramGB ? " Probably too big for this computer." : ""}`,
+        line: `${c.size} GB download · ${c.line}${c.id === sys.recommended ? " Recommended for this computer." : ""}${sys.ramGB && c.ram > sys.ramGB ? " A tight fit: it wants more memory than this computer has." : ""}${c.gpu && !sys.accel ? " Very slow without a graphics card." : ""}`,
       })),
     ];
     let model = installed.includes(models.current) ? models.current : installed[0] || sys.recommended || "gemma3:4b";

@@ -123,13 +123,17 @@ conversation; drag the line between them to resize.
 
 Click **STATUS** at the top and the Core panel slides in from the side. A live orb shows Umbra's state, with every
 system listed (AI engine, model, library, maps, network, downloads, power,
-voice, processor) and what to do when one isn't right. Below it are eight
+voice, processor) and what to do when one isn't right. Below it are thirteen
 local AI models, each with a callsign so none look alike: **SPARK** (Gemma 3
 1B), **SCOUT** (Llama 3.2 3B), **RANGER** (Gemma 3 4B, the default),
 **SENTINEL** (Ministral 3 8B), **WARDEN** (Llama 3.1 8B), **ORACLE** (Gemma 4
-E4B), **VANGUARD** (Qwen 3.5 9B) and **COMMAND** (Gemma 4 12B). Each shows what
-it's good at, its limits, an example answer, and whether it fits your computer.
-Download, switch or remove them there.
+E4B), **VANGUARD** (Qwen 3.5 9B) and **COMMAND** (Gemma 4 12B), and for big
+computers **CIPHER** (gpt-oss 20B, 24 GB of memory), **TITAN** (Gemma 4 26B, 32 GB),
+**STRATEGIST** (Qwen 3.5 27B) and **ADMIRAL** (Gemma 4 31B), both 32 GB with a
+graphics card, and **ATLAS** (Llama 3.3 70B, 64 GB and a large graphics card).
+Each shows what it's good at, its limits, an example answer, whether it fits
+your computer and which one is recommended for it; models your computer can't
+run aren't offered. Download, switch or remove them there.
 
 ### A conversation between two
 
@@ -151,12 +155,19 @@ your computer; Settings → Conversation shows it, switches it off or forgets it
 
 ### Loadout: scenarios and personalities
 
-A **scenario** tells Umbra the situation you're in: Everyday Prep, Wilderness,
-Grid Down, Natural Disaster, Medical Emergency and Wasteland, plus Homestead,
-Workshop, Code Dojo, Study Hall and Campfire Tales for learning, fixing and
-fun. A **personality** sets how it talks: Umbra itself, the Sergeant, the
-Medic, the Old-Timer, Marcus Aurelius, Shackleton, Sherlock Holmes and more.
-You can create your own of both.
+A **scenario** tells Umbra the situation you're in, or what you're here for:
+34 of them in five groups. **Everyday** (Everyday Prep, Road Trip, Travel
+Abroad, Family Base, City Life, Tight Budget, Kitchen Table, Pet Keeper…),
+**Outdoors** (Wilderness, Off-Grid Cabin, At Sea, Desert Crossing, High
+Mountains, Castaway), **Emergency** (Grid Down, Natural Disaster, Medical
+Emergency, Heatwave, Deep Freeze, Quarantine, Evacuation), **Fiction**
+(Wasteland, Zombie Outbreak, Mars Colony, Lost in Time) and **Learn & create**
+(Workshop, Code Dojo, Study Hall, Campfire Tales, Language Lab, Writer's Desk,
+Game Night). A **personality** sets how it talks: 30 of them, from Umbra's
+crew (the Sergeant, the Medic, the Engineer, the Chef, Nana, the Astronaut…) to
+figures from history (Marcus Aurelius, Shackleton, Leonardo da Vinci, Marie
+Curie, Nikola Tesla, Amelia Earhart…) and characters (Sherlock Holmes, Captain
+Salt, Unit 7 the robot, the Wizard…). You can create your own of both.
 
 ![Scenarios](docs/loadout-scenarios.png)
 ![Personalities](docs/loadout-personalities.png)
@@ -199,13 +210,16 @@ your saved conversations once, so earlier use counts too.
 
 ![Achievements](docs/achievements.png)
 
-**The Locker** (Profile → LOCKER) turns them into rewards: 23 orbs for the start
+**The Locker** (Profile → LOCKER) turns them into rewards: 31 orbs for the start
 screen, drawn in colour (radar scope, compass, moon phases, ringed world, the
 watcher, black sun, and for the hardest achievements a galaxy, an aurora, an
-atom, a black hole and a supernova, plus nine Outpost scenes), 12
-titles shown with your name, and 5 name effects. Ranks and particular
-achievements unlock them; a note tells you when one does. Achievements start
-counting once the welcome tour is done.
+atom, a black hole and a supernova, plus Outpost scenes), 38 titles shown with
+your name, 19 name effects (from Glow and Frost to Starlight, Orbit and
+Holographic) and 13 animated frames for your profile card (Starfield, Orbit,
+Morse, Laurels…). Ranks and particular achievements unlock them, including
+new ones for the Galaxy, the wonders, the country files, Friends and the Camp
+Network; a note tells you when one does. Achievements start counting once
+the welcome tour is done.
 
 ### Maps
 

@@ -320,6 +320,14 @@
     codedojo: ["terminal", "build"],
     studyhall: ["bulb", "flashcards", "checklist"],
     tales: ["campfire", "tent", "storm"],
+    roadtrip: ["compass", "radio", "checklist"], abroad: ["compass", "checklist", "flashcards"], family: ["checklist", "pantry", "firstaid"],
+    city: ["candle", "radio", "checklist"], budget: ["tally", "pantry", "checklist"], kitchen: ["pantry", "boil", "garden"],
+    pets: ["firstaid", "checklist", "pantry"], fitness: ["breathe", "tally", "checklist"], cabin: ["candle", "campfire", "boil"],
+    sea: ["compass", "storm", "radio"], desert: ["compass", "boil", "tally"], alpine: ["compass", "tent", "storm"],
+    castaway: ["campfire", "boil", "compass"], heatwave: ["boil", "breathe", "checklist"], deepfreeze: ["candle", "storm", "campfire"],
+    quarantine: ["firstaid", "breathe", "pantry"], evacuate: ["checklist", "radio", "compass"], zombies: ["masked", "candle", "radio"],
+    mars: ["build", "gears", "bulb"], medieval: ["candle", "build", "bulb"], language: ["flashcards", "bulb"],
+    writersdesk: ["bulb", "candle", "flashcards"], gamenight: ["flashcards", "bulb", "campfire"],
   };
 
   // A scene for this scenario, avoiding the one shown last time.

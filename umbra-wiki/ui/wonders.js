@@ -805,7 +805,7 @@ window.UmbraWonders = (() => {
   let panel = null, big = null, openId = "";
   function open(id, fly = false, fromRect = null) {
     const w = BY[id]; if (!w || !hooks) return;
-    unhover();
+    unhover(); window.track?.("wonders", id);
     if (fly) hooks.flyTo(w.lat, w.lon, 7);
     big?.stop(); openId = id;
     if (!panel) { panel = document.createElement("div"); panel.className = "wd-file"; layer.parentElement.appendChild(panel); }

@@ -474,6 +474,9 @@ window.UmbraGalaxy = (() => {
   function focus(id, quiet = false) {
     const b = BY[id]; if (!b) return;
     selected = id; cam.follow = id; freeNote(false);
+    // Achievements: the planets and moons visited.
+    if (["mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"].includes(id)) window.track?.("worlds", id);
+    else if (b.kind === "Moon") window.track?.("moons", id);
     // Arrive on the sunlit side, a little off the Sun's line.
     const C = pos[id], sunYaw = id === "sun" ? cam.yaw : Math.atan2(-C[1], -C[0]) + 0.75;
     let dy = ((sunYaw - cam.yaw + Math.PI) % TAU + TAU) % TAU - Math.PI;
@@ -653,6 +656,7 @@ window.UmbraGalaxy = (() => {
     let [x, y, z] = n; const ye = y * Math.cos(OBL) - z * Math.sin(OBL), ze = y * Math.sin(OBL) + z * Math.cos(OBL);
     const s = gmst(simMs), xr = x * Math.cos(-s) - ye * Math.sin(-s), yr = x * Math.sin(-s) + ye * Math.cos(-s);
     const lat = Math.asin(clamp(ze, -1, 1)) / rad, lon = ((Math.atan2(yr, xr) / rad + 540) % 360) - 180;
+    window.track?.("landings");
     portal("down", () => { close(true); window.openMapsAt?.(lat, lon, 4); });
   }
 
@@ -697,7 +701,7 @@ window.UmbraGalaxy = (() => {
     }));
     el.querySelectorAll(".gx-rate button").forEach((b) => b.addEventListener("click", () => {
       const r = b.dataset.r;
-      if (r === "pause") paused = !paused; else if (r === "now") { simMs = Date.now(); rate = 1; paused = false; } else { rate = +r; paused = false; }
+      if (r === "pause") paused = !paused; else if (r === "now") { simMs = Date.now(); rate = 1; paused = false; } else { rate = +r; paused = false; if (rate >= 86400 * 365) window.track?.("timeWarp"); }
       el.querySelectorAll(".gx-rate button").forEach((x) => x.classList.toggle("on", (x.dataset.r === "pause" && paused) || (!paused && +x.dataset.r === rate)));
       clock(); Sound.click();
     }));
@@ -772,6 +776,7 @@ window.UmbraGalaxy = (() => {
     } else { cam.dist = radVis(BY.earth) * 9; cam.yaw = Math.atan2(-pos.earth[1], -pos.earth[0]) + 0.75; cam.pitch = 0.28; }
     goal.dist = radVis(BY.earth) * 5.5;
     info(); rail(); clock();
+    window.track?.("galaxyOpened"); if (opts.from) window.track?.("leftOrbit");
     if (!quiet) Sound.searchstart?.();
     last = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(frame);
   }

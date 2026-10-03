@@ -2668,7 +2668,7 @@ const SHORTCUTS = [
   ["Ctrl (hold)", "Conversation tools: search, history and export"], ["Ctrl + N", "New conversation"], ["Ctrl + F", "Search this conversation"],
   ["Ctrl + H", "History"], ["Ctrl + Shift + H", "Search all conversations in History"],
   ["Ctrl + E", "Export this conversation"], ["Ctrl + L", "Library and field manual"], ["Ctrl + P", "Your profile"],
-  ["Ctrl + O", "Loadout: scenario and personality"], ["Ctrl + G", "Maps"], ["Ctrl + K", "Field kit: medic, sun & moon, supplies, vault, training"], ["Ctrl + J", "Signals & radar"], ["Ctrl + T", "Themes"], ["Ctrl + M", "Mute or unmute sounds"],
+  ["Ctrl + O", "Loadout: scenario and personality"], ["Ctrl + G", "Maps"], ["Ctrl + Shift + G", "Galaxy: the solar system, live"], ["Ctrl + K", "Field kit: medic, sun & moon, supplies, vault, training"], ["Ctrl + J", "Signals & radar"], ["Ctrl + T", "Themes"], ["Ctrl + M", "Mute or unmute sounds"],
   ["Ctrl + Shift + F", "Farming planner"], ["Ctrl + B", "Umbra Outpost"], ["Ctrl + U", "Friends and the Camp Network"],
   ["Ctrl + ,", "Settings"], ["Ctrl + wheel", "Zoom in or out (also Ctrl + plus / minus; Ctrl + 0 resets)"], ["F1", "This list"],
   ["Ctrl + L", "Online, in the browser: the address bar"], ["Ctrl + T", "Online, in the browser: a new tab"], ["Ctrl + W", "Online, in the browser: close the tab"],
@@ -2696,6 +2696,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "F1") { e.preventDefault(); showShortcuts(); return; }
   if (e.ctrlKey && e.shiftKey && !e.altKey && e.key.toLowerCase() === "f") { e.preventDefault(); window.toggleFarming?.(); return; }
   if (e.ctrlKey && e.shiftKey && !e.altKey && e.key.toLowerCase() === "h") { e.preventDefault(); window.focusHistorySearch?.(); return; }
+  if (e.ctrlKey && e.shiftKey && !e.altKey && e.key.toLowerCase() === "g") { e.preventDefault(); window.toggleGalaxy?.(); return; }
   if (!e.ctrlKey || e.altKey || e.shiftKey) return;
   const actions = {
     n: () => window.newConversation && window.newConversation(),

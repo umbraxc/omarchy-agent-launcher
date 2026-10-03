@@ -94,7 +94,7 @@
 
   // --------------------------------------------------------- the models
 
-  const meter = (n, of = 5) => "▰".repeat(n) + "▱".repeat(of - n);
+  const meter = (n, of = 5) => { n = Math.max(0, Math.min(of, Math.round(n))); return "▰".repeat(n) + "▱".repeat(of - n); };
   const speedN = (m) => ({ fast: 3, steady: 2, slow: 1 })[m.speed] || 2;
   const FIT = { good: "FITS WELL", slow: "SLOW HERE", tight: "TIGHT", "too big": "TOO BIG" };
 
@@ -110,7 +110,8 @@
     if (m.active) actions = `<span class="co-tag on">IN USE</span><button class="ghost co-del" data-id="${escapeHtml(m.id)}">REMOVE MODEL</button>`;
     else if (m.installed) actions = `<button class="solid co-use" data-id="${escapeHtml(m.id)}">USE ${escapeHtml(m.callsign)}</button><button class="ghost co-del" data-id="${escapeHtml(m.id)}" title="Remove|Deletes this model from the computer to free ${m.size} GB. You can download it again any time.">REMOVE</button>`;
     else if (mine) actions = `<span class="co-tag busy">${pull.paused ? "PAUSED" : "DOWNLOADING"} ${pct}%</span>`;
-    else actions = `<button class="${m.fit === "good" ? "solid" : "ghost"} co-get" data-id="${escapeHtml(m.id)}" ${busy ? "disabled" : ""}>DOWNLOAD ${m.size} GB</button>`;
+    else if (m.fit === "too big") actions = `<button class="ghost co-get" disabled title="Not for this computer|${escapeHtml(m.fitWhy || "")}">\u{F033E} WON'T RUN HERE</button>`;
+    else actions = `<button class="${m.fit === "good" ? "solid" : "ghost"} co-get" data-id="${escapeHtml(m.id)}" data-fit="${escapeHtml(m.fit)}" ${busy ? "disabled" : ""}>DOWNLOAD ${m.size} GB</button>`;
     return `<div class="co-model${big ? " big" : ""}${m.active ? " active" : ""}" data-id="${escapeHtml(m.id)}">
       <pre class="co-logo">${escapeHtml((m.logo || []).join("\n"))}</pre>
       <div class="co-main"><div class="co-mhead"><b class="co-call">${escapeHtml(m.callsign)}</b><span class="co-real">${escapeHtml(m.family || m.name)}</span>
@@ -118,7 +119,7 @@
         ${m.recommended ? `<span class="co-star">★ RECOMMENDED</span>` : ""}</div>
       <p class="co-line">${escapeHtml(m.line || "")}</p>
       ${big ? `<div class="co-facts">${facts}</div>` : ""}
-      <div class="co-meters"><span>KNOWLEDGE <b>${meter(m.tier || 3)}</b></span><span>SPEED <b>${meter(speedN(m) + (data.system.accel ? 1 : 0), 4)}</b></span>${m.thinks ? "<span>REASONS DEEPLY</span>" : ""}</div>
+      <div class="co-meters"><span>KNOWLEDGE <b>${meter(m.tier || 3, 8)}</b></span><span>SPEED <b>${meter(speedN(m) + (data.system.accel ? 1 : 0), 4)}</b></span>${m.thinks ? "<span>REASONS DEEPLY</span>" : ""}</div>
       ${!big ? `<div class="co-actions">${actions}</div>` : ""}</div>
       <details ${big ? "open" : ""}><summary>MORE ABOUT ${escapeHtml(m.callsign)}</summary>
         ${!big ? `<div class="co-facts">${facts}</div>${!m.installed && m.fitWhy ? `<p class="co-why">${escapeHtml(m.fitWhy)}</p>` : ""}` : ""}
@@ -206,7 +207,16 @@
       if (window.refreshStatus) refreshStatus();
       load();
     }));
-    body.querySelectorAll(".co-get").forEach((b) => b.addEventListener("click", async () => {
+    body.querySelectorAll(".co-get[data-id]").forEach((b) => b.addEventListener("click", async () => {
+      // A tight fit (just enough memory) is the user's call, with the facts in front of them.
+      if (b.dataset.fit === "tight") {
+        const m = data.catalog.find((x) => x.id === b.dataset.id);
+        const rec = data.catalog.concat(data.installed || []).find((x) => x.recommended);
+        const sure = await confirmDialog({ kind: "error", tag: "AI MODEL", title: `${m ? m.callsign : "THIS MODEL"} IS A TIGHT FIT`,
+          body: `${m ? m.fitWhy : ""} It may be slow, or fail to start while other programs are open.${rec ? ` For this computer I recommend ${rec.callsign}.` : ""}`,
+          ok: "DOWNLOAD ANYWAY", cancel: "CHOOSE ANOTHER" });
+        if (!sure) return;
+      }
       b.disabled = true;
       const r = await post("/api/model/pull", { model: b.dataset.id });
       if (r.error) { showError(r.error); b.disabled = false; return; }

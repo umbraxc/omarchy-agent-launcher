@@ -6,6 +6,7 @@
 (() => {
   const state = {
     data: { scenarios: [], personalities: [] },
+    group: {},            // the group chosen on each tab
     custom: [],           // personalities made in the editor
     customScenarios: [],  // scenarios made in the editor
     scenario: "everyday",
@@ -27,6 +28,8 @@
   const grid = overlay.querySelector(".lo-grid");
   const detail = overlay.querySelector(".lo-detail");
 
+  const SCENARIO_GROUPS = [["all", "ALL"], ["everyday", "EVERYDAY"], ["outdoors", "OUTDOORS"], ["emergency", "EMERGENCY"], ["fiction", "FICTION"], ["learn", "LEARN & CREATE"]];
+  const PERSONALITY_GROUPS = [["all", "ALL"], ["crew", "CREW"], ["history", "FROM HISTORY"], ["characters", "CHARACTERS"]];
   const personalities = () => state.data.personalities.concat(state.custom);
   const scenarios = () => state.data.scenarios.concat(state.customScenarios);
   const faces = () => state.data.personalities.map((p) => p.art);
@@ -121,7 +124,17 @@
     grid.dataset.tab = state.tab;
     grid.classList.toggle("refreshing", again);
     grid.innerHTML = "";
-    list().forEach((item, i) => {
+    // Groups keep the long lists easy to browse; your own creations are under MINE.
+    const groups = state.tab === "scenario" ? SCENARIO_GROUPS : PERSONALITY_GROUPS;
+    const pick = state.group[state.tab] || "all";
+    const items = list().filter((item) => pick === "all" || (pick === "mine" ? item.custom : item.group === pick));
+    const bar = document.createElement("div");
+    bar.className = "lo-groups";
+    bar.innerHTML = groups.concat(list().some((x) => x.custom) ? [["mine", "MINE"]] : []).map(([id, name]) =>
+      `<button type="button" class="${id === pick ? "on" : ""}" data-group="${id}">${name}<small>${id === "all" ? list().length : list().filter((x) => (id === "mine" ? x.custom : x.group === id)).length}</small></button>`).join("");
+    bar.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { state.group[state.tab] = b.dataset.group; Sound.click(); grid.scrollTop = 0; render(); }));
+    grid.appendChild(bar);
+    items.forEach((item, i) => {
       const card = document.createElement("button");
       card.className = "lo-card" + (item.id === current() ? " active" : "") + (item.id === state.selected ? " selected" : "");
       card.style.animationDelay = `${i * 30}ms`;

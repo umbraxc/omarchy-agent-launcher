@@ -6,7 +6,7 @@
   cue.innerHTML = '<span class="scroll-cue-arrow">↓</span>';
   document.body.appendChild(cue);
   let active = null, queued = false, hideTimer = 0, direction = "down", lastPanel = null, panelDefault = null, scannedAt = 0;
-  const panels = ["maps", "fieldkit", "farming", "outpost", "radar", "loadout", "history", "library", "themes", "settings", "core"];
+  const panels = ["maps", "galaxy", "fieldkit", "farming", "outpost", "friends", "radar", "loadout", "history", "library", "themes", "settings", "core"];
   function hide() {
     cue.classList.remove("is-visible");
     clearTimeout(hideTimer);

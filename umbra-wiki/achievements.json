@@ -45,6 +45,14 @@
    "UMBRA OUTPOST"
   ],
   [
+   "world",
+   "WORLD & SPACE"
+  ],
+  [
+   "friends",
+   "FRIENDS & CAMP"
+  ],
+  [
    "legend",
    "LEGEND"
   ]
@@ -1014,6 +1022,182 @@
    "category": "tools"
   },
   {
+   "id": "liftoff",
+   "name": "Liftoff",
+   "description": "Open the Galaxy: the solar system, live.",
+   "icon": "\udb81\udc63",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "galaxyOpened",
+   "goal": 1,
+   "category": "world"
+  },
+  {
+   "id": "time-lord",
+   "name": "Time Lord",
+   "description": "Speed up time in the Galaxy to a year every second.",
+   "icon": "\udb82\udd54",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "timeWarp",
+   "goal": 1,
+   "category": "world"
+  },
+  {
+   "id": "leaving-orbit",
+   "name": "Leaving Orbit",
+   "description": "Zoom out of the Maps until you leave orbit for the Galaxy.",
+   "icon": "\udb80\udde7",
+   "tier": "silver",
+   "points": 25,
+   "stat": "leftOrbit",
+   "goal": 1,
+   "category": "world"
+  },
+  {
+   "id": "splashdown",
+   "name": "Splashdown",
+   "description": "Come back down: land on the Earth from the Galaxy.",
+   "icon": "\udb80\udf4e",
+   "tier": "silver",
+   "points": 25,
+   "stat": "landings",
+   "goal": 1,
+   "category": "world"
+  },
+  {
+   "id": "grand-tour",
+   "name": "Grand Tour",
+   "description": "Visit all eight planets in the Galaxy.",
+   "icon": "\udb81\udcce",
+   "tier": "gold",
+   "points": 50,
+   "stat": "worlds",
+   "goal": 8,
+   "category": "world"
+  },
+  {
+   "id": "moonwalker",
+   "name": "Moonwalker",
+   "description": "Visit ten moons in the Galaxy.",
+   "icon": "\udb83\udf65",
+   "tier": "gold",
+   "points": 50,
+   "stat": "moons",
+   "goal": 10,
+   "category": "world"
+  },
+  {
+   "id": "open-the-file",
+   "name": "Open the File",
+   "description": "Read a full country file.",
+   "icon": "\udb80\ude19",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "dossiers",
+   "goal": 1,
+   "category": "world"
+  },
+  {
+   "id": "seven-wonders",
+   "name": "Seven Wonders",
+   "description": "Open the files of seven wonders of the world.",
+   "icon": "\udb82\udfc3",
+   "tier": "silver",
+   "points": 25,
+   "stat": "wonders",
+   "goal": 7,
+   "category": "world"
+  },
+  {
+   "id": "keeper-of-wonders",
+   "name": "Keeper of Wonders",
+   "description": "Open the files of all 28 wonders on the map.",
+   "icon": "\udb82\udfc3",
+   "tier": "legendary",
+   "points": 100,
+   "stat": "wonders",
+   "goal": 28,
+   "category": "world"
+  },
+  {
+   "id": "pen-pal",
+   "name": "Pen Pal",
+   "description": "Add a friend's profile card.",
+   "icon": "\udb82\udc49",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "friends",
+   "goal": 1,
+   "category": "friends"
+  },
+  {
+   "id": "campfire-circle",
+   "name": "Campfire Circle",
+   "description": "Have five friends in Friends.",
+   "icon": "\udb82\udc49",
+   "tier": "silver",
+   "points": 25,
+   "stat": "friends",
+   "goal": 5,
+   "category": "friends"
+  },
+  {
+   "id": "calling-card",
+   "name": "Calling Card",
+   "description": "Share your profile card as a QR code, a file or a code.",
+   "icon": "\udb81\udc32",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "cardShares",
+   "goal": 1,
+   "category": "friends"
+  },
+  {
+   "id": "linked-up",
+   "name": "Linked Up",
+   "description": "Link with a friend on the Camp Network.",
+   "icon": "\udb80\udf37",
+   "tier": "silver",
+   "points": 25,
+   "stat": "campLinks",
+   "goal": 1,
+   "category": "friends"
+  },
+  {
+   "id": "radio-chatter",
+   "name": "Radio Chatter",
+   "description": "Send 50 messages on the Camp Network.",
+   "icon": "\udb80\udf69",
+   "tier": "gold",
+   "points": 50,
+   "stat": "campMessages",
+   "goal": 50,
+   "category": "friends"
+  },
+  {
+   "id": "reading-partner",
+   "name": "Reading Partner",
+   "description": "Ask 25 questions with Umbra Online.",
+   "icon": "\udb81\udd9f",
+   "tier": "silver",
+   "points": 25,
+   "stat": "onlineQuestions",
+   "goal": 25,
+   "category": "tools"
+  },
+  {
+   "id": "web-archivist",
+   "name": "Web Archivist",
+   "description": "Save five web pages for offline reading.",
+   "icon": "\udb83\ude0f",
+   "tier": "silver",
+   "points": 25,
+   "stat": "webSaves",
+   "goal": 5,
+   "category": "tools"
+  },
+  {
    "id": "umbra-complete",
    "name": "Umbra Complete",
    "description": "Meet all 11 deep-use milestones across chat, manuals, maps, medicine, drills, sky, Farming, radio, themes, Vault and map packs.",
@@ -1586,6 +1770,78 @@
    }
   },
   {
+   "id": "anvil",
+   "kind": "orb",
+   "name": "Anvil Spark",
+   "description": "A forge-lit anvil throwing sparks in a slow orbit.",
+   "unlock": {
+    "achievement": "workshop-hum"
+   }
+  },
+  {
+   "id": "relay",
+   "kind": "orb",
+   "name": "Signal Tower",
+   "description": "A lattice mast in the dark, sending rings into the night.",
+   "unlock": {
+    "achievement": "on-the-air"
+   }
+  },
+  {
+   "id": "lantern",
+   "kind": "orb",
+   "name": "Companion Lantern",
+   "description": "A warm lantern with small lights gathered around it.",
+   "unlock": {
+    "achievement": "the-menagerie"
+   }
+  },
+  {
+   "id": "wardencore",
+   "kind": "orb",
+   "name": "Warden Core",
+   "description": "The north's old machine heart, humming red.",
+   "unlock": {
+    "achievement": "beyond-the-valley"
+   }
+  },
+  {
+   "id": "embercrown",
+   "kind": "orb",
+   "name": "Ember Crown",
+   "description": "A crown of slow fire turning above a glowing heart.",
+   "unlock": {
+    "achievement": "prestige-1"
+   }
+  },
+  {
+   "id": "stormrings",
+   "kind": "orb",
+   "name": "Signal Storm",
+   "description": "Rings of lightning racing around a humming core.",
+   "unlock": {
+    "achievement": "prestige-2"
+   }
+  },
+  {
+   "id": "northlight",
+   "kind": "orb",
+   "name": "Northern Relay",
+   "description": "A relay tower under curtains of aurora.",
+   "unlock": {
+    "achievement": "prestige-3"
+   }
+  },
+  {
+   "id": "lastlight",
+   "kind": "orb",
+   "name": "The Last Light",
+   "description": "An eclipsed sun with its companions in orbit and a burning corona.",
+   "unlock": {
+    "achievement": "prestige-4"
+   }
+  },
+  {
    "id": "none",
    "kind": "title",
    "name": "No title",
@@ -1692,6 +1948,249 @@
    }
   },
   {
+   "id": "outpost-veteran",
+   "kind": "title",
+   "name": "Outpost Veteran",
+   "description": "Shown after your name. Earned with Prestige I.",
+   "unlock": {
+    "achievement": "prestige-1"
+   }
+  },
+  {
+   "id": "keeper-valley",
+   "kind": "title",
+   "name": "Keeper of the Valley",
+   "description": "Shown after your name. Earned with Prestige II.",
+   "unlock": {
+    "achievement": "prestige-2"
+   }
+  },
+  {
+   "id": "voice-north",
+   "kind": "title",
+   "name": "Voice of the North",
+   "description": "Shown after your name. Earned with Prestige III.",
+   "unlock": {
+    "achievement": "prestige-3"
+   }
+  },
+  {
+   "id": "legend-outpost",
+   "kind": "title",
+   "name": "Legend of the Outpost",
+   "description": "Shown after your name. Earned with Prestige IV.",
+   "unlock": {
+    "achievement": "prestige-4"
+   }
+  },
+  {
+   "id": "ranger",
+   "kind": "title",
+   "name": "Ranger",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "rank": "Ranger"
+   }
+  },
+  {
+   "id": "survivalist",
+   "kind": "title",
+   "name": "Survivalist",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "rank": "Survivalist"
+   }
+  },
+  {
+   "id": "firekeeper",
+   "kind": "title",
+   "name": "Firekeeper",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "firestarter"
+   }
+  },
+  {
+   "id": "water-finder",
+   "kind": "title",
+   "name": "Water Finder",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "hydrated"
+   }
+  },
+  {
+   "id": "shelter-builder",
+   "kind": "title",
+   "name": "Shelter Builder",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "roof-over-your-head"
+   }
+  },
+  {
+   "id": "navigator",
+   "kind": "title",
+   "name": "Navigator",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "true-north"
+   }
+  },
+  {
+   "id": "storm-watcher",
+   "kind": "title",
+   "name": "Storm Watcher",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "storm-chaser"
+   }
+  },
+  {
+   "id": "tinkerer",
+   "kind": "title",
+   "name": "The Tinkerer",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "tinkerer"
+   }
+  },
+  {
+   "id": "polymath",
+   "kind": "title",
+   "name": "Polymath",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "renaissance-survivor"
+   }
+  },
+  {
+   "id": "stargazer",
+   "kind": "title",
+   "name": "Stargazer",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "liftoff"
+   }
+  },
+  {
+   "id": "cosmonaut",
+   "kind": "title",
+   "name": "Cosmonaut",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "leaving-orbit"
+   }
+  },
+  {
+   "id": "planet-hopper",
+   "kind": "title",
+   "name": "Planet Hopper",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "grand-tour"
+   }
+  },
+  {
+   "id": "moonwalker",
+   "kind": "title",
+   "name": "Moonwalker",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "moonwalker"
+   }
+  },
+  {
+   "id": "time-traveller",
+   "kind": "title",
+   "name": "Time Traveller",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "time-lord"
+   }
+  },
+  {
+   "id": "globetrotter",
+   "kind": "title",
+   "name": "Globetrotter",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "globetrotter"
+   }
+  },
+  {
+   "id": "wonder-seeker",
+   "kind": "title",
+   "name": "Wonder Seeker",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "seven-wonders"
+   }
+  },
+  {
+   "id": "keeper-wonders",
+   "kind": "title",
+   "name": "Keeper of Wonders",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "keeper-of-wonders"
+   }
+  },
+  {
+   "id": "good-company",
+   "kind": "title",
+   "name": "Good Company",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "campfire-circle"
+   }
+  },
+  {
+   "id": "camp-radio",
+   "kind": "title",
+   "name": "Camp Radio",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "radio-chatter"
+   }
+  },
+  {
+   "id": "web-archivist",
+   "kind": "title",
+   "name": "Web Archivist",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "web-archivist"
+   }
+  },
+  {
+   "id": "specialist",
+   "kind": "title",
+   "name": "The Specialist",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "specialist"
+   }
+  },
+  {
+   "id": "valley-defender",
+   "kind": "title",
+   "name": "Valley Defender",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "valley-defender"
+   }
+  },
+  {
+   "id": "master-of-99",
+   "kind": "title",
+   "name": "Master of 99",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "ninety-nine"
+   }
+  },
+  {
    "id": "plain",
    "kind": "name",
    "name": "Steady",
@@ -1735,114 +2234,6 @@
    }
   },
   {
-   "id": "anvil",
-   "kind": "orb",
-   "name": "Anvil Spark",
-   "description": "A forge-lit anvil throwing sparks in a slow orbit.",
-   "unlock": {
-    "achievement": "workshop-hum"
-   }
-  },
-  {
-   "id": "relay",
-   "kind": "orb",
-   "name": "Signal Tower",
-   "description": "A lattice mast in the dark, sending rings into the night.",
-   "unlock": {
-    "achievement": "on-the-air"
-   }
-  },
-  {
-   "id": "lantern",
-   "kind": "orb",
-   "name": "Companion Lantern",
-   "description": "A warm lantern with small lights gathered around it.",
-   "unlock": {
-    "achievement": "the-menagerie"
-   }
-  },
-  {
-   "id": "wardencore",
-   "kind": "orb",
-   "name": "Warden Core",
-   "description": "The north's old machine heart, humming red.",
-   "unlock": {
-    "achievement": "beyond-the-valley"
-   }
-  },
-  {
-   "id": "embercrown",
-   "kind": "orb",
-   "name": "Ember Crown",
-   "description": "A crown of slow fire turning above a glowing heart.",
-   "unlock": {
-    "achievement": "prestige-1"
-   }
-  },
-  {
-   "id": "stormrings",
-   "kind": "orb",
-   "name": "Signal Storm",
-   "description": "Rings of lightning racing around a humming core.",
-   "unlock": {
-    "achievement": "prestige-2"
-   }
-  },
-  {
-   "id": "northlight",
-   "kind": "orb",
-   "name": "Northern Relay",
-   "description": "A relay tower under curtains of aurora.",
-   "unlock": {
-    "achievement": "prestige-3"
-   }
-  },
-  {
-   "id": "lastlight",
-   "kind": "orb",
-   "name": "The Last Light",
-   "description": "An eclipsed sun with its companions in orbit and a burning corona.",
-   "unlock": {
-    "achievement": "prestige-4"
-   }
-  },
-  {
-   "id": "outpost-veteran",
-   "kind": "title",
-   "name": "Outpost Veteran",
-   "description": "Shown after your name. Earned with Prestige I.",
-   "unlock": {
-    "achievement": "prestige-1"
-   }
-  },
-  {
-   "id": "keeper-valley",
-   "kind": "title",
-   "name": "Keeper of the Valley",
-   "description": "Shown after your name. Earned with Prestige II.",
-   "unlock": {
-    "achievement": "prestige-2"
-   }
-  },
-  {
-   "id": "voice-north",
-   "kind": "title",
-   "name": "Voice of the North",
-   "description": "Shown after your name. Earned with Prestige III.",
-   "unlock": {
-    "achievement": "prestige-3"
-   }
-  },
-  {
-   "id": "legend-outpost",
-   "kind": "title",
-   "name": "Legend of the Outpost",
-   "description": "Shown after your name. Earned with Prestige IV.",
-   "unlock": {
-    "achievement": "prestige-4"
-   }
-  },
-  {
    "id": "ember-glow",
    "kind": "name",
    "name": "Ember glow",
@@ -1876,6 +2267,208 @@
    "description": "Your name burns gold, with embers rising.",
    "unlock": {
     "achievement": "prestige-4"
+   }
+  },
+  {
+   "id": "frost",
+   "kind": "name",
+   "name": "Frost",
+   "description": "Ice-blue letters with a cold shimmer.",
+   "unlock": {
+    "rank": "Survivalist"
+   }
+  },
+  {
+   "id": "night-vision",
+   "kind": "name",
+   "name": "Night vision",
+   "description": "Green phosphor, like an old night-vision scope.",
+   "unlock": {
+    "rank": "Veteran"
+   }
+  },
+  {
+   "id": "ocean",
+   "kind": "name",
+   "name": "Ocean",
+   "description": "Slow waves of blue and teal roll through your name.",
+   "unlock": {
+    "achievement": "hydrated"
+   }
+  },
+  {
+   "id": "campfire",
+   "kind": "name",
+   "name": "Campfire",
+   "description": "Your name flickers like flames at a campfire.",
+   "unlock": {
+    "achievement": "campfire-circle"
+   }
+  },
+  {
+   "id": "radio-wave",
+   "kind": "name",
+   "name": "Radio wave",
+   "description": "A signal pulses out from your name.",
+   "unlock": {
+    "achievement": "radio-chatter"
+   }
+  },
+  {
+   "id": "typewriter",
+   "kind": "name",
+   "name": "Typewriter",
+   "description": "Typed out, with a blinking cursor.",
+   "unlock": {
+    "achievement": "web-archivist"
+   }
+  },
+  {
+   "id": "orbit",
+   "kind": "name",
+   "name": "Orbit",
+   "description": "A small moon circles your name.",
+   "unlock": {
+    "achievement": "leaving-orbit"
+   }
+  },
+  {
+   "id": "starlight",
+   "kind": "name",
+   "name": "Starlight",
+   "description": "Stars twinkle around your name.",
+   "unlock": {
+    "achievement": "grand-tour"
+   }
+  },
+  {
+   "id": "nebula",
+   "kind": "name",
+   "name": "Nebula",
+   "description": "Violet and blue clouds drift through your name.",
+   "unlock": {
+    "achievement": "moonwalker"
+   }
+  },
+  {
+   "id": "chrome",
+   "kind": "name",
+   "name": "Chrome",
+   "description": "Polished metal with a moving shine.",
+   "unlock": {
+    "achievement": "globetrotter"
+   }
+  },
+  {
+   "id": "holo",
+   "kind": "name",
+   "name": "Holographic",
+   "description": "A rainbow sheen that shifts like a hologram.",
+   "unlock": {
+    "achievement": "keeper-of-wonders"
+   }
+  },
+  {
+   "id": "flames",
+   "kind": "frame",
+   "name": "Flames",
+   "description": "Fire licking the edges.",
+   "unlock": {}
+  },
+  {
+   "id": "signal",
+   "kind": "frame",
+   "name": "Caution tape",
+   "description": "Umbra's yellow and black.",
+   "unlock": {}
+  },
+  {
+   "id": "aurora",
+   "kind": "frame",
+   "name": "Aurora",
+   "description": "Northern lights flowing.",
+   "unlock": {}
+  },
+  {
+   "id": "static",
+   "kind": "frame",
+   "name": "Static",
+   "description": "A radio between stations.",
+   "unlock": {}
+  },
+  {
+   "id": "circuit",
+   "kind": "frame",
+   "name": "Circuit",
+   "description": "Signals racing round.",
+   "unlock": {}
+  },
+  {
+   "id": "frost",
+   "kind": "frame",
+   "name": "Frost",
+   "description": "Ice crystals sparkling.",
+   "unlock": {}
+  },
+  {
+   "id": "plain",
+   "kind": "frame",
+   "name": "Plain",
+   "description": "A single line.",
+   "unlock": {}
+  },
+  {
+   "id": "gold",
+   "kind": "frame",
+   "name": "Last Light",
+   "description": "Golden embers rising.",
+   "unlock": {
+    "achievement": "prestige-4"
+   }
+  },
+  {
+   "id": "starfield",
+   "kind": "frame",
+   "name": "Starfield",
+   "description": "Twinkling stars, and now and then a shooting star.",
+   "unlock": {
+    "achievement": "grand-tour"
+   }
+  },
+  {
+   "id": "orbit",
+   "kind": "frame",
+   "name": "Orbit",
+   "description": "A satellite circling the card, its trail fading.",
+   "unlock": {
+    "achievement": "splashdown"
+   }
+  },
+  {
+   "id": "topo",
+   "kind": "frame",
+   "name": "Topographic",
+   "description": "Contour lines drifting like a map.",
+   "unlock": {
+    "achievement": "globetrotter"
+   }
+  },
+  {
+   "id": "morse",
+   "kind": "frame",
+   "name": "Morse",
+   "description": "Dots and dashes racing round the edge.",
+   "unlock": {
+    "achievement": "radio-chatter"
+   }
+  },
+  {
+   "id": "laurels",
+   "kind": "frame",
+   "name": "Laurels",
+   "description": "Golden laurel leaves, gently swaying.",
+   "unlock": {
+    "achievement": "keeper-of-wonders"
    }
   }
  ]

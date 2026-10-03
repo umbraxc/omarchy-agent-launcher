@@ -131,7 +131,7 @@ RULES = (
     "Only state quantities, doses, ratios, temperatures or times that appear in the SOURCES; if a "
     "number is needed but not in the sources, say to check a trusted reference instead of guessing. "
     "For medical, poisoning, electrical or other dangerous topics, end the answer with one short "
-    "sentence of safety advice. Do not add generic AI or legal disclaimers. Never invent sources. "
+    "sentence of safety advice; stories, poems, jokes, riddles and games need none. Do not add generic AI or legal disclaimers. Never invent sources. "
     "Stay in character, but never let the character change the facts or skip safety advice. "
     "Only when a specific next step would genuinely help, you may finish with a separate line "
     "NEXT: <one short optional offer>. Usually end after answering. Never tack on an offer to small talk, "
@@ -177,13 +177,30 @@ UMBRA_GUIDE = (
     "SALUTE reports, drills, knots, and MANUALS (US Army field manuals and civil-defence guides to download "
     "and read); CARDS tab that prints pocket cards and an ID and medical card. "
     "MAPS (Ctrl+G): offline world map, downloadable detailed areas, search, coordinates and MGRS, "
-    "waypoints, measuring, clickable country files with facts, and safety levels per country. "
+    "waypoints, measuring, safety levels per country, and clickable country names: a country card with travel "
+    "essentials (emergency number, plugs, mains voltage, driving side, calling code), and from it the FULL COUNTRY FILE "
+    "(click the name again): a turning globe and sections on travel, people, the land, water and health, economy, "
+    "energy, connections, heritage and wonders, government. WONDERS on the map: 28 landmarks (the Pyramids, Machu Picchu, "
+    "the Taj Mahal, Everest, Victoria Falls…) as 3D models; hover to see one turn, click for its file (L shows or hides them). "
+    "Zooming out past the whole world offers to LEAVE ORBIT into the Galaxy. "
+    "GALAXY (Ctrl+Shift+G, its own screen): the solar system live, every planet and moon where it is right now, the Earth "
+    "turning under the real Sun, 21 moons, rings, the stars and the Milky Way; drag to turn, scroll to zoom, W A S D to fly, "
+    "time from paused to a year a second, and a file for every world (distance, speed and spin right now, age, air, what "
+    "it's made of). Diving at the Earth offers to LAND back on the Maps. Distances are squeezed so everything fits. "
+    "FRIENDS (Ctrl+U): friends' profile cards, shared as a QR code, a .umbracard file or a code; the CAMP NETWORK links "
+    "Umbras on the same Wi-Fi or hotspot directly and encrypted, with no internet, to chat and see cards live. Only the "
+    "profile card is ever shared. Your own card is edited in Profile, CARD tab (frame, background, colour, motto, fields). "
+    "UMBRA ONLINE (going online): a web browser beside the conversation that reads pages with the user, can summarise "
+    "a page, explain a selection, look at the screen, and save pages and PDFs to the Library for offline reading. "
     "FARMING: an offline planner with edible crops and common livestock, editable estimates for output, "
     "calories, seed, feed, work, climate and soil. Its bundled figures are rough planning defaults, not local advice. "
     "UMBRA OUTPOST (Ctrl+B): an optional fictional idle game. One action at a time trains 21 skills (Forestry, Salvaging, Fishing, "
     "Foraging, Trapping, Quarrying, Cooking, Metalwork, Carpentry, Tailoring, Remedies, Tinkering, Hearthkeeping, Signals, Scouting and "
     "combat skills); items fill a stockpile; there are buildings, a Trader, gear, battles, four expeditions, bounties and companions. "
-    "It progresses offline for up to a day and keeps its save separate from the real Farming planner; its items are fictional. "
+    "Enemies, companions, the trader and the player's gear are drawn in 3D; the Trader sells more stockpile room; any "
+    "item can be thrown away from the Stockpile. It runs at full pace while Umbra is open (any tab); once Umbra is closed "
+    "the first two minutes count fully, then a tenth of the pace, for up to a day, with a summary the next time Umbra opens. "
+    "Its save is separate from the real Farming planner; its items are fictional. "
     "SIGNALS & RADAR (Ctrl+J): nearby Wi-Fi and Bluetooth signals on a radar, INTEL, a DEVICES list that "
     "remembers every device heard and marks new ones, the device's vitals, and a KILL SWITCH that turns all radios off at once. "
     "DOWNLOADS (maps, library, AI model, manuals) can be paused and resumed from the button at the top. "
@@ -192,23 +209,80 @@ UMBRA_GUIDE = (
     "medication, emergency contact, household) and LOADOUT (scenarios, personalities, achievements); THEMES (Ctrl+T), e.g. "
     "Arctic Kill, Hazmat, Paper Map, Thermal; SETTINGS in six groups with search, backups and restore; the CORE panel "
     "(click STATUS in the top bar): every system's condition and the AI models (SPARK, SCOUT, RANGER, SENTINEL, WARDEN, "
-    "ORACLE, VANGUARD, COMMAND), what each is good at and which suits this computer; the LOCKER (Profile, LOCKER tab): "
-    "rewards unlocked by rank and achievements, such as start-screen orbs, titles and name effects. The welcome tour "
+    "ORACLE, VANGUARD, COMMAND, and for big computers CIPHER 24 GB, TITAN 32 GB, STRATEGIST and ADMIRAL 32 GB with a "
+    "graphics card, ATLAS 64 GB with a large graphics card), what each is good at, which is recommended for this computer, "
+    "and which it can't run; the LOCKER (Profile, LOCKER tab): rewards unlocked by rank and achievements: start-screen "
+    "orbs, titles, name effects and card frames. LOADOUT scenarios (everyday, outdoors, emergency, fiction such as a "
+    "zombie outbreak or a Mars colony, and learn and create such as Language Lab or Game Night) and personalities "
+    "(the crew, figures from history, characters) are grouped; the user can create their own. The welcome tour "
     "can be replayed from Settings as a quick start or a full briefing. Everything works offline; only online mode, downloads and the update check use "
     "the internet. In the prompt, Tab opens quick actions. When you mention a tool, name it exactly as above. "
-    "The only keyboard shortcuts are: Ctrl+K Field Kit, Ctrl+G Maps, Ctrl+J Signals & Radar, Ctrl+B Umbra Outpost, Ctrl+Shift+F Farming, Ctrl+L Library, Ctrl+H History, "
+    "The only keyboard shortcuts are: Ctrl+K Field Kit, Ctrl+G Maps, Ctrl+Shift+G Galaxy, Ctrl+U Friends, Ctrl+J Signals & Radar, Ctrl+B Umbra Outpost, Ctrl+Shift+F Farming, Ctrl+L Library, Ctrl+H History, "
     "Ctrl+P Profile, Ctrl+O Loadout, Ctrl+T Themes, Ctrl+, Settings, F1 all shortcuts, and Ctrl + mouse wheel (or Ctrl + plus / "
     "minus, Ctrl+0 to reset) to zoom every screen (also Settings, Zoom); never invent others. The Calendar, Vault, "
     "Medic, Supplies and Training are tabs inside the Field Kit; to add a reminder, open the Field Kit, go to CALENDAR and "
-    "click a day. MAPS, FARMING, UMBRA OUTPOST, SIGNALS & RADAR, LIBRARY, HISTORY, THEMES and SETTINGS are their own screens, each opened with its "
+    "click a day. MAPS, GALAXY, FRIENDS, FARMING, UMBRA OUTPOST, SIGNALS & RADAR, LIBRARY, HISTORY, THEMES and SETTINGS are their own screens, each opened with its "
     "button in the top bar (not in the Field Kit). You cannot change anything in the app yourself: never say you "
     "added, saved or changed something; tell the user where to do it."
 )
+# Short notes on single features: a question about one gets its own note, so
+# a small model doesn't mix it up with something else in the long guide.
+FEATURE_NOTES = [
+    (r"galaxy (?:tab|screen|view|button)|(?:use|open|in|try) the galaxy|new galaxy|leave orbit|leaving orbit|solar system tab", "GALAXY (Ctrl+Shift+G): a screen with the solar system in 3D characters, live: the planets "
+     "and 21 moons where they are right now, the Earth turning under the real Sun with city lights on its night side, Saturn's "
+     "rings, the stars and the Milky Way. Drag to turn, scroll to zoom, W A S D to fly, speed time up to a year a second, "
+     "click a world for its file (distance, speed and spin right now, age, air, what it's made of, missions). Zooming far out "
+     "of the Maps leaves orbit into it; diving at the Earth lands back on the Maps."),
+    (r"wonders? (?:on|in) the maps?|map(?:'?s)? wonders|wonders (?:layer|button)|the wonders in umbra", "WONDERS: 28 landmarks on the Maps (the Pyramids, the Great Wall, Machu Picchu, the Taj Mahal, the Eiffel Tower, "
+     "Everest, Victoria Falls, the Great Barrier Reef…) shown as small animated 3D models. Hover one to see it turn; click it "
+     "for a large model with its numbers, story and travel tips. The L key or the landmark button shows or hides them."),
+    (r"country files?|full (?:country )?file", "COUNTRY FILES: on the Maps, click a country's name for its card (travel essentials: "
+     "emergency number, plugs, mains, driving side, calling code); click the name again or FULL COUNTRY FILE for an almost "
+     "full-screen file with a turning globe and sections on travel, people, land, water and health, economy, energy, "
+     "connections, heritage and wonders, government and sources. From the CIA World Factbook and Wikidata, offline."),
+    (r"friends?(?: tab| card| list)|add (?:a )?friend|camp network|profile card", "FRIENDS (Ctrl+U): your friends' profile cards. "
+     "Share your own card as a QR code, a .umbracard file or a code (Profile, CARD tab); a friend adds it in Friends. The CAMP "
+     "NETWORK links Umbras on the same Wi-Fi or hotspot directly and encrypted, with no internet: both screens show the same "
+     "six-digit code to confirm, then you can chat and see each other's cards live. Only the card is ever shared."),
+    (r"locker|(?:new|my|get a|unlock)(?: new)? titles?|name effects?|card frames?|start-?screen orbs?", "THE LOCKER (Profile, LOCKER tab): rewards earned with achievements "
+     "and rank: start-screen orbs, titles shown after your name, name effects (Glow, Frost, Starlight, Holographic…) and "
+     "animated frames for your profile card (Starfield, Orbit, Morse, Laurels…). Pick one to preview it, EQUIP to wear it."),
+    (r"loadout|(?:umbra'?s|new|which|what|more) (?:scenarios?|personalit(?:y|ies))|create (?:a |my own )?(?:scenario|personality)", "LOADOUT (Ctrl+O): a SCENARIO is the situation you're in or what you're here "
+     "for (34, grouped as everyday, outdoors, emergency, fiction and learn & create), a PERSONALITY is how Umbra talks (30: "
+     "the crew, figures from history, characters). The facts never change, only the focus and the voice. You can create your own."),
+    (r"(?:umbra'?s|local|new|bigger|which) ai models?|which model|core panel|the core (?:tab|screen|panel)", "THE CORE (click STATUS in the top bar): the health of every system and the "
+     "local AI models, from SPARK (tiny) and RANGER (the default) to COMMAND, and for big computers CIPHER, TITAN, STRATEGIST, "
+     "ADMIRAL and ATLAS. Each says what it's good at, how well it fits this computer, and one is marked recommended; models "
+     "the computer can't run aren't offered."),
+    (r"outpost", "UMBRA OUTPOST (Ctrl+B): a fictional idle game: 21 skills, a stockpile, buildings, the Trader, gear, battles, "
+     "expeditions, bounties and companions, drawn in 3D characters. It runs at full pace while Umbra is open; when Umbra is "
+     "closed it slows to a tenth after two minutes, for up to a day, with a summary next time."),
+    (r"umbra online|online mode", "UMBRA ONLINE: when you go online, a web browser opens beside the conversation. Umbra "
+     "reads the page with you and can summarise it, explain a selection, look at the screen, or save the page to the Library."),
+]
+
+
+def app_question(question):
+    """A question about Umbra's own screens and tools, not the world."""
+    return bool(ABOUT_UMBRA.search(question) and (feature_notes(question) or re.search(
+        r"\b(?:the app|this app|umbra|tab|screen|button|menu|shortcut|settings?|feature)\b", question, re.I)))
+
+
+def feature_notes(question):
+    return [note for pattern, note in FEATURE_NOTES if re.search(r"\b(?:" + pattern + r")\b", question, re.I)][:3]
+
+
 ABOUT_UMBRA = re.compile(r"\b(umbra|this app|the app|your (features|tools|functions)|what can you do|"
                          r"what can you help me with|how can you help me|what are you|who are you|"
                          r"how do (i|you) use|field kit|farming (tab|screen|planner)|outpost|medic tab|vault|radar|sun (and|&) moon|pocket cards?|morse trainer|"
                          r"settings|shortcut|offline map|waypoint|calendar|reminder|manuals?|radar|kill switch|theme|tour|download|backup|"
-                         r"profile|achievement|help me with the app)\b", re.I)
+                         r"profile|achievement|help me with the app|"
+                         r"galaxy (?:tab|screen|view|button)|(?:use|open|try) the galaxy|new galaxy|leave orbit|"
+                         r"wonders? (?:on|in) the maps?|country files?|full country file|"
+                         r"friends (?:tab|screen|list)|add (?:a )?friends?|profile card|camp network|umbra online|online mode|locker|"
+                         r"(?:new|my|get a|unlock)(?: new)? titles?|name effects?|card frames?|loadout|"
+                         r"(?:umbra'?s|new|which|what|more) (?:scenarios?|personalit(?:y|ies))|"
+                         r"(?:umbra'?s|local|new|bigger|which) ai models?|which model|core panel)\b", re.I)
 
 STOPWORDS = set("""
 a an the and or but if then so of to in on at by for from with without about into over under
@@ -1022,7 +1096,9 @@ SMALL_TALK = re.compile(
     r"how'?s (?:it going|your day(?: going)?|life)|what'?s up|"
     r"who are you|what are you|what can you do|what can you help me with|what do you do|bye|goodbye|see you|"
     r"let'?s (?:chat|talk)|i had a rough day|"
-    r"(?:hi|hey|hello)[,!\s]+(?:how are you|how'?s it going|what'?s up|how'?s your day(?: going)?))[!?.\s]*$")
+    r"(?:(?:hi|hey|hello|yo|hiya|good (?:morning|afternoon|evening))(?:[ ,]+(?:there|umbra|buddy|friend|mate|man))?[,!.\s]+)?"
+    r"(?:how are (?:you|u|things)(?: (?:doing|today|tonight))?|how(?: are|'re)? you doing|how you doing|how'?s it going|how'?s everything|"
+    r"how'?s (?:your|the) (?:day|evening|morning|night)(?: going)?|what'?s (?:up|new|good)|how have you been))[!?.\s]*$")
 
 # Words that match everything in a full-text search but carry no topic.
 GENERIC = set("nothing something anything everything help start scratch stuff thing things "
@@ -1050,6 +1126,11 @@ def is_small_talk(question):
                              r"explain how|what should i do (?:if|about))\b", q, re.I)
     if task_request:
         return False
+    # Creative requests (a short story, a poem about the sea, a riddle) are conversation, not an archive search.
+    if re.search(r"\b(?:tell|write|give|make up|invent|share)(?: me| us)? (?:a |an |another |some |one more )?(?:[\w'-]+ ){0,4}"
+                 r"(?:story|stories|poem|poems|joke|jokes|riddle|riddles|limerick|haiku|fairy ?tale|fable|bedtime story)\b", q, re.I) \
+            and not re.search(r"\b(?:how (?:do|can|should) i|steps|instructions)\b", q, re.I):
+        return True
     if re.search(r"\b(fun facts?|another fact|jokes?|tell me (?:a |another |some )?(?:story|stories)|"
                  r"what'?s on your mind|shared moment|moment of stillness|"
                  r"how are things|no cap|low[- ]key|high[- ]key|vib(?:e|es|ing))\b", q, re.I) and not re.search(
@@ -1810,7 +1891,7 @@ def _ach_state():
 
 # ------------------------------------------------------------------ rewards
 
-REWARD_SLOTS = {"orb": "orb", "title": "title", "name": "nameFx"}   # kind → the setting that equips it
+REWARD_SLOTS = {"orb": "orb", "title": "title", "name": "nameFx", "frame": "card.frame"}   # kind → the setting that equips it
 
 
 def reward_status(st=None):
@@ -1837,7 +1918,9 @@ def reward_status(st=None):
             ok, how = True, "Yours from the start"
         out.append({**r, "unlocked": ok, "how": how})
     defaults = {k: next((r["id"] for r in out if r["kind"] == k), "") for k in REWARD_SLOTS}
-    equipped = {k: settings.get(slot) if any(r["id"] == settings.get(slot) and r["unlocked"] for r in out) else defaults[k]
+    def worn(slot):
+        return (settings.get("card") or {}).get("frame", CARD_DEFAULTS["frame"]) if slot == "card.frame" else settings.get(slot)
+    equipped = {k: worn(slot) if any(r["id"] == worn(slot) and r["unlocked"] for r in out) else defaults[k]
                 for k, slot in REWARD_SLOTS.items()}
     return out, equipped
 
@@ -1903,8 +1986,15 @@ def _stat(st, stat):
     if stat == "streak":
         return max(_streak(st["days"]), counts.get("bestStreak", 0))
     if stat in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
-                "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries", "modelsTried", "medicTools", "radioTracks"):
+                "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries", "modelsTried", "medicTools", "radioTracks",
+                "worlds", "moons", "wonders", "dossiers"):
         return len(sets.get(stat, []))
+    if stat == "friends":   # the friends you have (importing the same card twice counts once)
+        try:
+            now = len(CAMP.friends())
+        except Exception:
+            now = 0
+        return now
     if stat == "farmItems":
         return len(set(sets.get("farmItems", [])) | {e["id"] for e in get_farm().get("items", []) if isinstance(e, dict) and e.get("id")})
     if stat == "farmDiversity":
@@ -1986,10 +2076,12 @@ def record(event, value=None, **info):
         elif event in ("suggestions", "sources", "stops", "voice", "backups", "usbExports", "tour", "password",
                        "cprMinutes", "morseLetters", "drills", "timers", "sunChecks", "cards", "quartermaster",
                        "coreOpened", "radarOpened", "killSwitch", "vault", "quickActions", "measures", "exports",
-                       "quietScene", "pulse500", "webSaves", "friends", "campMessages", "campLinks"):
+                       "quietScene", "pulse500", "webSaves", "friends", "campMessages", "campLinks",
+                       "galaxyOpened", "leftOrbit", "landings", "timeWarp", "cardShares"):
             counts[event] = counts.get(event, 0) + 1
         elif event in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
-                       "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries", "modelsTried", "medicTools", "farmItems", "radioTracks"):
+                       "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries", "modelsTried", "medicTools", "farmItems", "radioTracks",
+                       "worlds", "moons", "wonders", "dossiers"):
             values = value if event == "farmItems" and isinstance(value, list) else [value]
             known = set(sets.get(event, []))
             for raw in values[:80]:
@@ -2145,6 +2237,49 @@ MODEL_CHOICES = [
      "limits": ["Needs 16 GB of memory", "Very slow without a graphics card", "A 7 GB download"],
      "example": "Boil it for a minute, but think about where it came from: runoff from farmland can carry chemicals boiling won't touch. Take it upstream...",
      "logo": ["  \\ | /  ", " --(*)-- ", "  / | \\  ", "  |||||  ", "  ^^^^^  "]},
+    # Workstation class: plenty of memory, ideally a big graphics card. "vram"
+    # is the graphics memory it wants to run fully on the card; "needsGpu"
+    # means a processor alone would be far too slow to be useful.
+    {"id": "gpt-oss:20b", "callsign": "CIPHER", "name": "CIPHER · gpt-oss 20B", "family": "gpt-oss", "maker": "OpenAI", "year": 2025,
+     "params": "21 billion (3.6 active)", "size": 14, "ram": 24, "vram": 16, "speed": "steady", "tier": 6, "thinks": True,
+     "line": "OpenAI's open model: strong reasoning, quick for its size. Needs 24 GB of memory.",
+     "about": "A mixture of experts: 21 billion parameters, but only a few billion work on each word, so it answers faster than its size suggests. Very good at reasoning, planning and tools.",
+     "good": ["Strong, careful reasoning", "Faster than other large models", "Good at plans, maths and step-by-step work"],
+     "limits": ["A 14 GB download", "Needs 24 GB of memory (16 GB on a graphics card)"],
+     "example": "Plan for 4 litres a person a day. For 4 people over 3 days: 48 litres. Boil in batches, a minute at a rolling boil, and rotate your stored water every 6 months.",
+     "logo": ["  [###]  ", "  |0 1|  ", "  |1 0|  ", "  |###|  ", "  '---'  "]},
+    {"id": "gemma4:26b-a4b-it-qat", "callsign": "TITAN", "name": "TITAN · Gemma 4 26B", "family": "Gemma 4", "maker": "Google", "year": 2026,
+     "params": "26 billion (4 active)", "size": 16, "ram": 32, "vram": 20, "speed": "steady", "tier": 6, "thinks": True,
+     "line": "Big-model knowledge at a small model's pace. Needs 32 GB of memory.",
+     "about": "Gemma 4's mixture of experts: the knowledge of a 26-billion-parameter model, but only 4 billion at work for each word, so it stays usable even without a graphics card.",
+     "good": ["Much more knowledge than the compact models", "Quick for its size, even on a processor", "Natural, careful writing"],
+     "limits": ["Needs 32 GB of memory", "A 16 GB download"],
+     "example": "Boil it for a full minute. If it came from a stream near farmland, boiling won't remove chemicals: look for a spring or collect rain instead, and filter it through cloth first.",
+     "logo": ["  _/^\\_  ", " /  |  \\ ", "|  (O)  |", " \\  |  / ", "  '-+-'  "]},
+    {"id": "qwen3.5:27b", "callsign": "STRATEGIST", "name": "STRATEGIST · Qwen 3.5 27B", "family": "Qwen 3.5", "maker": "Alibaba Qwen", "year": 2026,
+     "params": "27 billion", "size": 17, "ram": 32, "vram": 20, "speed": "slow", "tier": 6, "thinks": True, "gpu": True,
+     "line": "A heavyweight planner: long plans, calculations, many languages. Best with a graphics card.",
+     "about": "The large Qwen 3.5: outstanding at multi-step plans, numbers, code and over 100 languages. Made for a computer with a strong graphics card.",
+     "good": ["Excellent long-range planning", "Calculations and code", "Over 100 languages"],
+     "limits": ["Needs 32 GB of memory", "Very slow on a processor alone", "Best with 20 GB on a graphics card"],
+     "example": "Ration plan for 4 people, 14 days: 2,000 kcal × 4 × 14 = 112,000 kcal. That's roughly 28 kg of rice and beans plus 4 litres of oil…",
+     "logo": ["   /|\\   ", "  / | \\  ", " /__|__\\ ", " |  |  | ", " |__|__| "]},
+    {"id": "gemma4:31b-it-qat", "callsign": "ADMIRAL", "name": "ADMIRAL · Gemma 4 31B", "family": "Gemma 4", "maker": "Google", "year": 2026,
+     "params": "31 billion", "size": 19, "ram": 32, "vram": 24, "speed": "slow", "tier": 7, "thinks": True, "gpu": True,
+     "line": "Google's largest open Gemma: the richest answers here for a 32 GB machine with a graphics card.",
+     "about": "The full-size Gemma 4. The most knowledge, nuance and judgement of the models that fit a high-end desktop. Made for a graphics card with 24 GB.",
+     "good": ["The deepest knowledge on a 32 GB machine", "The most human, nuanced writing", "Great in long conversations"],
+     "limits": ["Needs 32 GB of memory", "Very slow on a processor alone", "Best with 24 GB on a graphics card"],
+     "example": "Boil it for a minute, then think about storage: a clean, closed container out of the sun keeps it safe for months; add a pinch of salt per litre if it tastes flat.",
+     "logo": ["  _|_|_  ", " |  *  | ", " | *** | ", " |_____| ", "  \\___/  "]},
+    {"id": "llama3.3:70b", "callsign": "ATLAS", "name": "ATLAS · Llama 3.3 70B", "family": "Llama 3.3", "maker": "Meta", "year": 2024,
+     "params": "70 billion", "size": 43, "ram": 64, "vram": 48, "speed": "slow", "tier": 8, "gpu": True, "needsGpu": True,
+     "line": "The heavyweight: for workstations with 64 GB of memory and a large graphics card.",
+     "about": "A 70-billion-parameter model: encyclopaedic knowledge and steady judgement, close to the large cloud assistants. Only for workstations: 64 GB of memory and a big graphics card (or two).",
+     "good": ["Encyclopaedic knowledge", "Excellent writing and judgement", "Strong on long, detailed questions"],
+     "limits": ["Needs 64 GB of memory", "Needs a large graphics card (48 GB for full speed)", "A 43 GB download"],
+     "example": "Rolling boil, one minute (three above 2,000 m). Then the part people miss: let it cool covered, and store it in food-grade containers you've sanitised with a teaspoon of bleach per litre…",
+     "logo": ["  .===.  ", " /|   |\\ ", "| | O | |", " \\|   |/ ", "  '===' "]},
 ]
 MODEL_INFO = {m["id"]: m for m in MODEL_CHOICES}
 
@@ -2513,7 +2648,21 @@ def system_info():
             pass
     os.makedirs(LIBRARY_DIR, exist_ok=True)
     free = shutil.disk_usage(LIBRARY_DIR).free / 1e9
-    recommended = "gemma3:1b" if ram and ram < 8 else "llama3.1:8b" if ram >= 16 and accel else "gemma3:4b"
+    # The best model this computer runs well (never one it can't).
+    if ram and ram < 8:
+        recommended = "gemma3:1b"
+    elif ram >= 64 and accel and vram_gb >= 40:
+        recommended = "llama3.3:70b"
+    elif ram >= 32 and accel and vram_gb >= 20:
+        recommended = "gemma4:31b-it-qat"
+    elif ram >= 32:
+        recommended = "gemma4:26b-a4b-it-qat"
+    elif ram >= 24:
+        recommended = "gpt-oss:20b"
+    elif ram >= 16 and accel:
+        recommended = "llama3.1:8b"
+    else:
+        recommended = "gemma3:4b"
     return {"cpu": cpu, "cores": os.cpu_count() or 1, "ramGB": ram, "gpus": gpus, "accel": accel,
             "vramGB": round(vram_gb, 1),
             "freeGB": round(free, 1), "recommended": recommended}
@@ -2612,9 +2761,14 @@ PULL_FILE = os.path.join(DATA_DIR, "pull.json")
 pull_state = {}
 
 
-def start_pull(name):
+def start_pull(name, resume=False):
     if name not in {m["id"] for m in MODEL_CHOICES} and not re.fullmatch(r"[a-z0-9._:/-]{1,60}", name):
         raise ValueError("bad model name")
+    # Never start a model this computer can't run (the Core and the tour hide them too).
+    if not resume and name in MODEL_INFO:
+        fit, why = model_fit(MODEL_INFO[name], system_info())
+        if fit == "too big":
+            raise ValueError(f"{MODEL_INFO[name]['callsign']} won't run well here: {why}")
     if pull_state.get("active") or pull_state.get("paused"):
         if pull_state.get("model") == name and pull_state.get("active"):
             return dict(pull_state)
@@ -2669,7 +2823,7 @@ def resume_pull():
         pull_state.update({"model": pending["model"], "active": False, "paused": True, "status": "paused",
                            "completed": pending.get("completed", 0), "total": pending.get("total", 0), "error": ""})
     elif pending.get("model"):
-        start_pull(pending["model"])
+        start_pull(pending["model"], resume=True)
 
 
 def pull_control(action):
@@ -2678,7 +2832,7 @@ def pull_control(action):
         pull_state["stop"] = True
         write_json(PULL_FILE, {**pending, "paused": True, "completed": pull_state.get("completed", 0), "total": pull_state.get("total", 0)})
     elif action == "resume" and pending.get("model") and not pull_state.get("active"):
-        start_pull(pending["model"])
+        start_pull(pending["model"], resume=True)
     elif action == "cancel":
         try:
             os.remove(PULL_FILE)
@@ -2761,8 +2915,15 @@ def model_fit(m, sysinfo):
         return "too big", f"Needs {m['size']} GB of disk space; {free} GB is free."
     if ram and ram < m["ram"] - 4:
         return "too big", f"Needs {m['ram']} GB of memory; this computer has {ram} GB."
+    if m.get("needsGpu") and not accel:
+        return "too big", f"Needs a graphics card ({m.get('vram', 24)} GB for full speed); on the processor alone an answer would take many minutes."
+    if m.get("needsGpu") and (sysinfo.get("vramGB") or 0) and sysinfo["vramGB"] < m.get("vram", 24) / 2:
+        return "too big", f"Needs a graphics card with at least {m.get('vram', 24) // 2} GB ({m.get('vram', 24)} for full speed); yours has {sysinfo['vramGB']:g} GB."
     if ram and ram < m["ram"]:
         return "tight", f"Wants {m['ram']} GB of memory; with {ram} GB it may be slow or fail."
+    vram = sysinfo.get("vramGB") or 0
+    if accel and m.get("vram") and vram and vram < m["vram"]:
+        return "slow", f"Your graphics card has {vram:g} GB; this model wants {m['vram']} GB on it, so part runs on the processor and answers are slower."
     if not accel and (m.get("gpu") or m["speed"] == "slow"):
         return "slow", "Fits, but without a graphics card each answer takes a few minutes."
     return "good", "A good fit for this computer." + (" Your graphics card speeds it up." if accel else "")
@@ -2796,6 +2957,7 @@ def core_status():
         info["loaded"] = m_id in engine["loaded"]
         info["fit"], info["fitWhy"] = model_fit({**info, "size": 0} if info["installed"] else info, sysinfo)
         info["pairOK"], info["pairWhy"] = pair_fit(MODEL, m_id, sysinfo) if m_id != MODEL else (False, "This is the model in use.")
+        info["recommended"] = m_id == sysinfo.get("recommended")   # for this computer, not in general
         return info
     lib = library()
     lib_size = sum(x["size"] for x in lib["installed"])
@@ -3947,10 +4109,14 @@ def build_system_prompt(online=False, question="", chatting=False):
             persona += f" Example of how you talk: \"{person['sample']}\""
     else:
         persona = person["prompt"]
+    # Learning, hobby and story scenarios (Game Night, Language Lab, Mars Colony…)
+    # describe what the user is here for, so they apply to every message.
+    setting = ("SELECTED LOADOUT (what the user is here for; follow their message if it's about something else): "
+               + scenario["prompt"]) if scenario.get("always") else ""
     if chatting:
-        return " ".join((RULES, persona,
+        return " ".join(x for x in (RULES, persona,
                          "Use this personality only as a light voice preference; follow the user's own tone and subject.",
-                         CHAT_PROMPT, clock_context))
+                         setting, CHAT_PROMPT, clock_context) if x)
     survival_topic = any(re.search(pattern, question, re.I) for pattern in TOPICS.values()) or bool(
         re.search(r"surviv|prepar|emergen|evacuat|off.grid|disaster|crisis", question, re.I))
     parts = [RULES, persona, "Use this personality only as a light voice preference; follow the user's own tone and subject."]
@@ -3958,6 +4124,8 @@ def build_system_prompt(online=False, question="", chatting=False):
         parts += [trait_lines(person.get("stats", {}), bool(scenario.get("noHumor"))),
                   "SELECTED LOADOUT (a preference for relevant advice, not proof this is happening now): "
                   + scenario["prompt"] + " Follow the user's account of their actual situation."]
+    elif setting:
+        parts.append(setting)
     parts += [MODE_ONLINE if online else MODE_LOCAL, profile_prompt(question), clock_context]
     return " ".join(x for x in parts if x)
 
@@ -4489,8 +4657,12 @@ class Handler(BaseHTTPRequestHandler):
                     return self.send_json({"error": "unknown page"}, 400)
             elif event == "mapSearches":
                 value = str(value or "")[:60].lower()
-            elif event == "countries":
+            elif event in ("countries", "dossiers"):
                 value = re.sub(r"[^A-Z]", "", str(value or ""))[:3]
+            elif event in ("worlds", "moons", "wonders"):
+                value = re.sub(r"[^a-z-]", "", str(value or ""))[:20]
+                if not value:
+                    return self.send_json({"error": "unknown"}, 400)
             elif event == "medicTools":
                 value = re.sub(r"[^a-z-]", "", str(value or ""))[:20]
                 if not value:
@@ -5171,12 +5343,10 @@ def set_card_prefs(update):
         for key, allowed in (("frame", camp.FRAMES), ("bg", camp.SCENES), ("accent", camp.ACCENTS)):
             if update.get(key) in allowed:
                 prefs[key] = update[key]
-        if prefs["frame"] == "gold":   # the Last Light frame comes with Prestige IV
-            try:
-                if outpost.interact(OUTPOST_FILE)["state"].get("prestige", 0) < 4:
-                    prefs["frame"] = "flames"
-            except Exception:
-                prefs["frame"] = "flames"
+        # Earned frames (Last Light, Starfield…) only once they're unlocked in the Locker.
+        rewards, _ = reward_status()
+        if not any(r["kind"] == "frame" and r["id"] == prefs["frame"] and r["unlocked"] for r in rewards):
+            prefs["frame"] = "flames"
         settings["card"] = prefs
         write_json(SETTINGS_FILE, settings)
     _card_cache["at"] = 0
@@ -5250,6 +5420,7 @@ def cards_dir():
 
 def export_card(req):
     """Save my card as a .umbracard file and its QR picture (Documents, or a USB drive)."""
+    record("cardShares")
     card = CAMP.card()
     code = camp.encode(card)
     target = str(req.get("target", ""))
@@ -5361,6 +5532,29 @@ def offer_context(question, history):
     return previous, bool(follows_offer), sky_request
 
 
+FILLER = set("going next weekend today tomorrow tonight really maybe still actually just already soon time trying".split())
+FOLLOW_UP = re.compile(r"(?i)^\s*(?:what if|and if|what about|how about|and |but |also |or |then |so what|what else|any other|"
+                       r"is there (?:another|a better|an?other)|instead|without)\b")
+
+
+def search_text(question, history):
+    """What to search the library for. A follow-up ("What if I don't have a
+    pot?") leans on the last question for its subject: water, not pasta."""
+    last = next((str(t.get("content", "")) for t in reversed(history or []) if t.get("role") == "user"), "")
+    if not last:
+        return question
+    own = keywords(question)
+    leans = FOLLOW_UP.search(question) or (len(own) <= 3 and re.search(r"\b(?:it|that|this|them|those|these|one)\b", question, re.I))
+    if not leans:
+        return question
+    # The subject words of the last question: survival topics first, then
+    # longer words and the end of the sentence, where the subject usually sits.
+    words = [w for w in keywords(last) if "'" not in w and w not in own and w not in GENERIC and w not in FILLER]
+    ranked = sorted(enumerate(words), key=lambda iw: -(3 * any(re.search(p, iw[1]) for p in TOPICS.values()) + min(len(iw[1]), 8) / 4 + iw[0] / max(1, len(words))))
+    extra = [w for _, w in sorted(ranked[:3])]
+    return (question + " " + " ".join(extra)).strip() if extra else question
+
+
 def answer(req, emit):
     started = time.time()
     question = str(req.get("question", "")).strip()
@@ -5421,12 +5615,14 @@ def answer(req, emit):
         sources, notice = ([fact] if fact else []), ""
     elif isinstance(req.get("page"), dict) and req["page"].get("only"):
         sources, notice = [], ""   # Umbra Online's page tools: the page itself is the source
+    elif app_question(question):
+        sources, notice = [], ""   # about Umbra itself: archive pages (a Samsung "Galaxy Tab") would only mislead
     elif parts:
         sources, notice, seen = [], "", set()
         for part in parts:
             if not part.endswith("?") and is_small_talk(part):
                 continue  # a conversational aside needs acknowledgement, not an archive scan
-            found, part_notice = find_sources(part, online)
+            found, part_notice = find_sources(search_text(part, history), online)
             if part_notice: notice = part_notice
             for source in found[:3]:
                 if source["url"] not in seen:
@@ -5434,7 +5630,7 @@ def answer(req, emit):
             if len(sources) >= 6: break
         sources = sources[:6]
     else:
-        sources, notice = find_sources(question, online)
+        sources, notice = find_sources(search_text(question, history), online)
     if fact and not any(s["url"] == fact["url"] for s in sources):
         sources = [fact] + sources[:5]
     if notice:
@@ -5499,6 +5695,10 @@ def answer(req, emit):
         if req.get("folder"):
             system += " " + folder_prompt(req.get("folder"))
         if ABOUT_UMBRA.search(question):
+            notes = feature_notes(question)
+            if notes:
+                system += (" THE USER IS ASKING ABOUT THIS PART OF THE APP (answer from it, and don't confuse it with "
+                           "other features or AI models): " + " ".join(notes))
             system += " " + UMBRA_GUIDE
         past, count = past_conversation_context(question, str(req.get("conversation", "")), history)
         if past:

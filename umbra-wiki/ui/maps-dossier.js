@@ -305,6 +305,7 @@ window.UmbraDossier = (() => {
       el.classList.remove("grow"); void el.offsetWidth; el.classList.add("grow");
     }
     Sound.glitch();
+    window.track?.("dossiers", c.a3);
     wire(c, m);
     return true;
   }
@@ -314,7 +315,10 @@ window.UmbraDossier = (() => {
     el.addEventListener("click", (e) => { if (e.target === el) close(); }, { once: true });
     const scroll = card.querySelector(".ds-scroll");
     card.querySelectorAll(".ds-nav button").forEach((b) => b.addEventListener("click", () => {
-      scroll.querySelector(`[data-sec="${b.dataset.go}"]`)?.scrollIntoView({ behavior: motion() ? "smooth" : "auto", block: "start" }); Sound.click();
+      // Only the file's own column scrolls (scrollIntoView would also move the map behind it).
+      const target = scroll.querySelector(`[data-sec="${b.dataset.go}"]`);
+      if (target) scroll.scrollTo({ top: target.offsetTop - 4, behavior: motion() ? "smooth" : "auto" });
+      card.querySelectorAll(".ds-nav button").forEach((x) => x.classList.toggle("on", x === b)); Sound.click();
     }));
     // The section in view lights its button.
     const io = new IntersectionObserver((es) => { for (const x of es) if (x.isIntersecting) card.querySelectorAll(".ds-nav button").forEach((b) => b.classList.toggle("on", b.dataset.go === x.target.dataset.sec)); },

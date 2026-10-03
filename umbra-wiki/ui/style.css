@@ -3363,7 +3363,9 @@ body.reduce-motion .op-live, body.reduce-motion .op-it.r-legendary, body.reduce-
 .op-bart canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .op-bart canvas.live { background: var(--bg); }
 .op-build.dim .op-bart { filter: saturate(.4) brightness(.8); }
-.op-bart .op-art-r canvas { position: static; width: auto; height: 100%; aspect-ratio: 1; }
+/* Centred and sized by the frame itself (a grid-sized canvas grew past the frame). */
+.op-bart .op-art-r canvas { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: auto; height: 100%; max-width: 100%; aspect-ratio: 1; }
+.op-bart { overflow: hidden; }
 .op-bart canvas.live { inset: 0; left: 0; width: 100%; height: 100%; aspect-ratio: auto; transform: none; }
 .op-bart.playing .op-art-r { visibility: hidden; }
 .op-bart canvas { filter: brightness(1.35) contrast(1.08); }
@@ -4055,3 +4057,59 @@ body.galaxy-open > :not(#galaxy):not(.modal):not(.ac-toast):not(.wipe):not(.tip)
 .gx-gauge i { width: 120px; height: 6px; border: 1px solid var(--signal); background: linear-gradient(90deg, var(--signal) calc(var(--p) * 100%), transparent 0); }
 .gx-portal { position: fixed; inset: 0; z-index: 200; width: 100vw; height: 100vh; pointer-events: none; }
 body.reduce-motion .gx-ask-ring { animation: none; }
+
+/* Maps and Galaxy never scroll as a whole: only their own panels do, and a
+   panel reaching its end doesn't pass the scroll on to what's behind it. */
+.maps, .mp-body, .galaxy, .gx-body, .ds-card, .wd-card { overflow: clip; }
+.ds-main { min-height: 0; overflow: clip; }
+.ds-scroll, .ds-nav, .mp-cfile, .mp-panel, .wd-info, .gx-info, .gx-rail, .mp-results { overscroll-behavior: contain; }
+.ds-scroll { position: relative; }
+.ds-scroll > .ds-sec:last-child { min-height: calc(100% - 8px); }
+
+/* -------------------------------------------- Locker: card frames, name effects */
+.lk-sample.lk-frame { position: relative; display: block; width: 100%; height: 54px; min-height: 0; border: 1px solid var(--line); background: var(--bg-1); }
+.lk-sample.lk-frame canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lk-frame-big { position: relative; display: grid; place-items: center; width: min(320px, 100%); height: 150px; border: 1px solid var(--line); background: radial-gradient(ellipse at center, var(--bg-1), var(--bg)); }
+.lk-frame-big canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lk-frame-big .lk-name { position: relative; z-index: 1; }
+.lk-card.locked .lk-frame canvas { filter: grayscale(1) brightness(.6); }
+
+.fx-frost { color: #bfeaff !important; text-shadow: 0 0 6px rgba(140, 210, 255, .6); background: linear-gradient(100deg, #bfeaff 40%, #ffffff 50%, #bfeaff 60%) 0 0 / 300% 100%;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation: fx-scan 4.5s linear infinite; }
+.fx-night-vision { color: #7dff9a !important; text-shadow: 0 0 6px rgba(80, 255, 120, .6), 0 0 1px #c8ffd4; animation: fx-nv 3s steps(1) infinite; }
+@keyframes fx-nv { 0%, 92%, 100% { opacity: 1; } 93% { opacity: .65; } 95% { opacity: .9; } }
+.fx-ocean { background: linear-gradient(90deg, #2f7fd8, #3fd0d0, #8fe8f4, #2f9fd8, #2f7fd8) 0 0 / 300% 100%; -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 4px rgba(60, 170, 230, .4)); animation: fx-ocean 5s ease-in-out infinite alternate; }
+@keyframes fx-ocean { to { background-position: 100% 0; } }
+.fx-campfire { color: #ffb45a !important; animation: fx-campfire 1.6s steps(6) infinite; }
+@keyframes fx-campfire { 0% { text-shadow: 0 -1px 6px rgba(255, 110, 30, .7); } 33% { text-shadow: 0 -2px 9px rgba(255, 150, 40, .85), 0 0 2px #ffe08a; }
+  66% { text-shadow: 0 -1px 5px rgba(230, 80, 20, .6); } 100% { text-shadow: 0 -2px 8px rgba(255, 130, 40, .8); } }
+.fx-radio-wave { position: relative; text-shadow: 0 0 5px currentColor; }
+.fx-radio-wave::after { content: ""; position: absolute; left: 50%; top: 50%; width: 100%; height: 1.6em; transform: translate(-50%, -50%) scale(.6); border: 1px solid currentColor; border-radius: 50%; opacity: 0; animation: fx-wave 2.4s ease-out infinite; pointer-events: none; }
+@keyframes fx-wave { 0% { opacity: .7; transform: translate(-50%, -50%) scale(.6); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); } }
+.fx-typewriter::after { content: "▌"; margin-left: .1em; -webkit-text-fill-color: currentColor; animation: fx-blink 1.1s steps(1) infinite; }
+@keyframes fx-blink { 50% { opacity: 0; } }
+.fx-orbit { position: relative; text-shadow: 0 0 4px currentColor; }
+.fx-orbit::after { content: "•"; position: absolute; left: 50%; top: 50%; font-size: .7em; color: #8fd8f4; -webkit-text-fill-color: #8fd8f4; text-shadow: 0 0 6px #8fd8f4; animation: fx-orbit 3.2s linear infinite; pointer-events: none; }
+@keyframes fx-orbit { from { transform: translate(-50%, -50%) rotate(0deg) translateX(3.2em) scaleY(.9); } to { transform: translate(-50%, -50%) rotate(360deg) translateX(3.2em) scaleY(.9); } }
+.fx-starlight { position: relative; color: #f4f0ff !important; text-shadow: 0 0 6px rgba(200, 200, 255, .55); }
+.fx-starlight::before, .fx-starlight::after { content: "✦"; position: absolute; font-size: .55em; color: #fff4c8; -webkit-text-fill-color: #fff4c8; animation: fx-twinkle 2.2s ease-in-out infinite; pointer-events: none; }
+.fx-starlight::before { left: -.9em; top: -.4em; } .fx-starlight::after { right: -.9em; bottom: -.3em; animation-delay: -1.1s; }
+@keyframes fx-twinkle { 0%, 100% { opacity: .2; transform: scale(.7); } 50% { opacity: 1; transform: scale(1.15); } }
+.fx-nebula { background: linear-gradient(90deg, #7a5af0, #d07ae6, #5fb8f0, #9b6af0, #7a5af0) 0 0 / 350% 100%; -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 6px rgba(160, 110, 240, .45)); animation: fx-ocean 7s ease-in-out infinite alternate; }
+.fx-chrome { background: linear-gradient(100deg, #8a9098 20%, #f4f6f8 40%, #6a7078 50%, #dfe4ea 65%, #8a9098 80%) 0 0 / 260% 100%; -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .5)); animation: fx-golden 3.8s linear infinite; }
+.fx-holo { background: linear-gradient(110deg, #ff7ab8, #ffd27a, #7affc8, #7ad0ff, #c07aff, #ff7ab8) 0 0 / 400% 100%; -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 5px rgba(200, 160, 255, .45)); animation: fx-holo 4s linear infinite; }
+@keyframes fx-holo { to { background-position: -400% 0; } }
+body.reduce-motion .fx-frost, body.reduce-motion .fx-night-vision, body.reduce-motion .fx-ocean, body.reduce-motion .fx-campfire, body.reduce-motion .fx-radio-wave::after,
+body.reduce-motion .fx-typewriter::after, body.reduce-motion .fx-orbit::after, body.reduce-motion .fx-starlight::before, body.reduce-motion .fx-starlight::after,
+body.reduce-motion .fx-nebula, body.reduce-motion .fx-chrome, body.reduce-motion .fx-holo { animation: none; }
+
+/* Loadout: groups over the scenario and personality cards */
+.lo-groups { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 4px; }
+.lo-groups button { display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px; border: 1px solid var(--line); background: var(--bg-1); color: var(--dim); cursor: pointer; font: 700 9.5px var(--font); letter-spacing: .16em; }
+.lo-groups button small { color: var(--faint); font-size: 9px; letter-spacing: 0; }
+.lo-groups button:hover { color: var(--fg-bright); border-color: var(--signal); }
+.lo-groups button.on { color: var(--signal); border-color: var(--signal); background: var(--signal-soft); } .lo-groups button.on small { color: var(--signal); }

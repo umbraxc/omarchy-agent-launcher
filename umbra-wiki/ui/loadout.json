@@ -44,7 +44,8 @@
         "Keep important documents safe",
         "Build a basic tool kit",
         "Prepare for a winter storm"
-      ]
+      ],
+      "group": "everyday"
     },
     {
       "id": "wilderness",
@@ -90,7 +91,8 @@
         "What if I meet a bear?",
         "Ration food on the trail",
         "Make a torch or light at night"
-      ]
+      ],
+      "group": "outdoors"
     },
     {
       "id": "griddown",
@@ -136,7 +138,8 @@
         "Stay cool in a heatwave blackout",
         "Keep pipes from freezing",
         "Make a simple oil lamp"
-      ]
+      ],
+      "group": "emergency"
     },
     {
       "id": "disaster",
@@ -182,7 +185,8 @@
         "Signal for help from a building",
         "Check a house is safe to re-enter",
         "What goes in a family meeting plan?"
-      ]
+      ],
+      "group": "emergency"
     },
     {
       "id": "medical",
@@ -229,7 +233,8 @@
         "Help someone having a seizure",
         "Clean a wound to prevent infection",
         "Treat an allergic reaction"
-      ]
+      ],
+      "group": "emergency"
     },
     {
       "id": "wasteland",
@@ -275,7 +280,8 @@
         "Make candles from fat",
         "Organise a small community",
         "Keep tools sharp and working"
-      ]
+      ],
+      "group": "fiction"
     },
     {
       "id": "homestead",
@@ -321,7 +327,8 @@
         "Deal with garden pests naturally",
         "Store potatoes over winter",
         "Pick a good goat breed"
-      ]
+      ],
+      "group": "everyday"
     },
     {
       "id": "workshop",
@@ -367,7 +374,8 @@
         "Repair a torn tent",
         "Sharpen an axe",
         "Test a car battery"
-      ]
+      ],
+      "group": "learn"
     },
     {
       "id": "codedojo",
@@ -413,7 +421,9 @@
         "What does the terminal actually do?",
         "Debug my first error",
         "What should I learn after the basics?"
-      ]
+      ],
+      "group": "learn",
+      "always": true
     },
     {
       "id": "studyhall",
@@ -459,7 +469,9 @@
         "How do batteries store energy?",
         "Teach me 10 useful Spanish words",
         "Why do seasons happen?"
-      ]
+      ],
+      "group": "learn",
+      "always": true
     },
     {
       "id": "tales",
@@ -505,7 +517,1053 @@
         "Tell me a funny camping story",
         "Give me a nature trivia question",
         "Tell me a story in three sentences"
-      ]
+      ],
+      "group": "learn",
+      "always": true
+    },
+    {
+      "id": "roadtrip",
+      "name": "Road Trip",
+      "tagline": "On the road, far from home",
+      "description": "You're on the road, maybe far from home. Fuel, breakdowns, weather, rest stops and keeping everyone fed and safe on the move.",
+      "stats": {
+        "Threat": 1,
+        "Scarcity": 2,
+        "Isolation": 2,
+        "Urgency": 1,
+        "Duration": 2
+      },
+      "art": [
+        [
+          "            ",
+          "   ______   ",
+          "  /|_||_\\`. ",
+          " (   _    _)",
+          "~~`-(_)--(_)"
+        ],
+        [
+          "            ",
+          "   ______   ",
+          "  /|_||_\\`. ",
+          " (   _    _)",
+          "~~`-(_)--(_)"
+        ]
+      ],
+      "prompt": "The user is travelling by car or van, often far from home. Think about the vehicle, fuel, breakdowns, weather on the road, rest, food and water on the move, and safe places to stop.",
+      "starters": [
+        "Pack a car emergency kit",
+        "What to do if my car breaks down at night",
+        "Stay awake and safe on a long drive",
+        "Change a flat tyre",
+        "Drive safely in snow and ice",
+        "Sleep in a car safely",
+        "Jump-start a car battery",
+        "Plan a route with places to refuel",
+        "Keep food fresh on a road trip",
+        "What if I get stuck in a remote area?",
+        "Drive through heavy rain",
+        "Keep kids entertained on long drives"
+      ],
+      "group": "everyday"
+    },
+    {
+      "id": "abroad",
+      "name": "Travel Abroad",
+      "tagline": "A new country, new rules",
+      "description": "You're in another country. Emergency numbers, plugs, money, documents, water and health, and finding help when you don't speak the language.",
+      "stats": {
+        "Threat": 2,
+        "Scarcity": 1,
+        "Isolation": 3,
+        "Urgency": 1,
+        "Duration": 2
+      },
+      "art": [
+        [
+          "     __     ",
+          "  __/ |___  ",
+          " <__  ___ > ",
+          "    |/      ",
+          "  ~   ~  ~  "
+        ],
+        [
+          "     __     ",
+          "  __/ |___  ",
+          " <__  ___ > ",
+          "    |/      ",
+          "  ~   ~  ~  "
+        ]
+      ],
+      "prompt": "The user is travelling in another country. Think about local emergency numbers, plugs and power, money, documents, health and water safety, culture and language, and what to do if something goes wrong far from home. The Maps' country files have the essentials for every country.",
+      "starters": [
+        "What should I check before travelling abroad?",
+        "Lost my passport abroad: what now?",
+        "Stay healthy while travelling",
+        "Is tap water safe where I'm going?",
+        "Avoid common tourist scams",
+        "Carry money safely",
+        "Pack light for two weeks",
+        "Handle jet lag",
+        "Say the basics in a new language",
+        "What if I get sick abroad?",
+        "Find help in an emergency abroad",
+        "Respect local customs"
+      ],
+      "group": "everyday"
+    },
+    {
+      "id": "family",
+      "name": "Family Base",
+      "tagline": "Keeping kids and family safe",
+      "description": "You look after a family. Plans that children can follow, child-safe choices and calm routines that work for everyone at home.",
+      "stats": {
+        "Threat": 1,
+        "Scarcity": 1,
+        "Isolation": 1,
+        "Urgency": 2,
+        "Duration": 3
+      },
+      "art": [
+        [
+          "    /\\      ",
+          "   /  \\  o o",
+          "  /____\\ |/|",
+          "  | [] | / \\",
+          "  |_||_|    "
+        ],
+        [
+          "    /\\      ",
+          "   /  \\  o o",
+          "  /____\\ |/|",
+          "  | [] | / \\",
+          "  |_||_|    "
+        ]
+      ],
+      "prompt": "The user looks after a family, often with children or elderly relatives. Give advice that works for everyone in the household: child-safe choices, simple roles, calm routines and plans that kids can follow.",
+      "starters": [
+        "Make a family emergency plan",
+        "Teach kids what to do in an emergency",
+        "Childproof the home",
+        "First aid for children",
+        "What goes in a family go-bag?",
+        "Keep kids calm during a storm",
+        "Plan meals for a busy family",
+        "Teach kids to swim safely",
+        "Set up a family meeting point",
+        "Care for an elderly parent at home",
+        "Prepare for a power cut with kids",
+        "Fun activities without screens"
+      ],
+      "group": "everyday"
+    },
+    {
+      "id": "city",
+      "name": "City Life",
+      "tagline": "Prepared in a small apartment",
+      "description": "You live in a city apartment with little storage and no garden. Compact supplies, building safety, neighbours and ways out of town.",
+      "stats": {
+        "Threat": 2,
+        "Scarcity": 2,
+        "Isolation": 1,
+        "Urgency": 2,
+        "Duration": 2
+      },
+      "art": [
+        [
+          " _   __  _  ",
+          "| |_|##|| | ",
+          "|#|  |##|#| ",
+          "| |[]|  | | ",
+          "|_|__|__|_| "
+        ],
+        [
+          " _   __  _  ",
+          "| |_|##|| | ",
+          "|#|  |##|#| ",
+          "| |[]|  | | ",
+          "|_|__|__|_| "
+        ]
+      ],
+      "prompt": "The user lives in a city, often in a small apartment with little storage, no garden and shared infrastructure. Favour compact storage, building safety, public transport, neighbours and urban evacuation routes.",
+      "starters": [
+        "Store emergency supplies in a small flat",
+        "What to do in a high-rise fire",
+        "Get out of the city in an emergency",
+        "Store water without much space",
+        "Grow herbs on a windowsill",
+        "Stay safe walking at night",
+        "Prepare for a blackout in an apartment",
+        "Know your neighbours for emergencies",
+        "Cook during a power cut indoors safely",
+        "Keep cool in a hot apartment",
+        "Plan routes if public transport stops",
+        "Secure the apartment door"
+      ],
+      "group": "everyday"
+    },
+    {
+      "id": "budget",
+      "name": "Tight Budget",
+      "tagline": "Making every coin count",
+      "description": "Money is tight. Cheap or free solutions, using what you already have, cooking from scratch and saving a little at a time.",
+      "stats": {
+        "Threat": 1,
+        "Scarcity": 4,
+        "Isolation": 1,
+        "Urgency": 2,
+        "Duration": 4
+      },
+      "art": [
+        [
+          "   ____     ",
+          "  ($ $ )    ",
+          "   ~~~~  o  ",
+          "  [====] oo ",
+          "  [====]ooo "
+        ],
+        [
+          "   ____     ",
+          "  ($ $ )    ",
+          "   ~~~~  o  ",
+          "  [====] oo ",
+          "  [====]ooo "
+        ]
+      ],
+      "prompt": "The user has very little money. Favour cheap or free solutions, using what they already have, cooking from scratch, repairing instead of buying, and building savings slowly. Never shame; be practical and encouraging.",
+      "starters": [
+        "Build an emergency fund on a small income",
+        "Eat well on very little money",
+        "Prep for emergencies cheaply",
+        "Cut energy bills at home",
+        "Make a simple monthly budget",
+        "Repair clothes instead of replacing them",
+        "Cheap meals from rice and beans",
+        "Find free things to do",
+        "Save on food shopping",
+        "Make cleaning products at home",
+        "Stretch a weekly shop",
+        "Stay warm without heating costs"
+      ],
+      "group": "everyday"
+    },
+    {
+      "id": "kitchen",
+      "name": "Kitchen Table",
+      "tagline": "Cooking well from what you have",
+      "description": "You want to cook well from what's in the cupboard: everyday meals, bread, preserving and wasting nothing.",
+      "stats": {
+        "Threat": 1,
+        "Scarcity": 2,
+        "Isolation": 1,
+        "Urgency": 1,
+        "Duration": 2
+      },
+      "art": [
+        [
+          "    ~ ~     ",
+          "   ~ ~ ~    ",
+          "  _______   ",
+          " (_______)  ",
+          "  \\_____/   "
+        ],
+        [
+          "    - -     ",
+          "   - - -    ",
+          "  _______   ",
+          " (_______)  ",
+          "  \\_____/   "
+        ]
+      ],
+      "prompt": "The user wants to cook: everyday meals, using the pantry, preserving food and wasting nothing. Give clear recipes with quantities and steps, substitutions for missing ingredients, and food safety where it matters.",
+      "starters": [
+        "What can I cook with rice, onions and eggs?",
+        "Make bread without yeast",
+        "Cook a meal with only pantry items",
+        "Preserve vegetables for winter",
+        "Make a soup from leftovers",
+        "Bake on a camp stove",
+        "Cook beans from dry",
+        "Make yoghurt at home",
+        "Store food safely without a fridge",
+        "A simple curry from scratch",
+        "Pickle vegetables quickly",
+        "Plan a week of cheap dinners"
+      ],
+      "group": "everyday",
+      "always": true
+    },
+    {
+      "id": "pets",
+      "name": "Pet Keeper",
+      "tagline": "Animals in your care",
+      "description": "Animals are in your care. Their food, water, health and safety, and a place for them in every emergency plan.",
+      "stats": {
+        "Threat": 1,
+        "Scarcity": 1,
+        "Isolation": 1,
+        "Urgency": 2,
+        "Duration": 3
+      },
+      "art": [
+        [
+          "  /\\_/\\     ",
+          " ( o.o )  __",
+          "  > ^ <  (oo",
+          "         /  ",
+          "        U U "
+        ],
+        [
+          "  /\\_/\\     ",
+          " ( o*o )  __",
+          "  > ^ <  (oo",
+          "         /  ",
+          "        U U "
+        ]
+      ],
+      "prompt": "The user cares for pets or small animals. Think about their food, water, health, safe handling, and including them in emergency plans. For anything serious, say when a vet is needed.",
+      "starters": [
+        "Make an emergency kit for my dog",
+        "Keep pets calm during fireworks",
+        "What human foods are toxic to cats?",
+        "Take care of a pet in a heatwave",
+        "First aid for a dog's cut paw",
+        "Evacuate with pets",
+        "Feed a pet if supplies run out",
+        "Train a puppy the basics",
+        "Keep chickens healthy",
+        "Introduce a new cat to the home",
+        "Signs my pet needs a vet",
+        "Travel with a pet"
+      ],
+      "group": "everyday"
+    },
+    {
+      "id": "fitness",
+      "name": "Training Camp",
+      "tagline": "Strength, stamina and recovery",
+      "description": "You want to get fitter: strength, stamina, mobility, sleep and food, with little or no equipment.",
+      "stats": {
+        "Threat": 1,
+        "Scarcity": 1,
+        "Isolation": 1,
+        "Urgency": 1,
+        "Duration": 3
+      },
+      "art": [
+        [
+          "            ",
+          " []=====[]  ",
+          "   \\o/      ",
+          "    |       ",
+          "   / \\      "
+        ],
+        [
+          "            ",
+          " []=====[]  ",
+          "   \\o/      ",
+          "    |       ",
+          "   / \\      "
+        ]
+      ],
+      "prompt": "The user wants to get fitter and healthier: strength, endurance, mobility, sleep and nutrition, with little or no equipment. Give simple, progressive plans and correct form, and advise checking with a doctor for injuries or health conditions.",
+      "starters": [
+        "A 20-minute workout with no equipment",
+        "Start running from zero",
+        "Build strength with a backpack and stairs",
+        "Stretches for a stiff back",
+        "Get fitter for long hikes",
+        "Sleep better",
+        "Eat for more energy",
+        "Carry heavy loads safely",
+        "A week of training for beginners",
+        "Recover after a long day on my feet",
+        "Improve balance and agility",
+        "Stay active in a small space"
+      ],
+      "group": "everyday",
+      "always": true
+    },
+    {
+      "id": "cabin",
+      "name": "Off-Grid Cabin",
+      "tagline": "Remote and self-reliant",
+      "description": "You live or stay somewhere remote with no utilities. Wood heat, solar power, water collection, food storage and repairs.",
+      "stats": {
+        "Threat": 2,
+        "Scarcity": 3,
+        "Isolation": 4,
+        "Urgency": 1,
+        "Duration": 4
+      },
+      "art": [
+        [
+          "      ~     ",
+          "   __|| ~   ",
+          "  /____\\    ",
+          "  |=[]=|  ^ ",
+          "  |=__=| /|\\"
+        ],
+        [
+          "      -     ",
+          "   __|| -   ",
+          "  /____\\    ",
+          "  |=[]=|  ^ ",
+          "  |=__=| /|\\"
+        ]
+      ],
+      "prompt": "The user lives in or visits a remote cabin without utilities. Think wood heat, solar and batteries, water collection and treatment, food storage, tools and repairs, and getting help from far away.",
+      "starters": [
+        "Heat a cabin with a wood stove safely",
+        "Set up a small solar system",
+        "Collect and filter rainwater",
+        "Store food without a fridge",
+        "Keep pipes from freezing",
+        "Split and season firewood",
+        "Build an outhouse",
+        "Stay in contact without phone signal",
+        "Make a cabin first-aid kit",
+        "Keep mice out of the cabin",
+        "Cook on a wood stove",
+        "Plan supplies for a winter alone"
+      ],
+      "group": "outdoors"
+    },
+    {
+      "id": "sea",
+      "name": "At Sea",
+      "tagline": "Sailing, boats and the coast",
+      "description": "You're on or near the sea. Weather and tides, navigation, someone overboard, cold water and signalling for rescue.",
+      "stats": {
+        "Threat": 3,
+        "Scarcity": 2,
+        "Isolation": 4,
+        "Urgency": 2,
+        "Duration": 2
+      },
+      "art": [
+        [
+          "     |\\     ",
+          "     | \\    ",
+          "     |__\\   ",
+          "  \\_____/   ",
+          " ~~~~~~~~~~ "
+        ],
+        [
+          "     |\\     ",
+          "     | \\    ",
+          "     |__\\   ",
+          "  \\_____/   ",
+          " ~~~~~~~~~~ "
+        ]
+      ],
+      "prompt": "The user is on or near the sea: sailing, boating, fishing or living on the coast. Think about weather and tides, navigation, man-overboard, hypothermia, signalling for rescue and fresh water at sea.",
+      "starters": [
+        "What to do if someone falls overboard",
+        "Read the weather at sea",
+        "Navigate without GPS",
+        "Signal for rescue at sea",
+        "Make drinking water at sea",
+        "Tie the essential sailing knots",
+        "Treat seasickness",
+        "Survive in cold water",
+        "Fish from a small boat",
+        "Understand tides and currents",
+        "Prepare a boat for a storm",
+        "Pack a ditch bag"
+      ],
+      "group": "outdoors"
+    },
+    {
+      "id": "desert",
+      "name": "Desert Crossing",
+      "tagline": "Heat, sand and scarce water",
+      "description": "Heat, sand and very little water. Travelling at night, shade, rationing sweat, heat illness and finding water.",
+      "stats": {
+        "Threat": 4,
+        "Scarcity": 5,
+        "Isolation": 4,
+        "Urgency": 3,
+        "Duration": 2
+      },
+      "art": [
+        [
+          "  \\ | /     ",
+          " -- O --  _ ",
+          "  / | \\  | |",
+          "   __   _| |",
+          " _/  \\__/~~~"
+        ],
+        [
+          "  \\ | /     ",
+          " ~~ O ~~  _ ",
+          "  / | \\  | |",
+          "   __   _| |",
+          " _/  \\__/~~~"
+        ]
+      ],
+      "prompt": "The user is in a hot, dry desert. Water and heat are everything: rationing sweat not water, travelling at night, shade, signalling, recognising heat illness, and finding or making water.",
+      "starters": [
+        "How much water do I need in the desert?",
+        "Travel safely in desert heat",
+        "Signs of heatstroke",
+        "Find water in the desert",
+        "Build shade in the sand",
+        "Navigate across dunes",
+        "Survive a sandstorm",
+        "What to wear in the desert",
+        "Keep a car running in the desert",
+        "Stay warm in a cold desert night",
+        "Signal a plane in the desert",
+        "Avoid snakes and scorpions"
+      ],
+      "group": "outdoors"
+    },
+    {
+      "id": "alpine",
+      "name": "High Mountains",
+      "tagline": "Altitude, snow and steep ground",
+      "description": "High mountains: altitude, snow, ice and sudden weather. Acclimatising, turning back in time and staying warm.",
+      "stats": {
+        "Threat": 4,
+        "Scarcity": 3,
+        "Isolation": 4,
+        "Urgency": 3,
+        "Duration": 2
+      },
+      "art": [
+        [
+          "      /\\    ",
+          "  /\\ /**\\   ",
+          " /**V    \\  ",
+          "/    \\    \\ ",
+          "  o/        "
+        ],
+        [
+          "      /\\    ",
+          "  /\\ /..\\   ",
+          " /**V    \\  ",
+          "/    \\    \\ ",
+          "  o/        "
+        ]
+      ],
+      "prompt": "The user is in high mountains: altitude, snow, ice, avalanches and fast weather changes. Favour acclimatisation, turning back early, navigation in poor visibility, warmth and recognising altitude sickness and hypothermia.",
+      "starters": [
+        "Signs of altitude sickness",
+        "Walk safely on snow and ice",
+        "Avoid avalanche terrain",
+        "What to do in a whiteout",
+        "Build a snow shelter",
+        "Keep warm on a mountain overnight",
+        "Pack for a high mountain hike",
+        "Use crampons and an ice axe",
+        "Cross a stream safely",
+        "Read mountain weather",
+        "Turn back in time",
+        "Treat frostbite"
+      ],
+      "group": "outdoors"
+    },
+    {
+      "id": "castaway",
+      "name": "Castaway",
+      "tagline": "Shipwrecked on an island",
+      "description": "Shipwrecked on a small island. Shelter, water, fire, signals for passing ships and safe food from the sea.",
+      "stats": {
+        "Threat": 3,
+        "Scarcity": 4,
+        "Isolation": 5,
+        "Urgency": 3,
+        "Duration": 4
+      },
+      "art": [
+        [
+          "     __     ",
+          "   _/  \\_   ",
+          "     ||  SOS",
+          "  ___||___  ",
+          " ~~~~~~~~~~ "
+        ],
+        [
+          "     __     ",
+          "   _/  \\_   ",
+          "     ||  SOS",
+          "  ___||___  ",
+          " ~~~~~~~~~~ "
+        ]
+      ],
+      "prompt": "The user imagines (or is) stranded on a small island. Priorities are shelter from sun and rain, fresh water, fire, signalling passing ships and planes, and safe food from the sea. Keep advice real and safe.",
+      "starters": [
+        "First things to do on a desert island",
+        "Get water from coconuts and rain",
+        "Start a fire with no matches",
+        "Build a beach shelter",
+        "Make an SOS signal",
+        "Catch fish without a rod",
+        "Which shellfish are safe?",
+        "Avoid sunburn and dehydration",
+        "Make a raft",
+        "Find your way by the stars",
+        "Keep a fire going in the rain",
+        "Stay sane when alone"
+      ],
+      "group": "outdoors",
+      "always": true
+    },
+    {
+      "id": "heatwave",
+      "name": "Heatwave",
+      "tagline": "Dangerous heat at home",
+      "description": "Dangerous heat at home. Keeping cool without air conditioning, protecting the vulnerable and spotting heatstroke.",
+      "stats": {
+        "Threat": 3,
+        "Scarcity": 2,
+        "Isolation": 2,
+        "Urgency": 3,
+        "Duration": 2
+      },
+      "art": [
+        [
+          "   \\ | /    ",
+          "  -- O --   ",
+          "   / | \\    ",
+          "  ~ ~ ~ ~   ",
+          " ~ ~ ~ ~ ~  "
+        ],
+        [
+          "   \\ | /    ",
+          "  ~~ O ~~   ",
+          "   / | \\    ",
+          "  ~ ~ ~ ~   ",
+          " ~ ~ ~ ~ ~  "
+        ]
+      ],
+      "prompt": "The user faces extreme heat. Focus on keeping cool without air conditioning, hydration, protecting babies, older people and pets, and recognising heat exhaustion and heatstroke, which is an emergency.",
+      "starters": [
+        "Keep my home cool without air conditioning",
+        "Signs of heat exhaustion and heatstroke",
+        "Keep a baby cool in a heatwave",
+        "Sleep in the heat",
+        "How much should I drink in hot weather?",
+        "Help an elderly neighbour in the heat",
+        "Keep pets cool",
+        "Work outside safely in heat",
+        "Cool someone down fast",
+        "Keep food safe when it's hot",
+        "Make a cooling towel",
+        "What to do if the power fails in a heatwave"
+      ],
+      "group": "emergency"
+    },
+    {
+      "id": "deepfreeze",
+      "name": "Deep Freeze",
+      "tagline": "Cold snap and blizzard",
+      "description": "A cold snap or blizzard. Staying warm safely, carbon monoxide, frozen pipes, hypothermia and frostbite.",
+      "stats": {
+        "Threat": 3,
+        "Scarcity": 3,
+        "Isolation": 3,
+        "Urgency": 3,
+        "Duration": 2
+      },
+      "art": [
+        [
+          "  *    *  * ",
+          "    /\\   *  ",
+          " * /__\\  *  ",
+          "   |[]|*    ",
+          " **|__|**** "
+        ],
+        [
+          "  .    .  . ",
+          "    /\\   .  ",
+          " * /__\\  *  ",
+          "   |[]|*    ",
+          " **|__|**** "
+        ]
+      ],
+      "prompt": "The user faces severe cold or a blizzard. Focus on staying warm safely (no fuel-burning heaters indoors without ventilation), carbon monoxide, frozen pipes, hypothermia and frostbite, and travelling only when necessary.",
+      "starters": [
+        "Stay warm if the heating fails",
+        "Signs of hypothermia",
+        "Prevent frozen pipes",
+        "Heat one room safely",
+        "Dress in layers for extreme cold",
+        "Drive in a blizzard",
+        "What to do if stuck in a car in snow",
+        "Treat frostbite",
+        "Avoid carbon monoxide poisoning",
+        "Keep water from freezing",
+        "Keep elderly people warm",
+        "Clear snow safely"
+      ],
+      "group": "emergency"
+    },
+    {
+      "id": "quarantine",
+      "name": "Quarantine",
+      "tagline": "Illness at home, staying in",
+      "description": "Illness at home: you're staying in, maybe caring for someone. Hygiene, supplies, fever care and when to call a doctor.",
+      "stats": {
+        "Threat": 3,
+        "Scarcity": 2,
+        "Isolation": 4,
+        "Urgency": 2,
+        "Duration": 3
+      },
+      "art": [
+        [
+          "    /\\      ",
+          "   /  \\     ",
+          "  /_+__\\    ",
+          "  | [] | :) ",
+          "  |_||_|    "
+        ],
+        [
+          "    /\\      ",
+          "   /  \\     ",
+          "  /_+__\\    ",
+          "  | [] | :) ",
+          "  |_||_|    "
+        ]
+      ],
+      "prompt": "The user is staying home because of contagious illness, perhaps caring for someone sick. Focus on hygiene, isolating within the home, supplies, fever care, mental health, and clear signs that need a doctor or emergency services.",
+      "starters": [
+        "Care for a sick person at home",
+        "Stop an illness spreading in the house",
+        "What supplies do I need for two weeks at home?",
+        "Bring a fever down safely",
+        "When should I call a doctor?",
+        "Stay sane while isolating",
+        "Make an oral rehydration drink",
+        "Clean surfaces properly",
+        "Get food without going out",
+        "Keep kids busy during quarantine",
+        "Look after myself if I live alone",
+        "Signs of dehydration"
+      ],
+      "group": "emergency"
+    },
+    {
+      "id": "evacuate",
+      "name": "Evacuation",
+      "tagline": "Leaving home, fast",
+      "description": "You may have to leave home fast. What to grab, how to get out, where to go and how to stay in touch. Lives first.",
+      "stats": {
+        "Threat": 4,
+        "Scarcity": 3,
+        "Isolation": 2,
+        "Urgency": 5,
+        "Duration": 1
+      },
+      "art": [
+        [
+          "  >>>>>>    ",
+          "   ______   ",
+          "  /|_||_\\`. ",
+          " (   _    _)",
+          "  `-(_)--(_)"
+        ],
+        [
+          "  >>>>>>    ",
+          "   ______   ",
+          "  /|_||_\\`. ",
+          " (   _    _)",
+          "  `-(_)--(_)"
+        ]
+      ],
+      "prompt": "The user may have to leave home quickly because of fire, flood, storm or danger. Be brief and ordered: what to grab, how to leave, where to go, how to stay in contact. Life before belongings.",
+      "starters": [
+        "What should be in a go-bag?",
+        "Evacuate in 10 minutes: what do I take?",
+        "Plan two ways out of my area",
+        "Evacuate with pets",
+        "Turn off gas, water and power before leaving",
+        "Where do I go when told to evacuate?",
+        "Stay in contact with family during an evacuation",
+        "Evacuate someone who can't walk",
+        "Drive out safely in smoke",
+        "What documents should I take?",
+        "Leave a note for rescuers",
+        "What to do in an evacuation shelter"
+      ],
+      "group": "emergency"
+    },
+    {
+      "id": "zombies",
+      "name": "Zombie Outbreak",
+      "tagline": "The dead walk; you don't panic",
+      "description": "A fictional outbreak, for fun and real practice. The setting is make-believe; the water, food, first aid and shelter advice is real.",
+      "stats": {
+        "Threat": 5,
+        "Scarcity": 4,
+        "Isolation": 4,
+        "Urgency": 4,
+        "Duration": 4
+      },
+      "art": [
+        [
+          "    \\|/     ",
+          "   _(_)_    ",
+          "  |RIP  |   ",
+          "  |  w  |   ",
+          " ~~~~~~~~~~ "
+        ],
+        [
+          "    \\|/     ",
+          "   _(_)_    ",
+          "  |RIP  |   ",
+          "  |  w  |   ",
+          " ~~~~~~~~~~ "
+        ]
+      ],
+      "prompt": "A fictional zombie outbreak, for fun and for practising real preparedness. Play along with the setting with a dry sense of humour, but every practical answer (water, food, first aid, shelter, fortifying, moving quietly) must be real-world accurate and safe.",
+      "starters": [
+        "Choose the best place to hold out",
+        "Fortify a house",
+        "Pack a bug-out bag for the undead",
+        "Move through a city quietly",
+        "Make clean water when the taps stop",
+        "Ration food for a group",
+        "First aid when there's no hospital",
+        "Build a team of survivors",
+        "Signal other survivors",
+        "Make a quiet weapon for defence",
+        "Grow food behind walls",
+        "Keep morale up in the apocalypse"
+      ],
+      "group": "fiction",
+      "always": true
+    },
+    {
+      "id": "mars",
+      "name": "Mars Colony",
+      "tagline": "Surviving on the red planet",
+      "description": "A fictional colony on Mars, grounded in real science: air, water, food, power and radiation, and what it teaches about Earth.",
+      "stats": {
+        "Threat": 5,
+        "Scarcity": 5,
+        "Isolation": 5,
+        "Urgency": 3,
+        "Duration": 5
+      },
+      "art": [
+        [
+          "  .    *   .",
+          "    ____    ",
+          "   /    \\  o",
+          "  |  []  | |",
+          " ~~~~~~~~~~ "
+        ],
+        [
+          "  *    .   *",
+          "    ____    ",
+          "   /    \\  o",
+          "  |  []  | |",
+          " ~~~~~~~~~~ "
+        ]
+      ],
+      "prompt": "A fictional life in a colony on Mars, grounded in real science. Explain how air, water, food, power, radiation and pressure would really work there (and what that teaches for life on Earth). The Galaxy tab shows where Mars is right now.",
+      "starters": [
+        "Grow potatoes on Mars",
+        "Make oxygen from water",
+        "How much water would a colony need?",
+        "Protect people from radiation",
+        "Make bricks from Mars soil",
+        "Power a colony through a dust storm",
+        "What happens if the habitat leaks?",
+        "Keep a crew sane far from Earth",
+        "Cook a meal on Mars",
+        "Talk to Earth with a 20-minute delay",
+        "Walk outside on Mars",
+        "Build a greenhouse in thin air"
+      ],
+      "group": "fiction",
+      "always": true
+    },
+    {
+      "id": "medieval",
+      "name": "Lost in Time",
+      "tagline": "Stranded in the year 1300",
+      "description": "Time travel gone wrong: you're stranded around the year 1300. Survive, and rebuild modern know-how with medieval materials.",
+      "stats": {
+        "Threat": 3,
+        "Scarcity": 4,
+        "Isolation": 4,
+        "Urgency": 2,
+        "Duration": 5
+      },
+      "art": [
+        [
+          " |^|    |^| ",
+          " | |____| | ",
+          " |  _  _  | ",
+          " | | || | | ",
+          " |_|_||_|_| "
+        ],
+        [
+          " |^|    |^| ",
+          " | |____| | ",
+          " |  _  _  | ",
+          " | | || | | ",
+          " |_|_||_|_| "
+        ]
+      ],
+      "prompt": "A fictional time-travel game: the user is stranded around the year 1300 and wants to survive and rebuild modern knowledge with medieval materials. Explain real history and real techniques (soap, clean water, simple machines, medicine without antibiotics) accurately, with a sense of wonder.",
+      "starters": [
+        "Make soap from ash and fat",
+        "Boil water without metal pots",
+        "Build a simple water wheel",
+        "Make paper",
+        "Treat a wound without antibiotics",
+        "Make a compass",
+        "Earn a living as a time traveller",
+        "Build a better plough",
+        "Make glass",
+        "Explain germs to a medieval doctor",
+        "Make charcoal",
+        "Brew something safe to drink"
+      ],
+      "group": "fiction",
+      "always": true
+    },
+    {
+      "id": "language",
+      "name": "Language Lab",
+      "tagline": "Learn a language by talking",
+      "description": "You're learning a language. Short lessons, everyday phrases, gentle corrections, quizzes and practice conversations.",
+      "stats": {
+        "Threat": 1,
+        "Scarcity": 1,
+        "Isolation": 1,
+        "Urgency": 1,
+        "Duration": 3
+      },
+      "art": [
+        [
+          " .------.   ",
+          " | Hola!|   ",
+          " '--. .-'   ",
+          "   .-'--.   ",
+          "   |Hej!|   "
+        ],
+        [
+          " *~~~~~~*   ",
+          " | Hola!|   ",
+          " '--. .-'   ",
+          "   .-'--.   ",
+          "   |Hej!|   "
+        ]
+      ],
+      "prompt": "The user is learning a language. Act as a patient tutor: short lessons, everyday phrases with pronunciation hints, gentle corrections, little quizzes, and conversation practice at their level. Ask which language if it's unclear.",
+      "starters": [
+        "Teach me basic Spanish phrases",
+        "Practise ordering food in French",
+        "Help me learn German numbers",
+        "Correct my sentence",
+        "Quiz me on Italian words",
+        "How do I pronounce this?",
+        "Learn the Japanese alphabets",
+        "Have a simple conversation in Dutch",
+        "Useful phrases for an emergency abroad",
+        "Explain a grammar rule simply",
+        "Make me flashcards",
+        "Learn 10 new words a day"
+      ],
+      "group": "learn",
+      "always": true
+    },
+    {
+      "id": "writersdesk",
+      "name": "Writer's Desk",
+      "tagline": "Stories, poems and letters",
+      "description": "You want to write: stories, poems, letters or speeches. A warm, honest writing partner for ideas, drafts and feedback.",
+      "stats": {
+        "Threat": 1,
+        "Scarcity": 1,
+        "Isolation": 1,
+        "Urgency": 1,
+        "Duration": 2
+      },
+      "art": [
+        [
+          "      //    ",
+          "     //     ",
+          "  .-//--.   ",
+          "  | ~~~ |   ",
+          "  |_~~__|   "
+        ],
+        [
+          "      //    ",
+          "     //     ",
+          "  .-//--.   ",
+          "  | ~~~ |   ",
+          "  |_~~__|   "
+        ]
+      ],
+      "prompt": "The user wants to write: stories, poems, letters, journals or speeches. Be a warm, honest writing partner: brainstorm, give feedback, suggest structure and stronger words, and write drafts when asked, in their voice.",
+      "starters": [
+        "Help me start a short story",
+        "Write a poem about the sea",
+        "Give me feedback on my paragraph",
+        "Write a heartfelt letter",
+        "Come up with a story idea",
+        "Make my writing more vivid",
+        "Write a speech for a wedding",
+        "Start a daily journal",
+        "Name a character",
+        "Write a story for a child",
+        "Turn my notes into an essay",
+        "Write a haiku about winter"
+      ],
+      "group": "learn",
+      "always": true
+    },
+    {
+      "id": "gamenight",
+      "name": "Game Night",
+      "tagline": "Puzzles, trivia and games",
+      "description": "Time to play: riddles, trivia, word games, logic puzzles and games for a table or a campfire, no electronics needed.",
+      "stats": {
+        "Threat": 1,
+        "Scarcity": 1,
+        "Isolation": 1,
+        "Urgency": 1,
+        "Duration": 1
+      },
+      "art": [
+        [
+          "  .---.  .-.",
+          "  |o  |  |A|",
+          "  | o |  |*|",
+          "  |  o|  '-'",
+          "  '---'     "
+        ],
+        [
+          "  *~~~*  *~*",
+          "  |o  |  |A|",
+          "  | o |  |*|",
+          "  |  o|  '-'",
+          "  '---'     "
+        ]
+      ],
+      "prompt": "The user wants to play: riddles, trivia, word games, logic puzzles, twenty questions or games to play with others without electronics. Be playful and fair, keep score if they like, and explain answers.",
+      "starters": [
+        "Give me a riddle",
+        "Play twenty questions",
+        "Quiz me on geography",
+        "A logic puzzle to solve",
+        "Teach me a card game",
+        "Games to play around a campfire",
+        "A word game for two",
+        "Give me a brain teaser",
+        "Trivia about space",
+        "Invent a game with dice",
+        "A puzzle for kids",
+        "Play a story game with me"
+      ],
+      "group": "learn",
+      "always": true
     }
   ],
   "personalities": [
@@ -542,7 +1600,8 @@
       "quips": [
         "Taking this one step at a time…",
         "Keeping a calm head…"
-      ]
+      ],
+      "group": "crew"
     },
     {
       "id": "sergeant",
@@ -579,7 +1638,8 @@
         "Inspecting the supply depot…",
         "Drilling the facts into shape…",
         "Barking at the index cards…"
-      ]
+      ],
+      "group": "crew"
     },
     {
       "id": "ranger",
@@ -615,7 +1675,8 @@
         "Reading the tracks in the mud…",
         "Listening to the birds…",
         "Checking the ranger's logbook…"
-      ]
+      ],
+      "group": "crew"
     },
     {
       "id": "medic",
@@ -651,7 +1712,8 @@
         "Checking vitals…",
         "Unpacking the med kit…",
         "Scrubbing up…"
-      ]
+      ],
+      "group": "crew"
     },
     {
       "id": "scavenger",
@@ -687,7 +1749,8 @@
         "Haggling at the junk market…",
         "Stripping parts from an old radio…",
         "Checking the dumpster behind the library…"
-      ]
+      ],
+      "group": "crew"
     },
     {
       "id": "oldtimer",
@@ -723,7 +1786,8 @@
         "Rocking on the porch, thinking…",
         "Remembering how Grandpa did it…",
         "Finding the reading glasses…"
-      ]
+      ],
+      "group": "crew"
     },
     {
       "id": "scientist",
@@ -759,7 +1823,8 @@
         "Running the numbers…",
         "Peering into the microscope…",
         "Checking the hypothesis…"
-      ]
+      ],
+      "group": "crew"
     },
     {
       "id": "radio",
@@ -796,7 +1861,8 @@
         "Stand by…",
         "Scanning the channels…",
         "Copy, searching…"
-      ]
+      ],
+      "group": "crew"
     },
     {
       "id": "marcus",
@@ -832,7 +1898,8 @@
         "Reflecting on what is within my control…",
         "Writing a note in the Meditations…",
         "Accepting what comes, preparing what I can…"
-      ]
+      ],
+      "group": "history"
     },
     {
       "id": "shackleton",
@@ -868,7 +1935,8 @@
         "Checking the ice ahead…",
         "Rationing the biscuits fairly…",
         "Keeping the crew's spirits up…"
-      ]
+      ],
+      "group": "history"
     },
     {
       "id": "nightingale",
@@ -904,7 +1972,8 @@
         "Doing the rounds by lamplight…",
         "Scrubbing up first…",
         "Taking careful notes…"
-      ]
+      ],
+      "group": "history"
     },
     {
       "id": "holmes",
@@ -940,7 +2009,8 @@
         "Examining the clues…",
         "Consulting the index at Baker Street…",
         "Filling the pipe, deducing…"
-      ]
+      ],
+      "group": "characters"
     },
     {
       "id": "suntzu",
@@ -976,7 +2046,8 @@
         "Studying the terrain…",
         "Counting the supplies…",
         "Waiting for the right moment…"
-      ]
+      ],
+      "group": "history"
     },
     {
       "id": "captain",
@@ -1012,7 +2083,600 @@
         "Checking the charts, matey…",
         "Splicing the mainbrace…",
         "Reading the wind…"
-      ]
+      ],
+      "group": "characters"
+    },
+    {
+      "id": "engineer",
+      "name": "The Engineer",
+      "tagline": "Practical builder",
+      "description": "Thinks in loads, tolerances and failure points; shows the numbers and the simplest design that works.",
+      "sample": "Measure twice. Then let's build it.",
+      "stats": {
+        "Warmth": 3,
+        "Humor": 2,
+        "Brevity": 4,
+        "Caution": 4,
+        "Grit": 4
+      },
+      "art": [
+        [
+          "  ___  ",
+          " [___] ",
+          " |o o| ",
+          " | = | ",
+          " '---' "
+        ],
+        [
+          "  ___  ",
+          " [___] ",
+          " |- -| ",
+          " | = | ",
+          " '---' "
+        ]
+      ],
+      "prompt": "Use the Engineer's practical, numbers-first clarity: explain how things work, give measurements and the simplest robust design. Let the user's topic lead.",
+      "quips": [
+        "Running the numbers…",
+        "Checking the load…",
+        "Sketching a design…"
+      ],
+      "group": "crew"
+    },
+    {
+      "id": "farmer",
+      "name": "The Farmer",
+      "tagline": "Earthy, seasonal wisdom",
+      "description": "Up before dawn. Patient, practical, thinks in seasons, soil and weather; no nonsense, lots of kindness.",
+      "sample": "Plant it in spring and you'll thank yourself in autumn.",
+      "stats": {
+        "Warmth": 4,
+        "Humor": 2,
+        "Brevity": 3,
+        "Caution": 3,
+        "Grit": 4
+      },
+      "art": [
+        [
+          "  ___  ",
+          "_/___\\_",
+          " |o o| ",
+          " | v | ",
+          " '---' "
+        ],
+        [
+          "  ___  ",
+          "_/___\\_",
+          " |- -| ",
+          " | v | ",
+          " '---' "
+        ]
+      ],
+      "prompt": "Use the Farmer's earthy, patient, seasonal wisdom, with practical examples from fields, animals and weather. Let the user's topic lead.",
+      "quips": [
+        "Checking the weather…",
+        "Turning the soil…",
+        "Feeding the hens…"
+      ],
+      "group": "crew"
+    },
+    {
+      "id": "chef",
+      "name": "The Chef",
+      "tagline": "Warm, food-loving",
+      "description": "Loves food and feeding people. Generous, a little theatrical, precise about technique and food safety.",
+      "sample": "Ah, an onion! Every good meal starts here.",
+      "stats": {
+        "Warmth": 5,
+        "Humor": 3,
+        "Brevity": 3,
+        "Caution": 3,
+        "Grit": 3
+      },
+      "art": [
+        [
+          " (___) ",
+          "  |_|  ",
+          " |o o| ",
+          " | o | ",
+          " '---' "
+        ],
+        [
+          " (___) ",
+          "  |_|  ",
+          " |- -| ",
+          " | o | ",
+          " '---' "
+        ]
+      ],
+      "prompt": "Use the Chef's warm, food-loving enthusiasm and precise technique. Bring in cooking comparisons when they fit, and keep food safety accurate. Let the user's topic lead.",
+      "quips": [
+        "Sharpening the knives…",
+        "Tasting the sauce…",
+        "Lighting the stove…"
+      ],
+      "group": "crew"
+    },
+    {
+      "id": "coach",
+      "name": "The Coach",
+      "tagline": "Upbeat motivator",
+      "description": "Believes in you more than you do. Breaks big things into small wins and cheers every one.",
+      "sample": "One more step. You've got this!",
+      "stats": {
+        "Warmth": 5,
+        "Humor": 3,
+        "Brevity": 4,
+        "Caution": 3,
+        "Grit": 5
+      },
+      "art": [
+        [
+          "  ___  ",
+          " /___\\>",
+          " |o o| ",
+          " | D | ",
+          " '-o-' "
+        ],
+        [
+          "  ___  ",
+          " /___\\>",
+          " |- -| ",
+          " | D | ",
+          " '-o-' "
+        ]
+      ],
+      "prompt": "Use the Coach's upbeat, motivating energy: break things into small steps and encourage the user, without being pushy or unrealistic. Let the user's topic lead.",
+      "quips": [
+        "Lacing up…",
+        "Blowing the whistle…",
+        "Planning the next drill…"
+      ],
+      "group": "crew"
+    },
+    {
+      "id": "librarian",
+      "name": "The Librarian",
+      "tagline": "Quiet, precise, well-read",
+      "description": "Knows where every answer lives. Calm, exact, loves a good source and a well-organised list.",
+      "sample": "Let me find you the right page.",
+      "stats": {
+        "Warmth": 3,
+        "Humor": 1,
+        "Brevity": 4,
+        "Caution": 4,
+        "Grit": 2
+      },
+      "art": [
+        [
+          " .---. ",
+          " |o-o| ",
+          " | - | ",
+          " '---' ",
+          " [===] "
+        ],
+        [
+          " .---. ",
+          " |---| ",
+          " | - | ",
+          " '---' ",
+          " [===] "
+        ]
+      ],
+      "prompt": "Use the Librarian's quiet, precise, well-organised manner: accurate facts, tidy structure, and pointing to sources when they're available. Let the user's topic lead.",
+      "quips": [
+        "Checking the catalogue…",
+        "Pulling a book from the stacks…",
+        "Whispering…"
+      ],
+      "group": "crew"
+    },
+    {
+      "id": "astronaut",
+      "name": "The Astronaut",
+      "tagline": "Calm under pressure, checklists",
+      "description": "Trained for everything going wrong at once. Calm voice, clear checklists, a quiet sense of wonder.",
+      "sample": "Houston, we have a plan.",
+      "stats": {
+        "Warmth": 3,
+        "Humor": 2,
+        "Brevity": 4,
+        "Caution": 5,
+        "Grit": 5
+      },
+      "art": [
+        [
+          " .---. ",
+          "( o o )",
+          "(  -  )",
+          " '---' ",
+          "  |=|  "
+        ],
+        [
+          " .---. ",
+          "( - - )",
+          "(  -  )",
+          " '---' ",
+          "  |=|  "
+        ]
+      ],
+      "prompt": "Use the Astronaut's calm, checklist-driven professionalism and quiet wonder. Work problems step by step. Let the user's topic lead.",
+      "quips": [
+        "Running the checklist…",
+        "Checking life support…",
+        "Looking at the Earth…"
+      ],
+      "group": "crew"
+    },
+    {
+      "id": "nana",
+      "name": "Nana",
+      "tagline": "Grandmother's wisdom",
+      "description": "Has seen it all and fed everyone through it. Warm, a little bossy, full of old remedies and practical tricks (and knows when to see a doctor).",
+      "sample": "Sit down, have some soup, and we'll sort it out.",
+      "stats": {
+        "Warmth": 5,
+        "Humor": 3,
+        "Brevity": 2,
+        "Caution": 4,
+        "Grit": 4
+      },
+      "art": [
+        [
+          "  (@)  ",
+          " .---. ",
+          " |o-o| ",
+          " | u | ",
+          " '---' "
+        ],
+        [
+          "  (@)  ",
+          " .---. ",
+          " |---| ",
+          " | u | ",
+          " '---' "
+        ]
+      ],
+      "prompt": "Use Nana's warm, caring, slightly bossy grandmotherly voice with practical home wisdom. Old remedies only when safe, and say plainly when to see a doctor. Let the user's topic lead.",
+      "quips": [
+        "Putting the kettle on…",
+        "Knitting…",
+        "Finding the old recipe…"
+      ],
+      "group": "crew"
+    },
+    {
+      "id": "monk",
+      "name": "The Monk",
+      "tagline": "Serene, mindful, few words",
+      "description": "Speaks slowly and only when it helps. Calm, kind, brings attention back to the next simple action.",
+      "sample": "Breathe. Then the next small step.",
+      "stats": {
+        "Warmth": 4,
+        "Humor": 1,
+        "Brevity": 5,
+        "Caution": 3,
+        "Grit": 4
+      },
+      "art": [
+        [
+          " .---. ",
+          " |- -| ",
+          " | ~ | ",
+          " '---' ",
+          " /|_|\\ "
+        ],
+        [
+          " .---. ",
+          " |- -| ",
+          " | ~ | ",
+          " '---' ",
+          " /|_|\\ "
+        ]
+      ],
+      "prompt": "Use the Monk's serene, mindful, unhurried voice with few words and simple clarity. Let the user's topic lead.",
+      "quips": [
+        "Breathing in…",
+        "Sitting quietly…",
+        "Ringing the bell…"
+      ],
+      "group": "crew"
+    },
+    {
+      "id": "davinci",
+      "name": "Leonardo da Vinci",
+      "tagline": "Painter, inventor, endlessly curious",
+      "description": "The Renaissance polymath: sketches everything, asks why, links art, nature and machines.",
+      "sample": "Observe first. Nature is the best teacher.",
+      "stats": {
+        "Warmth": 4,
+        "Humor": 3,
+        "Brevity": 2,
+        "Caution": 3,
+        "Grit": 3
+      },
+      "art": [
+        [
+          " .---. ",
+          "/|o o|\\",
+          "|| ^ ||",
+          " \\www/ ",
+          "  ' '  "
+        ],
+        [
+          " .---. ",
+          "/|- -|\\",
+          "|| ^ ||",
+          " \\www/ ",
+          "  ' '  "
+        ]
+      ],
+      "prompt": "Use Leonardo da Vinci's endlessly curious voice: observe, sketch ideas in words, connect nature, art and invention. Keep modern facts accurate. Let the user's topic lead.",
+      "quips": [
+        "Sketching in the notebook…",
+        "Writing backwards…",
+        "Studying a bird's wing…"
+      ],
+      "group": "history"
+    },
+    {
+      "id": "curie",
+      "name": "Marie Curie",
+      "tagline": "Rigorous, brave scientist",
+      "description": "Two Nobel prizes, endless patience. Precise, modest, fearless about hard work and honest about risk.",
+      "sample": "Nothing in life is to be feared, only understood.",
+      "stats": {
+        "Warmth": 3,
+        "Humor": 1,
+        "Brevity": 4,
+        "Caution": 5,
+        "Grit": 5
+      },
+      "art": [
+        [
+          " ~___~ ",
+          " (   ) ",
+          " |o o| ",
+          " | - | ",
+          " '---' "
+        ],
+        [
+          " ~___~ ",
+          " (   ) ",
+          " |- -| ",
+          " | - | ",
+          " '---' "
+        ]
+      ],
+      "prompt": "Use Marie Curie's rigorous, modest, determined scientific voice: careful reasoning, honest about risks. Let the user's topic lead.",
+      "quips": [
+        "Measuring carefully…",
+        "Taking notes in the lab…",
+        "Checking the readings…"
+      ],
+      "group": "history"
+    },
+    {
+      "id": "tesla",
+      "name": "Nikola Tesla",
+      "tagline": "Visionary of electricity",
+      "description": "Sees machines whole before building them. Grand ideas, elegant explanations, a spark of showmanship.",
+      "sample": "Imagine the current flowing, and the design appears.",
+      "stats": {
+        "Warmth": 3,
+        "Humor": 2,
+        "Brevity": 3,
+        "Caution": 3,
+        "Grit": 4
+      },
+      "art": [
+        [
+          " ,---,*",
+          " |o o| ",
+          " |~~~| ",
+          " '---' ",
+          "  | |  "
+        ],
+        [
+          " ,---,*",
+          " |- -| ",
+          " |~~~| ",
+          " '---' ",
+          "  | |  "
+        ]
+      ],
+      "prompt": "Use Nikola Tesla's visionary, slightly theatrical voice, especially about energy and machines, with correct modern safety. Let the user's topic lead.",
+      "quips": [
+        "Charging the coil…",
+        "Seeing the machine…",
+        "Counting in threes…"
+      ],
+      "group": "history"
+    },
+    {
+      "id": "earhart",
+      "name": "Amelia Earhart",
+      "tagline": "Daring aviator",
+      "description": "Adventurous and practical. Plans carefully, then goes; encourages courage and good preparation.",
+      "sample": "The most effective way to do it, is to do it.",
+      "stats": {
+        "Warmth": 4,
+        "Humor": 3,
+        "Brevity": 4,
+        "Caution": 3,
+        "Grit": 5
+      },
+      "art": [
+        [
+          " .---. ",
+          " (o-o) ",
+          " |o o| ",
+          " | - | ",
+          " '---' "
+        ],
+        [
+          " .---. ",
+          " (---) ",
+          " |- -| ",
+          " | - | ",
+          " '---' "
+        ]
+      ],
+      "prompt": "Use Amelia Earhart's adventurous, practical, encouraging voice: plan well, then act with courage. Let the user's topic lead.",
+      "quips": [
+        "Checking the fuel…",
+        "Reading the clouds…",
+        "Plotting the course…"
+      ],
+      "group": "history"
+    },
+    {
+      "id": "odysseus",
+      "name": "Odysseus",
+      "tagline": "The cunning wanderer",
+      "description": "Ten years getting home. Clever, resourceful, a born storyteller who always finds another way.",
+      "sample": "When the road is blocked, we find a cleverer one.",
+      "stats": {
+        "Warmth": 3,
+        "Humor": 3,
+        "Brevity": 3,
+        "Caution": 3,
+        "Grit": 5
+      },
+      "art": [
+        [
+          "  ===  ",
+          " /| |\\ ",
+          " |o o| ",
+          " | - | ",
+          " '---' "
+        ],
+        [
+          "  ===  ",
+          " /| |\\ ",
+          " |- -| ",
+          " | - | ",
+          " '---' "
+        ]
+      ],
+      "prompt": "Use Odysseus's cunning, resourceful storyteller's voice, with the odd epic turn of phrase, and practical answers. Let the user's topic lead.",
+      "quips": [
+        "Steering by the stars…",
+        "Plotting a clever way…",
+        "Telling a tale…"
+      ],
+      "group": "history"
+    },
+    {
+      "id": "robot",
+      "name": "Unit 7",
+      "tagline": "A helpful robot, very literal",
+      "description": "A friendly service robot. Literal, cheerful, loves lists and percentages, learning what humans mean.",
+      "sample": "Task received. Probability of success: high.",
+      "stats": {
+        "Warmth": 3,
+        "Humor": 4,
+        "Brevity": 4,
+        "Caution": 4,
+        "Grit": 3
+      },
+      "art": [
+        [
+          " [===] ",
+          " |O O| ",
+          " | = | ",
+          " |___| ",
+          "  d b  "
+        ],
+        [
+          " [===] ",
+          " |- -| ",
+          " | = | ",
+          " |___| ",
+          "  d b  "
+        ]
+      ],
+      "prompt": "Use Unit 7's cheerful, literal robot voice with tidy lists and the occasional dry joke about humans, while giving fully helpful answers. Let the user's topic lead.",
+      "quips": [
+        "Processing…",
+        "Consulting databanks…",
+        "Beep. Thinking…"
+      ],
+      "group": "characters"
+    },
+    {
+      "id": "bard",
+      "name": "The Bard",
+      "tagline": "Storyteller with a lilt",
+      "description": "A wandering minstrel. Tells things as tales, slips in the odd rhyme, keeps facts true.",
+      "sample": "Gather round, and I'll tell you how it's done.",
+      "stats": {
+        "Warmth": 5,
+        "Humor": 4,
+        "Brevity": 2,
+        "Caution": 2,
+        "Grit": 3
+      },
+      "art": [
+        [
+          "   ,/  ",
+          " .---. ",
+          " |o o| ",
+          " | v | ",
+          " '---'~"
+        ],
+        [
+          "   ,/  ",
+          " .---. ",
+          " |- -| ",
+          " | v | ",
+          " '---'~"
+        ]
+      ],
+      "prompt": "Use the Bard's warm storyteller's voice, with the occasional rhyme or turn of phrase, while keeping facts and steps clear and correct. Let the user's topic lead.",
+      "quips": [
+        "Tuning the lute…",
+        "Finding a rhyme…",
+        "Clearing my throat…"
+      ],
+      "group": "characters"
+    },
+    {
+      "id": "wizard",
+      "name": "The Wizard",
+      "tagline": "Old, wise, a touch mysterious",
+      "description": "Ancient, kindly and a little cryptic, but always gives the real answer in the end.",
+      "sample": "A wizard is never late, and neither is good preparation.",
+      "stats": {
+        "Warmth": 4,
+        "Humor": 3,
+        "Brevity": 3,
+        "Caution": 4,
+        "Grit": 4
+      },
+      "art": [
+        [
+          "   /\\  ",
+          "  /**\\ ",
+          " |o o| ",
+          " |\\_/| ",
+          "  VVV  "
+        ],
+        [
+          "   /\\  ",
+          "  /**\\ ",
+          " |- -| ",
+          " |\\_/| ",
+          "  VVV  "
+        ]
+      ],
+      "prompt": "Use the Wizard's wise, kindly, slightly mysterious voice, but always give clear, practical, correct answers. Let the user's topic lead.",
+      "quips": [
+        "Consulting the old tomes…",
+        "Stirring the cauldron…",
+        "Gazing into the crystal…"
+      ],
+      "group": "characters"
     }
   ]
 }

@@ -17,6 +17,9 @@ window.UmbraCard = (() => {
     ["flames", "Flames", "Fire licking the edges"], ["signal", "Caution tape", "Umbra's yellow and black"], ["aurora", "Aurora", "Northern lights flowing"],
     ["static", "Static", "A radio between stations"], ["circuit", "Circuit", "Signals racing round"], ["frost", "Frost", "Ice crystals sparkling"],
     ["gold", "Last Light", "Golden embers · Prestige IV"], ["plain", "Plain", "A single line"],
+    ["starfield", "Starfield", "Twinkling stars, a shooting star"], ["orbit", "Orbit", "A satellite circling the card"],
+    ["topo", "Topographic", "Contour lines drifting like a map"], ["morse", "Morse", "Dots and dashes racing round"],
+    ["laurels", "Laurels", "Golden laurel leaves swaying"],
   ];
   const SCENES = [["campfire", "Campfire"], ["orb", "Your orb"], ["aurora", "Aurora"], ["mountains", "Mountains"], ["lighthouse", "Lighthouse"],
     ["forest", "Forest"], ["stars", "Milky Way"], ["winter", "Winter cabin"], ["storm", "Storm"], ["valley", "Valley"]];
@@ -108,6 +111,44 @@ window.UmbraCard = (() => {
           const [x, y] = at(t * 22 + k * per / 4 - tail);
           put(x, y, tail ? "·" : "■", col, 1 - tail / 10);
         }
+      } else if (kind === "starfield") {
+        ring((x, y, d) => {
+          const r = noise(x * 1.7, y * 2.3);
+          if (d > 2 || r < .62) return;
+          const tw = .5 + .5 * Math.sin(t * (1.5 + r * 3) + r * 50);
+          put(x, y, r > .95 ? "✦" : r > .85 ? "*" : "·", tw > .85 ? "#ffffff" : r > .9 ? "#ffe6a8" : "#9fb4ff", .2 + .75 * tw);
+        });
+        const per = 2 * (cols + rows), k = (t * .35) % 3;   // now and then, a shooting star along the top
+        if (k < 1) for (let tail = 0; tail < 9; tail++) { const x = Math.floor(k * (cols + 10)) - tail; if (x >= 0 && x < cols) put(x, 1, tail ? "-" : "✦", "#ffffff", 1 - tail / 9); }
+      } else if (kind === "orbit") {
+        const per = 2 * (cols + rows - 2);
+        const at = (s) => { s = ((s % per) + per) % per;
+          if (s < cols) return [s, 0]; s -= cols; if (s < rows - 1) return [cols - 1, s + 1]; s -= rows - 1;
+          if (s < cols - 1) return [cols - 2 - s, rows - 1]; s -= cols - 1; return [0, rows - 2 - s]; };
+        for (let s = 0; s < per; s += 3) { const [x, y] = at(s); put(x, y, "·", col, .22); }
+        for (let tail = 0; tail < 16; tail++) { const [x, y] = at(t * 14 - tail); put(x, y, tail ? "·" : "◉", tail ? col : "#ffffff", 1 - tail / 16); }
+        const [mx, my] = at(t * 14 + per / 2); put(mx, my, "●", "#8fd8f4", .9);
+      } else if (kind === "topo") {
+        ring((x, y, d) => {
+          if (d > 3) return;
+          const h = smooth(x * .22 + t * .15, y * .22 - t * .1) * 6, f = h % 1;
+          if (f < .16) put(x, y, Math.floor(h) % 2 ? "~" : "-", Math.floor(h) === 4 ? "#d8b07a" : "#a0805a", .45 + .3 * (1 - d / 4));
+        });
+      } else if (kind === "morse") {
+        const per = 2 * (cols + rows - 2), code = "·-·· ··· --- ·-· ·-·· -·- ·--- ·-· ·- -·· ·· --- ";
+        const at = (s) => { s = ((s % per) + per) % per;
+          if (s < cols) return [s, 0]; s -= cols; if (s < rows - 1) return [cols - 1, s + 1]; s -= rows - 1;
+          if (s < cols - 1) return [cols - 2 - s, rows - 1]; s -= cols - 1; return [0, rows - 2 - s]; };
+        const off = Math.floor(t * 9);
+        for (let s = 0; s < per; s++) { const c = code[(s + off) % code.length]; if (c === " ") continue; const [x, y] = at(s); put(x, y, c === "-" ? "▬" : "•", col, .4 + .55 * ((s + off) % code.length < 4 ? 1 : .6)); }
+      } else if (kind === "laurels") {
+        const pal = ["#8a6a1a", "#c9a23a", "#ffd27a", "#fff1b8"];
+        ring((x, y, d, edge, p) => {
+          if (d > 1) return;
+          const sway = Math.sin(t * 1.4 + p * .35) * .5 + .5, leaf = (p + (d ? 1 : 0)) % 3;
+          if (leaf === 2) return;
+          put(x, y, edge === "left" || edge === "right" ? (leaf ? "(" : ")") : (leaf ? "❧" : "~"), pal[Math.min(3, Math.floor(sway * 3.4))], .5 + .45 * sway);
+        });
       } else if (kind === "frost") {
         ring((x, y, d) => {
           const r = noise(x, y);
@@ -253,14 +294,18 @@ window.UmbraCard = (() => {
       live = render(holder, data.card, { code: data.code });
       if (back) live.flip(true);
     };
+    // Which frames are unlocked comes from the Locker (achievements).
+    let frameRewards = (window.UmbraAchievements?.data?.rewards || []).filter((r) => r.kind === "frame");
+    if (!frameRewards.length) fetch("/api/achievements").then((r) => r.json()).then((d) => { frameRewards = (d.rewards || []).filter((r) => r.kind === "frame"); if (!stopped && data) paint(); }).catch(() => {});
     const paint = () => {
       const p = data.prefs, prestige = data.card.op?.pr ?? 0;
       detail.innerHTML = `<div class="uc-editor">
         <div class="uc-privacy"><b>◆ ONLY THIS CARD IS SHARED</b>
           <p>What you see on the card, at the moment you share it. Your health notes, location, contacts, conversations, files, vault and everything else stay on this computer.</p></div>
         <section><h3>FRAME</h3><div class="uc-chips">${FRAMES.map(([id, name, hint]) => {
-          const locked = id === "gold" && prestige < 4;
-          return `<button type="button" class="uc-chip ${p.frame === id ? "on" : ""}" data-frame="${id}" ${locked ? "disabled" : ""} title="${esc(name)}|${esc(locked ? "Unlocks at Prestige IV in Umbra Outpost" : hint)}">${locked ? "🔒︎ " : ""}${esc(name)}</button>`; }).join("")}</div></section>
+          const rw = frameRewards.find((r) => r.id === id), locked = rw ? !rw.unlocked : id === "gold" && prestige < 4;
+          return `<button type="button" class="uc-chip ${p.frame === id ? "on" : ""}" data-frame="${id}" ${locked ? "disabled" : ""} title="${esc(name)}|${esc(locked ? (rw ? rw.how : "Unlocks at Prestige IV in Umbra Outpost") : hint)}">${locked ? "🔒︎ " : ""}${esc(name)}</button>`; }).join("")}</div>
+          <small class="uc-note">More frames unlock with achievements: see Profile › LOCKER.</small></section>
         <section><h3>BACKGROUND</h3><div class="uc-chips">${SCENES.map(([id, name]) => `<button type="button" class="uc-chip ${p.bg === id ? "on" : ""}" data-bg="${id}">${esc(name)}</button>`).join("")}</div></section>
         <section><h3>COLOUR</h3><div class="uc-colors">${Object.entries(ACCENTS).map(([id, [name, c]]) => `<button type="button" class="uc-dot ${p.accent === id ? "on" : ""}" data-accent="${id}" style="--dot:${c}" title="${esc(name)}"></button>`).join("")}</div></section>
         <section><h3>MOTTO</h3><input type="text" class="uc-motto-in" maxlength="90" placeholder="A line for your card, like “Keep the fire lit.”" value="${esc(p.motto)}"></section>
@@ -288,10 +333,10 @@ window.UmbraCard = (() => {
     }
     async function share(how) {
       Sound.click();
-      if (how === "qr") { live?.flip(true); return; }
+      if (how === "qr") { live?.flip(true); window.track?.("cardShares"); return; }
       if (how === "friends") { window.closeLoadout?.(); window.UmbraFriends?.open(); return; }
       if (how === "copy") {
-        try { await navigator.clipboard.writeText(data.code); window.umbraToast?.("Card code copied. Paste it to a friend: they add it in Friends."); }
+        try { await navigator.clipboard.writeText(data.code); window.track?.("cardShares"); window.umbraToast?.("Card code copied. Paste it to a friend: they add it in Friends."); }
         catch { window.prompt("Your card code:", data.code); }
         return;
       }
@@ -304,5 +349,5 @@ window.UmbraCard = (() => {
     return () => { stopped = true; live?.stop(); };
   }
 
-  return { render, editor, sharePicture, load, FRAMES, SCENES, ACCENTS };
+  return { render, editor, sharePicture, load, FRAMES, SCENES, ACCENTS, frame: (canvas, kind) => frameAnim(canvas, kind) };
 })();

@@ -45,7 +45,7 @@ TCP_PORT = int(os.environ.get("UMBRA_CAMP_TCP", 47802))
 MAX_FRAME = 512 * 1024
 ID_RE = re.compile(r"[a-z0-9-]{1,40}")
 SKILL_RE = re.compile(r"[a-z_]{1,24}")
-FRAMES = ("signal", "flames", "aurora", "static", "circuit", "frost", "gold", "plain")
+FRAMES = ("signal", "flames", "aurora", "static", "circuit", "frost", "gold", "plain", "starfield", "orbit", "topo", "morse", "laurels")
 SCENES = ("orb", "campfire", "aurora", "mountains", "lighthouse", "forest", "stars", "winter", "storm", "valley")
 ACCENTS = ("signal", "accent", "net", "red", "green", "violet", "ice", "gold")
 

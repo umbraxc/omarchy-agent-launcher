@@ -149,7 +149,7 @@
     const el = document.createElement("div");
     el.className = `ac-toast ${a.reward ? "legendary reward" : a.tier}`;
     el.innerHTML = a.reward
-      ? `<span class="ac-badge lk-toast-icon">✦</span><span class="ac-toast-text"><small>REWARD UNLOCKED · ${({ orb: "ORB", title: "TITLE", name: "NAME EFFECT" })[a.kind] || "REWARD"}</small><b></b><span></span></span>`
+      ? `<span class="ac-badge lk-toast-icon">✦</span><span class="ac-toast-text"><small>REWARD UNLOCKED · ${({ orb: "ORB", title: "TITLE", name: "NAME EFFECT", frame: "CARD FRAME" })[a.kind] || "REWARD"}</small><b></b><span></span></span>`
       : `${badge(a)}<span class="ac-toast-text"><small>ACHIEVEMENT UNLOCKED · +${a.points}</small><b></b><span></span></span>`;
     el.querySelector("b").textContent = a.name;
     el.querySelector(".ac-toast-text > span").textContent = a.reward ? "Equip it in your Locker (Profile → LOCKER)." : a.description;
@@ -166,8 +166,10 @@
   // unlocked by rank or by particular achievements, and equipped here.
   const SLOT = { orb: "orb", title: "title", name: "nameFx" };
   const KIND = [["orb", "START-SCREEN ORBS", "The sphere on the start screen (and while I think)."],
-    ["title", "TITLES", "Shown after your name in conversations and on your profile."],
-    ["name", "NAME EFFECTS", "How your name looks in conversations."]];
+    ["title", "TITLES", "Shown after your name in conversations, on your profile and on your card."],
+    ["name", "NAME EFFECTS", "How your name looks in conversations, on your profile and on your card."],
+    ["frame", "CARD FRAMES", "The animated border of your profile card, the one your friends see."]];
+  const KIND_NAME = { orb: "START-SCREEN ORB", title: "TITLE", name: "NAME EFFECT", frame: "CARD FRAME" };
   let lockerStops = [], lockerPick = null;
   function youLine(eq) {
     const me = (window.UmbraProfile && window.UmbraProfile.data) || {};
@@ -182,19 +184,24 @@
     if (r) eq[r.kind] = r.id;
     if (previewStop) previewStop();
     const on = r && data.equipped[r.kind] === r.id;
-    detail.innerHTML = `<div class="lk-stage"><pre class="orb lk-big"></pre><div class="lk-name">${youLine(eq)}</div></div>
-      ${r ? `<div class="lk-what"><small>${({ orb: "START-SCREEN ORB", title: "TITLE", name: "NAME EFFECT" })[r.kind]}</small><h3>${escapeHtml(r.name)}</h3>
+    detail.innerHTML = `<div class="lk-stage">${r && r.kind === "frame" ? `<div class="lk-frame-big"><canvas></canvas><div class="lk-name">${youLine(eq)}</div></div>` : `<pre class="orb lk-big"></pre><div class="lk-name">${youLine(eq)}</div>`}</div>
+      ${r ? `<div class="lk-what"><small>${KIND_NAME[r.kind]}</small><h3>${escapeHtml(r.name)}</h3>
         <p>${escapeHtml(r.description || (r.kind === "title" ? "Shown after your name in conversations and on your profile." : ""))}</p>
         <p class="lk-how ${r.unlocked ? "ok" : ""}">${r.unlocked ? "\u{F0C8F} UNLOCKED" : "\u{F033E} " + escapeHtml(r.how)}</p>
         ${r.unlocked ? `<button class="solid lk-equip" ${on ? "disabled" : ""}>${on ? "EQUIPPED ✓" : "EQUIP"}</button>` : ""}</div>`
-        : `<div class="lk-what"><small>YOUR LOCKER</small><h3>How you look</h3><p>Earn achievements for points: points raise your rank, and ranks and certain achievements unlock the orbs, titles and name effects here. Pick one to see it on you.</p></div>`}`;
-    if (window.umbraOrb) previewStop = window.umbraOrb(detail.querySelector(".lk-big"), 19, 13, eq.orb);
+        : `<div class="lk-what"><small>YOUR LOCKER</small><h3>How you look</h3><p>Earn achievements for points: points raise your rank, and ranks and certain achievements unlock the orbs, titles, name effects and card frames here. Pick one to see it on you.</p></div>`}`;
+    const big = detail.querySelector(".lk-big"), fc = detail.querySelector(".lk-frame-big canvas");
+    if (big && window.umbraOrb) previewStop = window.umbraOrb(big, 19, 13, eq.orb);
+    else if (fc && window.UmbraCard) previewStop = UmbraCard.frame(fc, r.id);
     const b = detail.querySelector(".lk-equip");
     if (b) b.addEventListener("click", () => equip(r, detail));
   }
   async function equip(r, detail) {
-    await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [SLOT[r.kind]]: r.id }) });
-    if (window.prefs) window.prefs[SLOT[r.kind]] = r.id;
+    if (r.kind === "frame") await fetch("/api/card", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ frame: r.id }) });
+    else {
+      await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [SLOT[r.kind]]: r.id }) });
+      if (window.prefs) window.prefs[SLOT[r.kind]] = r.id;
+    }
     Sound.theme();
     await load();
     lockerPick = r.id;
@@ -218,7 +225,7 @@
       ${KIND.map(([k, label, line]) => `<div class="lib-head"><span>${label}</span><b>${data.rewards.filter((r) => r.kind === k && r.unlocked).length}/${data.rewards.filter((r) => r.kind === k).length}</b></div>
         <p class="lib-note">${line}</p><div class="lk-grid lk-kind-${k}">${data.rewards.filter((r) => r.kind === k).map((r) => `
           <button class="lk-card${r.unlocked ? "" : " locked"}${eq[k] === r.id ? " on" : ""}${lockerPick === r.id ? " picked" : ""}" data-id="${escapeHtml(r.id)}" data-kind="${k}">
-            ${k === "orb" ? `<pre class="orb lk-orb" data-style="${escapeHtml(r.id)}"></pre>` : k === "name"
+            ${k === "orb" ? `<pre class="orb lk-orb" data-style="${escapeHtml(r.id)}"></pre>` : k === "frame" ? `<span class="lk-sample lk-frame"><canvas data-frame="${escapeHtml(r.id)}"></canvas></span>` : k === "name"
               ? `<span class="lk-sample"><span class="who fx-${escapeHtml(r.id)}">${escapeHtml(((window.UmbraProfile && window.UmbraProfile.data.name) || "YOU").toUpperCase())}</span></span>`
               : `<span class="lk-sample"><span class="title-tag">${escapeHtml(r.id === "none" ? "—" : r.name.toUpperCase())}</span></span>`}
             <b>${escapeHtml(r.name)}</b><small>${r.unlocked ? (eq[k] === r.id ? "EQUIPPED" : "UNLOCKED") : "\u{F033E} LOCKED"}</small></button>`).join("")}</div>`).join("")}`;
@@ -226,6 +233,7 @@
     if (again) grid.scrollTop = top;
     preview(detail, data.rewards.find((r) => r.id === lockerPick));
     if (window.umbraOrb) grid.querySelectorAll(".lk-orb").forEach((el) => lockerStops.push(window.umbraOrb(el, 13, 9, el.dataset.style)));
+    if (window.UmbraCard) grid.querySelectorAll(".lk-frame canvas").forEach((el) => lockerStops.push(UmbraCard.frame(el, el.dataset.frame)));
     grid.querySelectorAll(".lk-card").forEach((c) => {
       const r = data.rewards.find((x) => x.id === c.dataset.id && x.kind === c.dataset.kind);
       c.addEventListener("mouseenter", () => { Sound.hover(); preview(detail, r); });
