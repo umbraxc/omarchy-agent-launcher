@@ -4113,3 +4113,10 @@ body.reduce-motion .fx-nebula, body.reduce-motion .fx-chrome, body.reduce-motion
 .lo-groups button small { color: var(--faint); font-size: 9px; letter-spacing: 0; }
 .lo-groups button:hover { color: var(--fg-bright); border-color: var(--signal); }
 .lo-groups button.on { color: var(--signal); border-color: var(--signal); background: var(--signal-soft); } .lo-groups button.on small { color: var(--signal); }
+
+/* Locker: start screens and transitions, as stills in the grid and live in the side pane. */
+.lk-sample.lk-scene { position: relative; display: block; width: 100%; height: 58px; min-height: 0; border: 1px solid var(--line); background: var(--bg); overflow: hidden; }
+.lk-sample.lk-scene canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lk-card.locked .lk-scene canvas { filter: grayscale(0.7) brightness(0.7); }
+.lk-scene-big { position: relative; width: min(340px, 100%); aspect-ratio: 860 / 330; border: 1px solid var(--line); background: var(--bg); overflow: hidden; }
+.lk-scene-big canvas { position: absolute; inset: 0; width: 100%; height: 100%; }

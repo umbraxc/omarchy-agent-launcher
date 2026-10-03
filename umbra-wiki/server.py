@@ -212,7 +212,8 @@ UMBRA_GUIDE = (
     "ORACLE, VANGUARD, COMMAND, and for big computers CIPHER 24 GB, TITAN 32 GB, STRATEGIST and ADMIRAL 32 GB with a "
     "graphics card, ATLAS 64 GB with a large graphics card), what each is good at, which is recommended for this computer, "
     "and which it can't run; the LOCKER (Profile, LOCKER tab): rewards unlocked by rank and achievements: start-screen "
-    "orbs, titles, name effects and card frames. LOADOUT scenarios (everyday, outdoors, emergency, fiction such as a "
+    "orbs, titles, name effects, card frames, start-screen backgrounds and transitions (the darkest, like the Reaper, "
+    "Burning skulls or Hellfire, need the hardest achievements or the ranks Warlord, Mythic and Immortal). LOADOUT scenarios (everyday, outdoors, emergency, fiction such as a "
     "zombie outbreak or a Mars colony, and learn and create such as Language Lab or Game Night) and personalities "
     "(the crew, figures from history, characters) are grouped; the user can create their own. The welcome tour "
     "can be replayed from Settings as a quick start or a full briefing. Everything works offline; only online mode, downloads and the update check use "
@@ -244,9 +245,17 @@ FEATURE_NOTES = [
      "Share your own card as a QR code, a .umbracard file or a code (Profile, CARD tab); a friend adds it in Friends. The CAMP "
      "NETWORK links Umbras on the same Wi-Fi or hotspot directly and encrypted, with no internet: both screens show the same "
      "six-digit code to confirm, then you can chat and see each other's cards live. Only the card is ever shared."),
-    (r"locker|(?:new|my|get a|unlock)(?: new)? titles?|name effects?|card frames?|start-?screen orbs?", "THE LOCKER (Profile, LOCKER tab): rewards earned with achievements "
-     "and rank: start-screen orbs, titles shown after your name, name effects (Glow, Frost, Starlight, Holographic…) and "
-     "animated frames for your profile card (Starfield, Orbit, Morse, Laurels…). Pick one to preview it, EQUIP to wear it."),
+    (r"locker|(?:new|my|get a|unlock)(?: new)? titles?|name effects?|card frames?|start[- ]?screen orbs?|start[- ]?screens?(?: backgrounds?)?|(?:new|which|what|unlock|get|my|more|locked) transitions?|transitions? (?:in|for|on) (?:umbra|the app|the locker|settings)|(?:my|next|new|highest) rank|rank (?:after|above|comes)|ranks? in umbra|warlord|mythic rank|immortal rank|(?:the )?reaper (?:start|background|screen)|burning skulls|watching eye|event horizon background", "THE LOCKER (Profile, LOCKER tab): rewards earned with achievements "
+     "and rank: start-screen orbs, titles shown after your name, name effects (Glow, Frost, Starlight, Holographic…), "
+     "animated frames for your profile card (Starfield, Orbit, Morse, Laurels…), START SCREENS (what moves behind the "
+     "start screen: free ones like Thunderstorm, Moonlit sea, Sandstorm and Constellations; earned ones like Spiral galaxy, "
+     "Meteor shower and Circuitry; and the hardest, darkest ones: Rain of blades at rank Warlord, Inferno at Prestige III, "
+     "Burning skulls at rank Mythic, the Watching Eye for bringing every companion home, Event horizon for Umbra Complete "
+     "and the Reaper for Legend of the Wasteland) and TRANSITIONS (Ripple, Curtain, Checkerboard; Hyperspace, Shatter, "
+     "Blade slash, Bloodfall, Hellfire, Eclipse, Reaper's scythe; Death's door at rank Immortal). Ranks go Recruit, Scout, "
+     "Ranger, Pathfinder, Survivalist, Veteran, Legend, Warlord (1,500 points), Mythic (2,200) and Immortal (3,000). "
+     "Hover a start screen or transition to see it move; pick one to preview it, EQUIP to use it. Start screens and "
+     "transitions change Umbra itself (the start screen, the boot and the goodbye), not the profile card; Settings also lists them."),
     (r"loadout|(?:umbra'?s|new|which|what|more) (?:scenarios?|personalit(?:y|ies))|create (?:a |my own )?(?:scenario|personality)", "LOADOUT (Ctrl+O): a SCENARIO is the situation you're in or what you're here "
      "for (34, grouped as everyday, outdoors, emergency, fiction and learn & create), a PERSONALITY is how Umbra talks (30: "
      "the crew, figures from history, characters). The facts never change, only the focus and the voice. You can create your own."),
@@ -260,6 +269,34 @@ FEATURE_NOTES = [
     (r"umbra online|online mode", "UMBRA ONLINE: when you go online, a web browser opens beside the conversation. Umbra "
      "reads the page with you and can summarise it, explain a selection, look at the screen, or save the page to the Library."),
 ]
+
+
+KIND_WORDS = {"orb": "start-screen orb", "title": "title", "name": "name effect", "frame": "card frame",
+              "background": "start-screen background", "transition": "transition"}
+
+
+def reward_facts(question):
+    """The exact unlock rule of any Locker reward the question names, so the
+    answer never mixes one reward's rule up with another's."""
+    try:
+        rewards, _ = reward_status()
+    except Exception:
+        return []
+    names = {a["id"]: a for a in achievement_catalog()["achievements"]}
+    q, out = question.lower(), []
+    for r in sorted(rewards, key=lambda r: -len(r["name"])):
+        name = r["name"].lower()
+        if len(name) < 4 or not re.search(r"(?<![a-z])" + re.escape(name) + r"(?![a-z])", q) or any(name in o.lower() for o in out):
+            continue
+        u = r.get("unlock") or {}
+        why = ""
+        if "achievement" in u and u["achievement"] in names:
+            why = f" (“{names[u['achievement']]['name']}”: {names[u['achievement']]['description']})"
+        out.append(f"{r['name']} is a {KIND_WORDS.get(r['kind'], r['kind'])} in the Locker. How to get it: {r['how']}{why}. "
+                   f"{'The user already has it.' if r['unlocked'] else 'The user has not unlocked it yet.'}")
+        if len(out) >= 3:
+            break
+    return out
 
 
 def app_question(question):
@@ -281,6 +318,7 @@ ABOUT_UMBRA = re.compile(r"\b(umbra|this app|the app|your (features|tools|functi
                          r"wonders? (?:on|in) the maps?|country files?|full country file|"
                          r"friends (?:tab|screen|list)|add (?:a )?friends?|profile card|camp network|umbra online|online mode|locker|"
                          r"(?:new|my|get a|unlock)(?: new)? titles?|name effects?|card frames?|loadout|"
+                         r"start[- ]?screens?(?: backgrounds?)?|(?:new|which|what|unlock|get|my|more|locked) transitions?|transitions? (?:in|for|on) (?:umbra|the app|the locker|settings)|(?:my|next|new|highest) rank|rank (?:after|above|comes)|ranks? in umbra|warlord|mythic rank|immortal rank|(?:the )?reaper (?:start|background|screen)|burning skulls|watching eye|event horizon background|"
                          r"(?:umbra'?s|new|which|what|more) (?:scenarios?|personalit(?:y|ies))|"
                          r"(?:umbra'?s|local|new|bigger|which) ai models?|which model|core panel)\b", re.I)
 
@@ -1870,6 +1908,11 @@ def achievement_catalog():
     if _catalog is None:
         try:
             _catalog = json.load(open(os.path.join(APP_DIR, "achievements.json")))
+            # The legend means every other achievement, however many there are.
+            others = sum(1 for a in _catalog["achievements"] if a["stat"] != "allOthers")
+            for a in _catalog["achievements"]:
+                if a["stat"] == "allOthers":
+                    a["goal"] = others
         except (OSError, ValueError):
             _catalog = {"achievements": [], "categories": [], "tiers": {}, "ranks": [[0, "Recruit"]]}
     return _catalog
@@ -1891,7 +1934,8 @@ def _ach_state():
 
 # ------------------------------------------------------------------ rewards
 
-REWARD_SLOTS = {"orb": "orb", "title": "title", "name": "nameFx", "frame": "card.frame"}   # kind → the setting that equips it
+REWARD_SLOTS = {"orb": "orb", "title": "title", "name": "nameFx", "frame": "card.frame",
+                "background": "background", "transition": "transition"}   # kind → the setting that equips it
 
 
 def reward_status(st=None):
@@ -2005,8 +2049,8 @@ def _stat(st, stat):
         return int(len(used & crops) >= 8 and len(used & animals) >= 4)
     if stat == "expeditionBreadth":
         pillars = ("questions", "manualsRead", "waypoints", "medicTools", "drills", "sunChecks", "farmItems",
-                   "radioTracks", "themes", "vault", "mapPacks")
-        goals = (50, 8, 8, 4, 12, 10, 10, 6, 5, 1, 2)
+                   "radioTracks", "themes", "vault", "mapPacks", "worlds", "wonders", "dossiers", "friends")
+        goals = (50, 8, 8, 4, 12, 10, 10, 6, 5, 1, 2, 8, 7, 10, 1)
         return sum(_stat(st, key) >= need for key, need in zip(pillars, goals))
     if stat == "radarDevices":
         try:
@@ -2104,9 +2148,15 @@ def achievements(mark_seen=False):
             st["unseen"] = []
             changed = True
         rewards, equipped = reward_status(st)
-        unlocked = [r["id"] for r in rewards if r["unlocked"]]
-        new_rewards = [] if st["rewardsSeen"] is None else [i for i in unlocked if i not in st["rewardsSeen"]]
-        if mark_seen and (new_rewards or st["rewardsSeen"] is None):
+        # Rewards are told apart by kind and id (a background and an orb can
+        # share a name). Ones that are everyone's from the start are never "new".
+        unlocked = [f"{r['kind']}:{r['id']}" for r in rewards if r["unlocked"]]
+        seen = st["rewardsSeen"]
+        if seen is not None and not any(":" in i for i in seen):   # saved before kinds were tracked
+            seen = [f"{r['kind']}:{r['id']}" for r in rewards if r["id"] in seen or not r.get("unlock")]
+        new_rewards = [] if seen is None else [i for i in unlocked if i not in seen and
+                                               any(f"{r['kind']}:{r['id']}" == i and r.get("unlock") for r in rewards)]
+        if mark_seen and (new_rewards or seen != st["rewardsSeen"]):
             st["rewardsSeen"] = unlocked
             changed = True
         if changed:
@@ -3270,11 +3320,7 @@ def apply_settings(update):
         if isinstance(update.get("headerOrder"), list):
             allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "galaxy-btn", "fieldkit-btn", "farming-btn", "outpost-btn", "friends-btn", "radar-btn", "theme-btn", "sound", "lock"}
             settings["headerOrder"] = list(dict.fromkeys(c for c in update["headerOrder"] if isinstance(c, str) and c in allowed))
-        if update.get("background") in ("rain", "rise", "rings", "stars", "forest", "snow", "aurora",
-                                         "embers", "radar", "none"):
-            settings["background"] = update["background"]
-        if update.get("transition") in ("wave", "rain", "scan", "static", "blinds", "split", "diamond", "spiral"):
-            settings["transition"] = update["transition"]
+        # Backgrounds and transitions are Locker rewards: equipped below, with REWARD_SLOTS.
         if update.get("offgrid") in ("off", "on", "auto"):
             settings["offgrid"] = update["offgrid"]
         if update.get("webChat") in ("off", "gentle", "chatty"):
@@ -5695,7 +5741,7 @@ def answer(req, emit):
         if req.get("folder"):
             system += " " + folder_prompt(req.get("folder"))
         if ABOUT_UMBRA.search(question):
-            notes = feature_notes(question)
+            notes = feature_notes(question) + reward_facts(question)
             if notes:
                 system += (" THE USER IS ASKING ABOUT THIS PART OF THE APP (answer from it, and don't confuse it with "
                            "other features or AI models): " + " ".join(notes))

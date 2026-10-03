@@ -102,7 +102,9 @@ window.Ascii3D = (() => {
         px: new Float32Array(n), py: new Float32Array(n), pz: new Float32Array(n), sh: new Float32Array(n),
         ao: new Float32Array(n), m: new Array(n), sd: new Float32Array(n), st: new Uint8Array(n),
         // The still trace of each cell, kept to restore when a moving part leaves it.
-        sm: new Array(n), sn: new Float32Array(n * 3), ssh: new Float32Array(n), sao: new Float32Array(n) };
+        sm: new Array(n), sn: new Float32Array(n * 3), ssh: new Float32Array(n), sao: new Float32Array(n),
+        // For turning models: when each cell was last marched, and its clearance.
+        ct: new Float32Array(n).fill(-1), cl: new Float32Array(n) };
       built = 0; layer = null; shim = null;
       return true;
     }
@@ -119,11 +121,14 @@ window.Ascii3D = (() => {
     }
 
     const MAX = 160;
+    let clearance = 0;   // after a miss: how near the ray came to any surface
     function march(ox, oy, oz, dx, dy, dz, t, far, d0) {
       let d = d0 || .01;
+      clearance = 99;
       for (let i = 0; i < MAX; i++) {
         const s = scene.map(ox + dx * d, oy + dy * d, oz + dz * d, t, hit);
         if (s < .0015 * d + .0008) return [d, i];
+        if (s < clearance) clearance = s;
         d += s * (scene.step || .9);
         if (d > far) return [-1, MAX];
       }
@@ -139,8 +144,12 @@ window.Ascii3D = (() => {
       return [nx / l, ny / l, nz / l];
     }
     function shadow(x, y, z, lx, ly, lz, t) {
-      let res = 1, d = .03; const h = { m: "" };
-      for (let i = 0; i < 40 && d < 12; i++) {
+      let res = 1, d = .03, end = 12; const h = { m: "" };
+      if (bounds) {   // nothing outside the scene's sphere can cast a shadow
+        const ox = x - bounds.c[0], oy = y - bounds.c[1], oz = z - bounds.c[2], bq = ox * lx + oy * ly + oz * lz;
+        end = Math.min(end, -bq + Math.sqrt(Math.max(0, bq * bq - (ox * ox + oy * oy + oz * oz - bounds.r * bounds.r))));
+      }
+      for (let i = 0; i < 40 && d < end; i++) {
         const s = scene.map(x + lx * d, y + ly * d, z + lz * d, t, h);
         if (s < .001) return .15;
         res = Math.min(res, 8 * s / d); d += Math.max(.02, s);
@@ -154,7 +163,8 @@ window.Ascii3D = (() => {
     // before the still surface the first trace found, whichever is nearer:
     // nothing can lie in front of that, so far fewer steps for the same picture.
     function traceCell(i, t, again) {
-      const B = cam, far = scene.far || 60, [lx, ly, lz] = lightDir;
+      const B = cam, [lx, ly, lz] = lightDir;
+      let far = scene.far || 60;
       const col = i % cols, row = (i - col) / cols;
       const sx = (col + .5) * cw - W / 2, sy = H / 2 - (row + .5) * ch;
       let dx = B.fx * B.focal + B.rx * sx + B.ux * sy, dy = B.fy * B.focal + B.uy * sy, dz = B.fz * B.focal + B.rz * sx + B.uz * sy;
@@ -170,7 +180,30 @@ window.Ascii3D = (() => {
         if (start >= far) { buf.d[i] = -1; buf.m[i] = ""; return; }   // sky, and no moving part on this ray
         d0 = Math.max(.01, start);
       }
+      // A scene that fits in a sphere (a figure on a stand): rays that miss
+      // it are sky at once, and the rest start where they enter it.
+      if (bounds) {
+        const [bx, by, bz] = bounds.c, ox = B.px - bx, oy = B.py - by, oz = B.pz - bz, bq = ox * dx + oy * dy + oz * dz;
+        const disc = bq * bq - (ox * ox + oy * oy + oz * oz - bounds.r * bounds.r);
+        if (disc < 0) { buf.d[i] = -1; buf.m[i] = ""; if (!again) { buf.sd[i] = -1; buf.st[i] = 0; } return; }
+        const root = Math.sqrt(disc), entry = Math.max(d0, -bq - root, .01);
+        d0 = entry; far = Math.min(far, -bq + root + .05);
+        // A turning model moves only a little between frames (scene.motion:
+        // at most that far a second). A ray that missed it by a margin still
+        // misses until the model could have closed the gap; a ray that hit it
+        // starts again just in front of where it hit.
+        if (scene.motion && !again && built >= rows && buf.ct[i] >= 0) {
+          const moved = scene.motion * Math.abs(t - buf.ct[i]) + .004;
+          if (buf.d[i] < 0) {
+            if (buf.cl[i] > moved) { buf.m[i] = ""; return; }
+          } else {
+            const near = buf.d[i] - moved * 3 - .03;
+            if (near > entry && scene.map(B.px + dx * near, B.py + dy * near, B.pz + dz * near, t, hit) > .002) d0 = near;
+          }
+        }
+      }
       const [d, n] = march(B.px, B.py, B.pz, dx, dy, dz, t, far, d0);
+      if (bounds && scene.motion && !again) { buf.ct[i] = t; buf.cl[i] = d < 0 ? clearance : 0; }
       // Steps skipped count as the still trace's, so shading stays even.
       const steps = again ? Math.min(MAX, n + (buf.sd[i] > 0 ? buf.st[i] * Math.min(1, d0 / buf.sd[i]) : 0)) : n;
       if (!again) { buf.sd[i] = d; buf.st[i] = Math.min(255, n); }
@@ -190,7 +223,9 @@ window.Ascii3D = (() => {
       if (!again) { buf.sm[i] = hit.m; buf.sn[i * 3] = nx; buf.sn[i * 3 + 1] = ny; buf.sn[i * 3 + 2] = nz; buf.sao[i] = buf.ao[i]; buf.ssh[i] = buf.sh[i]; }
     }
     // Trace rows [from, to) into the buffer.
+    let bounds = null;
     function trace(from, to, t) {
+      bounds = typeof scene.bound === "function" ? scene.bound(t) : scene.bound || null;
       let [lx, ly, lz] = scene.light || [.5, .8, .3]; const ll = Math.hypot(lx, ly, lz);
       lightDir = [lx / ll, ly / ll, lz / ll];
       for (let i = from * cols, n = to * cols; i < n; i++) traceCell(i, t);
@@ -244,6 +279,17 @@ window.Ascii3D = (() => {
     }
     // A material is "live" when its shading depends on time (water, fire).
     const isLive = (mk) => { const mat = scene.materials[mk]; return !!(mat && mat.shade && mat.shade.length >= 2); };
+    // ...but a live cell whose look never changes (firelight too faint to
+    // flicker visibly that far from the fire) is drawn once with the still
+    // ones: it's shaded at a few moments and kept live only if they differ.
+    function looksLive(i, t, lx, ly, lz) {
+      let lo = Infinity, hi = 0, glyphs = new Set();
+      const probe = (x, y, glyph, rgb, alpha) => { const l = alpha * (.3 * rgb[0] + .59 * rgb[1] + .11 * rgb[2]); lo = Math.min(lo, l); hi = Math.max(hi, l); glyphs.add(glyph); };
+      for (const dt of [0, .13, .29, .47, .71, .97, 1.3, 2.1, 3.4, 5.5, 8.9, 14.4]) shadeCell(i, t + dt, probe, lx, ly, lz);
+      // Live when its brightness visibly changes, or its glyph changes for
+      // reasons other than a faint flicker (fire, water, a blinking light).
+      return hi - lo > hi * .12 + 5 || (glyphs.size > 2) || (glyphs.size > 1 && hi - lo > hi * .05 + 3);
+    }
     const cell = {};   // the cell handed to custom shaders
     function shadeCell(i, t, put, lx, ly, lz) {
       const col = i % cols, row = (i - col) / cols, x = (col + .5) * cw, y = (row + .5) * ch;
@@ -321,7 +367,7 @@ window.Ascii3D = (() => {
             const mk = buf.m[i];
             if (movingCells && movingCells.set && movingCells.set.has(i)) continue;
             if (!mk) { if (scene.sky) skyCells.push(i); }
-            else if (isLive(mk)) liveCells.push(i);
+            else if (isLive(mk) && looksLive(i, t, lx, ly, lz)) liveCells.push(i);
             else shadeCell(i, t, still.put, lx, ly, lz);
           }
           draw(lctx, still);
@@ -365,12 +411,88 @@ window.Ascii3D = (() => {
       draw(g, dyn);
     }
 
+    // A turntable (scene.turntable: { speed } on a model turning about the
+    // vertical axis): its surface is captured once, traced from a dozen
+    // angles, as points; each frame then turns the points and drops them into
+    // the cells nearest the eye. Smooth at any speed for a tiny fraction of
+    // tracing every frame.
+    let tt = null;
+    function captureView(k, K) {
+      const speed = scene.turntable.speed, a = (k / K) * Math.PI * 2, tk = a / speed;
+      cam = camBasis(tk);
+      buf.ct.fill(-1);
+      trace(0, rows, tk);
+      const [lx, ly, lz] = lightDir, c = Math.cos(a), s = Math.sin(a);
+      for (let i = 0; i < cols * rows; i++) {
+        if (!(buf.d[i] > 0)) continue;
+        // Back into the model's own frame (the scene turns world points by a).
+        const x = buf.px[i], z = buf.pz[i], nx = buf.nx[i], nz = buf.nz[i];
+        tt.pts.push(x * c - z * s, buf.py[i], x * s + z * c, nx * c - nz * s, buf.ny[i], nx * s + nz * c, buf.ao[i]);
+        tt.mat.push(buf.m[i]);
+      }
+      if (k === 0) tt.light = [lx, ly, lz];
+    }
+    function splat(t) {
+      const a = t * scene.turntable.speed, c = Math.cos(a), s = Math.sin(a), B = cam, P = tt.pts, n = cols * rows;
+      buf.d.fill(-1); buf.m.fill("");
+      for (let j = 0, k = 0; j < P.length; j += 7, k++) {
+        // Back out to the world: the inverse turn.
+        const x = P[j] * c + P[j + 2] * s, y = P[j + 1], z = -P[j] * s + P[j + 2] * c;
+        const vx = x - B.px, vy = y - B.py, vz = z - B.pz, zf = vx * B.fx + vy * B.fy + vz * B.fz;
+        if (zf < .2) continue;
+        const col = Math.floor((W / 2 + (vx * B.rx + vz * B.rz) / zf * B.focal) / cw), row = Math.floor((H / 2 - (vx * B.ux + vy * B.uy + vz * B.uz) / zf * B.focal) / ch);
+        if (col < 0 || row < 0 || col >= cols || row >= rows) continue;
+        const i = row * cols + col, nx = P[j + 3] * c + P[j + 5] * s, nz = -P[j + 3] * s + P[j + 5] * c;
+        if (nx * vx + P[j + 4] * vy + nz * vz > 0) continue;   // facing away
+        if (buf.d[i] > 0 && buf.d[i] <= zf) continue;
+        buf.d[i] = zf; buf.m[i] = tt.mat[k]; buf.px[i] = x; buf.py[i] = y; buf.pz[i] = z;
+        buf.nx[i] = nx; buf.ny[i] = P[j + 4]; buf.nz[i] = nz; buf.ao[i] = P[j + 6];
+      }
+      // Pinholes between points take their nearest neighbour.
+      for (let i = cols; i < n - cols; i++) {
+        if (buf.d[i] > 0) continue;
+        const l = buf.d[i - 1] > 0, r = buf.d[i + 1] > 0, u = buf.d[i - cols] > 0, dn = buf.d[i + cols] > 0;
+        if ((l && r) || (u && dn)) {
+          const f = l && r ? (buf.d[i - 1] < buf.d[i + 1] ? i - 1 : i + 1) : (buf.d[i - cols] < buf.d[i + cols] ? i - cols : i + cols);
+          buf.d[i] = buf.d[f]; buf.m[i] = buf.m[f]; buf.px[i] = buf.px[f]; buf.py[i] = buf.py[f]; buf.pz[i] = buf.pz[f];
+          buf.nx[i] = buf.nx[f]; buf.ny[i] = buf.ny[f]; buf.nz[i] = buf.nz[f]; buf.ao[i] = buf.ao[f];
+        }
+      }
+      // Shadows: a quarter of the lit cells each frame, so they follow the
+      // turn a step behind at a quarter of the cost.
+      const [lx, ly, lz] = lightDir;
+      tt.phase = (tt.phase + 1) % 4;
+      for (let i = 0; i < n; i++) {
+        if (!(buf.d[i] > 0)) { tt.sh[i] = 1; continue; }
+        if (scene.shadows !== false && i % 4 === tt.phase) tt.sh[i] = shadow(buf.px[i] + buf.nx[i] * .02, buf.py[i] + buf.ny[i] * .02, buf.pz[i] + buf.nz[i] * .02, lx, ly, lz, t);
+        buf.sh[i] = scene.shadows === false ? 1 : tt.sh[i];
+      }
+    }
+
     const calm = () => document.body.classList.contains("reduce-motion") || window.offgrid;
     function frame() {
       if (!alive) return;
       if (!setup()) { timer = setTimeout(frame, 400); return; }
-      const now = performance.now(), t = calm() ? (scene.stillTime ?? 4) : now / 1000;
-      if (scene.live && scene.drift && built >= rows) {
+      const now = performance.now();
+      let t = calm() ? (scene.stillTime ?? 4) : now / 1000;
+      if (scene.turntable && scene.live && !calm()) {
+        const K = scene.turntable.views || 12;
+        if (!tt || tt.cols !== cols || tt.rows !== rows) tt = { pts: [], mat: [], done: 0, cols, rows, sh: new Float32Array(cols * rows).fill(1), phase: 0, start: 0 };
+        if (tt.done < K) {
+          // Capture one angle per frame; the first is shown while the rest are taken.
+          captureView(tt.done, K);
+          if (!tt.done) { built = rows; paint(0); }
+          tt.done++;
+          if (tt.done === K) tt.start = now;
+          cost += performance.now() - now; frames++;
+          timer = setTimeout(frame, 16);
+          return;
+        }
+        t = (now - tt.start) / 1000;
+        cam = camBasis(0);
+        splat(t);
+        built = rows;
+      } else if (scene.live && scene.drift && built >= rows) {
         // A slow drift: the camera moves a little and a band of rows is
         // traced again each frame, like a scanline, so a heavy scene can turn.
         cam = camBasis(t);
@@ -393,7 +515,10 @@ window.Ascii3D = (() => {
       if (opts.size) return;
       const busy = built < rows;
       if (!visible || document.hidden || (calm() && !busy)) return;   // woken again by visibility
-      timer = setTimeout(frame, busy ? 16 : 1000 / (scene.fps || (scene.live ? 10 : 9)));
+      // The frame's own time counts towards the pace, so a scene keeps its
+      // frame rate (never sleeping less than half the interval).
+      const every = 1000 / (scene.fps || (scene.live ? 10 : 9));
+      timer = setTimeout(frame, busy ? 16 : Math.max(every / 2, every - (performance.now() - now)));
     }
     if (opts.size) { frame(); return { canvas, stats: () => ({ cols, rows, msPerFrame: frames ? +(cost / frames).toFixed(1) : 0 }) }; }
     const io = new IntersectionObserver((e) => {

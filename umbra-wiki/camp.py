@@ -388,7 +388,7 @@ class Camp:
         with self.lock:
             peers = [{"id": pid, "name": p["name"], "ip": p["ip"], "friend": pid in self.state["friends"],
                       "trusted": pid in self.state["trusted"], "linked": pid in self.links, "pending": pid in self.pending}
-                     for pid, p in self.peers.items() if now - p["seen"] < 12]
+                     for pid, p in self.peers.items() if now - p["seen"] < 16]   # beacons every 5 s: a lost one or two never makes a peer flicker
             pending = [{"id": pid, "name": p["name"], "code": p["sas"], "incoming": not p["link"].outgoing,
                         "mine": p["mine"], "theirs": p["theirs"]} for pid, p in self.pending.items()]
             events, self.events = self.events, []

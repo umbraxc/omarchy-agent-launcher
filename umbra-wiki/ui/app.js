@@ -958,11 +958,18 @@ function startRain() {
     },
   };
   const bg = make(env);
+  const VARS = { bg: "--bg", signal: "--signal", shade1: "--shade-1", shade2: "--shade-2", shade3: "--shade-3",
+                 fgBright: "--fg-bright", dim: "--dim", net: "--net", accent: "--accent", red: "--red", font: "--font" };
+  const readColours = () => {
+    const css = getComputedStyle(document.documentElement);
+    for (const [k, v] of Object.entries(VARS)) env.c[k] = css.getPropertyValue(v).trim();   // follows theme changes
+  };
   const resize = () => {
     const r = canvas.getBoundingClientRect();
     env.w = canvas.width = Math.max(1, Math.floor(r.width));
     env.h = canvas.height = Math.max(1, Math.floor(r.height));
     if (front) { front.width = env.w; front.height = env.h; }
+    readColours();
     bg.resize();
   };
   resize();
@@ -970,15 +977,12 @@ function startRain() {
   rainResize = new ResizeObserver(resize);
   rainResize.observe(canvas);
   let last = 0, t = 0;
-  const VARS = { bg: "--bg", signal: "--signal", shade1: "--shade-1", shade2: "--shade-2", shade3: "--shade-3",
-                 fgBright: "--fg-bright", dim: "--dim", net: "--net", accent: "--accent", font: "--font" };
   const frame = (ts) => {
     rainRaf = requestAnimationFrame(frame);
     if (ts - last < 60 || !canvas.isConnected) return;
     last = ts;
     t += 0.06;
-    const css = getComputedStyle(document.documentElement);
-    for (const [k, v] of Object.entries(VARS)) env.c[k] = css.getPropertyValue(v).trim();   // follows theme changes
+    readColours();
     bg.frame(t);
   };
   rainRaf = requestAnimationFrame(frame);
@@ -1014,8 +1018,97 @@ const TRANSITIONS = {
   spiral: { name: "Spiral",
     in: (x, y) => ((Math.atan2(y - 0.5, x - 0.5) + Math.PI) / (2 * Math.PI)) * 0.7 + Math.hypot(x - 0.5, y - 0.5) * 0.4 + Math.random() * 0.08,
     out: (x, y) => ((Math.atan2(y - 0.5, x - 0.5) + Math.PI) / (2 * Math.PI)) * 0.7 + Math.hypot(x - 0.5, y - 0.5) * 0.4 + Math.random() * 0.08 },
+  ripple: { name: "Ripple",
+    in: (x, y) => Math.hypot(x - 0.5, (y - 0.5) * 0.6) * 1.35 + Math.sin(Math.hypot(x - 0.5, (y - 0.5) * 0.6) * 40) * 0.05 + Math.random() * 0.04,
+    out: (x, y) => Math.hypot(x - 0.5, (y - 0.5) * 0.6) * 1.35 - Math.sin(Math.hypot(x - 0.5, (y - 0.5) * 0.6) * 40) * 0.05 + Math.random() * 0.04 },
+  curtain: { name: "Curtain",
+    in: (x, y) => y * 0.8 + 0.1 + Math.sin(x * 14) * 0.08 * (1 - y) + Math.random() * 0.04,
+    out: (x, y) => (Math.abs(x - 0.5) < 0.5 ? 1 - Math.abs(x - 0.5) * 2 : 0) * 0.8 + Math.sin(y * 9) * 0.05 + Math.random() * 0.06 },
+  checker: { name: "Checkerboard",
+    in: (x, y, rows) => ((Math.floor(x * 16) + Math.floor(y * 9)) % 2) * 0.45 + (x * 0.3 + y * 0.2) + Math.random() * 0.03,
+    out: (x, y, rows) => ((Math.floor(x * 16) + Math.floor(y * 9) + 1) % 2) * 0.45 + ((1 - x) * 0.3 + y * 0.2) + Math.random() * 0.03 },
+  // Earned in the Locker.
+  warp: { name: "Hyperspace", glyphs: "·-—=≡+*", hi: "--fg-bright", lo: "--net",
+    in: (x, y) => { const d = Math.hypot(x - 0.5, (y - 0.5) * 0.6), a = Math.atan2(y - 0.5, x - 0.5); return (1 - d * 1.4) * 0.75 + cellNoise(Math.floor((a + 4) * 40)) * 0.3 + Math.random() * 0.03; },
+    out: (x, y) => { const d = Math.hypot(x - 0.5, (y - 0.5) * 0.6), a = Math.atan2(y - 0.5, x - 0.5); return d * 1.05 + cellNoise(Math.floor((a + 4) * 40)) * 0.3 + Math.random() * 0.03; } },
+  shatter: { name: "Shatter", glyphs: "/\\|─╱╲◇◆·", hi: "--fg-bright", lo: "--shade-1",
+    in: (x, y) => shard(x, y) * 0.95 + Math.random() * 0.03,
+    out: (x, y) => (1 - shard(x, y)) * 0.95 + Math.random() * 0.03 },
+  slash: { name: "Blade slash", glyphs: "/╱‡†⟋\\", hi: "--fg-bright", lo: "--red",
+    in: (x, y) => Math.min(...[0.35, 0.95, 1.55].map((c, k) => Math.abs(x * 1.2 + y - c) * 0.9 + k * 0.28)) + Math.random() * 0.04,
+    out: (x, y) => Math.min(...[0.35, 0.95, 1.55].map((c, k) => Math.abs(x * 1.2 + y - c) * 0.9 + (2 - k) * 0.28)) + Math.random() * 0.04 },
+  bloodfall: { name: "Bloodfall", glyphs: "│┃╿▓▒░:'", hi: "--red", lo: "--red",
+    in: (x, y) => y * 0.6 + cellNoise(Math.floor(x * 120)) * 0.45 + Math.random() * 0.03,
+    out: (x, y) => y * 0.55 + cellNoise(Math.floor(x * 120) + 7) * 0.5 + Math.random() * 0.03 },
+  hellfire: { name: "Hellfire", glyphs: "^*'\",.%#", hi: "--signal", lo: "--red",
+    in: (x, y) => (1 - y) * 0.75 + cellNoise(Math.floor(x * 30)) * 0.15 + Math.sin(x * 31) * 0.05 + Math.random() * 0.08,
+    out: (x, y) => y * 0.8 + cellNoise(Math.floor(x * 30) + 3) * 0.15 + Math.random() * 0.08 },
+  eclipse: { name: "Eclipse", glyphs: "○◌●◐◑·*", hi: "--fg-bright", lo: "--signal",
+    in: (x, y) => Math.hypot(x - 0.85, (y - 0.5) * 0.6) * 1.05 + Math.random() * 0.03,
+    out: (x, y) => Math.hypot(x - 0.15, (y - 0.5) * 0.6) * 1.05 + Math.random() * 0.03 },
+  scythe: { name: "Reaper's scythe", glyphs: "†‡╳/\\)(", hi: "--red", lo: "--shade-1",
+    in: (x, y) => (1 - Math.atan2(1.05 - y, x + 0.05) / (Math.PI / 2)) * 0.9 + Math.sin(Math.hypot(x, 1 - y) * 30) * 0.03 + Math.random() * 0.05,
+    out: (x, y) => (Math.atan2(1.05 - y, x + 0.05) / (Math.PI / 2)) * 0.9 + Math.random() * 0.05 },
+  deathsdoor: { name: "Death's door", glyphs: "▓▒░●◉*·", hi: "--red", lo: "--shade-1",
+    in: (x, y) => Math.min(Math.hypot(x - 0.38, (y - 0.42) * 0.6), Math.hypot(x - 0.62, (y - 0.42) * 0.6)) * 1.6 + Math.random() * 0.05,
+    out: (x, y) => (0.7 - Math.min(Math.hypot(x - 0.38, (y - 0.42) * 0.6), Math.hypot(x - 0.62, (y - 0.42) * 0.6))) * 1.4 + Math.random() * 0.05 },
 };
+// Shatter: the screen breaks into shards (the nearest of a few fixed points),
+// each falling at its own moment.
+const SHARDS = Array.from({ length: 22 }, (_, i) => [cellNoise(i * 3.1), cellNoise(i * 7.7 + 1), cellNoise(i * 1.9 + 2)]);
+function shard(x, y) {
+  let best = 9, at = 0;
+  for (const [sx, sy, when] of SHARDS) { const d = (x - sx) ** 2 + ((y - sy) * 0.6) ** 2; if (d < best) { best = d; at = when; } }
+  return at;
+}
 window.UmbraTransitions = Object.entries(TRANSITIONS).map(([id, t]) => [id, t.name]);
+// A miniature of a transition for the Locker: the wave sweeps over a sketch
+// of the screen, holds, and clears again, on a loop (or one still frame,
+// half way in).
+window.UmbraTransitionPreview = (canvas, id, { still = false } = {}) => {
+  const style = TRANSITIONS[id] || TRANSITIONS.wave;
+  const ctx = canvas.getContext("2d");
+  const cols = 56, rows = 22;
+  const inAt = new Float32Array(cols * rows), outAt = new Float32Array(cols * rows);
+  for (let i = 0; i < cols * rows; i++) {
+    const x = (i % cols) / cols, y = ((i / cols) | 0) / rows;
+    inAt[i] = style.in(x, y, rows); outAt[i] = style.out(x, y, rows);
+  }
+  const glyphs = [...(style.glyphs || "░▒▓█#%&@*+=:·")];
+  const css = getComputedStyle(document.documentElement), v = (n) => css.getPropertyValue(n).trim();
+  const [bg, hi, lo, shade, dim, font] = [v("--bg"), v(style.hi || "--signal"), v(style.lo || "--shade-2"), v("--shade-3"), v("--dim"), v("--font")];
+  let raf = 0, start = performance.now(), last = 0;
+  const draw = (now) => {
+    const w = canvas.width = canvas.clientWidth || 160, h = canvas.height = canvas.clientHeight || 62;
+    const cw = w / cols, ch = h / rows;
+    // The screen underneath: a title bar, a block of text and a prompt.
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = shade; ctx.fillRect(w * 0.06, h * 0.1, w * 0.88, 2);
+    ctx.fillStyle = dim; ctx.fillRect(w * 0.3, h * 0.3, w * 0.4, h * 0.12);
+    for (let k = 0; k < 3; k++) { ctx.fillStyle = shade; ctx.fillRect(w * 0.2, h * (0.52 + k * 0.08), w * (0.6 - k * 0.12), 2); }
+    ctx.strokeStyle = shade; ctx.strokeRect(w * 0.2, h * 0.8, w * 0.6, h * 0.1);
+    const t = still ? 600 : (now - start) % 3600;
+    const phaseOut = t > 1700, p = t < 1200 ? (t / 1200) * 1.25 : !phaseOut ? 2 : ((t - 1700) / 1300) * 1.45;
+    const band = 0.2;
+    ctx.font = `${Math.max(6, ch * 0.95)}px ${font}`; ctx.textBaseline = "top";
+    for (let i = 0; i < cols * rows; i++) {
+      const k = p - (phaseOut ? outAt[i] : inAt[i]);
+      const cover = phaseOut ? (k <= 0 ? 1 : k >= band ? 0 : 1 - k / band) : (k <= 0 ? 0 : k >= band ? 1 : k / band);
+      if (cover <= 0) continue;
+      const x = (i % cols) * cw, y = ((i / cols) | 0) * ch;
+      ctx.globalAlpha = cover; ctx.fillStyle = bg; ctx.fillRect(x, y, cw + 0.5, ch + 0.5);
+      if (cover < 1 || Math.random() < 0.02) {
+        ctx.globalAlpha = 1; ctx.fillStyle = Math.random() < (style.hi ? 0.4 : 0.2) ? hi : lo;
+        ctx.fillText(glyphs[(Math.random() * glyphs.length) | 0], x, y);
+      }
+    }
+    ctx.globalAlpha = 1;
+  };
+  if (still) { draw(0); return () => {}; }
+  const loop = (now) => { raf = requestAnimationFrame(loop); if (now - last < 45) return; last = now; draw(now); };
+  raf = requestAnimationFrame(loop);
+  return () => cancelAnimationFrame(raf);
+};
 const transition = () => TRANSITIONS[(window.prefs && window.prefs.transition) || "wave"] || TRANSITIONS.wave;
 
 // The character grid under the boot and goodbye transitions. It follows the
@@ -1066,10 +1159,11 @@ function asciiWipe(swap, { covered = false, welcome = "" } = {}) {
     const canvas = document.createElement("canvas");
     canvas.className = "wipe";
     document.body.appendChild(canvas);
-    const glyphs = "░▒▓█#%&@*+=:·アイウエオカキクケコ0123456789".split("");
     // Each cell's moment in the wave: diagonal on the way in, from the
-    // centre outwards on the way out.
+    // centre outwards on the way out. Some styles bring their own glyphs
+    // and colours.
     const style = transition();
+    const glyphs = [...(style.glyphs || "░▒▓█#%&@*+=:·アイウエオカキクケコ0123456789")];
     const grid = glyphGrid(canvas, (cols, rows) => {
       const inAt = new Float32Array(cols * rows), outAt = new Float32Array(cols * rows);
       for (let i = 0; i < cols * rows; i++) {
@@ -1100,7 +1194,7 @@ function asciiWipe(swap, { covered = false, welcome = "" } = {}) {
       if (grid.fit()) lastGlyphs = 0;   // the window changed size: redraw everything at once
       const { w, h, cw, ch, cols, rows, n, ctx, mask, mctx, img, layer: glyphLayer, lctx: gctx } = grid;
       const { inAt, outAt } = grid.at;
-      const [bg, signal, shade, dim, accent, font] = ["--bg", "--signal", "--shade-2", "--dim", "--accent", "--font"].map(color);
+      const [bg, signal, shade, dim, accent, font, hi, lo] = ["--bg", "--signal", "--shade-2", "--dim", "--accent", "--font", style.hi || "--signal", style.lo || "--shade-2"].map(color);
       const [r, g, b] = rgb(bg);
       const phaseIn = t < IN, phaseOut = t > IN + HOLD;
       const p = phaseIn ? (t / IN) * 1.2 : phaseOut ? ((t - IN - HOLD) / OUT) * 1.45 : 2;
@@ -1116,7 +1210,7 @@ function asciiWipe(swap, { covered = false, welcome = "" } = {}) {
         const o = i * 4;
         px[o] = r; px[o + 1] = g; px[o + 2] = b; px[o + 3] = cover * 255;
         if (refreshGlyphs && (edge || (cover === 1 && Math.random() < 0.012))) {
-          gctx.fillStyle = Math.random() < 0.15 ? signal : shade;
+          gctx.fillStyle = Math.random() < (style.hi ? 0.35 : 0.15) ? hi : lo;
           gctx.globalAlpha = edge ? 1 : 0.7;
           gctx.fillText(glyphs[(Math.random() * glyphs.length) | 0], (i % cols) * cw, ((i / cols) | 0) * ch + 2);
         }
@@ -2190,10 +2284,10 @@ function asciiOutro(farewell, { keep = true } = {}) {
     const canvas = document.createElement("canvas");
     canvas.className = "wipe";
     document.body.appendChild(canvas);
-    const glyphs = "░▒▓█#%&@*+=:·アイウエオカキクケコ0123456789".split("");
     // Far cells close first, so the dark closes in on the centre: the
     // chosen style, played in reverse (it closes where the boot opens).
     const style = transition();
+    const glyphs = [...(style.glyphs || "░▒▓█#%&@*+=:·アイウエオカキクケコ0123456789")];
     const grid = glyphGrid(canvas, (cols, rows) => {
       const at = new Float32Array(cols * rows);
       for (let i = 0; i < cols * rows; i++) {
@@ -2219,7 +2313,7 @@ function asciiOutro(farewell, { keep = true } = {}) {
       const t = now - start;
       if (grid.fit()) lastGlyphs = 0;
       const { w, h, cw, ch, cols, rows, n, ctx, mask, mctx, img, layer, lctx, at } = grid;
-      const [bg, signal, shade, dim, accent, font] = ["--bg", "--signal", "--shade-2", "--dim", "--accent", "--font"].map(color);
+      const [bg, signal, shade, dim, accent, font, hi, lo] = ["--bg", "--signal", "--shade-2", "--dim", "--accent", "--font", style.hi || "--signal", style.lo || "--shade-2"].map(color);
       ctx.clearRect(0, 0, w, h);
       if (t < CLOSE + HOLD) {
         // The closing wave, then darkness with a few embers.
@@ -2234,7 +2328,7 @@ function asciiOutro(farewell, { keep = true } = {}) {
           const o = i * 4;
           px[o] = r; px[o + 1] = g; px[o + 2] = b; px[o + 3] = cover * 255;
           if (refresh && ((k > 0 && k < band) || (cover === 1 && Math.random() < 0.01))) {
-            lctx.fillStyle = Math.random() < 0.15 ? signal : shade;
+            lctx.fillStyle = Math.random() < (style.hi ? 0.35 : 0.15) ? hi : lo;
             lctx.fillText(glyphs[(Math.random() * glyphs.length) | 0], (i % cols) * cw, ((i / cols) | 0) * ch + 2);
           }
         }

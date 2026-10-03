@@ -469,7 +469,7 @@ window.UmbraBeings = (() => {
       if (sb[0] * k < b[0]) { b[0] = sb[0] * k; h.m = hh.m; }
     },
       { stand: { color: hex("#5a5a5e"), ramp: " .:=#", shade(k) { if (k.ny > .8) { const r = Math.hypot(k.x, k.z); k.glyph = Math.floor(r * 30) % 2 ? "o" : "·"; } } }, ground: ground("#2a2e30"), ...you.mats },
-      { cam: [.4, .35, 3.2], fov: 36, zoom: 1.08, ambient: .52 }) };
+      { cam: [.4, .35, 3.2], fov: 36, zoom: 1.08, ambient: .52, bounded: true }) };
   }
   // The trader's post: a stall with an awning, crates and jars, a lantern,
   // and the trader on a crate, smoking.
@@ -573,13 +573,14 @@ window.UmbraBeings = (() => {
     if (kind === "site") return siteScene(id);
     return null;
   }
-  const spin = (sc, k = .6) => window.UmbraOutpostModels.spin(sc, k);
+  const spin = (sc, k = .6, fps) => window.UmbraOutpostModels.spin(sc, k, fps);
   return {
     has: (kind) => !!KINDS[kind], scene, outfit,
     // Turning, breathing views for hover boxes and the Gear stand.
     live(canvas, kind, id, o = {}) { const sc = scene(kind, id); return sc ? A.view(canvas, spin(sc, o.speed ?? .5), { cell: o.cell || 5 }) : null; },
     duel(canvas, enemyId, gear) { return A.view(canvas, duel(enemyId, gear), { cell: 8 }); },
-    mannequin(canvas, gear) { return A.view(canvas, spin(mannequin(gear), .45), { cell: 5 }); },
+    // The Gear stand turns as a turntable: captured once, then smooth.
+    mannequin(canvas, gear) { return A.view(canvas, { ...spin(mannequin(gear), .45, 24), turntable: { speed: .45, views: 12 } }, { cell: 5 }); },
     mannequinScene: (gear) => mannequin(gear),
     duelScene: (enemyId, gear) => duel(enemyId, gear),
     trader(canvas) { return A.view(canvas, traderScene(), { cell: 8 }); },

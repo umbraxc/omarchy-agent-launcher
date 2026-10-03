@@ -91,6 +91,18 @@
   [
    1000,
    "Legend"
+  ],
+  [
+   1500,
+   "Warlord"
+  ],
+  [
+   2200,
+   "Mythic"
+  ],
+  [
+   3000,
+   "Immortal"
   ]
  ],
  "achievements": [
@@ -1200,12 +1212,12 @@
   {
    "id": "umbra-complete",
    "name": "Umbra Complete",
-   "description": "Meet all 11 deep-use milestones across chat, manuals, maps, medicine, drills, sky, Farming, radio, themes, Vault and map packs.",
+   "description": "Meet all 15 deep-use milestones across chat, manuals, maps, medicine, drills, sky, Farming, radio, themes, Vault, map packs, the Galaxy, the wonders, country files and Friends.",
    "icon": "\u2726",
    "tier": "legendary",
    "points": 100,
    "stat": "expeditionBreadth",
-   "goal": 11,
+   "goal": 15,
    "category": "legend"
   },
   {
@@ -1361,7 +1373,7 @@
    "tier": "legendary",
    "points": 100,
    "stat": "allOthers",
-   "goal": 98,
+   "goal": 132,
    "category": "legend"
   },
   {
@@ -2469,6 +2481,334 @@
    "description": "Golden laurel leaves, gently swaying.",
    "unlock": {
     "achievement": "keeper-of-wonders"
+   }
+  },
+  {
+   "id": "rain",
+   "kind": "background",
+   "name": "Digital rain",
+   "description": "Columns of glyphs falling, their trails fading.",
+   "unlock": {}
+  },
+  {
+   "id": "rise",
+   "kind": "background",
+   "name": "Rising rain",
+   "description": "The digital rain, flowing upwards.",
+   "unlock": {}
+  },
+  {
+   "id": "rings",
+   "kind": "background",
+   "name": "Saturn rings",
+   "description": "Bands of glyphs orbiting the globe.",
+   "unlock": {}
+  },
+  {
+   "id": "stars",
+   "kind": "background",
+   "name": "Starfield",
+   "description": "Twinkling stars and the odd shooting star.",
+   "unlock": {}
+  },
+  {
+   "id": "forest",
+   "kind": "background",
+   "name": "Night forest",
+   "description": "Pines on the horizon, fog and fireflies.",
+   "unlock": {}
+  },
+  {
+   "id": "snow",
+   "kind": "background",
+   "name": "Snowfall",
+   "description": "Flakes at three depths on a shifting wind.",
+   "unlock": {}
+  },
+  {
+   "id": "aurora",
+   "kind": "background",
+   "name": "Northern lights",
+   "description": "Curtains of light rippling across the sky.",
+   "unlock": {}
+  },
+  {
+   "id": "embers",
+   "kind": "background",
+   "name": "Campfire embers",
+   "description": "Sparks rising, swaying and dying.",
+   "unlock": {}
+  },
+  {
+   "id": "radar",
+   "kind": "background",
+   "name": "Radar sweep",
+   "description": "Range rings, a sweep and blips lighting up.",
+   "unlock": {}
+  },
+  {
+   "id": "storm",
+   "kind": "background",
+   "name": "Thunderstorm",
+   "description": "Slanting rain under rolling clouds, and forked lightning that lights the whole sky.",
+   "unlock": {}
+  },
+  {
+   "id": "tide",
+   "kind": "background",
+   "name": "Moonlit sea",
+   "description": "A quiet horizon, the Moon, and its light glittering on the waves.",
+   "unlock": {}
+  },
+  {
+   "id": "dunes",
+   "kind": "background",
+   "name": "Sandstorm",
+   "description": "Dunes under a hazy sun, sand streaming past on gusts.",
+   "unlock": {}
+  },
+  {
+   "id": "constellations",
+   "kind": "background",
+   "name": "Constellations",
+   "description": "Drifting stars joined by dotted lines while they're close.",
+   "unlock": {}
+  },
+  {
+   "id": "galaxy",
+   "kind": "background",
+   "name": "Spiral galaxy",
+   "description": "Two arms of stars turning around the globe, young blue stars and nebulae along them.",
+   "unlock": {
+    "achievement": "grand-tour"
+   }
+  },
+  {
+   "id": "meteors",
+   "kind": "background",
+   "name": "Meteor shower",
+   "description": "Streaks across the stars, some bursting into sparks.",
+   "unlock": {
+    "achievement": "moonwalker"
+   }
+  },
+  {
+   "id": "circuit",
+   "kind": "background",
+   "name": "Circuitry",
+   "description": "Traces etched across the dark, data pulsing along them.",
+   "unlock": {
+    "achievement": "model-explorer"
+   }
+  },
+  {
+   "id": "blades",
+   "kind": "background",
+   "name": "Rain of blades",
+   "description": "Swords fall from a dark sky and bite into the ground, glinting, while ash drifts down.",
+   "unlock": {
+    "rank": "Warlord"
+   }
+  },
+  {
+   "id": "inferno",
+   "kind": "background",
+   "name": "Inferno",
+   "description": "A wall of fire roaring up behind the title, embers flying out of it.",
+   "unlock": {
+    "achievement": "prestige-3"
+   }
+  },
+  {
+   "id": "skulls",
+   "kind": "background",
+   "name": "Burning skulls",
+   "description": "Two great skulls with fire pouring from their eyes, jaws clacking, a ring of skulls circling the globe.",
+   "unlock": {
+    "rank": "Mythic"
+   }
+  },
+  {
+   "id": "reaper",
+   "kind": "background",
+   "name": "The Reaper",
+   "description": "A hooded figure with burning eyes, its scythe arched over the globe; fog, ash and circling crows.",
+   "unlock": {
+    "achievement": "legend"
+   }
+  },
+  {
+   "id": "eye",
+   "kind": "background",
+   "name": "The Watching Eye",
+   "description": "A giant bloodshot eye opens around the globe, its pupil. It blinks. It never stops watching.",
+   "unlock": {
+    "achievement": "everyones-home"
+   }
+  },
+  {
+   "id": "horizon",
+   "kind": "background",
+   "name": "Event horizon",
+   "description": "The globe as the heart of a black hole: a blazing disk, its far side bent over the top, stars spiralling in.",
+   "unlock": {
+    "achievement": "umbra-complete"
+   }
+  },
+  {
+   "id": "none",
+   "kind": "background",
+   "name": "None",
+   "description": "A still, dark start screen.",
+   "unlock": {}
+  },
+  {
+   "id": "wave",
+   "kind": "transition",
+   "name": "Glyph wave",
+   "description": "A diagonal wave in, dissolving from the centre out.",
+   "unlock": {}
+  },
+  {
+   "id": "rain",
+   "kind": "transition",
+   "name": "Glyph rain",
+   "description": "Glyphs pour down the screen in columns.",
+   "unlock": {}
+  },
+  {
+   "id": "scan",
+   "kind": "transition",
+   "name": "Scanlines",
+   "description": "Line by line, top to bottom.",
+   "unlock": {}
+  },
+  {
+   "id": "static",
+   "kind": "transition",
+   "name": "Static",
+   "description": "Every cell flickers in at random.",
+   "unlock": {}
+  },
+  {
+   "id": "blinds",
+   "kind": "transition",
+   "name": "Blinds",
+   "description": "Bands closing like window blinds.",
+   "unlock": {}
+  },
+  {
+   "id": "split",
+   "kind": "transition",
+   "name": "Split",
+   "description": "From the middle out to both sides.",
+   "unlock": {}
+  },
+  {
+   "id": "diamond",
+   "kind": "transition",
+   "name": "Diamond",
+   "description": "A diamond growing from the centre.",
+   "unlock": {}
+  },
+  {
+   "id": "spiral",
+   "kind": "transition",
+   "name": "Spiral",
+   "description": "Sweeping round like a clock hand.",
+   "unlock": {}
+  },
+  {
+   "id": "ripple",
+   "kind": "transition",
+   "name": "Ripple",
+   "description": "Rings spreading out like a stone dropped in water.",
+   "unlock": {}
+  },
+  {
+   "id": "curtain",
+   "kind": "transition",
+   "name": "Curtain",
+   "description": "A wavy curtain falls, then parts in the middle.",
+   "unlock": {}
+  },
+  {
+   "id": "checker",
+   "kind": "transition",
+   "name": "Checkerboard",
+   "description": "Every other square, then the rest.",
+   "unlock": {}
+  },
+  {
+   "id": "warp",
+   "kind": "transition",
+   "name": "Hyperspace",
+   "description": "Star streaks rushing out from the centre.",
+   "unlock": {
+    "achievement": "leaving-orbit"
+   }
+  },
+  {
+   "id": "shatter",
+   "kind": "transition",
+   "name": "Shatter",
+   "description": "The screen cracks into shards that fall one by one.",
+   "unlock": {
+    "achievement": "keeper-of-wonders"
+   }
+  },
+  {
+   "id": "slash",
+   "kind": "transition",
+   "name": "Blade slash",
+   "description": "Three slashes cut the screen apart, edges glinting red.",
+   "unlock": {
+    "achievement": "ninety-nine"
+   }
+  },
+  {
+   "id": "bloodfall",
+   "kind": "transition",
+   "name": "Bloodfall",
+   "description": "Red runs down the screen in uneven drips.",
+   "unlock": {
+    "achievement": "prestige-2"
+   }
+  },
+  {
+   "id": "hellfire",
+   "kind": "transition",
+   "name": "Hellfire",
+   "description": "Flames climb from the bottom and swallow everything.",
+   "unlock": {
+    "achievement": "the-oracle"
+   }
+  },
+  {
+   "id": "eclipse",
+   "kind": "transition",
+   "name": "Eclipse",
+   "description": "A dark moon slides across and blots out the screen.",
+   "unlock": {
+    "achievement": "umbra-complete"
+   }
+  },
+  {
+   "id": "scythe",
+   "kind": "transition",
+   "name": "Reaper's scythe",
+   "description": "One great sweep of the scythe, from the top down.",
+   "unlock": {
+    "achievement": "legend"
+   }
+  },
+  {
+   "id": "deathsdoor",
+   "kind": "transition",
+   "name": "Death's door",
+   "description": "Two burning eyes open, and the dark spreads out from them.",
+   "unlock": {
+    "rank": "Immortal"
    }
   }
  ]

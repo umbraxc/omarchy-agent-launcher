@@ -52,9 +52,17 @@ window.UmbraOutpostModels = (() => {
       },
       light: o.light || [-.5, .85, .6], ambient: o.ambient ?? .48, shadows: o.shadows ?? true,
       map, materials: mats, particles: o.particles, fps: 9, far: 30,
+      // Optionally, the sphere the whole model fits in (no ground plane), so
+      // rays that miss it cost nothing.
+      bound: o.bounded ? () => { frame = frame || fit(map, true); return { c: frame.c, r: frame.r + .15 }; } : undefined,
     };
   }
-  const spin = (scene, speed = .7) => ({ ...scene, live: true, fps: 8, map(x, y, z, t, h) { const [rx, rz] = A.rotY(x, z, t * speed); return scene.map(rx, y, rz, t, h); } });
+  // Turning on the spot: a bounded model stays within the sphere around the
+  // turning axis that holds its own.
+  const spin = (scene, speed = .7, fps = 8) => ({ ...scene, live: true, fps, map(x, y, z, t, h) { const [rx, rz] = A.rotY(x, z, t * speed); return scene.map(rx, y, rz, t, h); },
+    bound: scene.bound ? () => { const b = scene.bound(); return { c: [0, b.c[1], 0], r: b.r + Math.hypot(b.c[0], b.c[2]) }; } : undefined,
+    // How fast its surface can move (the rim of its sphere), for frame-to-frame reuse.
+    motion: scene.bound ? Math.abs(speed) * (() => { const b = scene.bound(); return b.r + Math.hypot(b.c[0], b.c[2]); })() * 1.15 + .05 : undefined });
 
   // ------------------------------------------------------------ families
   const F = {};

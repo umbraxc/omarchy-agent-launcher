@@ -256,23 +256,23 @@
 
   const SPOTS = [
     [".brand", "UMBRA // WIKI", "Click the emblem or the name to go back to the start screen with a new conversation. Your loadout is shown under the name: click it to switch scenario or personality."],
-    ["#link", "LINK", "LOCAL means fully offline (the default). Switch to ONLINE when you have internet and I add Wikipedia for fuller, more current answers. I always ask first."],
+    ["#link", "LINK", "LOCAL means fully offline (the default). Switch to ONLINE when you have internet: I add Wikipedia for fuller, more current answers, and a web browser opens beside our conversation, where I can read a page with you, summarise it and save it to the Library. I always ask first."],
     [".cell.status", "CORE", "Shows when I'm ready, working, or can't reach my AI. Click it for the Core panel: every system's condition, and the AI models, what each can do and which suits this computer."],
-    ["#loadout-btn", "PROFILE & LOADOUT", "Your profile (name, callsign, character, what I should know about you), your Achievements and rank, plus scenarios and personalities. You can create your own of both."],
+    ["#loadout-btn", "PROFILE & LOADOUT", "Your profile (name, callsign, what I should know about you), your Achievements and rank, the LOCKER of rewards they earn (titles, name effects, card frames, start screens, transitions), your CARD to share with friends, and 34 scenarios and 30 personalities in groups. You can create your own of both."],
     ["#history-btn", "HISTORY", "Every conversation is saved on this computer. Reopen and continue any of them, search through everything, sort them into folders (each with a brief I keep in mind), pin them, and export them."],
     ["#library-btn", "LIBRARY", "Offline collections I can read when relevant, plus the built-in Field Manual and a new everyday knowledge base for science, places, history, arts and modern expressions. Download more collections here."],
-    ["#maps-btn", "MAPS", "Offline maps with a military look, down to street level: download a country or any area, search towns, streets, water and coordinates. Right-click for waypoints (15 marker types), measuring and range rings. Click a country's name for its file and your own safety level."],
+    ["#maps-btn", "MAPS", "Offline maps with a military look, down to street level: download a country or any area, search towns, streets, water and coordinates. Right-click for waypoints (15 marker types), measuring and range rings. Click a country's name for its card, then FULL COUNTRY FILE for everything about it. 28 wonders of the world stand on the map in 3D: hover one to see it turn."],
     ["#galaxy-btn", "GALAXY", "The solar system, live: the planets where they are right now, the Earth turning under the real Sun with its night side lit by cities, the Moon where it is tonight, moons, rings and the stars. Drag, scroll, fly with W A S D, click a world for its file. Zoom out of the Maps far enough and you leave orbit; dive at the Earth and you land back on the Maps."],
     ["#fieldkit-btn", "FIELD KIT", "Tools that matter in an emergency. MEDIC: CPR metronome, timers, triage, coma scale, burns and child-dose calculators, a patient chart with handover reports. SUN & MOON with a live Earth. SUPPLIES. A CALENDAR that also shows when water and food run out. The VAULT for your arsenal and valuables. TRAINING: Morse, radio, grid references, compass, and field manuals to download. Printable CARDS."],
     ["#farming-btn", "FARMING", "An offline field planner for edible crops and common livestock. Choose an item to see animated field art, care, space, climate, and daily or weekly estimates; adjust the numbers for your plan. Ctrl+Shift+F opens it."],
-    ["#outpost-btn", "UMBRA OUTPOST", "A fictional idle game of its own: 21 skills, a stockpile, gear, battles and expeditions. It keeps going while Umbra is closed."],
+    ["#outpost-btn", "UMBRA OUTPOST", "A fictional idle game of its own: 21 skills, a stockpile, buildings in the Valley, the Trader, gear you see on your character, battles, expeditions, bounties and companions, all in 3D characters. It keeps full pace while Umbra is open on any tab, and goes on slower once Umbra is closed."],
     ["#friends-btn", "FRIENDS", "Your friends' profile cards. Share yours (Profile › Card: a QR code, a file or a code) and add theirs; or meet on the Camp Network: Umbras on the same Wi-Fi or hotspot link directly, encrypted, with no internet, to chat and see each other's cards live. Only profile cards are shared."],
     ["#radar-btn", "SIGNALS & RADAR", "The Wi-Fi networks and Bluetooth devices around you on a radar, nearer the centre when stronger; click one for its details. Plus your device's vitals. No internet needed."],
     ["#dl-btn", "DOWNLOADS", "Shows while something downloads (maps, library, AI model): pause, resume or cancel it here. Downloads go on after a restart."],
     ["#theme-btn", "THEMES", "Pick a colour theme, follow your Omarchy theme, or design your own."],
     ["#sound", "SOUND", "Open sound controls, adjust effects and notifications, or play longer offline nature and instrumental radio tracks. The same choices appear in Settings."],
     ["#lock", "LOCK", "Locks the window so nothing can be clicked or typed by accident."],
-    ["#settings-btn", "SETTINGS", "Settings has sounds, AI models, text, backups, updates and this tour."],
+    ["#settings-btn", "SETTINGS", "Settings has sounds, the start-screen background and transition, which tabs to pin, AI models, text, backups, updates and this tour."],
     ["#q", "ASK", "Type here. Enter sends, Shift+Enter adds a line, Ctrl+Z undoes. Tab opens quick actions; hold Ctrl for conversation tools. Ctrl+F searches this conversation, while Ctrl+Shift+H searches all saved conversations."],
     ["#mic", "VOICE", "Hold F9 (or click) and just talk. Speech is turned into text offline."],
     ["#send", "TRANSMIT", "Sends your question. While I'm answering it becomes STOP (or press Esc)."],
@@ -615,7 +615,7 @@
       a = await say("**Umbra Outpost** is a fictional idle game beside your real tools. Train skills one action at a time (felling trees, fishing, cooking, forging) and everything you make fills the stockpile. Buildings, gear, battles and expeditions grow from there, and it all keeps going while you're away.");
       await choose(a, [["SHOW ME THE OUTPOST ▸", "go", true]]);
       await spotlight(false, true);
-      a = await say("Open the Outpost now. Try **Forestry** on the left and press **START** on the birch tree, then look around: the stockpile, the buildings in the valley, the Trader. **Close the Outpost tab** when you're ready to finish the tour.");
+      a = await say("Open the Outpost now. Try **Forestry** on the left and press **START** on the birch tree, then look around: the stockpile, the buildings in the Valley, the Trader, and the **Gear** tab, where your character wears what you equip. **Close the Outpost tab** when you're ready to finish the tour.");
       await choose(a, [["OPEN OUTPOST ▸", "open", true]]);
       document.getElementById("outpost-btn")?.click();
       if (AUTO) setTimeout(() => window.closeOutpost?.(), 1700);
@@ -623,7 +623,7 @@
         if (skipped) throw SKIP;
         await wait(250);
       }
-      a = await say("The Outpost will keep growing while Umbra is closed. You can return to it from the tab menu any time.");
+      a = await say("The Outpost keeps full pace while Umbra is open, whichever tab you're on, and goes on at a slower pace for up to a day once Umbra is closed. You can return to it from the tab menu any time.");
       await choose(a, [["FINISH TOUR ▸", "done", true]]);
       window.closeOutpost?.();
       completed = true;
@@ -746,14 +746,15 @@
 
     // Scenario.
     const scenarios = loadout.scenarios;
-    a = await say("Now the **scenario**: the situation you're in. It changes what I focus on and how urgent I am. " +
+    a = await say("Now the **scenario**: the situation you're in, or what you're here for. It changes what I focus on and how urgent I am. " +
+      "There are 34, from everyday life (road trips, travel, family, a tight budget) to the outdoors, emergencies, fiction (zombies, a Mars colony) and learning. " +
       "I'd start with **Everyday Prep**: normal life, planning ahead. When things get real, switch to Wilderness, Grid Down or Medical Emergency in a click.");
     await cards(a, scenarios.map((s) => ({ id: s.id, name: s.name, line: s.tagline })), settings.scenario || "everyday",
       (id) => { postSettings({ scenario: id }); Sound.theme(); });
 
     // Personality.
     a = await say("And **who should I be?** Each personality has its own voice and style (the facts never change, only how I tell them). " +
-      "I'd suggest starting with me, **Umbra**: calm and friendly. The Sergeant is short and firm, The Medic careful and precise, The Old-Timer full of stories… Pick whoever you'd like beside you.");
+      "I'd suggest starting with me, **Umbra**: calm and friendly. The Sergeant is short and firm, The Medic careful and precise, The Old-Timer full of stories, and there are figures from history (Marcus Aurelius, Marie Curie, Leonardo da Vinci…) and characters like Sherlock Holmes or a wizard. Pick whoever you'd like beside you; there are 30 in your Loadout.");
     await cards(a, loadout.personalities.map((p) => ({ id: p.id, name: p.name, line: p.tagline })), settings.personality || "umbra",
       (id) => { postSettings({ personality: id }); Sound.theme(); });
     if (window.reloadLoadout) window.reloadLoadout();
@@ -767,7 +768,10 @@
       if (window.prefs) window.prefs.textScale = Number(id);
       Sound.click();
     });
-    const bgs = (window.UmbraBackgrounds && window.UmbraBackgrounds.list) || [];
+    // Only the start screens that are everyone's from the start; the rest are earned.
+    const earned = (await fetch("/api/achievements").then((r) => r.json()).catch(() => ({}))).rewards || [];
+    const bgs = ((window.UmbraBackgrounds && window.UmbraBackgrounds.list) || [])
+      .filter(([id]) => earned.some((r) => r.kind === "background" && r.id === id && r.unlocked) || !earned.length && ["rain", "rise", "rings", "stars", "forest", "snow", "aurora", "embers", "radar", "none"].includes(id));
     if (bgs.length) {
       a = await say("And **what should move behind my start screen?** Pick a mood; you'll see it in a moment.");
       await cards(a, bgs.map(([id, name]) => ({ id, name })), settings.background || "rain", (id) => {
@@ -824,7 +828,8 @@
       "- While I think, a little scene and **field notes** keep you company. Answers take a minute or so, because everything runs on this computer.\n" +
       "- My **Field Manual** (in the Library) has the critical basics, from bleeding to water, and I use it in my answers too.\n" +
       "- Scroll up any time, even while I'm writing: the whole conversation is one long page, with the start screen on top.\n" +
-      "- Earn **achievements** as you go (questions, topics, streaks, the field manual…); pin your favourite badges to your profile.\n" +
+      "- Earn **achievements** as you go (questions, topics, streaks, the field manual, the Galaxy, the Outpost…); pin your favourite badges to your profile. They unlock rewards in your **Locker**: titles, name effects, card frames, start screens and transitions. The darkest are the hardest to earn.\n" +
+      "- Share your **profile card** with friends (a QR code, a file or a code) in **Friends**, or meet on the **Camp Network** with no internet at all.\n" +
       "- **Export** conversations or the manual to a file or a USB stick, and **back up** your whole Umbra from Settings.\n" +
       "- Every download can be **paused and resumed**, even after a restart; a chime tells you when it's done.\n" +
       "- After an update, I'll show you **what's new**, once.\n" +

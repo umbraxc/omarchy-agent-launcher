@@ -5,11 +5,14 @@
 
 window.UmbraGuide = (() => {
   const G = {
-    maps: ["MAPS", ["Drag to move, scroll to zoom; click a country's name for its file.", "Right-click anywhere for waypoints, measuring, coordinates and range rings.", "The download button (top right) gets detailed maps that work offline."]],
+    maps: ["MAPS", ["Drag to move, scroll to zoom; click a country's name for its card, and FULL COUNTRY FILE for everything about it.", "The landmark button (or L) shows 28 wonders of the world in 3D; click one for its story. Zoom far out to leave orbit for the Galaxy.", "Right-click anywhere for waypoints, measuring, coordinates and range rings.", "The download button (top right) gets detailed maps that work offline."]],
     farming: ["FARMING", ["Choose edible crops or livestock from the Field Book and set area or animal count.", "The yearly food, seed, feed and work estimates update as you edit. Your plan saves locally and joins Umbra backups.", "Catalog numbers are starting estimates; check local growing conditions and adjust them." ]],
-    outpost: ["UMBRA OUTPOST", ["A fictional idle game with its own save: train skills, fill the stockpile and grow the Outpost. Your real Farming plan is separate.", "One action at a time. Pick a skill on the left and press START; it keeps going while Umbra is closed, for up to a day.", "Gear up for Battle, Expeditions and Bounties. Buildings, companions and broadcasts add lasting bonuses."]],
+    outpost: ["UMBRA OUTPOST", ["A fictional idle game with its own save: train skills, fill the stockpile and grow the Outpost. Your real Farming plan is separate.", "One action at a time. Pick a skill on the left and press START. It keeps full pace while Umbra is open on any tab, and a slower pace for up to a day once Umbra is closed.", "Gear up for Battle, Expeditions and Bounties: the Gear tab shows your character in what you wear. Buildings in the Valley, companions and broadcasts add lasting bonuses."]],
+    galaxy: ["GALAXY", ["The solar system, live: every planet and moon where it is right now. Drag to turn, scroll to zoom, W A S D to fly.", "Click a world for its file. The time controls speed the sky up, to a year a second.", "Dive at the Earth to land back on the Maps."]],
+    friends: ["FRIENDS", ["Your friends' profile cards. Add one from a QR code, a .umbracard file or a code; share yours from Profile › CARD.", "The CAMP NETWORK links Umbras on the same Wi-Fi or hotspot, directly and encrypted, with no internet: check the six-digit code on both screens, then chat.", "Only profile cards are ever shared."]],
     core: ["CORE", ["Every system's condition at a glance, and what to do when one isn't right.", "Download, switch or remove AI models here. A download keeps your current model answering; compatible computers can add an optional second opinion."]],
-    "lo-locker": ["LOCKER", ["Rewards for your achievements: orbs for the start screen, titles, name effects and card frames.", "Earn points to rank up; ranks and certain achievements unlock more. Click one to equip it."]],
+    "lo-locker": ["LOCKER", ["Rewards for your achievements: start-screen orbs, titles, name effects, card frames, start screens and transitions.", "Earn points to rank up; ranks and certain achievements unlock more. The darkest rewards are the hardest to earn.", "Hover a start screen or transition to see it move; click one to preview it, EQUIP to wear it."]],
+    "lo-card": ["CARD", ["Your profile card, the one friends see: pick its frame, background, colour and motto, and what it shows.", "Your title and name effect come from the Locker. Share the card as a QR code, a file or a code."]],
     radar: ["SIGNALS & RADAR", ["The Wi-Fi and Bluetooth signals around you: nearer the centre means stronger.", "Click a blip or a row for its details. DEVICES remembers what the radar has heard and marks new ones.", "The KILL SWITCH turns all radios off at once. F for full screen."]],
     library: ["LIBRARY", ["The offline collections Umbra reads from, and its built-in Field Manual.", "Download more here; downloads can be paused and go on after a restart."]],
     history: ["HISTORY", ["Every conversation, saved on this computer. Ctrl+Shift+H searches all saved chats; Ctrl+F searches only the open chat.", "Make folders with a brief Umbra keeps in mind; drag conversations onto them, or pin them."]],
@@ -69,6 +72,8 @@ window.UmbraGuide = (() => {
     if ((e = vis("#maps"))) { key = "maps"; host = e.querySelector(".mp-body"); }
     else if ((e = vis("#farming"))) { key = "farming"; host = e; }
     else if ((e = vis("#outpost"))) { key = "outpost"; host = e; }
+    else if ((e = vis("#galaxy"))) { key = "galaxy"; host = e; }
+    else if ((e = vis("#friends"))) { key = "friends"; host = e; }
     else if ((e = vis("#radar"))) { key = "radar"; host = e.querySelector(".rd-center"); }
     else if ((e = vis("#core"))) { key = "core"; host = e; }
     else if ((e = vis("#fieldkit"))) { const t = e.querySelector(".lo-tabs button.on"); key = t ? "fk-" + t.dataset.tab : ""; host = e; }

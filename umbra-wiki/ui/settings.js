@@ -79,6 +79,19 @@
       if ($("#rain") && !calm) startRain();
     }
   }
+  window.applyPrefs = applyPrefs;
+  // Start screens and transitions are Locker rewards: the ones not earned yet
+  // stay in the list, greyed, saying how to earn them.
+  async function lockOptions(select, kind) {
+    let rewards = window.UmbraAchievements?.data?.rewards;
+    if (!rewards) rewards = (await fetch("/api/achievements").then((r) => r.json()).catch(() => ({}))).rewards || [];
+    for (const option of select.options) {
+      const r = rewards.find((x) => x.kind === kind && x.id === option.value);
+      if (!r || r.unlocked) continue;
+      option.disabled = true;
+      option.textContent = `${r.name} · locked: ${r.how}`;
+    }
+  }
   async function load() {
     try { Object.assign(prefs, DEFAULTS, await (await fetch("/api/settings")).json()); } catch {}
     await checkPower();
@@ -372,11 +385,11 @@
             <label title="Pinned|Always shown in the header, beside the ☰ menu"><input type="checkbox" class="set-pin" data-pin="${id}"><span>◆ PIN</span></label></span></div>`).join("")}
       </section>
       <section class="set-section"><div class="lib-head">MOTION</div>
-        <label class="set-row"><span class="set-text"><b>Transition</b><small>How the boot, the goodbye and the end of the tour sweep across the screen</small></span>
+        <label class="set-row"><span class="set-text"><b>Transition</b><small>How the boot, the goodbye and the end of the tour sweep across the screen. Earn more in Profile › Locker.</small></span>
           <select class="set-transition">${(window.UmbraTransitions || [["wave", "Glyph wave"]]).map(([id, name]) => `<option value="${id}">${name}</option>`).join("")}</select></label>
         <div class="set-row"><span class="set-text"><small>Try the chosen transition</small></span>
           <span class="set-previews"><button class="ghost set-prev-boot">▶ BOOT</button><button class="ghost set-prev-outro">▶ GOODBYE</button></span></div>
-        <label class="set-row"><span class="set-text"><b>Start screen background</b><small>The animation behind the globe and title</small></span>
+        <label class="set-row"><span class="set-text"><b>Start screen background</b><small>The animation behind the globe and title. Earn more in Profile › Locker.</small></span>
           <select class="set-background">${BACKGROUNDS.map(([id, label]) => `<option value="${id}">${label}</option>`).join("")}</select></label>
         ${toggle("reduceMotion", "Reduce motion", "Calm the animations; good for slow computers")}
       </section>
@@ -666,6 +679,7 @@
     body.querySelector(".set-audio-test").addEventListener("click", (e) => { e.preventDefault(); Sound.found(); });
     const tr = body.querySelector(".set-transition");
     tr.value = prefs.transition || "wave";
+    lockOptions(tr, "transition");
     tr.addEventListener("change", () => { save({ transition: tr.value }); Sound.click(); });
     const preview = async (which) => {
       if (document.body.classList.contains("reduce-motion")) { Sound.error(); return; }
@@ -677,6 +691,7 @@
     body.querySelector(".set-prev-outro").addEventListener("click", () => preview("outro"));
     const bgSelect = body.querySelector(".set-background");
     bgSelect.value = prefs.background || "rain";
+    lockOptions(bgSelect, "background");
     bgSelect.addEventListener("change", () => { save({ background: bgSelect.value }); Sound.theme(); });
     const nv = body.querySelector(".set-notify-volume");
     nv.value = typeof prefs.notifyVolume === "number" ? prefs.notifyVolume : 0.5;

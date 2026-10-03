@@ -71,27 +71,35 @@ window.UmbraGalaxy = (() => {
   // Each returns [rgb, glyph, emit] for a point at (lat, lon) of the body.
   const isLand = (lat, lon) => (window.UmbraOrrery ? UmbraOrrery.isLand(lat, lon) : N2(lat * 0.05, lon * 0.05) > 0.55);
   function crater(lat, lon, k = 0.18) { const gx = Math.floor(lon * k), gy = Math.floor(lat * k), h = H2(gx, gy); if (h < 0.6) return 0; const cx = (gx + 0.5) / k, cy = (gy + 0.5) / k, r = Math.hypot((lon - cx) * Math.cos(lat * rad), lat - cy) * k; return r < 0.32 ? 1 : r < 0.42 ? 2 : 0; }
-  const rocky = (c1, c2, sc = 0.05) => (lat, lon) => { const n = N2(lon * sc, lat * sc * 1.4) * 0.7 + 0.3 * N2(lon * 0.2, lat * 0.2), cr = crater(lat, lon); let c = mix(c1, c2, n); if (cr === 2) c = mix(c, [255, 255, 255], 0.25); if (cr === 1) c = mix(c, [0, 0, 0], 0.25); return [c, cr === 2 ? "o" : null]; };
+  // Rocky worlds: two scales of craters (big basins, small fresh ones with bright rims) over mottled ground.
+  const rocky = (c1, c2, sc = 0.05) => (lat, lon) => { const n = N2(lon * sc, lat * sc * 1.4) * 0.6 + 0.25 * N2(lon * 0.2, lat * 0.2) + 0.15 * N2(lon * 0.7, lat * 0.7), cr = crater(lat, lon), cs = cr ? 0 : crater(lat + 40, lon + 90, 0.55); let c = mix(c1, c2, n); if (cr === 2 || cs === 2) c = mix(c, [255, 255, 255], cr ? 0.25 : 0.18); if (cr === 1 || cs === 1) c = mix(c, [0, 0, 0], cr ? 0.25 : 0.15); return [c, cr === 2 ? "o" : cs === 2 ? "°" : null]; };
   const TEX = {
-    sun: (lat, lon, t) => { const n = N2(lon * 0.08 + t * 0.06, lat * 0.08) * 0.6 + 0.4 * N2(lon * 0.3 - t * 0.12, lat * 0.3); const spot = Math.abs(lat) < 32 && N2(lon * 0.05 + 7, lat * 0.08 + 3) > 0.8;
+    sun: (lat, lon, t) => { const n = N2(lon * 0.08 + t * 0.06, lat * 0.08) * 0.5 + 0.3 * N2(lon * 0.3 - t * 0.12, lat * 0.3) + 0.2 * N2(lon * 1.1 + t * 0.3, lat * 1.1); const spot = Math.abs(lat) < 32 && N2(lon * 0.05 + 7, lat * 0.08 + 3) > 0.8;
       return spot ? [[140, 60, 20], "o", 0.8] : [mix([255, 130, 30], [255, 240, 170], n), "@%#*+"[Math.floor(n * 4.99)], 1]; },
     mercury: rocky([110, 105, 100], [175, 168, 158]),
     venus: (lat, lon, t) => { const n = N2(lon * 0.05 + lat * 0.03 + t * 0.02, lat * 0.12); return [mix([200, 160, 90], [250, 230, 170], n), n > 0.6 ? "≈" : "~"]; },
     earth: (lat, lon, t, lit) => {
-      const cloud = N2(lon * 0.06 + t * 0.004, lat * 0.1) * 0.7 + 0.3 * N2(lon * 0.2, lat * 0.25);
+      const cloud = N2(lon * 0.06 + t * 0.004, lat * 0.1) * 0.6 + 0.25 * N2(lon * 0.2, lat * 0.25) + 0.15 * N2(lon * 0.6 + t * 0.01, lat * 0.6);
       if (lit < -0.05) { if (Math.abs(lat) < 62 && isLand(lat, lon) && H2(Math.floor(lat * 1.5), Math.floor(lon * 1.5)) > 0.72) return [[255, 205, 120], "·", 0.85]; }
       if (cloud > 0.66) return [[240, 244, 250], cloud > 0.75 ? "≈" : "~"];
       if (lat > 74 || lat < -66) return [[235, 242, 250], "#"];
-      if (isLand(lat, lon)) { const dry = Math.abs(Math.abs(lat) - 24) < 9 && N2(lon * 0.08, lat * 0.08) > 0.4; return [dry ? mix([190, 160, 100], [220, 190, 130], N2(lon * 0.3, lat * 0.3)) : mix([60, 120, 60], [110, 150, 80], N2(lon * 0.2, lat * 0.2)), dry ? ":" : "%"]; }
+      if (isLand(lat, lon)) { const peak = N2(lon * 0.35 + 9, lat * 0.35) * 0.7 + 0.3 * N2(lon * 1.2, lat * 1.2); if (peak > 0.8) return [peak > 0.86 && Math.abs(lat) > 25 ? [230, 232, 236] : [150, 128, 104], "^"];
+        const dry = Math.abs(Math.abs(lat) - 24) < 9 && N2(lon * 0.08, lat * 0.08) > 0.4; return [dry ? mix([190, 160, 100], [220, 190, 130], N2(lon * 0.3, lat * 0.3)) : mix([60, 120, 60], [110, 150, 80], N2(lon * 0.2, lat * 0.2)), dry ? ":" : "%"]; }
       return [mix([20, 60, 130], [50, 110, 180], N2(lon * 0.1, lat * 0.1)), "~"]; },
     moon: (lat, lon) => { const mare = N2(lon * 0.035 + 2, lat * 0.05) > 0.58; const [c, g] = rocky([120, 118, 115], [200, 198, 192])(lat, lon); return [mare ? mix(c, [60, 60, 64], 0.45) : c, g]; },
-    mars: (lat, lon) => { if (Math.abs(lat) > 78) return [[240, 236, 230], "#"]; const n = N2(lon * 0.05, lat * 0.07) * 0.7 + 0.3 * N2(lon * 0.25, lat * 0.25); const valles = Math.abs(lat + 8) < 2 && lon > -120 && lon < -40;
+    mars: (lat, lon) => { if (Math.abs(lat) > 78) return [[240, 236, 230], "#"];
+      const olympus = Math.hypot((lon + 134) * 0.8, lat - 18); if (olympus < 7) return [mix([230, 150, 90], [170, 90, 55], olympus / 7), olympus < 2 ? "o" : "^"];
+      if (Math.hypot((lon - 70) * 0.6, lat - 8) < 11 * (0.7 + 0.5 * N2(lon * 0.2, lat * 0.2))) return [[95, 50, 38], "%"];   // Syrtis Major
+     const n = N2(lon * 0.05, lat * 0.07) * 0.7 + 0.3 * N2(lon * 0.25, lat * 0.25); const valles = Math.abs(lat + 8) < 2 && lon > -120 && lon < -40;
       return [valles ? [90, 40, 30] : mix([120, 55, 35], [210, 110, 60], n), valles ? "=" : n > 0.6 ? "%" : null]; },
     jupiter: (lat, lon, t) => { const tb = N2(lon * 0.04 + t * 0.03, lat * 0.2) * 3; const z = Math.sin(lat * 0.22 + tb * 0.3); const grs = Math.hypot(((((lon - t * 2 + 540) % 360) - 180) - 40) * 0.5, lat + 22);
       if (grs < 7) return [mix([200, 80, 60], [230, 140, 100], grs / 7), grs < 4 ? "@" : "%"];
+      const oval = Math.abs(lat + 33) < 2.5 && H2(Math.floor(((lon - t * 1.5) % 360 + 360) * 0.06), 3) > 0.7; if (oval) return [[245, 240, 230], "o"];
+      const swirl = N2(lon * 0.25 + t * 0.05, lat * 0.6) > 0.72 && Math.abs(lat) < 50; if (swirl) return [[250, 235, 215], "~"];
       return [z > 0.3 ? mix([235, 210, 165], [250, 235, 205], z) : z > -0.3 ? [215, 145, 90] : mix([150, 80, 50], [190, 110, 70], -z), z > 0.3 ? "=" : "-"]; },
-    saturn: (lat, lon, t) => { const z = Math.sin(lat * 0.18 + N2(lon * 0.03 + t * 0.02, lat * 0.1)); return [z > 0 ? mix([225, 205, 150], [245, 230, 185], z) : mix([195, 165, 110], [215, 190, 135], -z), z > 0.5 ? "=" : "-"]; },
-    uranus: (lat) => [mix([140, 210, 220], [175, 230, 236], 0.5 + 0.5 * Math.sin(lat * 0.1)), "-"],
+    saturn: (lat, lon, t) => { const z = Math.sin(lat * 0.18 + N2(lon * 0.03 + t * 0.02, lat * 0.1)) * 0.8 + 0.2 * Math.sin(lat * 0.55); const hex6 = lat > 74;
+      return [hex6 ? [150, 160, 170] : z > 0 ? mix([225, 205, 150], [248, 232, 190], z) : mix([190, 160, 105], [215, 190, 135], -z), hex6 ? "#" : null]; },
+    uranus: (lat, lon) => [mix([140, 210, 220], [180, 234, 240], 0.5 + 0.35 * Math.sin(lat * 0.1) + 0.15 * N2(lon * 0.05, lat * 0.3)), null],
     neptune: (lat, lon, t) => { const spot = Math.hypot(((((lon - t * 3 + 540) % 360) - 180) - 20) * 0.45, lat + 20) < 6; const streak = Math.abs(lat - 30) < 2 && N2(lon * 0.2 + t, 1) > 0.5;
       return spot ? [[30, 50, 120], "@"] : streak ? [[230, 240, 255], "~"] : [mix([50, 80, 190], [80, 120, 230], N2(lon * 0.05, lat * 0.15)), "-"]; },
     pluto: (lat, lon) => { const heart = Math.hypot((lon - 175) * 0.6, lat - 15) < 26; return heart ? [[240, 232, 220], "#"] : [mix([150, 110, 80], [210, 180, 150], N2(lon * 0.08, lat * 0.08)), Math.abs(lat) < 12 && N2(lon * 0.05, 3) > 0.55 ? "%" : null]; },
@@ -230,10 +238,12 @@ window.UmbraGalaxy = (() => {
     for (const [name, , mag, ra, dec] of stars) out.push({ d: eqToEcl(ra * rad, dec * rad), b: clamp((6.5 - mag) / 6), col: H2(ra, dec) > 0.7 ? [255, 220, 190] : H2(dec, ra) > 0.7 ? [190, 210, 255] : [240, 240, 250], name });
     // The Milky Way: faint stars crowded along the galactic plane (north galactic pole RA 192.86°, Dec 27.13°).
     const pole = eqToEcl(192.86 * rad, 27.13 * rad), e1 = norm(cross(pole, [0, 0, 1])), e2 = cross(pole, e1);
-    for (let i = 0; i < 4200; i++) {
+    for (let i = 0; i < 7000; i++) {
       const u = H2(i, 1) * TAU, spread = (H2(i, 2) - 0.5) * (H2(i, 3) > 0.6 ? 0.9 : 0.25), core = Math.cos(u - 2.3) > 0.6 ? 1.6 : 1;
+      // The Great Rift: dust darkens a lane along the middle of the band.
+      const lane = Math.abs(spread / core) < 0.03 && Math.cos(u - 2.3) > -0.2 && H2(i, 6) > 0.25;
       const d = norm(add(add(mul(e1, Math.cos(u)), mul(e2, Math.sin(u))), mul(pole, spread / core)));
-      out.push({ d, b: 0.08 + 0.25 * H2(i, 4) * core, col: mix([150, 160, 200], [220, 200, 170], H2(i, 5)), mw: true });
+      out.push({ d, b: (0.08 + 0.25 * H2(i, 4) * core) * (lane ? 0.35 : 1), col: mix([150, 160, 200], H2(i, 6) > 0.92 ? [230, 160, 170] : [220, 200, 170], H2(i, 5)), mw: true });
     }
     for (let i = 0; i < 900; i++) { const z = H2(i, 7) * 2 - 1, a = H2(i, 8) * TAU, s = Math.sqrt(1 - z * z); out.push({ d: [s * Math.cos(a), s * Math.sin(a), z], b: 0.08 + 0.2 * H2(i, 9), col: [200, 205, 220] }); }
     // Andromeda (M31), the Large and Small Magellanic Clouds, Triangulum (M33).
@@ -282,6 +292,9 @@ window.UmbraGalaxy = (() => {
     return { col, gl, emit, lit };
   }
   const RAMP = " .:-=+*#%@";
+  // A thin glow past a body's edge: its colour and how far it reaches (in radii).
+  const HALO = { sun: [[255, 200, 120], 0.7], earth: [[120, 180, 255], 0.07], venus: [[250, 220, 160], 0.08], mars: [[230, 160, 120], 0.03],
+    jupiter: [[230, 210, 180], 0.03], saturn: [[240, 225, 180], 0.03], uranus: [[160, 230, 240], 0.05], neptune: [[110, 150, 255], 0.05], titan: [[230, 170, 90], 0.12] };
   function render(t) {
     const B = camBasis(), PR = window.__gxProfile, tt = () => performance.now();
     let T0 = tt();
@@ -316,7 +329,7 @@ window.UmbraGalaxy = (() => {
       const sunDir = b.id === "sun" ? [0, 0, 1] : norm(mul(C, -1));
       // Tiny and far: one glowing character.
       if (rp < ch * 0.9) { const c = Math.floor(q[0] / cw), r = Math.floor(q[1] / ch); if (c >= 0 && r >= 0 && c < cols && r < rows) put(r * cols + c, b.kind === "Moon" ? "•" : "●", b.color, 1, zf, b.id); continue; }
-      const ringOuter = b.id === "saturn" ? R * 2.3 : b.id === "uranus" ? R * 2.0 : 0, ext = Math.max(rp, ringOuter ? (ringOuter / zf) * B.focal + ch : 0);
+      const ringOuter = b.id === "saturn" ? R * 2.3 : b.id === "uranus" ? R * 2.0 : 0, ext = Math.max(rp * (HALO[b.id] ? 1 + HALO[b.id][1] : 1) + ch, ringOuter ? (ringOuter / zf) * B.focal + ch : 0);
       const c0 = Math.max(0, Math.floor((q[0] - ext) / cw)), c1 = Math.min(cols - 1, Math.ceil((q[0] + ext) / cw)), r0 = Math.max(0, Math.floor((q[1] - ext) / ch)), r1 = Math.min(rows - 1, Math.ceil((q[1] + ext) / ch));
       const [ct, st] = tiltM(b), ringN = [0, -st, ct];
       for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
@@ -324,17 +337,42 @@ window.UmbraGalaxy = (() => {
         const d = norm(add(add(mul(B.f, B.focal), mul(B.r, sx)), mul(B.u, sy)));
         const i = r * cols + c, bq = dot(oc, d), cc = dot(oc, oc) - R * R, disc = bq * bq - cc;
         let hitT = 1e9;
+        // Just past the edge: a thin lit atmosphere, or the Sun's corona.
+        if (disc <= 0 && bq < 0 && HALO[b.id] && G.d[i] > zf) {
+          const miss = Math.sqrt(Math.max(0, cc + R * R - bq * bq)) / R, [hc, hw] = HALO[b.id];
+          if (miss < 1 + hw) {
+            const k = 1 - (miss - 1) / hw, edge = norm(sub(add(B.p, mul(d, -bq)), C));
+            if (b.id === "sun") {
+              const ang = Math.atan2(dot(edge, B.u), dot(edge, B.r)), streak = 0.55 + 0.45 * N2(ang * 3 + 9, t * 0.05);
+              const a = k * k * streak; if (a > 0.08) put(i, a > 0.5 ? "*" : a > 0.25 ? "'" : "·", mix([255, 150, 60], [255, 235, 180], k), clamp(a + 0.2), zf + R, b.id);
+            } else {
+              const lit = dot(edge, sunDir); if (lit > -0.2 && k > 0.15) put(i, k > 0.6 ? ":" : "·", hc, clamp(k * (0.35 + 0.65 * clamp(lit + 0.2))), zf + R, b.id);
+            }
+          }
+        }
         if (disc > 0) {
           hitT = -bq - Math.sqrt(disc);
           if (hitT > 0 && hitT < G.d[i]) {
             const hp = add(B.p, mul(d, hitT)), n = mul(sub(hp, C), 1 / R);
             const s = shadeBody(b, n, sunDir, t);
-            if (b.id === "sun") { put(i, s.gl, s.col, 1, hitT, b.id); continue; }
             const view = -dot(n, d), rim = clamp(1 - view);
-            let lum = s.emit || 0.2 + 0.8 * clamp(s.lit * 1.15);
+            // The Sun darkens and reddens towards its edge.
+            if (b.id === "sun") { put(i, rim > 0.82 ? "*" : s.gl, mix(s.col, [200, 70, 20], rim ** 3 * 0.8), 1, hitT, b.id); continue; }
+            // A softer terminator: light wraps a little past the line.
+            let lum = s.emit || 0.2 + 0.8 * clamp((s.lit + 0.06) * 1.12);
+            // Saturn's rings throw their shadow across its globe.
+            if (b.id === "saturn" && s.lit > 0) {
+              const tr = dot(sub(C, hp), ringN) / dot(sunDir, ringN);
+              if (tr > 0) { const rr = len(sub(add(hp, mul(sunDir, tr)), C)) / R; if (rr > 1.24 && rr < 2.27 && !(rr > 1.95 && rr < 2.03)) lum *= rr > 1.53 && rr < 1.95 ? 0.35 : 0.65; }
+            }
             let col = mix(mul(s.col, 0.28), s.col, clamp(lum));
             if ((b.id === "earth" || b.id === "venus" || b.id === "titan") && rim > 0.75 && s.lit > -0.2) col = mix(col, b.id === "earth" ? [140, 200, 255] : [240, 200, 140], (rim - 0.75) * 3);
-            const gl = s.gl || RAMP[Math.max(1, Math.min(9, Math.round(Math.sqrt(clamp(lum)) * 9)))];
+            let gl = s.gl || RAMP[Math.max(1, Math.min(9, Math.round(Math.sqrt(clamp(lum)) * 9)))];
+            // Sunglint: the Sun's reflection on Earth's oceans.
+            if (b.id === "earth" && s.gl === "~" && s.col[2] > s.col[0] + 60 && s.lit > 0) {
+              const rf = sub(sunDir, mul(n, 2 * dot(sunDir, n))), sp = Math.max(0, -dot(rf, d)) ** 60;
+              if (sp > 0.08) { col = mix(col, [255, 248, 225], clamp(sp * 1.4)); if (sp > 0.45) gl = "*"; }
+            }
             put(i, gl, col, s.emit ? 1 : 0.55 + 0.45 * clamp(lum), hitT, b.id);
           }
         }
@@ -344,10 +382,15 @@ window.UmbraGalaxy = (() => {
           const tr = dot(sub(C, B.p), ringN) / den; if (tr <= 0 || tr >= G.d[i] || (disc > 0 && tr > hitT && hitT > 0)) continue;
           const hp = add(B.p, mul(d, tr)), rr = len(sub(hp, C)) / R;
           const inner = b.id === "saturn" ? 1.24 : 1.6; if (rr < inner || rr > ringOuter / R) continue;
-          if (b.id === "saturn" && rr > 1.95 && rr < 2.03) continue;   // the Cassini Division
-          const dens = b.id === "saturn" ? 0.5 + 0.5 * Math.sin(rr * 40) * 0.5 + (rr < 1.5 ? -0.25 : 0) : 0.35;
-          const lit = 0.55 + 0.45 * clamp(Math.abs(dot(norm(mul(C, -1)), ringN)) * 2);
-          put(i, dens > 0.55 ? "=" : dens > 0.35 ? "-" : ":", mix([150, 140, 115], b.id === "saturn" ? [245, 230, 190] : [180, 220, 230], clamp(lit * (0.7 + dens * 0.5))), 0.65 + dens * 0.35, tr, b.id);
+          if (b.id === "saturn" && ((rr > 1.95 && rr < 2.03) || (rr > 2.205 && rr < 2.218))) continue;   // the Cassini Division and the Encke Gap
+          // Saturn's rings as they are: the faint C ring, the bright B ring, the A ring, with fine ringlets.
+          const dens = b.id === "saturn" ? (rr < 1.53 ? 0.22 : rr < 1.95 ? 0.72 + 0.12 * Math.sin(rr * 90) : 0.5 + 0.08 * Math.sin(rr * 140)) + 0.06 * Math.sin(rr * 260) : 0.3 + 0.1 * Math.sin(rr * 60);
+          let lit = 0.55 + 0.45 * clamp(Math.abs(dot(norm(mul(C, -1)), ringN)) * 2);
+          // The planet's shadow falls across the rings behind it.
+          const toSun = norm(mul(C, -1)), oq = sub(hp, C), sb = dot(oq, toSun);
+          if (sb < 0 && dot(oq, oq) - sb * sb < R * R) lit *= 0.25;
+          const tone = b.id === "saturn" ? mix([205, 185, 145], [250, 238, 205], clamp((rr - 1.24) / 0.7)) : [180, 220, 230];
+          put(i, dens > 0.66 ? "=" : dens > 0.45 ? "-" : dens > 0.3 ? ":" : "·", mix([105, 96, 78], tone, clamp(lit * (0.75 + dens * 0.5))), 0.6 + dens * 0.4, tr, b.id);
         }
       }
     }

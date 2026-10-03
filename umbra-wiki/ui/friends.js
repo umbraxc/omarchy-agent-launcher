@@ -207,7 +207,10 @@ window.UmbraFriends = (() => {
     if (window.Ascii3D && window.UmbraScenery && !window.offgrid) {
       const v = Ascii3D.view(canvas, campScene(), { cell: 8 });
       campView = v; stops.push(() => v.stop());
-      const tick = setInterval(placeLabels, 400); stops.push(() => clearInterval(tick));
+      // Names over the beacons: placed again only when the view's size
+      // changes (the camera stands still), so they never jump about.
+      const ro = new ResizeObserver(() => requestAnimationFrame(placeLabels)); ro.observe(canvas); stops.push(() => ro.disconnect());
+      const first = setInterval(() => { if (campView.project(0, 0, 0)) { clearInterval(first); placeLabels(); } }, 120); stops.push(() => clearInterval(first));
     }
     paintCamp();
   }
@@ -220,7 +223,7 @@ window.UmbraFriends = (() => {
     const base = UmbraScenery.scenes.campfire.build(), { hex, mix } = Ascii3D;
     const net = hex(getComputedStyle(document.documentElement).getPropertyValue("--net").trim() || "#5fb8c9");
     const sig = hex(getComputedStyle(document.documentElement).getPropertyValue("--signal").trim() || "#e8d27c");
-    return { ...base, fps: 12, particles(t, put) {
+    return { ...base, fps: 18, particles(t, put) {
       base.particles?.(t, put);
       if (!camp?.enabled) return;
       for (let k = 0; k < 3; k++) {   // radio rings from the fire
@@ -245,25 +248,36 @@ window.UmbraFriends = (() => {
     const box = el?.querySelector(".cp-labels");
     if (!box || !campView) return;
     const peers = camp?.enabled ? camp.peers || [] : [];
-    box.innerHTML = peers.map((p, i) => {
+    setHTML(box, peers.map((p, i) => {
       const pos = campView.project(...spot(i));
       if (!pos) return "";
       const on = (camp.linked || []).includes(p.id);
-      return `<span class="cp-label ${on ? "on" : ""}" style="left:${pos[0]}px;top:${pos[1] - 34}px">${esc(p.name)}<small>${on ? "LINKED" : p.pending ? "LINKING" : "NEARBY"}</small></span>`;
-    }).join("") + (camp?.enabled ? (() => { const me = campView.project(0, .9, -.4); return me ? `<span class="cp-label me" style="left:${me[0]}px;top:${me[1] - 40}px">YOU<small>${esc(camp.address || "")}</small></span>` : ""; })() : "");
+      return `<span class="cp-label ${on ? "on" : ""}" style="left:${Math.round(pos[0])}px;top:${Math.round(pos[1] - 34)}px">${esc(p.name)}<small>${on ? "LINKED" : p.pending ? "LINKING" : "NEARBY"}</small></span>`;
+    }).join("") + (camp?.enabled ? (() => { const me = campView.project(0, .9, -.4); return me ? `<span class="cp-label me" style="left:${Math.round(me[0])}px;top:${Math.round(me[1] - 40)}px">YOU<small>${esc(camp.address || "")}</small></span>` : ""; })() : ""));
+  }
+  // Replaces a piece of the page only when it really changed, so nothing
+  // flickers, loses its hover or restarts its animation. Returns true when it did.
+  function setHTML(node, html) {
+    if (!node || node.dataset.html === html) return false;
+    node.innerHTML = html; node.dataset.html = html;
+    return true;
   }
   function paintCamp() {
     const side = el?.querySelector(".cp-side");
     if (!side || !camp) return;
     const sw = side.querySelector(".cp-switch");
     const fw = camp.firewall && !camp.opened;
-    sw.innerHTML = !camp.available ? `<div class="cp-off"><b>UNAVAILABLE</b><p>The Camp Network needs Python's cryptography package, which isn't installed.</p></div>` : `
+    const swChanged = setHTML(sw, !camp.available ? `<div class="cp-off"><b>UNAVAILABLE</b><p>The Camp Network needs Python's cryptography package, which isn't installed.</p></div>` : `
       <div class="cp-state ${camp.enabled ? "on" : ""}"><span class="cp-led"></span><div><b>${camp.enabled ? "CAMP NETWORK ON" : "CAMP NETWORK OFF"}</b>
         <small>${camp.enabled ? `Listening on this network${camp.address ? ` (${esc(camp.address)})` : ""}. Encrypted · no internet.` : "Nothing is listening. Turn it on to find Umbras nearby."}</small></div>
         <button type="button" class="${camp.enabled ? "ghost" : "solid"} cp-toggle">${camp.enabled ? "TURN OFF" : "TURN ON ▸"}</button></div>
       ${camp.enabled && fw ? `<div class="cp-fw"><b>◇ THE FIREWALL MAY BE IN THE WAY</b><p>This computer's firewall (ufw) blocks other Umbras from reaching yours. Allow the Camp Network's two ports, only from your local network (${esc(camp.network)})? Your password is asked.</p>
         <button type="button" class="ghost cp-fw-open">ALLOW ON THIS NETWORK</button></div>` : ""}
-      ${camp.enabled && camp.firewall && camp.opened ? `<small class="cp-fw-ok">✓ The firewall lets the Camp Network in from ${esc(camp.network)}. <a href="#" class="cp-fw-close">Close it again</a></small>` : ""}`;
+      ${camp.enabled && camp.firewall && camp.opened ? `<small class="cp-fw-ok">✓ The firewall lets the Camp Network in from ${esc(camp.network)}. <a href="#" class="cp-fw-close">Close it again</a></small>` : ""}`);
+    if (swChanged) wireSwitch(sw);
+    paintCampLists(side);
+  }
+  function wireSwitch(sw) {
     sw.querySelector(".cp-toggle")?.addEventListener("click", async () => {
       Sound.click();
       try { camp = { ...camp, ...(await api("/api/camp", { on: !camp.enabled })) }; camp.enabled ? Sound.online() : Sound.local(); } catch (e) { toast(e.message); }
@@ -271,22 +285,32 @@ window.UmbraFriends = (() => {
     });
     sw.querySelector(".cp-fw-open")?.addEventListener("click", () => firewall("open"));
     sw.querySelector(".cp-fw-close")?.addEventListener("click", (e) => { e.preventDefault(); firewall("close"); });
+  }
+  function paintCampLists(side) {
     // Link requests: the code to compare.
-    side.querySelector(".cp-pending").innerHTML = (camp.pending || []).map((p) => `
+    const pendingBox = side.querySelector(".cp-pending");
+    if (setHTML(pendingBox, (camp.pending || []).map((p) => `
       <div class="cp-req" data-id="${esc(p.id)}"><small>${p.incoming ? "◉ " + esc(p.name.toUpperCase()) + " WANTS TO LINK" : "◉ LINKING WITH " + esc(p.name.toUpperCase())}</small>
         <pre class="cp-console">${esc(consoleLines(p))}</pre>
         <div class="cp-code">${esc(p.code.slice(0, 3))} ${esc(p.code.slice(3))}</div>
         <p>${p.mine ? `Waiting for ${esc(p.name)} to confirm the same code…` : `Check that <b>${esc(p.name)}</b>'s screen shows the same code, then confirm.`}</p>
-        ${p.mine ? "" : `<div class="fr-row"><button type="button" class="solid cp-yes">CODES MATCH ✓</button><button type="button" class="ghost cp-no">DON'T LINK</button></div>`}</div>`).join("");
-    side.querySelectorAll(".cp-req").forEach((r) => {
+        ${p.mine ? "" : `<div class="fr-row"><button type="button" class="solid cp-yes">CODES MATCH ✓</button><button type="button" class="ghost cp-no">DON'T LINK</button></div>`}</div>`).join(""))) pendingBox.querySelectorAll(".cp-req").forEach((r) => {
       r.querySelector(".cp-yes")?.addEventListener("click", async () => { Sound.click(); await api("/api/camp/confirm", { id: r.dataset.id, ok: true }).catch((e) => toast(e.message)); refresh(); });
       r.querySelector(".cp-no")?.addEventListener("click", async () => { Sound.click(); await api("/api/camp/confirm", { id: r.dataset.id, ok: false }).catch(() => {}); refresh(); });
     });
     const peers = camp.enabled ? camp.peers || [] : [];
-    side.querySelector(".cp-peers").innerHTML = camp.enabled ? `<h3>NEARBY UMBRAS <small>${peers.length || "SEARCHING…"}</small></h3>` + (peers.length ? peers.map((p) => `
+    const peersBox = side.querySelector(".cp-peers");
+    const peersChanged = setHTML(peersBox, camp.enabled ? `<h3>NEARBY UMBRAS <small>${peers.length || "SEARCHING…"}</small></h3>` + (peers.length ? peers.map((p) => `
       <div class="cp-peer ${p.linked ? "on" : ""}"><span class="cp-dot"></span><div><b>${esc(p.name)}</b><small>${esc(p.ip)} · ${p.linked ? "LINKED, ENCRYPTED" : p.trusted ? "A FRIEND · LINKING BY ITSELF" : p.pending ? "WAITING FOR THE CODE" : "NOT LINKED"}</small></div>
         ${p.linked ? `<button type="button" class="ghost" data-see="${esc(p.id)}">CARD ▸</button>` : p.pending || p.trusted ? "" : `<button type="button" class="solid" data-link="${esc(p.id)}">LINK ▸</button>`}</div>`).join("")
-      : `<p class="cp-searching"><span class="spin" data-spin>✻</span> Listening for other Umbras on this network. They need the Camp Network on too.</p>`) : "";
+      : `<p class="cp-searching"><span class="spin" data-spin>✻</span> Listening for other Umbras on this network. They need the Camp Network on too.</p>`) : "");
+    if (peersChanged) wirePeers(peersBox);
+    setHTML(el.querySelector(".cp-caption"), camp.enabled
+      ? `<b>◉ THE CAMP IS ON THE AIR</b><span>You're the fire. ${peers.length ? `${peers.length} Umbra${peers.length > 1 ? "s" : ""} nearby.` : "Other Umbras appear as beacons around it."}</span>`
+      : `<b>◌ THE CAMP IS QUIET</b><span>Turn the Camp Network on to light the beacon.</span>`);
+    placeLabels();
+  }
+  function wirePeers(side) {
     side.querySelectorAll("[data-link]").forEach((b) => b.addEventListener("click", async () => {
       Sound.click(); linking[b.dataset.link] = Date.now();
       b.disabled = true; b.textContent = "CALLING…";
@@ -294,10 +318,6 @@ window.UmbraFriends = (() => {
       setTimeout(refresh, 800);
     }));
     side.querySelectorAll("[data-see]").forEach((b) => b.addEventListener("click", () => { Sound.click(); selected = b.dataset.see; show("friends"); }));
-    el.querySelector(".cp-caption").innerHTML = camp.enabled
-      ? `<b>◉ THE CAMP IS ON THE AIR</b><span>You're the fire. ${peers.length ? `${peers.length} Umbra${peers.length > 1 ? "s" : ""} nearby.` : "Other Umbras appear as beacons around it."}</span>`
-      : `<b>◌ THE CAMP IS QUIET</b><span>Turn the Camp Network on to light the beacon.</span>`;
-    placeLabels();
   }
   function consoleLines(p) {
     return ["> CONNECTING DIRECTLY · NO INTERNET … OK", "> KEY EXCHANGE · X25519 … OK", "> CHANNEL · CHACHA20-POLY1305 … OK",
@@ -315,7 +335,10 @@ window.UmbraFriends = (() => {
   async function refresh() {
     try {
       const d = await api("/api/friends");
-      const sig = JSON.stringify(d.friends.map((f) => [f.id, f.updated, f.online, f.unread, f.camp])) + JSON.stringify([d.camp.enabled, d.camp.peers, d.camp.pending, d.camp.linked, d.camp.firewall, d.camp.opened]);
+      // Each view repaints only for what it shows: a friend's card being
+      // updated doesn't touch the Camp, and the Camp's search doesn't touch the cards.
+      const campSig = JSON.stringify([d.camp.enabled, d.camp.available, d.camp.peers, d.camp.pending, d.camp.linked, d.camp.firewall, d.camp.opened, d.camp.address]);
+      const sig = view === "camp" ? campSig : JSON.stringify(d.friends.map((f) => [f.id, f.updated, f.online, f.unread, f.camp])) + campSig;
       friends = d.friends; camp = d.camp;
       events(d.camp.events);
       badge();
