@@ -625,8 +625,8 @@
   // A short burst of light when a bar completes.
   function pop(el) {
     if (window.offgrid || document.body.classList.contains("reduce-motion")) return;
-    el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
-    clearTimeout(el._pop); el._pop = setTimeout(() => el.classList.remove("pop"), 520);
+    el.classList.remove("op-flash"); void el.offsetWidth; el.classList.add("op-flash");   // (not "pop": the source popover owns that name)
+    clearTimeout(el._pop); el._pop = setTimeout(() => el.classList.remove("op-flash"), 520);
   }
   // Bars move every frame (smooth at the screen's own rate) while the
   // Outpost is open; with Reduce motion or off-grid, ten times a second.

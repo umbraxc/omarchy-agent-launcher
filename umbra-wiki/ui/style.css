@@ -3752,9 +3752,14 @@ button.fr-way:hover { border-color: var(--net); } .fr-way .g { color: var(--net)
 @keyframes op-sheen { to { background-position: 24px 0; } }
 .op-prog::after, .op-swing::after { content: ""; position: absolute; top: -3px; bottom: -3px; left: calc(var(--p, 0) * 100% - 2px); width: 4px; pointer-events: none;
   background: #fff; box-shadow: 0 0 8px 2px var(--sc, var(--signal)), 0 0 2px #fff; opacity: calc(.35 + var(--p, 0) * .65); }
-.op-prog.pop, .op-swing.pop { animation: op-pop .52s cubic-bezier(.2, .8, .3, 1); }
-@keyframes op-pop { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sc, var(--signal)) 90%, transparent), inset 0 1px 2px rgba(0, 0, 0, .6); filter: brightness(2); }
-  100% { box-shadow: 0 0 0 7px transparent, inset 0 1px 2px rgba(0, 0, 0, .6); filter: none; } }
+/* An action completes: the bar glows in its own colour for a moment and the
+   head flares, all within the bar's own box (no filters: they draw badly
+   without 3D compositing, and no fade through black). */
+.op-prog.op-flash, .op-swing.op-flash { animation: op-pop .5s ease-out; }
+@keyframes op-pop { 0% { box-shadow: 0 0 12px 1px var(--sc, var(--signal)), inset 0 1px 2px rgba(0, 0, 0, .6); border-color: var(--sc, var(--signal)); }
+  100% { box-shadow: 0 0 0 0 var(--sc, var(--signal)), inset 0 1px 2px rgba(0, 0, 0, .6); } }
+.op-prog.op-flash::after, .op-swing.op-flash::after { animation: op-flare .5s ease-out; }
+@keyframes op-flare { 0% { opacity: 1; box-shadow: 0 0 16px 5px var(--sc, var(--signal)), 0 0 3px #fff; } 100% { box-shadow: 0 0 8px 2px var(--sc, var(--signal)), 0 0 2px #fff; } }
 .op-swing { --sc: var(--signal); } [data-swing="them"] { --sc: #d58a4a; }
 /* The top strip's current action: glyph and name, time left, a bigger bar. */
 .op .op-act { gap: 5px; padding: 6px 10px 8px; border-color: color-mix(in srgb, var(--sc, var(--signal)) 45%, var(--line));
