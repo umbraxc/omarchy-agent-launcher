@@ -31,7 +31,7 @@ for name in ("manuals.json", "facts.json", "fieldmanual.json", "knowledge.json",
 from PyInstaller.utils.hooks import collect_all, collect_data_files, collect_dynamic_libs, collect_submodules
 binaries = []
 hidden_voice = []
-for pkg in ("kokoro_onnx", "espeakng_loader", "phonemizer", "language_tags", "segments", "csvw", "meshtastic", "pubsub", "serial"):
+for pkg in ("kokoro_onnx", "espeakng_loader", "pywhispercpp", "sounddevice", "_sounddevice_data", "phonemizer", "language_tags", "segments", "csvw", "meshtastic", "pubsub", "serial"):
     try:
         d, b, h = collect_all(pkg)
         datas += d; binaries += b; hidden_voice += h
@@ -53,7 +53,7 @@ a = Analysis(
     datas=datas,
     binaries=binaries,
     hiddenimports=["server", "maps", "pmtiles", "radar", "transfers", "linked_library", "outpost", "outpost_data", "camp", "sky", "winplat", "psutil", "pypdf", "cryptography",
-                   "speech", "speech_worker", "lora", "lora_worker", *hidden_voice],
+                   "speech", "speech_worker", "lora", "lora_worker", "listen", "listen_worker", *hidden_voice],
     excludes=["tkinter", *ORT_SKIP],
 )
 pyz = PYZ(a.pure)

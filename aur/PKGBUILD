@@ -1,6 +1,6 @@
 # Maintainer: umbraxc <334050264+umbraxc@users.noreply.github.com>
 pkgname=umbra-wiki
-pkgver=3.2.2
+pkgver=3.2.3
 pkgrel=1
 _commit=92110bb43bf3b4c4798f0e6f74c3eedbd30fb28e   # exact 3.2.2 release source
 pkgdesc="Offline survival assistant: a local AI that answers from an offline library, with sources"
@@ -28,7 +28,7 @@ package() {
 
   install -d "$app"
   cp -r ui sounds "$app/"
-  install -m644 server.py maps.py pmtiles.py radar.py transfers.py linked_library.py outpost.py outpost_data.py camp.py sky.py speech.py speech_worker.py lora.py lora_worker.py manuals.json facts.json fieldmanual.json knowledge.json library.json packs.json achievements.json farming.json "$app/"
+  install -m644 server.py maps.py pmtiles.py radar.py transfers.py linked_library.py outpost.py outpost_data.py camp.py sky.py speech.py speech_worker.py lora.py lora_worker.py listen.py listen_worker.py manuals.json facts.json fieldmanual.json knowledge.json library.json packs.json achievements.json farming.json "$app/"
   install -Dm644 maps/world.mbtiles maps/countries.json maps/atlas.json maps/atlas-more.json -t "$app/maps/"
   install -m755 fetch-archive.sh uninstall.sh "$app/"
 

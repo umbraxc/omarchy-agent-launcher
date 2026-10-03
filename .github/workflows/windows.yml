@@ -42,8 +42,12 @@ jobs:
       - name: The app
         run: pyinstaller windows/umbra.spec --noconfirm
 
-      - name: Self-test (backend, UI files, Windows code paths)
+      - name: Self-test (backend, UI files, Windows code paths, voice input)
         run: |
+          Invoke-WebRequest "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en-q5_1.bin" -OutFile listen-model.bin
+          if ((Get-FileHash listen-model.bin).Hash -ne "4BAF70DD0D7C4247BA2B81FAFD9C01005AC77C2F9EF064E00DCF195D0E2FDD2F") { exit 1 }
+          $env:UMBRA_LISTEN_MODEL = "$PWD\listen-model.bin"
+          $env:UMBRA_LISTEN_CLIP = "$PWD\windows\listen-test.wav"
           $p = Start-Process -FilePath "dist\Umbra Wiki\Umbra Wiki.exe" -ArgumentList "--selftest" -Wait -PassThru
           Get-Content selftest.log -ErrorAction SilentlyContinue | Select-Object -Last 60
           if ($p.ExitCode -ne 0) { exit 1 }

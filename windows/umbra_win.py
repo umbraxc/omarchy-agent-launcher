@@ -123,6 +123,24 @@ def selftest():
     results["platform"] = status.get("platform")
     results["utf8_mode"] = sys.flags.utf8_mode
     ok = ok and status.get("platform") == "windows" and (sys.flags.utf8_mode == 1 or not FROZEN)
+    # Voice input: the microphone library loads, and (when the build put the
+    # model next to the test clip) a real spoken clip is turned into words.
+    try:
+        import sounddevice  # noqa: F401
+        results["microphone"] = "sounddevice " + sounddevice.__version__
+    except Exception as e:
+        results["microphone"] = f"FAILED {e}"
+        ok = False
+    model = os.environ.get("UMBRA_LISTEN_MODEL", "")
+    if model:
+        try:
+            import listen_worker
+            heard = listen_worker.Engine(model).transcribe(os.environ["UMBRA_LISTEN_CLIP"])
+            results["listen"] = heard
+            ok = ok and "umbra" in heard.lower() and "company" in heard.lower()
+        except Exception as e:
+            results["listen"] = f"FAILED {e}"
+            ok = False
     results["kiwix-serve"] = server.winplat.kiwix_exe(server.APP_DIR)
     ok = ok and os.path.isfile(results["kiwix-serve"])
     results["ok"] = ok

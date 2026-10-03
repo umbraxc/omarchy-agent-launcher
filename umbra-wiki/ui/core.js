@@ -79,8 +79,8 @@
         Object.values(d.downloads).some(Boolean) ? `In progress: ${Object.entries(d.downloads).filter(([, v]) => v).map(([k]) => ({ library: "library", model: "AI model", maps: "maps", docs: "field manuals" })[k]).join(", ")}. The downloads button at the top pauses or resumes them.` : "Nothing downloading."],
       ["POWER", d.power.battery ? "warn" : "ok", d.power.battery ? "BATTERY" : "MAINS",
         `Off-grid mode: ${({ auto: "switches on by itself on battery", on: "always on", off: "off" })[d.power.offgrid] || d.power.offgrid}.${window.offgrid ? " It's saving power now." : ""}`],
-      ["VOICE", d.voice ? "ok" : "warn", d.voice ? "READY" : onWin() ? "N/A" : "NOT SET UP",
-        d.voice ? "Hold F9 to talk; speech is turned into text offline." : onWin() ? "Voice input isn't available in the Windows app yet." : "Voice input isn't installed: see Settings → Voice."],
+      ["VOICE", d.voice ? "ok" : "warn", d.voice ? "READY" : "NOT SET UP",
+        d.voice ? "Hold F9 to talk; speech is turned into text offline." : "Voice input isn't set up yet: click the microphone, or Settings › Voice input."],
       ["PROCESSOR", d.system.accel ? "ok" : "warn", d.system.accel ? "ACCELERATED" : "CPU ONLY",
         `${d.system.cpu}, ${d.system.cores} threads, ${d.system.ramGB} GB of memory. ${d.system.accel ? `Graphics card: ${d.system.accel}, so answers come fast.` : "No graphics card the AI can use, so answers take a minute or so."}`],
     ];

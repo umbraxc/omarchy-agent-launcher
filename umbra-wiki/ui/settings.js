@@ -729,13 +729,20 @@
     applySearch();
 
     window.UmbraSpeech?.settingsPanel(body.querySelector(".set-speech"));
-    body.querySelector(".set-voice").innerHTML = voice.unsupported
-      ? "Voice input isn't available in the Windows app yet. Type your questions; everything else works the same."
-      : !voice.available
-      ? `Voice input isn't installed. Install it with <code>${escapeHtml(voice.install || "omarchy-voxtype-install")}</code>, then hold <b>F9</b> to talk.`
+    const ownIns = voice.own?.install || {};
+    body.querySelector(".set-voice").innerHTML = !voice.available
+      ? (ownIns.active ? `Getting voice input ready… ${ownIns.total ? Math.round(ownIns.done / ownIns.total * 100) + "%" : ""}`
+        : `Talk to Umbra: your speech is turned into text right here, offline. One download of about ${voice.own?.downloadMB || 60} MB. <button type="button" class="ghost set-listen-get">GET VOICE INPUT</button>${ownIns.phase === "error" ? ` <b class="sp-err">${escapeHtml(ownIns.error)}</b>` : ""}`)
       : voice.daemon
-        ? "Voice input is ready: hold <b>F9</b> anywhere, or click the microphone next to TRANSMIT. Speech is turned into text offline by voxtype."
-        : "Voice input is ready: click the microphone next to TRANSMIT, or hold <b>F9</b> in Umbra. Speech is turned into text offline by voxtype.";
+        ? "Voice input is ready: hold <b>F9</b> anywhere, or click the microphone next to TRANSMIT. Speech is turned into text offline by voxtype's service."
+        : `Voice input is ready: click the microphone next to TRANSMIT, or hold <b>F9</b> in Umbra. Speech is turned into text offline by ${voice.engine === "voxtype" ? "voxtype" : "Umbra's own engine (whisper.cpp)"}.` +
+          (voice.own?.installed ? ` <button type="button" class="ghost set-listen-rm">REMOVE</button>` : "");
+    body.querySelector(".set-listen-get")?.addEventListener("click", () => { Sound.click(); window.getVoiceInput?.(); });
+    body.querySelector(".set-listen-rm")?.addEventListener("click", async () => {
+      Sound.click();
+      await fetch("/api/voice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "remove" }) });
+      body.querySelector(".set-voice").textContent = "Voice input removed. You can get it again any time from the microphone.";
+    });
 
     body.querySelectorAll(".set-open").forEach((b) => b.addEventListener("click", () => {
       fetch("/api/open-folder", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ which: b.dataset.which }) });

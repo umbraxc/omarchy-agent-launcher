@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.2.3
+
+### Highlights
+
+- Talk to Umbra on Windows too: voice input now works in the Windows app. Hold F9, or click the microphone, and talk; your speech is turned into text right on your computer, offline, with the same Whisper engine as on Linux. One download of about 60 MB, offered the first time you click the microphone.
+- The same voice input on every Linux: Umbra brings its own speech-to-text engine when voxtype isn't installed (Omarchy's voxtype keeps working as before, with F9 everywhere).
+- Settings › Voice input shows which engine listens, and can remove Umbra's own.
+
 ## 3.2.2
 
 ### Highlights

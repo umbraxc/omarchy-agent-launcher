@@ -827,11 +827,16 @@
       { id: "on", name: "Always on", line: "Lightest on power, all the time" },
     ], settings.offgrid || "auto", (id) => { offgridChoice = id; Sound.click(); });
     await postSettings({ offgrid: offgridChoice });   // the preselected choice counts too
-    // Voice input exists only on Linux; the Windows app doesn't mention it.
+    // Voice input: ready, or one small download away (the same on Linux and Windows).
     const voice = await fetch("/api/voice").then((r) => r.json()).catch(() => ({}));
-    if (!voice.unsupported) await say(voice.available
-      ? "Last thing: **voice input is ready.** Hold **F9** (or click the microphone) and just talk; it's turned into text right here, offline."
-      : `Last thing: **voice input** isn't installed yet. Install it with \`${voice.install || "omarchy-voxtype-install"}\` and then hold **F9** to talk to me.`);
+    if (voice.available) await say("Last thing: **voice input is ready.** Hold **F9** (or click the microphone) and just talk; it's turned into text right here, offline.");
+    else if (!AUTO) {
+      a = await say(`Last thing: you can **talk to me**. Your speech is turned into text right here, offline. It's one download of about ${voice.own?.downloadMB || 60} MB.`);
+      if (await choose(a, [["GET VOICE INPUT ▸", "get", true], ["NOT NOW", "no"]]) === "get") {
+        await fetch("/api/voice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "install" }) });
+        await say("Downloading it in the background. Then hold **F9**, or click the microphone, and talk.");
+      }
+    }
 
     // The screen, piece by piece.
     a = await say("Now a quick look at the screen, piece by piece.");

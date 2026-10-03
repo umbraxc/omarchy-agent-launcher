@@ -37,6 +37,7 @@ import transfers
 import camp
 import speech  # noqa: E402  (Umbra's offline voice: speech.py next to this file)
 import lora  # noqa: E402  (Meshtastic LoRa radios: lora.py next to this file)
+import listen  # noqa: E402  (Umbra's own offline voice input: listen.py next to this file)
 import linked_library
 import outpost
 import sky
@@ -100,7 +101,7 @@ MODEL = os.environ.get("UMBRA_MODEL") or CONFIG.get("model") or "gemma3:4b"
 
 WIKI_API = "https://en.wikipedia.org/w/api.php"
 # Wikimedia asks API clients to name themselves with a contact URL.
-VERSION = "3.2.2"
+VERSION = "3.2.3"
 WEB_HEADERS = {"User-Agent": f"UmbraWiki/{VERSION} (https://github.com/umbraxc/omarchy-umbra; offline survival assistant)"}
 
 # Gemma reads context at ~25 tokens/s on this CPU, so the prompt budget is
@@ -3270,63 +3271,95 @@ def voxtype_daemon():
         return False
 
 
+LISTEN = listen.Listen(DATA_DIR, WINDOWS)
+
+
 def voice_status():
-    if WINDOWS:   # voxtype is Linux-only
-        return {"available": False, "daemon": False, "state": "idle", "install": "", "unsupported": True}
-    if not shutil.which("voxtype"):
-        install = ("omarchy-voxtype-install" if shutil.which("omarchy-voxtype-install")
-                   else "yay -S voxtype-bin && voxtype setup --download --model base.en")
-        return {"available": False, "daemon": False, "state": "idle", "install": install}
-    daemon = voxtype_daemon()
-    state = "idle"
+    """Voice input: voxtype's service when it runs (Omarchy's F9 everywhere),
+    otherwise Umbra's own offline engine (whisper.cpp), the same on Linux and
+    Windows. Before either is set up, how to get one."""
+    daemon = not WINDOWS and shutil.which("voxtype") and voxtype_daemon()
+    own = LISTEN.status()
+    base = {"engine": "voxtype" if daemon else "umbra", "own": own, "canInstall": True}
     if daemon:
+        state = "idle"
         try:
             out = subprocess.run(["voxtype", "status", "--format", "json"], capture_output=True, text=True, timeout=2)
             state = json.loads(out.stdout or "{}").get("class", "idle")
         except (OSError, ValueError, subprocess.SubprocessError):
             pass
-    elif voice_proc and voice_proc.poll() is None:
-        state = "recording"
-    return {"available": True, "daemon": daemon, "state": state}
+        return {**base, "available": True, "daemon": True, "state": state}
+    if own["installed"]:
+        recording = LISTEN.recording() if WINDOWS else bool(voice_proc and voice_proc.poll() is None)
+        return {**base, "available": True, "daemon": False, "state": "recording" if recording else "idle"}
+    if not WINDOWS and shutil.which("voxtype"):   # voxtype installed, its service not running: it transcribes
+        recording = bool(voice_proc and voice_proc.poll() is None)
+        return {**base, "engine": "voxtype", "available": True, "daemon": False, "state": "recording" if recording else "idle"}
+    return {**base, "available": False, "daemon": False, "state": "idle", "install": ""}
 
 
 def voice_action(action):
     global voice_proc
+    if action == "install":
+        LISTEN.install()
+        return voice_status()
+    if action == "remove":
+        LISTEN.remove()
+        return voice_status()
     status = voice_status()
     if not status["available"]:
-        return {"error": "voxtype is not installed"}
+        return {**status, "error": "Voice input isn't set up yet."}
     if status["daemon"]:
         if action in ("start", "stop", "cancel", "toggle"):
             subprocess.run(["voxtype", "record", action], capture_output=True, timeout=5)
         return voice_status()
-    # No service: record here, transcribe on stop.
-    if action == "start" and not (voice_proc and voice_proc.poll() is None):
-        voice_proc = subprocess.Popen(["pw-record", *audio_target("audioIn"), "--rate", "16000", "--channels", "1", "--format", "s16", VOICE_FILE],
-                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # Umbra records, then transcribes on stop.
+    clip = os.path.join(os.environ.get("XDG_RUNTIME_DIR") or tempfile_dir(), "umbra-wiki-voice.wav")
+    if action == "start" and status["state"] != "recording":
+        if WINDOWS:
+            try:
+                LISTEN.record_start()
+            except Exception as exc:
+                return {**voice_status(), "error": f"The microphone couldn't be opened: {exc}"[:200]}
+        else:
+            voice_proc = subprocess.Popen(["pw-record", *audio_target("audioIn"), "--rate", "16000", "--channels", "1", "--format", "s16", clip],
+                                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        LISTEN.warm()
         return {**voice_status(), "state": "recording"}
-    if action in ("stop", "cancel") and voice_proc:
-        voice_proc.send_signal(signal.SIGINT)
+    if action in ("stop", "cancel") and status["state"] == "recording":
+        if WINDOWS:
+            LISTEN.record_stop(clip)
+        else:
+            voice_proc.send_signal(signal.SIGINT)
+            try:
+                voice_proc.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                voice_proc.kill()
+            voice_proc = None
+        text = ""
         try:
-            voice_proc.wait(timeout=3)
-        except subprocess.TimeoutExpired:
-            voice_proc.kill()
-        voice_proc = None
-        if action == "cancel":
-            return voice_status()
-        try:
-            out = subprocess.run(["voxtype", "-q", "transcribe", VOICE_FILE], capture_output=True, text=True, timeout=120)
-            # Progress lines share stdout with the words; keep only the words.
-            text = " ".join(l.strip() for l in out.stdout.splitlines() if l.strip()
-                            and not re.match(r"(Loading audio file|Audio format|Processing \d)", l.strip()))
+            if action == "stop":
+                if status["engine"] == "umbra" and LISTEN.installed():
+                    text = LISTEN.transcribe(clip)
+                else:
+                    out = subprocess.run(["voxtype", "-q", "transcribe", clip], capture_output=True, text=True, timeout=120)
+                    # Progress lines share stdout with the words; keep only the words.
+                    text = " ".join(l.strip() for l in out.stdout.splitlines() if l.strip()
+                                    and not re.match(r"(Loading audio file|Audio format|Processing \d)", l.strip()))
         except (OSError, subprocess.SubprocessError):
             text = ""
         finally:
             try:
-                os.remove(VOICE_FILE)
+                os.remove(clip)
             except OSError:
                 pass
         return {**voice_status(), "text": text}
     return voice_status()
+
+
+def tempfile_dir():
+    import tempfile
+    return tempfile.gettempdir()
 
 
 # ----------------------------------------------------------------- starters

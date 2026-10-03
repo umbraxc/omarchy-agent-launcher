@@ -2539,14 +2539,17 @@ $("#reader-close").addEventListener("click", closeReader);
 // button drives the same service and lights up whenever it records.
 // Without the service, the backend records and returns the words here.
 const mic = $("#mic");
-let voice = { available: false, daemon: false, state: "idle" };
+let voice = { available: false, daemon: false, state: "idle" }, voiceInstalling = false;
 function showVoice(v) {
   if (voice.state === "transcribing" && v.state === "idle") { window.track?.("voice"); window.UmbraSpeech?.heardVoice(); }   // words came in by voice
   voice = { ...voice, ...v };
   mic.classList.toggle("rec", voice.state === "recording");
   mic.classList.toggle("busy", voice.state === "transcribing");
   mic.classList.toggle("off", !voice.available);
-  mic.hidden = !!voice.unsupported;   // the Windows app has no voice input yet
+  mic.classList.toggle("busy", voice.state === "transcribing" || !!voice.own?.install?.active);
+  mic.hidden = false;
+  // Umbra's own engine just finished installing.
+  if (voice.own?.installed && voiceInstalling) { voiceInstalling = false; Sound.found(); window.umbraToast?.("Voice input is ready: hold F9, or click the microphone, and talk."); }
 }
 function insertText(text) {
   const a = input.selectionStart, b = input.selectionEnd, v = input.value;
@@ -2566,6 +2569,21 @@ async function voiceCall(action) {
     if (r.text) insertText(r.text);
   } catch {}
 }
+// Umbra's own voice input: offline speech to text (whisper.cpp), one small download.
+async function getVoiceInput() {
+  const ok = await confirmDialog({
+    kind: "to-online", tag: "VOICE", title: "TALK TO UMBRA?",
+    body: `Voice input turns your speech into text right here, offline: nothing you say leaves this computer. One download of about ${voice.own?.downloadMB || 60} MB (plus the engine), with internet.` +
+      (voice.own?.install?.phase === "error" ? `\n\nLast time: ${voice.own.install.error}` : "") +
+      (navigator.platform.startsWith("Win") ? "" : "\n\nOn Omarchy, voxtype (omarchy-voxtype-install) works too, with F9 everywhere."),
+    ok: "GET VOICE INPUT", cancel: "NOT NOW",
+  });
+  if (!ok) return;
+  voiceInstalling = true;
+  voiceCall("install");
+  window.umbraToast?.("Getting voice input ready in the background…");
+}
+window.getVoiceInput = getVoiceInput;
 let voiceTick = 0;
 async function refreshVoice() {
   if (voice.unsupported || (!document.hasFocus() && voice.state === "idle")) return;
@@ -2583,12 +2601,8 @@ mic.addEventListener("mousedown", (e) => e.preventDefault());   // keep the prom
 mic.addEventListener("click", () => {
   if (locked) return;
   if (!voice.available) {
-    confirmDialog({
-      kind: "to-local", tag: "VOICE", title: "VOICE INPUT ISN'T INSTALLED",
-      body: "Voice input uses voxtype, an offline speech-to-text tool. Install it with:\n\n" +
-        (voice.install || "omarchy-voxtype-install") + "\n\nThen hold F9 in Umbra (or click the microphone) to talk.",
-      cancel: "OK",
-    });
+    if (voice.own?.install?.active) { window.umbraToast?.(`Getting voice input ready… ${voice.own.install.total ? Math.round(voice.own.install.done / voice.own.install.total * 100) + "%" : ""}`); return; }
+    getVoiceInput();
     return;
   }
   input.focus();
