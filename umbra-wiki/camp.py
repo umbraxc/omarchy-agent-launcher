@@ -48,6 +48,12 @@ SKILL_RE = re.compile(r"[a-z_]{1,24}")
 FRAMES = ("signal", "flames", "aurora", "static", "circuit", "frost", "gold", "plain", "starfield", "orbit", "topo", "morse", "laurels")
 SCENES = ("orb", "campfire", "aurora", "mountains", "lighthouse", "forest", "stars", "winter", "storm", "valley")
 ACCENTS = ("signal", "accent", "net", "red", "green", "violet", "ice", "gold")
+WP_ICONS = ("pin", "objective", "friendly", "enemy", "danger", "rally", "lz", "medic", "cache", "water", "food",
+            "op", "checkpoint", "camp", "home")
+CHECKIN_STATES = ("ok", "help", "away", "moving")
+# Attached to a card but signed apart, so the QR code can leave them out
+# (a QR code holds only a few kilobytes): shared waypoints and the check-in.
+EXTRAS = ("wp", "ci")
 
 
 def b64e(b):
@@ -105,24 +111,90 @@ def clean_card(c):
         out["st"] = {"f": st.get("f") if st.get("f") in FRAMES else "signal",
                      "bg": st.get("bg") if st.get("bg") in SCENES else "orb",
                      "ac": st.get("ac") if st.get("ac") in ACCENTS else "signal"}
+    # The dossier: what the card's extension shows (space, Earth, drills, habits, the Locker look).
+    x = c.get("x")
+    if isinstance(x, dict):
+        o = {}
+        for key, hi in (("w", 20), ("mo", 60), ("co", 400), ("wd", 28), ("dr", 10 ** 5), ("sd", 10 ** 5), ("sb", 100),
+                        ("sp", 10 ** 4), ("sk", 10 ** 4), ("dy", 10 ** 5), ("q", 10 ** 7), ("fr", 1000)):
+            if isinstance(x.get(key), int) and not isinstance(x.get(key), bool) and 0 <= x[key] <= hi:
+                o[key] = x[key]
+        for key in ("bg", "tr"):
+            if _id(x.get(key)):
+                o[key] = x[key]
+        if o:
+            out["x"] = o
+    wp = clean_waypoints(c.get("wp"))
+    if wp:
+        out["wp"] = wp
+    ci = clean_checkin(c.get("ci"))
+    if ci:
+        out["ci"] = ci
     if c.get("sig"):
         out["sig"] = _s(c["sig"], 100)
+    if c.get("xs"):
+        out["xs"] = _s(c["xs"], 100)
+    return out
+
+
+def clean_waypoints(v):
+    """Shared waypoints: [lat, lon, name, icon, colour], at most 80."""
+    out = []
+    for w in (v if isinstance(v, list) else [])[:80]:
+        if not isinstance(w, list) or len(w) < 3:
+            continue
+        try:
+            lat, lon = round(float(w[0]), 5), round(float(w[1]), 5)
+        except (TypeError, ValueError):
+            continue
+        if not (-85 <= lat <= 85 and -180 <= lon <= 180):
+            continue
+        icon = w[3] if len(w) > 3 and w[3] in WP_ICONS else "pin"
+        colour = w[4] if len(w) > 4 and isinstance(w[4], str) and re.fullmatch(r"[a-z]{0,10}", w[4]) else ""
+        out.append([lat, lon, _s(w[2], 40) or "Waypoint", icon, colour])
+    return out
+
+
+def clean_checkin(v):
+    """A check-in: when, how (OK, need help, away, on the move), a note, maybe a place, and how often to expect one."""
+    if not isinstance(v, dict) or not isinstance(v.get("at"), int) or v.get("st") not in CHECKIN_STATES:
+        return None
+    out = {"at": v["at"], "st": v["st"]}
+    if v.get("n"):
+        out["n"] = _s(v["n"], 120)
+    try:
+        if v.get("lat") is not None and v.get("lon") is not None:
+            lat, lon = round(float(v["lat"]), 4), round(float(v["lon"]), 4)
+            if -85 <= lat <= 85 and -180 <= lon <= 180:
+                out["lat"], out["lon"] = lat, lon
+    except (TypeError, ValueError):
+        pass
+    if isinstance(v.get("ev"), int) and 0 <= v["ev"] <= 168:
+        out["ev"] = v["ev"]
     return out
 
 
 def _signed_bytes(card):
-    body = {k: v for k, v in card.items() if k != "sig"}
+    body = {k: v for k, v in card.items() if k not in ("sig", "xs") + EXTRAS}
     return json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()
 
 
-def encode(card):
+def _extras_bytes(card):
+    body = {"id": card.get("id"), "u": card.get("u"), **{k: card[k] for k in EXTRAS if k in card}}
+    return json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()
+
+
+def encode(card, short=False):
+    """The card as a code. short: without the waypoints and check-in (for a QR code)."""
+    if short:
+        card = {k: v for k, v in card.items() if k not in EXTRAS + ("xs",)}
     raw = json.dumps(card, separators=(",", ":"), ensure_ascii=False).encode()
     return PREFIX + b64e(zlib.compress(raw, 9))
 
 
 def decode(text):
     """A card from a code (also found inside pasted text)."""
-    m = re.search(re.escape(PREFIX) + r"([A-Za-z0-9_-]{20,4000})", str(text or ""))
+    m = re.search(re.escape(PREFIX) + r"([A-Za-z0-9_-]{20,20000})", str(text or ""))
     if not m:
         raise ValueError("That isn't an Umbra profile card code.")
     try:
@@ -142,6 +214,19 @@ def verify(card):
         if fingerprint(pk) != card.get("id"):
             return False
         Ed25519PublicKey.from_public_bytes(pk).verify(b64d(card["sig"]), _signed_bytes(card))
+        return True
+    except (InvalidSignature, ValueError, TypeError):
+        return False
+
+
+def verify_extras(card):
+    """The waypoints and check-in really come from the card's owner."""
+    if not any(k in card for k in EXTRAS):
+        return True
+    if not CRYPTO or not card.get("xs") or not card.get("pk"):
+        return False
+    try:
+        Ed25519PublicKey.from_public_bytes(b64d(card["pk"])).verify(b64d(card["xs"]), _extras_bytes(card))
         return True
     except (InvalidSignature, ValueError, TypeError):
         return False
@@ -303,12 +388,16 @@ class Camp:
         """My card, as it is right now, signed."""
         c = clean_card({**self.get_card_raw(), "id": self.my_id, "pk": b64e(self.pk) if self.pk else "",
                         "u": int(time.time())})
-        c.pop("sig", None)
+        c.pop("sig", None); c.pop("xs", None)
         if self.key is not None:
             c["sig"] = b64e(self.key.sign(_signed_bytes(c)))
+            if any(k in c for k in EXTRAS):
+                c["xs"] = b64e(self.key.sign(_extras_bytes(c)))
         return c
 
     def add_friend(self, card, source, verified):
+        if not verify_extras(card):   # waypoints or a check-in someone else put on the card: dropped
+            card = {k: v for k, v in card.items() if k not in EXTRAS + ("xs",)}
         fid = card.get("id") or ("card-" + hashlib.sha256(card.get("n", "").encode()).hexdigest()[:12])
         if fid == self.my_id:
             raise ValueError("That's your own card.")
@@ -360,14 +449,15 @@ class Camp:
                 self._save()
             return list(msgs[-300:])
 
-    def say(self, fid, text):
+    def say(self, fid, text, wp=None):
         text = _s(text, 2000)
-        if not text:
+        wp = (clean_waypoints([wp]) or [None])[0] if wp else None
+        if not text and not wp:
             raise ValueError("Empty message.")
         link = self.links.get(fid)
         if not link:
             raise ValueError("Your friend isn't linked right now: messages need both Umbras on the same network.")
-        msg = {"id": secrets.token_hex(6), "text": text, "at": int(time.time() * 1000)}
+        msg = {"id": secrets.token_hex(6), "text": text, "at": int(time.time() * 1000), **({"wp": wp} if wp else {})}
         link.send({"t": "msg", **msg})
         self._store(fid, {**msg, "me": True})
         return msg
@@ -582,6 +672,10 @@ class Camp:
         if old and old is not link:
             old.close()
         link.send({"t": "card", "card": self.card()})
+        with self.lock:
+            items = [dict(i, id=k) for k, i in self.state.setdefault("list", {}).items()]
+        if items:
+            link.send({"t": "list", "items": items})
 
     def _handle(self, link, msg):
         t = msg.get("t") if isinstance(msg, dict) else None
@@ -605,20 +699,89 @@ class Camp:
             card = clean_card(msg.get("card"))
             if card.get("id") != pid or not verify(card):
                 return
+            before = (self.state["friends"].get(pid, {}).get("card") or {}).get("ci", {}).get("at", 0)
             fid, new = self.add_friend(card, "camp", True)
             with self.lock:
                 self.state["friends"][fid]["camp"] = True
                 self._save()
+            ci = card.get("ci")
+            if ci and ci["at"] > before and before:
+                self.events.append({"t": "checkin", "id": pid, "name": card["n"], "st": ci["st"], "note": ci.get("n", "")})
+                self.notify("checkin", card["n"])
             if new:
                 self.events.append({"t": "friend", "name": card["n"]})
         elif t == "msg":
             text = _s(msg.get("text"), 2000)
-            if text:
+            wp = (clean_waypoints([msg.get("wp")]) or [None])[0] if msg.get("wp") else None
+            if text or wp:
                 self._store(pid, {"id": _s(msg.get("id"), 16) or secrets.token_hex(6), "text": text,
-                                  "at": int(time.time() * 1000), "me": False})
+                                  "at": int(time.time() * 1000), "me": False, **({"wp": wp} if wp else {})})
                 name = self.state["friends"].get(pid, {}).get("card", {}).get("n", "A friend")
-                self.events.append({"t": "msg", "id": pid, "name": name, "text": text[:120]})
+                self.events.append({"t": "msg", "id": pid, "name": name, "text": (text or "◈ " + wp[2])[:120]})
                 self.notify("message", name)
+        elif t == "list":
+            if self.merge_list(msg.get("items"), pid):
+                self.events.append({"t": "list", "name": self.state["friends"].get(pid, {}).get("card", {}).get("n", "A friend")})
+
+    # ------------------------------------------------- the shared supply list
+    # One list for everyone linked (a household, a camp). Each item carries
+    # when it last changed; the newest change wins, removals are kept as
+    # tombstones so they spread too.
+    def shared_list(self):
+        with self.lock:
+            items = dict(self.state.setdefault("list", {}))
+        return sorted((dict(i, id=k) for k, i in items.items() if not i.get("gone")), key=lambda i: (i.get("done", False), -i.get("u", 0)))
+
+    def merge_list(self, items, source=""):
+        changed = False
+        if not isinstance(items, list):
+            return False
+        with self.lock:
+            mine = self.state.setdefault("list", {})
+            for it in items[:400]:
+                if not isinstance(it, dict):
+                    continue
+                iid = _s(it.get("id"), 16)
+                u = it.get("u")
+                if not re.fullmatch(r"[a-z0-9]{6,16}", iid) or not isinstance(u, int):
+                    continue
+                if mine.get(iid, {}).get("u", 0) >= u:
+                    continue
+                q = it.get("q")
+                mine[iid] = {"t": _s(it.get("t"), 80), "q": _s(q, 20) if q else "", "done": bool(it.get("done")),
+                             "by": _s(it.get("by"), 40), "u": u, **({"gone": True} if it.get("gone") else {})}
+                changed = True
+            if changed:
+                # Tombstones older than a month are forgotten.
+                cut = int(time.time() * 1000) - 30 * 86400 * 1000
+                for k in [k for k, i in mine.items() if i.get("gone") and i["u"] < cut]:
+                    del mine[k]
+                self._save()
+        return changed
+
+    def edit_list(self, item, by):
+        """Add, change, tick or remove an item, here and on every linked Umbra."""
+        iid = _s(item.get("id"), 16) or secrets.token_hex(5)
+        with self.lock:
+            old = dict(self.state.setdefault("list", {}).get(iid, {}))
+        new = {"id": iid, "t": _s(item.get("t", old.get("t", "")), 80), "q": _s(item.get("q", old.get("q", "")), 20),
+               "done": bool(item.get("done", old.get("done", False))), "by": old.get("by") or _s(by, 40),
+               "u": max(int(time.time() * 1000), old.get("u", 0) + 1), **({"gone": True} if item.get("gone") else {})}
+        if not new["t"] and not new.get("gone"):
+            raise ValueError("Write what the item is.")
+        self.merge_list([new])
+        self.push_list([new])
+        return self.shared_list()
+
+    def push_list(self, items=None):
+        if items is None:
+            with self.lock:
+                items = [dict(i, id=k) for k, i in self.state.setdefault("list", {}).items()]
+        for link in list(self.links.values()):
+            try:
+                link.send({"t": "list", "items": items})
+            except Exception:
+                pass
 
     def push_card(self):
         """My card changed: friends linked right now get the new one."""

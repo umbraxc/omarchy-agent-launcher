@@ -32,6 +32,18 @@
   let style = "topo", showGrid = true, tool = "", target = null, measure = [];
   let status = null;                 // /api/maps: the areas on this computer
   let waypoints = [], draftWaypoint = null;
+  // Friends' shared waypoints and check-ins (from their profile cards), as a layer of their own.
+  let friendLayer = [], showFriends = true, friendTimer = 0;
+  const FRIEND_ACCENT = { green: "#6fcf7f", violet: "#b28cf0", ice: "#8fd8f4", gold: "#ffd27a" };
+  const friendColor = (ac) => FRIEND_ACCENT[ac] || css(`--${ac === "accent" || ac === "net" || ac === "red" ? ac : "signal"}`) || "#e8d27c";
+  const agoText = (ms) => { const m = Math.max(0, (Date.now() - ms) / 60000); return m < 2 ? "JUST NOW" : m < 60 ? `${Math.round(m)} MIN AGO` : m < 2880 ? `${Math.round(m / 60)} H AGO` : `${Math.round(m / 1440)} DAYS AGO`; };
+  const CHECKIN = { ok: ["✓ OK", "#6fcf7f"], help: ["⚠ NEEDS HELP", "#e06a6a"], away: ["◌ AWAY", "#9a9aa0"], moving: ["➜ ON THE MOVE", "#5fb8c9"] };
+  async function loadFriends() {
+    try { friendLayer = (await (await fetch("/api/friends/waypoints")).json()).friends || []; } catch {}
+    el()?.querySelector(".mp-t[data-t=friends]")?.toggleAttribute("hidden", !friendLayer.length);
+    frame();
+  }
+  const el = () => $("#maps");
   const scale = () => 256 * Math.pow(2, view.z);
   const minZ = () => Math.log2(Math.max(H, 256) / 256);
   const toScreen = (x, y) => [(x - view.x) * scale() + W / 2, (y - view.y) * scale() + H / 2];
@@ -524,6 +536,35 @@
       if (!w.sym || !drawSym(g, w.sym, x, cy + (m[1] === "tri" ? 2 : 0), 13, g.fillStyle)) g.fillText(m[2], x, cy + (m[1] === "tri" ? 2 : 0));
       g.font = `700 10px ${font}`; g.lineWidth = 3.5; g.strokeStyle = halo; g.fillStyle = col;
       g.strokeText(w.name.toUpperCase(), x, y + 9); g.fillText(w.name.toUpperCase(), x, y + 9);
+    }
+    if (showFriends) for (const f of friendLayer) {
+      const ac = friendColor(f.accent);
+      for (const [lat, lon, name, icon, color] of f.waypoints) {
+        const [x, y] = toScreen(projX(lon), projY(lat));
+        if (x < -30 || x > W + 30 || y < -30 || y > H + 30) continue;
+        const w = { icon, color }, m = markOf(w), col = colorOf(w, pal), cy = y - 12;
+        // A friend's marker: their colour as a dashed ring round it.
+        g.setLineDash([3, 3]); g.beginPath(); g.arc(x, cy, 15, 0, TAU); g.strokeStyle = ac; g.lineWidth = 1.6; g.stroke(); g.setLineDash([]);
+        markerPath(g, m[1], x, cy, 9); g.lineWidth = 3; g.strokeStyle = halo; g.stroke(); g.fillStyle = col; g.fill();
+        g.font = `11px ${font}`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = light(col) ? "#111" : "#fff"; g.fillText(m[2], x, cy);
+        g.font = `700 9px ${font}`; g.lineWidth = 3.5; g.strokeStyle = halo; g.fillStyle = ac;
+        const label = `${f.name.toUpperCase()} › ${name.toUpperCase()}`;
+        g.strokeText(label, x, y + 9); g.fillText(label, x, y + 9);
+      }
+      const ci = f.checkin;
+      if (ci && ci.lat != null) {
+        const [x, y] = toScreen(projX(ci.lon), projY(ci.lat));
+        if (x > -40 && x < W + 40 && y > -40 && y < H + 40) {
+          // Two rings, like a beacon (drawn still: the map redraws only when it moves).
+          const [txt, sc] = CHECKIN[ci.st] || CHECKIN.ok;
+          for (const [r, a] of [[12, 0.55], [18, 0.25]]) { g.beginPath(); g.arc(x, y, r, 0, TAU); g.strokeStyle = sc; g.globalAlpha = a; g.lineWidth = 2; g.stroke(); }
+          g.globalAlpha = 1;
+          g.beginPath(); g.arc(x, y, 6, 0, TAU); g.fillStyle = sc; g.fill(); g.strokeStyle = ac; g.lineWidth = 2; g.stroke();
+          g.font = `700 10px ${font}`; g.textAlign = "center"; g.lineWidth = 3.5; g.strokeStyle = halo; g.fillStyle = sc;
+          const label = `${f.name.toUpperCase()} · ${txt} · ${agoText(ci.at)}`;
+          g.strokeText(label, x, y - 16); g.fillText(label, x, y - 16);
+        }
+      }
     }
     if (target) {
       const [x, y] = toScreen(projX(target.lon), projY(target.lat));
@@ -1204,6 +1245,7 @@
           <button class="ctl mp-t on" data-t="wonders" title="Wonders · L|Landmarks of the world in 3D: hover one to see it turn, click it for its file."><span class="g">󰮃</span></button>
           <button class="ctl mp-t on" data-t="safety" title="Safety layer|Colours the countries you marked safe, caution, avoid or danger. Click a country's name to mark it."><span class="g">󰞀</span></button>
           <button class="ctl mp-t" data-t="points" title="Your waypoints|Every waypoint you saved: fly to one, or remove it."><span class="g">󰈻</span></button>
+          <button class="ctl mp-t on" data-t="friends" hidden title="Friends' waypoints|The waypoints and check-ins your friends share on their profile cards, ringed in their colour. Click one to keep a copy."><span class="g">󰡉</span></button>
           <button class="ctl mp-t mp-dl-btn" data-t="packs" title="Download maps|Get detailed offline maps of a country or of the area on screen: streets, paths, water points, shelters and relief. Also lists and removes the maps you have."><span class="g">󰇚</span><i class="mp-dot" hidden></i></button>
           <button class="ctl mp-t" data-t="full" title="Full screen · F|Use the whole screen for the map. Press F or Esc to go back."><span class="g">󰊓</span></button>
           <button class="ghost mp-close" title="Close the map · Esc|Back to where you were. The map remembers where you left it.">CLOSE ✕</button>
@@ -1345,6 +1387,7 @@
       else if (t === "packs" || t === "points") togglePanel(t);
       else if (t === "full") fullscreen();
       else if (t === "wonders") { window.UmbraWonders?.setShown(!UmbraWonders.shown); b.classList.toggle("on", UmbraWonders.shown); Sound.click(); }
+      else if (t === "friends") { showFriends = !showFriends; b.classList.toggle("on", showFriends); if (showFriends) window.track?.("friendLayer"); frame(); Sound.click(); }
       else if (t === "safety") {
         showSafety = !showSafety; b.classList.toggle("on", showSafety); showLegend(); save(); frame(); Sound.click();
         if (showSafety && !Object.keys(safety).length) hint("CLICK A COUNTRY'S NAME TO GIVE IT A SAFETY LEVEL");
@@ -1430,6 +1473,13 @@
     if (land) { openCountry(land); return; }
     const hit = waypoints.find((w) => { const [wx, wy] = toScreen(projX(w.lon), projY(w.lat)); return Math.hypot(wx - sx, wy - 12 - sy) < 16; });
     if (hit) { showCard({ ...hit, kind: "waypoint", wp: hit, label: "WAYPOINT" }); return; }
+    if (showFriends) for (const f of friendLayer) {
+      const fw = f.waypoints.find(([la, lo]) => { const [wx, wy] = toScreen(projX(lo), projY(la)); return Math.hypot(wx - sx, wy - 12 - sy) < 16; });
+      if (fw) { showCard({ lat: fw[0], lon: fw[1], name: fw[2], kind: "friend", label: `${f.name.toUpperCase()}'S WAYPOINT` }); return; }
+      const ci = f.checkin;
+      if (ci && ci.lat != null) { const [cx, cy] = toScreen(projX(ci.lon), projY(ci.lat)); if (Math.hypot(cx - sx, cy - sy) < 14) {
+        showCard({ lat: ci.lat, lon: ci.lon, name: `${f.name}${ci.n ? `: “${ci.n}”` : ""}`, kind: "friend", label: `CHECK-IN · ${(CHECKIN[ci.st] || CHECKIN.ok)[0]} · ${agoText(ci.at)}` }); return; } }
+    }
     target = { lat, lon, name: "", kind: "spot", label: "LOCATION" };
     showCard(target);
     frame();
@@ -1937,6 +1987,9 @@
     else try { focusContinent((await (await fetch("/api/profile")).json()).continent); } catch {}
     Sound.click();
     try { waypoints = await (await fetch("/api/waypoints")).json(); } catch {}
+    loadFriends();
+    clearInterval(friendTimer);
+    friendTimer = setInterval(() => { if ($("#maps").hidden) clearInterval(friendTimer); else { loadFriends(); } }, 15000);
     if (!countries.length) try { countries = await (await fetch("/api/maps/countries")).json(); } catch {}
     if (status && status.job && status.job.active) pollJob();
     firstHint();
@@ -2037,6 +2090,20 @@
   });
   // Arriving from the Galaxy: open over the place below the camera.
   let pendingGo = null;
+  // Opens the map on a friend's shared waypoints and check-in.
+  window.showFriendOnMap = async (id) => {
+    await loadFriends();
+    const f = friendLayer.find((x) => x.id === id);
+    const pts = f ? [...f.waypoints.map(([la, lo]) => [la, lo]), ...(f.checkin?.lat != null ? [[f.checkin.lat, f.checkin.lon]] : [])] : [];
+    showFriends = true;
+    window.track?.("friendLayer");
+    if (!pts.length) { window.openMapsAt(25, 10, 3); return; }
+    const lats = pts.map((p) => p[0]), lons = pts.map((p) => p[1]);
+    const span = Math.max(0.02, Math.max(...lats) - Math.min(...lats), (Math.max(...lons) - Math.min(...lons)) * 0.6);
+    const z = Math.max(3, Math.min(13, Math.log2(360 / span) + 0.2));
+    window.openMapsAt((Math.max(...lats) + Math.min(...lats)) / 2, (Math.max(...lons) + Math.min(...lons)) / 2, z);
+    setTimeout(() => $("#maps .mp-t[data-t=friends]")?.classList.add("on"), 50);
+  };
   window.openMapsAt = (lat, lon, z = 4) => { pendingGo = [lat, lon, z]; if ($("#maps").hidden) toggle(true); else { const p = pendingGo; pendingGo = null; flyTo(p[0], p[1], p[2]); } };
   window.toggleMaps = toggle;
   window.closeMaps = () => { if (!$("#maps").hidden) toggle(false, true); };

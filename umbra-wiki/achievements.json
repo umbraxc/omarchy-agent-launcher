@@ -1188,6 +1188,72 @@
    "category": "friends"
   },
   {
+   "id": "all-clear",
+   "name": "All Clear",
+   "description": "Check in for the first time: let your friends know you're OK.",
+   "icon": "\udb80\udd2c",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "checkins",
+   "goal": 1,
+   "category": "friends"
+  },
+  {
+   "id": "steady-signal",
+   "name": "Steady Signal",
+   "description": "Check in on 14 different days.",
+   "icon": "\udb80\udd2c",
+   "tier": "gold",
+   "points": 50,
+   "stat": "checkins",
+   "goal": 14,
+   "category": "friends"
+  },
+  {
+   "id": "trail-for-friends",
+   "name": "Trail for Friends",
+   "description": "Share waypoints on your profile card.",
+   "icon": "\udb80\udf4e",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "sharedWaypoints",
+   "goal": 1,
+   "category": "friends"
+  },
+  {
+   "id": "dead-drop",
+   "name": "Dead Drop",
+   "description": "Send a friend a waypoint in a Camp message.",
+   "icon": "\udb80\udf4e",
+   "tier": "silver",
+   "points": 25,
+   "stat": "waypointsSent",
+   "goal": 1,
+   "category": "friends"
+  },
+  {
+   "id": "follow-the-pins",
+   "name": "Follow the Pins",
+   "description": "Show a friend's waypoints on your Maps.",
+   "icon": "\udb80\udf4d",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "friendLayer",
+   "goal": 1,
+   "category": "friends"
+  },
+  {
+   "id": "camp-ledger",
+   "name": "Camp Ledger",
+   "description": "Add or tick off 25 items on the shared supply list.",
+   "icon": "\udb81\udc12",
+   "tier": "silver",
+   "points": 25,
+   "stat": "listEdits",
+   "goal": 25,
+   "category": "friends"
+  },
+  {
    "id": "reading-partner",
    "name": "Reading Partner",
    "description": "Ask 25 questions with Umbra Online.",
@@ -1373,7 +1439,7 @@
    "tier": "legendary",
    "points": 100,
    "stat": "allOthers",
-   "goal": 132,
+   "goal": 138,
    "category": "legend"
   },
   {
@@ -2200,6 +2266,24 @@
    "description": "Shown after your name in conversations and on your profile.",
    "unlock": {
     "achievement": "ninety-nine"
+   }
+  },
+  {
+   "id": "the-reliable",
+   "kind": "title",
+   "name": "The Reliable",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "steady-signal"
+   }
+  },
+  {
+   "id": "camp-quartermaster",
+   "kind": "title",
+   "name": "Camp Quartermaster",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "camp-ledger"
    }
   },
   {

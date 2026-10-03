@@ -2031,7 +2031,7 @@ def _stat(st, stat):
         return max(_streak(st["days"]), counts.get("bestStreak", 0))
     if stat in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
                 "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries", "modelsTried", "medicTools", "radioTracks",
-                "worlds", "moons", "wonders", "dossiers"):
+                "worlds", "moons", "wonders", "dossiers", "checkins"):
         return len(sets.get(stat, []))
     if stat == "friends":   # the friends you have (importing the same card twice counts once)
         try:
@@ -2121,11 +2121,12 @@ def record(event, value=None, **info):
                        "cprMinutes", "morseLetters", "drills", "timers", "sunChecks", "cards", "quartermaster",
                        "coreOpened", "radarOpened", "killSwitch", "vault", "quickActions", "measures", "exports",
                        "quietScene", "pulse500", "webSaves", "friends", "campMessages", "campLinks",
-                       "galaxyOpened", "leftOrbit", "landings", "timeWarp", "cardShares"):
+                       "galaxyOpened", "leftOrbit", "landings", "timeWarp", "cardShares",
+                       "sharedWaypoints", "listEdits", "waypointsSent", "friendLayer"):
             counts[event] = counts.get(event, 0) + 1
         elif event in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
                        "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries", "modelsTried", "medicTools", "farmItems", "radioTracks",
-                       "worlds", "moons", "wonders", "dossiers"):
+                       "worlds", "moons", "wonders", "dossiers", "checkins"):
             values = value if event == "farmItems" and isinstance(value, list) else [value]
             known = set(sets.get(event, []))
             for raw in values[:80]:
@@ -4387,7 +4388,12 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(library())
         if path == "/api/card":
             card = CAMP.card()
-            return self.send_json({"card": card, "code": camp.encode(card), "prefs": card_prefs(), "signed": bool(card.get("sig"))})
+            return self.send_json({"card": card, "code": camp.encode(card), "qr": camp.encode(card, short=True), "prefs": card_prefs(),
+                                   "signed": bool(card.get("sig")), "checkin": read_json(SETTINGS_FILE, {}).get("checkin")})
+        if path == "/api/camp/list":
+            return self.send_json({"items": CAMP.shared_list()})
+        if path == "/api/friends/waypoints":
+            return self.send_json({"friends": friend_waypoints()})
         if path == "/api/friends":
             return self.send_json({"friends": CAMP.friends(), "me": CAMP.my_id, "camp": {**CAMP.status(), **camp_firewall()}})
         if path == "/api/camp":
@@ -4718,7 +4724,8 @@ class Handler(BaseHTTPRequestHandler):
                     return self.send_json({"error": "unknown track"}, 400)
             elif event not in ("suggestions", "sources", "stops", "voice", "cprMinutes", "morseLetters", "drills",
                                "timers", "sunChecks", "cards", "coreOpened", "radarOpened", "quickActions", "measures",
-                               "quietScene", "pulse500", "webSaves"):
+                               "quietScene", "pulse500", "webSaves", "galaxyOpened", "leftOrbit", "landings", "timeWarp",
+                               "cardShares", "friendLayer"):
                 return self.send_json({"error": "unknown event"}, 400)
             record(event, value)
             return self.send_json({"ok": True})
@@ -4784,7 +4791,14 @@ class Handler(BaseHTTPRequestHandler):
                 if self.path == "/api/card":
                     set_card_prefs(req)
                     card = CAMP.card()
-                    return self.send_json({"card": card, "code": camp.encode(card), "prefs": card_prefs(), "signed": bool(card.get("sig"))})
+                    return self.send_json({"card": card, "code": camp.encode(card), "qr": camp.encode(card, short=True), "prefs": card_prefs(),
+                                           "signed": bool(card.get("sig")), "checkin": read_json(SETTINGS_FILE, {}).get("checkin")})
+                if self.path == "/api/camp/checkin":
+                    return self.send_json({"ok": True, "checkin": check_in(req)})
+                if self.path == "/api/camp/list":
+                    items = CAMP.edit_list(req if isinstance(req, dict) else {}, get_profile().get("name") or "Me")
+                    record("listEdits")
+                    return self.send_json({"ok": True, "items": items})
                 if self.path == "/api/card/export":
                     return self.send_json(export_card(req))
                 if self.path == "/api/friends/import":
@@ -4797,8 +4811,10 @@ class Handler(BaseHTTPRequestHandler):
                     CAMP.remove(str(req.get("id", ""))[:40])
                     return self.send_json({"ok": True})
                 if self.path == "/api/friends/chat":
-                    msg = CAMP.say(str(req.get("id", ""))[:40], str(req.get("text", "")))
+                    msg = CAMP.say(str(req.get("id", ""))[:40], str(req.get("text", "")), req.get("wp"))
                     record("campMessages")
+                    if msg.get("wp"):
+                        record("waypointsSent")
                     return self.send_json({"ok": True, "message": msg})
                 if self.path == "/api/camp":
                     return self.send_json(CAMP.set_enabled(bool(req.get("on"))))
@@ -5365,9 +5381,10 @@ def web_remark_request(req):
 # ------------------------------------------------------- Friends and Camp
 
 CARD_FIELDS = ("callsign", "character", "title", "nameFx", "orb", "rank", "achievements", "badges", "outpost",
-               "skills", "motto", "since", "scenario")
-CARD_DEFAULTS = {"fields": {k: k not in ("scenario",) for k in CARD_FIELDS}, "motto": "", "frame": "flames",
-                 "bg": "campfire", "accent": "signal"}
+               "skills", "motto", "since", "scenario", "space", "earth", "drills", "habits", "looks", "waypoints", "checkin")
+# Shared waypoints and the check-in are off until the user turns them on.
+CARD_DEFAULTS = {"fields": {k: k not in ("scenario", "waypoints", "checkin") for k in CARD_FIELDS}, "motto": "", "frame": "flames",
+                 "bg": "campfire", "accent": "signal", "wps": []}
 _card_cache = {"at": 0, "card": None}
 
 
@@ -5386,6 +5403,11 @@ def set_card_prefs(update):
             prefs["fields"].update({k: bool(v) for k, v in update["fields"].items() if k in CARD_FIELDS})
         if isinstance(update.get("motto"), str):
             prefs["motto"] = re.sub(r"[\x00-\x1f\x7f]", "", update["motto"])[:90]
+        if isinstance(update.get("wps"), list):   # which waypoints the card shares
+            known = {w["id"] for w in get_waypoints()}
+            prefs["wps"] = [w for w in update["wps"] if isinstance(w, str) and w in known][:80]
+            if prefs["wps"]:
+                record("sharedWaypoints")
         for key, allowed in (("frame", camp.FRAMES), ("bg", camp.SCENES), ("accent", camp.ACCENTS)):
             if update.get(key) in allowed:
                 prefs[key] = update[key]
@@ -5456,8 +5478,85 @@ def card_raw():
             c["s"] = str(since)[:7]
     if f["scenario"]:
         c["sc"] = str(current_scenario().get("name", ""))[:30]
+    # The dossier: the card's extension.
+    x = {}
+    try:
+        st = _ach_state()
+        sets, counts = st.get("sets", {}), st.get("counts", {})
+        if f["space"]:
+            x["w"], x["mo"] = len(sets.get("worlds", [])), len(sets.get("moons", []))
+        if f["earth"]:
+            x["co"], x["wd"] = len(sets.get("dossiers", [])), len(sets.get("wonders", []))
+        if f["drills"]:
+            x["dr"] = int(counts.get("drills", 0))
+            sd = get_scenario_drills() if "get_scenario_drills" in globals() else {}
+            if sd:
+                x["sd"], x["sb"], x["sp"] = sd.get("done", 0), sd.get("best", 0), sd.get("perfect", 0)
+        if f["habits"]:
+            x["sk"], x["dy"], x["q"] = _stat(st, "streak"), len(st.get("days", [])), int(counts.get("questions", 0))
+            x["fr"] = len(CAMP.friends()) if CAMP else 0
+    except Exception:
+        pass
+    if f["looks"]:
+        x["bg"] = settings.get("background") or "rain"
+        x["tr"] = settings.get("transition") or "wave"
+    if x:
+        c["x"] = x
+    if f["waypoints"] and prefs["wps"]:
+        chosen = set(prefs["wps"])
+        c["wp"] = [[w["lat"], w["lon"], w["name"], w["icon"], w.get("color", "")] for w in get_waypoints() if w["id"] in chosen][:80]
+    ci = settings.get("checkin")
+    if f["checkin"] and isinstance(ci, dict):
+        c["ci"] = ci
     _card_cache.update(at=time.time(), card=c)
     return c
+
+
+CHECKIN_EVERY = (0, 2, 4, 6, 8, 12, 24, 48)
+
+
+def check_in(req):
+    """"I'm OK" (or need help, away, on the move): on the card, so linked
+    friends see it at once, with an optional note, place and rhythm."""
+    state = req.get("st") if req.get("st") in camp.CHECKIN_STATES else "ok"
+    ci = {"at": int(time.time() * 1000), "st": state}
+    note = re.sub(r"[\x00-\x1f\x7f]", "", str(req.get("note") or "")).strip()[:120]
+    if note:
+        ci["n"] = note
+    try:
+        if req.get("lat") is not None and req.get("lon") is not None:
+            lat, lon = float(req["lat"]), float(req["lon"])
+            if -85 <= lat <= 85 and -180 <= lon <= 180:
+                ci["lat"], ci["lon"] = round(lat, 4), round(lon, 4)
+    except (TypeError, ValueError):
+        pass
+    with SETTINGS_LOCK:
+        settings = read_json(SETTINGS_FILE, {})
+        ev = req.get("ev", (settings.get("checkin") or {}).get("ev", 0))
+        if ev in CHECKIN_EVERY:
+            ci["ev"] = ev
+        settings["checkin"] = ci
+        # Checking in turns the check-in on the card on.
+        card = settings.setdefault("card", {})
+        card.setdefault("fields", {})["checkin"] = True
+        write_json(SETTINGS_FILE, settings)
+    record("checkins", time.strftime("%Y-%m-%d"))
+    _card_cache["at"] = 0
+    threading.Thread(target=CAMP.push_card, daemon=True).start()
+    return ci
+
+
+def friend_waypoints():
+    """Every friend's shared waypoints, for their layer on the Maps."""
+    out = []
+    for f in CAMP.friends():
+        card = f.get("card") or {}
+        wps = card.get("wp") or []
+        ci = card.get("ci")
+        if wps or (ci and "lat" in ci):
+            out.append({"id": f["id"], "name": card.get("n", "Friend"), "accent": (card.get("st") or {}).get("ac", "signal"),
+                        "waypoints": wps, "checkin": ci})
+    return out
 
 
 def cards_dir():
@@ -5554,6 +5653,8 @@ _fw_cache = {"at": 0, "out": {}}
 def camp_notify(kind, name):
     if kind == "message":
         play_sound("beep")
+    elif kind == "checkin":
+        play_sound("found")
 
 
 CAMP = camp.Camp(CONFIG_DIR, DATA_DIR, lambda: card_raw(), camp_notify)

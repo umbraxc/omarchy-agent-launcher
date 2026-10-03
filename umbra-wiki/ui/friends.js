@@ -23,12 +23,14 @@ window.UmbraFriends = (() => {
     el.setAttribute("aria-label", "Friends");
     el.innerHTML = `
       <div class="fr-head"><span class="fr-title"><span class="g">󰡉</span> FRIENDS</span>
-        <div class="fr-tabs"><button type="button" data-view="friends">FRIENDS</button><button type="button" data-view="add">ADD A FRIEND</button><button type="button" data-view="camp">CAMP NETWORK <i class="fr-camp-dot"></i></button></div>
+        <div class="fr-tabs"><button type="button" data-view="friends">FRIENDS</button><button type="button" data-view="add">ADD A FRIEND</button><button type="button" data-view="camp">CAMP NETWORK <i class="fr-camp-dot"></i></button><button type="button" data-view="list">SHARED LIST</button></div>
+        <button type="button" class="ghost fr-checkin" title="Check in|Tell your friends you're OK (or need help, are away or on the move). It goes on your card, live for linked friends."><span class="fr-ci-dot"></span> CHECK IN</button>
         <span class="fr-safe" title="What's shared|Only profile cards, and the messages you write to linked friends. Your conversations, health notes, location, files and everything else stay on this computer.">◆ ONLY PROFILE CARDS ARE SHARED</span>
         <button type="button" class="ghost fr-close" title="Close (Esc)">CLOSE ✕</button></div>
       <div class="fr-body"></div>`;
     document.body.appendChild(el);
     el.querySelector(".fr-close").addEventListener("click", () => toggle(false));
+    el.querySelector(".fr-checkin").addEventListener("click", (e) => { e.stopPropagation(); Sound.click(); checkinPopover(); });
     el.querySelectorAll(".fr-tabs button").forEach((b) => b.addEventListener("click", () => { Sound.click(); show(b.dataset.view); }));
     // A card file or a picture of one, dropped anywhere on the panel.
     el.addEventListener("dragover", (e) => { e.preventDefault(); el.classList.add("dropping"); });
@@ -46,7 +48,80 @@ window.UmbraFriends = (() => {
     body.className = "fr-body fr-" + v;
     if (v === "friends") friendsView(body);
     else if (v === "add") addView(body);
+    else if (v === "list") listView(body);
     else campViewBuild(body);
+  }
+
+  // -------------------------------------------------------- CHECK IN
+  let myCheckin = null;
+  async function checkinPopover() {
+    let pop = el.querySelector(".fr-ci-pop");
+    if (pop) { pop.remove(); return; }
+    pop = document.createElement("div");
+    pop.className = "fr-ci-pop";
+    pop.innerHTML = `<div class="fr-ci-head"><b>◉ CHECK IN</b><small>${myCheckin ? `Last: ${esc(UmbraCard.CHECKIN[myCheckin.st]?.[1] || "OK")}, ${esc(UmbraCard.agoText(myCheckin.at))}` : "Let your friends know how you are."}</small></div><div class="fr-ci-host"></div>`;
+    el.querySelector(".fr-head").appendChild(pop);
+    await UmbraCard.checkinBox(pop.querySelector(".fr-ci-host"), myCheckin, (ci) => { myCheckin = ci; paintCheckinDot(); pop.remove(); });
+    const away = (e) => { if (!pop.contains(e.target) && !e.target.closest(".fr-checkin")) { pop.remove(); document.removeEventListener("mousedown", away); } };
+    document.addEventListener("mousedown", away);
+  }
+  function paintCheckinDot() {
+    const b = el?.querySelector(".fr-checkin");
+    if (!b) return;
+    const late = UmbraCard.overdue(myCheckin);
+    b.dataset.st = late ? "late" : myCheckin?.st || "";
+    b.querySelector(".fr-ci-dot").title = myCheckin ? `${UmbraCard.CHECKIN[myCheckin.st]?.[1]} · ${UmbraCard.agoText(myCheckin.at)}` : "";
+    // A promised check-in that's due: a gentle reminder, once.
+    if (late && paintCheckinDot.warned !== myCheckin.at) { paintCheckinDot.warned = myCheckin.at; toast(`◉ Your check-in is due: you said every ${myCheckin.ev} h.`, () => { open("friends"); checkinPopover(); }); }
+  }
+
+  // ---------------------------------------------------- SHARED LIST
+  // One supply list for everyone linked: a household, a camp. It works on its
+  // own too, and syncs whenever friends are linked on the Camp Network.
+  let listItems = [], listSig = "";
+  async function listView(body) {
+    body.innerHTML = `<div class="sl-wrap"><div class="sl-head"><div><small>◆ SHARED SUPPLY LIST</small><h2>What the camp needs</h2>
+        <p>Everyone linked on the Camp Network sees the same list and can add, tick and remove items. It syncs whenever you're linked, and works on its own in between.</p></div>
+        <pre class="sl-art">${esc("   _____\n  |#####|\n  |=====|  ✓\n  |#####|\n  '-----'")}</pre></div>
+      <form class="sl-add"><input type="text" class="sl-t" maxlength="80" placeholder="Add an item: water, batteries, rice…" autocomplete="off"><input type="text" class="sl-q" maxlength="20" placeholder="How much"><button type="submit" class="solid">+ ADD</button></form>
+      <div class="sl-list"></div><small class="sl-sync"></small></div>`;
+    body.querySelector(".sl-add").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const t = body.querySelector(".sl-t"), q = body.querySelector(".sl-q");
+      if (!t.value.trim()) return;
+      await editItem({ t: t.value.trim(), q: q.value.trim() });
+      t.value = ""; q.value = ""; t.focus(); Sound.send();
+    });
+    listSig = "";
+    await loadList(true);
+  }
+  async function editItem(item) {
+    try { const d = await api("/api/camp/list", item); listItems = d.items; paintList2(); } catch (e) { toast(e.message); }
+  }
+  async function loadList(force) {
+    try { listItems = (await api("/api/camp/list")).items || []; } catch { return; }
+    const sig = JSON.stringify(listItems);
+    if (!force && sig === listSig) return;
+    listSig = sig;
+    paintList2();
+  }
+  function paintList2() {
+    const box = el?.querySelector(".sl-list");
+    if (!box) return;
+    listSig = JSON.stringify(listItems);
+    const open = listItems.filter((i) => !i.done), done = listItems.filter((i) => i.done);
+    const row = (i) => `<div class="sl-item ${i.done ? "done" : ""}" data-id="${esc(i.id)}"><button type="button" class="sl-tick" title="${i.done ? "Not done|Back on the list" : "Got it|Tick it off for everyone"}">${i.done ? "☑" : "☐"}</button>
+      <span class="sl-name">${esc(i.t)}</span><span class="sl-qty">${esc(i.q || "")}</span><small>${esc(i.by || "")}</small><button type="button" class="sl-del" title="Remove|From the list, for everyone">✕</button></div>`;
+    box.innerHTML = listItems.length ? `${open.map(row).join("")}${done.length ? `<div class="sl-sep">GOT IT · ${done.length}</div>${done.map(row).join("")}` : ""}`
+      : `<p class="sl-empty">Nothing on the list yet. Add what the camp needs.</p>`;
+    box.querySelectorAll(".sl-item").forEach((r) => {
+      const it = listItems.find((i) => i.id === r.dataset.id);
+      r.querySelector(".sl-tick").addEventListener("click", () => { Sound.click(); editItem({ id: it.id, done: !it.done }); });
+      r.querySelector(".sl-del").addEventListener("click", () => { Sound.click(); editItem({ id: it.id, gone: true }); });
+    });
+    const linked = (camp?.linked || []).length;
+    const sync = el.querySelector(".sl-sync");
+    if (sync) sync.textContent = linked ? `◉ Syncing live with ${linked} linked Umbra${linked > 1 ? "s" : ""}.` : "◌ Not linked right now: changes sync the next time you meet on the Camp Network.";
   }
 
   // -------------------------------------------------------- FRIENDS
@@ -77,7 +152,8 @@ window.UmbraFriends = (() => {
         const c = f.card, face = c.ch ? window.UmbraProfile?.art(c.ch)?.[0]?.slice(1, 3).join("\n") : " ? ? \n  -  ";
         return `<button type="button" class="fr-item ${f.id === selected ? "on" : ""}" data-id="${esc(f.id)}">
           <pre class="fr-mini" ${c.c ? `style="color:var(--${esc(c.c)})"` : ""}>${esc(face)}</pre>
-          <span class="fr-who"><b class="fx-${esc(c.fx || "plain")}">${esc(c.n)}</b><small>${f.online ? '<i class="fr-on"></i>LINKED · CAMP' : f.camp ? "CAMP FRIEND · AWAY" : "FROM A CARD"}${c.op?.tl != null ? ` · LV ${c.op.tl}` : ""}</small></span>
+          <span class="fr-who"><b class="fx-${esc(c.fx || "plain")}">${esc(c.n)}</b><small>${f.online ? '<i class="fr-on"></i>LINKED · CAMP' : f.camp ? "CAMP FRIEND · AWAY" : "FROM A CARD"}${c.op?.tl != null ? ` · LV ${c.op.tl}` : ""}</small>
+            ${c.ci ? `<small class="fr-ci ${esc(c.ci.st)} ${UmbraCard.overdue(c.ci) ? "late" : ""}">${UmbraCard.overdue(c.ci) ? "⚠ CHECK-IN OVERDUE" : `${esc(UmbraCard.CHECKIN[c.ci.st]?.[0] || "✓")} ${esc(UmbraCard.CHECKIN[c.ci.st]?.[1] || "OK")} · ${esc(UmbraCard.agoText(c.ci.at).toUpperCase())}`}</small>` : ""}</span>
           ${f.unread ? `<em class="fr-unread">${f.unread}</em>` : ""}</button>`;
       }).join("");
     list.querySelectorAll(".fr-item").forEach((b) => b.addEventListener("click", () => { Sound.click(); selected = b.dataset.id; paintList(body); paintFriend(body); }));
@@ -89,7 +165,8 @@ window.UmbraFriends = (() => {
     cardView?.stop();
     const hold = body.querySelector(".fr-cardhold");
     hold.innerHTML = "";
-    cardView = window.UmbraCard.render(hold, f.card, { verified: f.verified });
+    refresh.shownU = f.card.u;
+    cardView = window.UmbraCard.render(hold, f.card, { verified: f.verified, open: true, onMap: () => { toggle(false, true); window.showFriendOnMap?.(f.id); } });
     body.querySelector(".fr-flip").onclick = () => { Sound.click(); cardView?.flip(); };
     const side = body.querySelector(".fr-side");
     const when = (t) => t ? new Date(t * 1000).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "";
@@ -99,7 +176,7 @@ window.UmbraFriends = (() => {
         : `<b>▣ FROM A PROFILE CARD</b><small>Added ${esc(when(f.added))}. Their card was made ${esc(when(f.card.u))}; add a newer one to update it.</small>`}
       ${f.verified ? `<small class="fr-sig">✓ Signed by their Umbra (${esc((f.id || "").slice(0, 8).toUpperCase())}…): it really comes from them.</small>` : `<small class="fr-sig warn">◇ Not signed: this card may have been changed.</small>`}</div>
       <div class="fr-chat">${f.online || f.camp ? `<div class="fr-msgs" aria-live="polite"></div>
-        <form class="fr-say"><input type="text" maxlength="2000" placeholder="${f.online ? `Message ${esc(f.card.n)}…` : "Messages need you both on the Camp Network"}" ${f.online ? "" : "disabled"}><button type="submit" class="solid" ${f.online ? "" : "disabled"}>SEND ⏎</button></form>
+        <form class="fr-say"><button type="button" class="ghost fr-pin" title="Send a waypoint|Pick one of your waypoints: it arrives as a marker they can open on their map." ${f.online ? "" : "disabled"}>◈</button><input type="text" maxlength="2000" placeholder="${f.online ? `Message ${esc(f.card.n)}…` : "Messages need you both on the Camp Network"}" ${f.online ? "" : "disabled"}><button type="submit" class="solid" ${f.online ? "" : "disabled"}>SEND ⏎</button></form>
         <small class="fr-chat-note">Messages go straight to their Umbra, encrypted. Nothing passes through the internet.</small>`
         : `<div class="fr-chat-off"><pre>${esc("  ((·))\n   /|\\\n  / | \\")}</pre><p>To chat, meet on the <b>Camp Network</b>: the same Wi-Fi or hotspot, both Umbras linked once.</p><button type="button" class="ghost" data-go="camp">◉ OPEN THE CAMP NETWORK</button></div>`}</div>
       <div class="fr-side-foot"><button type="button" class="ghost warn fr-remove">REMOVE ${esc(f.card.n.toUpperCase())}</button></div>`;
@@ -122,8 +199,27 @@ window.UmbraFriends = (() => {
         try { await api("/api/friends/chat", { id: f.id, text }); Sound.send(); } catch (err) { toast(err.message); input.value = text; }
         loadChat(true);
       });
+      form.querySelector(".fr-pin").addEventListener("click", () => { Sound.click(); pickWaypoint(form, f); });
       loadChat(true);
     } else chatFor = "";
+  }
+  // Choose one of your waypoints to send in the chat.
+  async function pickWaypoint(form, f) {
+    let menu = form.querySelector(".fr-pin-menu");
+    if (menu) { menu.remove(); return; }
+    let wps = [];
+    try { wps = await (await fetch("/api/waypoints")).json(); } catch {}
+    menu = document.createElement("div");
+    menu.className = "fr-pin-menu";
+    menu.innerHTML = wps.length ? `<small>SEND A WAYPOINT</small>${wps.slice(0, 40).map((w) => `<button type="button" data-id="${esc(w.id)}">◈ ${esc(w.name)}</button>`).join("")}`
+      : `<small>No waypoints yet: right-click the Maps to make one.</small>`;
+    form.appendChild(menu);
+    menu.querySelectorAll("[data-id]").forEach((b) => b.addEventListener("click", async () => {
+      const w = wps.find((x) => x.id === b.dataset.id);
+      menu.remove();
+      try { await api("/api/friends/chat", { id: f.id, text: "", wp: [w.lat, w.lon, w.name, w.icon, w.color || ""] }); Sound.send(); } catch (err) { toast(err.message); }
+      loadChat(true);
+    }));
   }
   async function loadChat(force) {
     const box = el?.querySelector(".fr-msgs");
@@ -135,9 +231,10 @@ window.UmbraFriends = (() => {
     const grow = sig !== chatSig && chatSig !== "";
     chatSig = sig;
     const me = window.UmbraProfile?.data?.name || "YOU";
-    box.innerHTML = d.messages.length ? d.messages.map((m) => `<div class="fr-msg ${m.me ? "me" : ""}"><small>${esc(m.me ? me : friends.find((x) => x.id === chatFor)?.card.n || "")} · ${esc(new Date(m.at).toTimeString().slice(0, 5))}</small><p>${esc(m.text)}</p></div>`).join("")
+    box.innerHTML = d.messages.length ? d.messages.map((m) => `<div class="fr-msg ${m.me ? "me" : ""}"><small>${esc(m.me ? me : friends.find((x) => x.id === chatFor)?.card.n || "")} · ${esc(new Date(m.at).toTimeString().slice(0, 5))}</small>${m.text ? `<p>${esc(m.text)}</p>` : ""}${m.wp ? `<button type="button" class="fr-wp" data-lat="${m.wp[0]}" data-lon="${m.wp[1]}" title="Open on the map|${esc(m.wp[2])}"><b>◈ ${esc(m.wp[2])}</b><small>${(+m.wp[0]).toFixed(4)}°, ${(+m.wp[1]).toFixed(4)}° · SHOW ON MAP ▸</small></button>` : ""}</div>`).join("")
       : `<p class="fr-chat-empty">No messages yet. Say hello.</p>`;
     box.scrollTop = box.scrollHeight;
+    box.querySelectorAll(".fr-wp").forEach((b) => b.addEventListener("click", () => { Sound.click(); toggle(false, true); window.openMapsAt?.(+b.dataset.lat, +b.dataset.lon, 12); }));
     if (grow && !d.messages[d.messages.length - 1]?.me) Sound.found();
   }
 
@@ -345,9 +442,15 @@ window.UmbraFriends = (() => {
       if (el && !el.hidden && sig !== refresh.sig) {
         refresh.sig = sig;
         if (view === "camp") paintCamp();
-        else if (view === "friends") { const body = el.querySelector(".fr-body"); if (!friends.length || !body.querySelector(".fr-list")) show("friends"); else { paintList(body); if (!body.querySelector(`.fr-item.on`)) paintFriend(body); else updateSide(body); } }
+        else if (view === "friends") { const body = el.querySelector(".fr-body"); if (!friends.length || !body.querySelector(".fr-list")) show("friends"); else {
+          paintList(body);
+          // The open friend's card is redrawn only when the card itself changed (a new check-in, new waypoints…).
+          const cur = friends.find((x) => x.id === selected)?.card;
+          if (!body.querySelector(`.fr-item.on`) || (cur && cur.u !== refresh.shownU)) { refresh.shownU = cur?.u; paintFriend(body); } else updateSide(body); } }
       }
       if (el && !el.hidden && view === "friends") loadChat(false);
+      if (el && !el.hidden && view === "list") loadList(false);
+      if (!refresh.ciAt || Date.now() - refresh.ciAt > 60000) { refresh.ciAt = Date.now(); api("/api/card").then((c) => { myCheckin = c.checkin || null; paintCheckinDot(); }).catch(() => {}); }
     } catch {}
   }
   // The status and chat box of the open friend follow the network without redrawing their card.
@@ -366,6 +469,8 @@ window.UmbraFriends = (() => {
       else if (e.t === "peer" && el && !el.hidden && view === "camp") Sound.found();
       else if (e.t === "declined") toast(`${e.name} didn't link.`);
       else if (e.t === "error") toast(e.message);
+      else if (e.t === "checkin") { const c = UmbraCard.CHECKIN[e.st] || UmbraCard.CHECKIN.ok; toast(`${c[0]} ${e.name} checked in: ${c[1]}${e.note ? ` · “${e.note}”` : ""}`, () => { selected = e.id; open("friends"); }); if (e.st === "help") Sound.glitch(); }
+      else if (e.t === "list") { if (el && !el.hidden && view === "list") loadList(true); else toast(`☑ ${e.name} updated the shared supply list.`, () => open("list")); }
     }
   }
   function badge() {

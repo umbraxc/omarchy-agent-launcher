@@ -25,7 +25,13 @@ window.UmbraCard = (() => {
     ["forest", "Forest"], ["stars", "Milky Way"], ["winter", "Winter cabin"], ["storm", "Storm"], ["valley", "Valley"]];
   const FIELDS = [["character", "Character"], ["callsign", "Callsign"], ["title", "Title"], ["nameFx", "Name effect"], ["orb", "Orb"],
     ["rank", "Rank and points"], ["achievements", "Achievements"], ["badges", "Pinned badges"], ["outpost", "Outpost level"], ["skills", "Top Outpost skills"],
-    ["motto", "Motto"], ["since", "Member since"], ["scenario", "Scenario"]];
+    ["motto", "Motto"], ["since", "Member since"], ["scenario", "Scenario"],
+    ["space", "Galaxy: worlds and moons"], ["earth", "Earth: country files and wonders"], ["drills", "Drills"], ["habits", "Streak, days and questions"],
+    ["looks", "Start screen and transition"], ["waypoints", "Shared waypoints"], ["checkin", "Check-in"]];
+  const CHECKIN = { ok: ["✓", "OK", "All fine here."], help: ["⚠", "NEED HELP", "Something's wrong: come or call."], away: ["◌", "AWAY", "Out of reach for a while."], moving: ["➜", "ON THE MOVE", "Travelling, on my way."] };
+  const agoText = (ms) => { const m = Math.max(0, (Date.now() - ms) / 60000); return m < 2 ? "just now" : m < 60 ? `${Math.round(m)} min ago` : m < 2880 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`; };
+  // A check-in is overdue when its owner promised one every few hours and it hasn't come.
+  const overdue = (ci) => !!(ci && ci.ev && Date.now() - ci.at > ci.ev * 3600000);
   const ROMAN = ["", "I", "II", "III", "IV"];
   let outpostData = null;
   const skillsReady = fetch("/api/outpost/data").then((r) => r.json()).then((d) => { outpostData = d; }).catch(() => {});
@@ -215,7 +221,22 @@ window.UmbraCard = (() => {
         <small>Only this card is shared. Nothing else leaves the computer.</small>
       </div>
     </div><canvas class="uc-frame"></canvas>`;
-    host.appendChild(el);
+    // The card's extension, a file that slides out of its side: everything
+    // else its owner chose to share.
+    let file = el;
+    if (!o.small && o.dossier !== false && dossierHTML(card)) {
+      file = document.createElement("div");
+      file.className = "ucard-file" + (o.open ? " open" : "");
+      file.appendChild(el);
+      const dz = document.createElement("div");
+      dz.className = "uc-dossier";
+      dz.innerHTML = `<button type="button" class="uc-tab" title="Dossier|Open or close the rest of the card: space, Earth, drills, habits, waypoints and the check-in."><span>DOSSIER</span><i>▸</i></button>
+        <div class="uc-dz-body" style="--ac:${ACCENTS[accent][1]}">${dossierHTML(card)}</div>`;
+      file.appendChild(dz);
+      dz.querySelector(".uc-tab").addEventListener("click", () => { file.classList.toggle("open"); Sound.click(); });
+      dz.querySelector(".uc-dz-map")?.addEventListener("click", () => { Sound.click(); o.onMap ? o.onMap(card) : window.showFriendOnMap?.(card.id); });
+    }
+    host.appendChild(file);
     const stops = [];
     // The landscape behind (or the orb, large).
     const sceneCanvas = el.querySelector(".uc-scene");
@@ -231,7 +252,7 @@ window.UmbraCard = (() => {
     if (!o.small) stops.push(frameAnim(el.querySelector(".uc-frame"), frame, accent));
     let qrDone = false;
     const api = {
-      el,
+      el, file,
       flip(back = !el.classList.contains("flipped")) {
         if (back && !qrDone && o.code) {
           try { UmbraQR.draw(el.querySelector(".uc-qr canvas"), o.code, { px: 260 }); } catch {}
@@ -249,6 +270,65 @@ window.UmbraCard = (() => {
       const k = skill(op.top[i][0]); s.style.setProperty("--sc", k.color); s.querySelector("i").textContent = k.glyph;
       s.childNodes[1].textContent = k.name + " "; }); });
     return api;
+  }
+
+  // The dossier: sections drawn from the card's extension, each only when shared.
+  const bgName = (id) => (window.UmbraBackgrounds?.list || []).find(([k]) => k === id)?.[1] || id;
+  const trName = (id) => (window.UmbraTransitions || []).find(([k]) => k === id)?.[1] || id;
+  const meter = (v, of) => `<span class="uc-meter"><i style="width:${Math.round(Math.min(1, v / of) * 100)}%"></i></span>`;
+  function dossierHTML(card) {
+    const x = card.x || {}, parts = [];
+    const ci = card.ci;
+    if (ci) {
+      const [g, label] = CHECKIN[ci.st] || CHECKIN.ok, late = overdue(ci);
+      parts.push(`<section class="uc-dz-ci ${esc(ci.st)} ${late ? "late" : ""}"><h4>◉ CHECK-IN</h4>
+        <div class="uc-ci-state"><b>${g} ${label}</b><small>${esc(agoText(ci.at))}${ci.ev ? ` · every ${ci.ev} h` : ""}</small></div>
+        ${ci.n ? `<p>“${esc(ci.n)}”</p>` : ""}${late ? `<p class="uc-late">⚠ OVERDUE: no check-in for more than ${ci.ev} h</p>` : ""}</section>`);
+    }
+    if (x.w != null || x.mo != null) parts.push(`<section><h4>✦ WORLD &amp; SPACE</h4>
+      <div class="uc-row"><span>Worlds visited</span><b>${x.w ?? 0}<i>/8</i></b>${meter(x.w ?? 0, 8)}</div>
+      <div class="uc-row"><span>Moons visited</span><b>${x.mo ?? 0}</b>${meter(x.mo ?? 0, 21)}</div></section>`);
+    if (x.co != null || x.wd != null) parts.push(`<section><h4>◍ EARTH</h4>
+      <div class="uc-row"><span>Country files opened</span><b>${x.co ?? 0}</b>${meter(x.co ?? 0, 100)}</div>
+      <div class="uc-row"><span>Wonders seen</span><b>${x.wd ?? 0}<i>/28</i></b>${meter(x.wd ?? 0, 28)}</div></section>`);
+    if (x.dr != null || x.sd != null) parts.push(`<section><h4>⌖ DRILLS</h4>
+      <div class="uc-row"><span>Training drills</span><b>${x.dr ?? 0}</b></div>
+      ${x.sd != null ? `<div class="uc-row"><span>Scenario drills</span><b>${x.sd}</b></div><div class="uc-row"><span>Best score</span><b>${x.sb ?? 0}<i>%</i></b>${meter(x.sb ?? 0, 100)}</div>${x.sp ? `<div class="uc-row"><span>Perfect runs</span><b>${x.sp}</b></div>` : ""}` : ""}</section>`);
+    if (x.sk != null) parts.push(`<section><h4>◷ HABITS</h4>
+      <div class="uc-row"><span>Best streak</span><b>${x.sk}<i> days</i></b></div>
+      <div class="uc-row"><span>Days with Umbra</span><b>${x.dy ?? 0}</b></div>
+      <div class="uc-row"><span>Questions asked</span><b>${x.q ?? 0}</b></div>
+      ${x.fr != null ? `<div class="uc-row"><span>Friends</span><b>${x.fr}</b></div>` : ""}</section>`);
+    if (x.bg || x.tr) parts.push(`<section><h4>◈ LOOK</h4>
+      ${x.bg ? `<div class="uc-row"><span>Start screen</span><b class="uc-txt">${esc(bgName(x.bg))}</b></div>` : ""}
+      ${x.tr ? `<div class="uc-row"><span>Transition</span><b class="uc-txt">${esc(trName(x.tr))}</b></div>` : ""}</section>`);
+    if (card.wp?.length) parts.push(`<section><h4>⌾ SHARED WAYPOINTS <small>${card.wp.length}</small></h4>
+      <ul class="uc-wps">${card.wp.slice(0, 7).map(([la, lo, n]) => `<li><b>${esc(n)}</b><small>${la.toFixed(3)}°, ${lo.toFixed(3)}°</small></li>`).join("")}${card.wp.length > 7 ? `<li class="more">+ ${card.wp.length - 7} more</li>` : ""}</ul>
+      <button type="button" class="ghost uc-dz-map">◈ SHOW ON MY MAP</button></section>`);
+    return parts.join("");
+  }
+
+  // The check-in box: how you are, a note, a place and how often friends can expect one.
+  async function checkinBox(host, current, onDone) {
+    let wps = [];
+    try { wps = await (await fetch("/api/waypoints")).json(); } catch {}
+    const ci = current || {};
+    let st = ci.st || "ok";
+    host.innerHTML = `<div class="uc-ci-box">
+      <div class="uc-ci-states">${Object.entries(CHECKIN).map(([k, [g, l, hint]]) => `<button type="button" class="uc-ci-st ${k} ${k === st ? "on" : ""}" data-st="${k}" title="${esc(l)}|${esc(hint)}"><b>${g}</b>${l}</button>`).join("")}</div>
+      <input type="text" class="uc-ci-note" maxlength="120" placeholder="A short note, like “At the cabin, all good.”">
+      <div class="uc-ci-opts"><label>PLACE <select class="uc-ci-place"><option value="">Not shared</option>${wps.map((w) => `<option value="${esc(w.id)}">${esc(w.name)}</option>`).join("")}</select></label>
+        <label>EXPECT ONE <select class="uc-ci-ev">${[0, 2, 4, 6, 8, 12, 24, 48].map((h) => `<option value="${h}" ${h === (ci.ev || 0) ? "selected" : ""}>${h ? `every ${h} h` : "whenever"}</option>`).join("")}</select></label></div>
+      <button type="button" class="solid uc-ci-send">◉ CHECK IN</button>
+      <small class="uc-note">On your card at once for linked friends on the Camp Network; in the card file the next time you share it. Friends see it as overdue if you promised one and it doesn't come.</small></div>`;
+    host.querySelector(".uc-ci-note").value = "";
+    host.querySelectorAll(".uc-ci-st").forEach((b) => b.addEventListener("click", () => { st = b.dataset.st; host.querySelectorAll(".uc-ci-st").forEach((x) => x.classList.toggle("on", x === b)); Sound.click(); }));
+    host.querySelector(".uc-ci-send").addEventListener("click", async () => {
+      const w = wps.find((x) => x.id === host.querySelector(".uc-ci-place").value);
+      const body = { st, note: host.querySelector(".uc-ci-note").value, ev: Number(host.querySelector(".uc-ci-ev").value), ...(w ? { lat: w.lat, lon: w.lon } : {}) };
+      const r = await fetch("/api/camp/checkin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((x) => x.json()).catch(() => ({}));
+      if (r.ok) { Sound.found(); window.umbraToast?.(`Checked in: ${CHECKIN[st][1]}.`); onDone?.(r.checkin); } else Sound.error();
+    });
   }
 
   // A picture of a card to share: the QR code with the name, title and Umbra frame.
@@ -291,7 +371,7 @@ window.UmbraCard = (() => {
       if (stopped || !data) return;
       const holder = grid.querySelector(".uc-holder"), back = live?.el.classList.contains("flipped");
       live?.stop(); holder.innerHTML = "";
-      live = render(holder, data.card, { code: data.code });
+      live = render(holder, data.card, { code: data.qr || data.code, open: true, onMap: () => { window.closeLoadout?.(); document.getElementById("maps-btn")?.click(); } });
       if (back) live.flip(true);
     };
     // Which frames are unlocked comes from the Locker (achievements).
@@ -311,6 +391,8 @@ window.UmbraCard = (() => {
         <section><h3>MOTTO</h3><input type="text" class="uc-motto-in" maxlength="90" placeholder="A line for your card, like “Keep the fire lit.”" value="${esc(p.motto)}"></section>
         <section><h3>SHOWN ON THE CARD</h3><div class="uc-fields">${FIELDS.map(([k, name]) => `<label><input type="checkbox" data-field="${k}" ${p.fields[k] ? "checked" : ""}><span>${esc(name)}</span></label>`).join("")}</div>
           <small class="uc-note">Your name is always shown. Your picture never is: the card shows your character instead.</small></section>
+        <section><h3>CHECK-IN ${data.checkin ? `<small>last: ${esc((CHECKIN[data.checkin.st] || CHECKIN.ok)[1])}, ${esc(agoText(data.checkin.at))}</small>` : ""}</h3><div class="uc-ci-host"></div></section>
+        <section><h3>SHARED WAYPOINTS</h3><div class="uc-wp-pick"><small class="uc-note">Loading your waypoints…</small></div></section>
         <section class="uc-share"><h3>SHARE</h3>
           <div class="uc-actions"><button type="button" class="solid" data-share="qr">▦ SHOW QR CODE</button><button type="button" class="ghost" data-share="copy">⧉ COPY CARD CODE</button>
             <button type="button" class="ghost" data-share="save">▣ SAVE CARD FILES</button><button type="button" class="ghost" data-share="friends">◈ OPEN FRIENDS</button></div>
@@ -323,7 +405,23 @@ window.UmbraCard = (() => {
       let mt = 0;
       detail.querySelector(".uc-motto-in").addEventListener("input", (e) => { clearTimeout(mt); mt = setTimeout(() => change({ motto: e.target.value }, true), 500); });
       detail.querySelectorAll("[data-share]").forEach((b) => b.addEventListener("click", () => share(b.dataset.share)));
+      checkinBox(detail.querySelector(".uc-ci-host"), data.checkin, () => load().then(() => { if (!stopped) { draw(); paint(); } }));
+      pickWaypoints(detail.querySelector(".uc-wp-pick"));
     };
+    // Which waypoints the card carries; friends see them as a layer on their Maps.
+    async function pickWaypoints(box) {
+      let wps = [];
+      try { wps = await (await fetch("/api/waypoints")).json(); } catch {}
+      if (!box.isConnected) return;
+      if (!wps.length) { box.innerHTML = `<small class="uc-note">You have no waypoints yet. Right-click the Maps to make one, then share it here.</small>`; return; }
+      const on = new Set(data.prefs.wps || []);
+      box.innerHTML = `<div class="uc-wp-list">${wps.map((w) => `<label><input type="checkbox" data-wp="${esc(w.id)}" ${on.has(w.id) ? "checked" : ""}><span>${esc(w.name)}</span></label>`).join("")}</div>
+        <div class="uc-wp-all"><button type="button" class="ghost" data-all="1">ALL</button><button type="button" class="ghost" data-all="0">NONE</button></div>
+        <small class="uc-note">Shared waypoints travel in the card file, the code and over the Camp Network (a QR code is too small for them). Turn on <b>Shared waypoints</b> above to show them.</small>`;
+      const send = () => change({ wps: [...box.querySelectorAll("[data-wp]:checked")].map((c) => c.dataset.wp), ...(box.querySelector("[data-wp]:checked") ? { fields: { waypoints: true } } : {}) });
+      box.querySelectorAll("[data-wp]").forEach((c) => c.addEventListener("change", send));
+      box.querySelectorAll("[data-all]").forEach((b) => b.addEventListener("click", () => { box.querySelectorAll("[data-wp]").forEach((c) => (c.checked = b.dataset.all === "1")); send(); }));
+    }
     async function change(update, quiet) {
       if (!quiet) Sound.click();
       await save(update);
@@ -333,14 +431,14 @@ window.UmbraCard = (() => {
     }
     async function share(how) {
       Sound.click();
-      if (how === "qr") { live?.flip(true); window.track?.("cardShares"); return; }
+      if (how === "qr") { live?.flip(true); window.track?.("cardShares"); if (data.card.wp?.length || data.card.ci) window.umbraToast?.("The QR code carries the card itself; shared waypoints and the check-in travel in the file, the code and the Camp Network."); return; }
       if (how === "friends") { window.closeLoadout?.(); window.UmbraFriends?.open(); return; }
       if (how === "copy") {
         try { await navigator.clipboard.writeText(data.code); window.track?.("cardShares"); window.umbraToast?.("Card code copied. Paste it to a friend: they add it in Friends."); }
         catch { window.prompt("Your card code:", data.code); }
         return;
       }
-      const png = sharePicture(data.card, data.code).toDataURL("image/png").split(",")[1];
+      const png = sharePicture(data.card, data.qr || data.code).toDataURL("image/png").split(",")[1];
       const r = await fetch("/api/card/export", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ png, open: true }) }).then((x) => x.json()).catch(() => ({}));
       window.umbraToast?.(r.ok ? "Card saved to Documents › Umbra Friend Cards." : r.message || "The card couldn't be saved.");
     }
@@ -349,5 +447,5 @@ window.UmbraCard = (() => {
     return () => { stopped = true; live?.stop(); };
   }
 
-  return { render, editor, sharePicture, load, FRAMES, SCENES, ACCENTS, frame: (canvas, kind) => frameAnim(canvas, kind) };
+  return { render, editor, sharePicture, load, checkinBox, CHECKIN, overdue, agoText, FRAMES, SCENES, ACCENTS, frame: (canvas, kind) => frameAnim(canvas, kind) };
 })();
