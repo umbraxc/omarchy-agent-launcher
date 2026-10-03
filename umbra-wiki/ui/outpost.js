@@ -925,7 +925,7 @@
   function toggle() {
     if (!panel.hidden) { close(); Sound.click(); leaveNote(); return; }
     if (window.locked || document.body.classList.contains("locked")) return;
-    ["closeSettings", "closeLoadout", "closeHistory", "closeMaps", "closeFieldKit", "closeFarming", "closeRadar", "closeCore"].forEach((key) => window[key]?.());
+    ["closeSettings", "closeLoadout", "closeHistory", "closeMaps", "closeGalaxy", "closeFieldKit", "closeFarming", "closeRadar", "closeCore"].forEach((key) => window[key]?.());
     toggleThemes(false, true);
     document.getElementById("library").hidden = true;
     document.getElementById("library-btn").classList.remove("on");
@@ -941,7 +941,7 @@
     if (!$o(".op-layer").hidden && V?.state.away) { refresh({ type: "ack" }); return; }
     close(); leaveNote();
   });
-  const otherPanels = ["maps", "fieldkit", "farming", "friends", "radar", "loadout", "history", "library", "themes", "settings", "core"];
+  const otherPanels = ["maps", "galaxy", "fieldkit", "farming", "friends", "radar", "loadout", "history", "library", "themes", "settings", "core"];
   new MutationObserver(() => { if (!panel.hidden && otherPanels.some((id) => document.getElementById(id)?.hidden === false)) close(); })
     .observe(document.body, { subtree: true, attributes: true, attributeFilter: ["hidden"] });
   setInterval(() => {

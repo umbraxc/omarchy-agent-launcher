@@ -262,6 +262,7 @@
     ["#history-btn", "HISTORY", "Every conversation is saved on this computer. Reopen and continue any of them, search through everything, sort them into folders (each with a brief I keep in mind), pin them, and export them."],
     ["#library-btn", "LIBRARY", "Offline collections I can read when relevant, plus the built-in Field Manual and a new everyday knowledge base for science, places, history, arts and modern expressions. Download more collections here."],
     ["#maps-btn", "MAPS", "Offline maps with a military look, down to street level: download a country or any area, search towns, streets, water and coordinates. Right-click for waypoints (15 marker types), measuring and range rings. Click a country's name for its file and your own safety level."],
+    ["#galaxy-btn", "GALAXY", "The solar system, live: the planets where they are right now, the Earth turning under the real Sun with its night side lit by cities, the Moon where it is tonight, moons, rings and the stars. Drag, scroll, fly with W A S D, click a world for its file. Zoom out of the Maps far enough and you leave orbit; dive at the Earth and you land back on the Maps."],
     ["#fieldkit-btn", "FIELD KIT", "Tools that matter in an emergency. MEDIC: CPR metronome, timers, triage, coma scale, burns and child-dose calculators, a patient chart with handover reports. SUN & MOON with a live Earth. SUPPLIES. A CALENDAR that also shows when water and food run out. The VAULT for your arsenal and valuables. TRAINING: Morse, radio, grid references, compass, and field manuals to download. Printable CARDS."],
     ["#farming-btn", "FARMING", "An offline field planner for edible crops and common livestock. Choose an item to see animated field art, care, space, climate, and daily or weekly estimates; adjust the numbers for your plan. Ctrl+Shift+F opens it."],
     ["#outpost-btn", "UMBRA OUTPOST", "A fictional idle game of its own: 21 skills, a stockpile, gear, battles and expeditions. It keeps going while Umbra is closed."],
@@ -279,7 +280,7 @@
 
   // Both visual tours introduce every main tab. The short tour keeps fewer
   // explanatory steps outside the header.
-  const QUICK_SPOTS = [".cell.status", "#loadout-btn", "#history-btn", "#library-btn", "#maps-btn", "#fieldkit-btn", "#farming-btn", "#outpost-btn", "#friends-btn", "#radar-btn", "#dl-btn", "#theme-btn", "#sound", "#lock", "#settings-btn", "#q"];
+  const QUICK_SPOTS = [".cell.status", "#loadout-btn", "#history-btn", "#library-btn", "#maps-btn", "#galaxy-btn", "#fieldkit-btn", "#farming-btn", "#outpost-btn", "#friends-btn", "#radar-btn", "#dl-btn", "#theme-btn", "#sound", "#lock", "#settings-btn", "#q"];
 
   function spotlight(quick = false, outpostOnly = false) {
     return new Promise((resolve, reject) => {

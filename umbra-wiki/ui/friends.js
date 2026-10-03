@@ -393,7 +393,7 @@ window.UmbraFriends = (() => {
       background();
       return;
     }
-    window.closeSettings?.(); window.closeLoadout?.(true); window.closeHistory?.(); window.closeFieldKit?.(); window.closeMaps?.();
+    window.closeSettings?.(); window.closeLoadout?.(true); window.closeHistory?.(); window.closeFieldKit?.(); window.closeMaps?.(); window.closeGalaxy?.();
     window.toggleRadar?.(false, true); window.toggleFarming?.(false, true); window.closeOutpost?.();
     toggleThemes(false, true);
     $("#library").hidden = true; $("#library-btn")?.classList.remove("on");
@@ -415,7 +415,7 @@ window.UmbraFriends = (() => {
   // Another full screen opening closes this one (and locking the window does).
   new MutationObserver(() => {
     if (el.hidden) return;
-    const other = ["#outpost", "#maps", "#fieldkit", "#farming", "#radar", "#loadout"].some((s) => { const x = $(s); return x && !x.hidden; });
+    const other = ["#outpost", "#maps", "#galaxy", "#fieldkit", "#farming", "#radar", "#loadout"].some((s) => { const x = $(s); return x && !x.hidden; });
     if (other || document.body.classList.contains("locked")) toggle(false, true);
   }).observe(document.body, { attributes: true, subtree: true, attributeFilter: ["hidden", "class"] });
   refresh().then(background);

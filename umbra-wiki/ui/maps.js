@@ -257,6 +257,7 @@
     if (showGrid) drawGrid(pal);
     drawPicked(pal);
     overlay(pal);
+    window.UmbraWonders?.layout();
     if (moving()) frame();
   }
 
@@ -811,23 +812,25 @@
 
   // The country as characters: its main land sampled on a grid, denser
   // characters where more of a cell is land, the capital marked.
+  // Whether a point (in map units) is on the country's main land.
+  const insideOf = (c) => (x, y) => {
+    let n = 0;
+    for (const r of c.main) {
+      const b = r.box;
+      if (x < b[0] || x > b[2] || y < b[1] || y > b[3]) continue;
+      const p = r.pts;
+      for (let i = 0, j = p.length - 2; i < p.length; j = i, i += 2) {
+        if ((p[i + 1] > y) !== (p[j + 1] > y) && x < ((p[j] - p[i]) * (y - p[i + 1])) / (p[j + 1] - p[i + 1]) + p[i]) n++;
+      }
+    }
+    return n % 2 === 1;
+  };
   function silhouette(c) {
     const [x0, y0, x1, y1] = c.box, wpx = x1 - x0, hpx = y1 - y0;
     let cols = 38, rows = Math.round(cols * (hpx / wpx) * 0.5);
     if (rows > 17) { rows = 17; cols = Math.max(12, Math.round((rows / 0.5) * (wpx / hpx))); }
     rows = Math.max(4, rows);
-    const inside = (x, y) => {
-      let n = 0;
-      for (const r of c.main) {
-        const b = r.box;
-        if (x < b[0] || x > b[2] || y < b[1] || y > b[3]) continue;
-        const p = r.pts;
-        for (let i = 0, j = p.length - 2; i < p.length; j = i, i += 2) {
-          if ((p[i + 1] > y) !== (p[j + 1] > y) && x < ((p[j] - p[i]) * (y - p[i + 1])) / (p[j + 1] - p[i + 1]) + p[i]) n++;
-        }
-      }
-      return n % 2 === 1;
-    };
+    const inside = insideOf(c);
     const ramp = " .:-=+*#%@";
     const cap = c.facts && c.facts.capitalAt ? [projX(c.facts.capitalAt[1]), projY(c.facts.capitalAt[0])] : null;
     const capCell = cap ? [Math.floor(((cap[0] - x0) / wpx) * cols), Math.floor(((cap[1] - y0) / hpx) * rows)] : null;
@@ -871,6 +874,12 @@
     if (window.track) track("countries", c.a3);
     frame();
     return true;
+  }
+  // The full files (practical facts and the rest of the Factbook), fetched once each.
+  const more = new Map();
+  function moreOf(c) {
+    if (!more.has(c.a3)) more.set(c.a3, fetch(`/api/maps/country?a3=${encodeURIComponent(c.a3)}`).then((r) => r.json()).catch(() => ({})));
+    return more.get(c.a3);
   }
   function closeCountry() {
     const win = $("#maps .mp-cfile");
@@ -965,10 +974,12 @@
         <button class="ghost mp-cf-x" title="Close · Esc">✕</button></div>
       <div class="mp-cf-id">
         ${c.flag ? `<img class="mp-cf-flag" src="flags/${escapeHtml(c.iso)}.png" alt="">` : `<span class="mp-cf-flag none">?</span>`}
-        <div><div class="mp-cf-name" data-text="${escapeHtml(c.name.toUpperCase())}">${escapeHtml(c.name.toUpperCase())}</div>
+        <div><button class="mp-cf-name" data-text="${escapeHtml(c.name.toUpperCase())}" title="Open the full file|Everything about ${escapeHtml(c.name)}: travel essentials, people, land, economy, energy, heritage and more.">${escapeHtml(c.name.toUpperCase())}<b class="g">󰁔</b></button>
           ${f.long && !/^none$/i.test(f.long) && f.long.toLowerCase() !== c.name.toLowerCase() ? `<small>${escapeHtml(f.long)}</small>` : ""}
           ${f.location ? `<small>${escapeHtml(f.location)}</small>` : ""}</div>
       </div>
+      <div class="mp-cf-prac" hidden></div>
+      <button class="mp-cf-full" title="Open the full file|A large file with travel essentials, people, the land, water and health, the economy, energy, connections, heritage, wonders and government."><b class="g">󰊓</b><span>FULL COUNTRY FILE</span><small>11 SECTIONS · GLOBE · CHARTS</small><i>▸</i></button>
       ${c.main.length ? `<pre class="mp-cf-art">${silhouette(c)}</pre>` : ""}
       ${f.note ? `<p class="mp-cf-note">${escapeHtml(f.note)}</p>` : ""}
       <div class="mp-cf-sec">SAFETY · YOUR CALL</div>
@@ -1010,6 +1021,21 @@
     setTimeout(() => countryTune(c), 350);
     win.classList.remove("glitch"); void win.offsetWidth; win.classList.add("glitch");
     win.querySelector(".mp-cf-x").addEventListener("click", closeCountry);
+    const full = () => { const r = win.getBoundingClientRect(); window.UmbraDossier?.open(c, r); };
+    win.querySelector(".mp-cf-name").addEventListener("click", full);
+    win.querySelector(".mp-cf-full").addEventListener("click", full);
+    // Travel essentials at a glance, from the full file.
+    moreOf(c).then((m) => {
+      const p = m && m.practical, box = win.querySelector(".mp-cf-prac");
+      if (!p || !box || picked !== c) return;
+      const sos = (p.emergency || [])[0];
+      box.innerHTML = [sos ? `<span class="sos" title="Emergency|${escapeHtml((p.emergency || []).map(([n, u]) => `${n} ${u}`).join(" · "))}"><b class="g">󰀦</b>${escapeHtml(sos[0])}</span>` : "",
+        p.plugs && p.plugs.length ? `<span title="Plugs|Socket types ${p.plugs.join(", ")}"><b class="g">󰚥</b>${p.plugs.join(" ")}</span>` : "",
+        p.volts && p.volts.length ? `<span title="Mains|${p.volts.join(" / ")} V, ${p.hz} Hz"><b class="g">󱐋</b>${p.volts.join("/")}V</span>` : "",
+        p.drive ? `<span title="Driving|Traffic keeps ${p.drive}"><b class="g">󰄋</b>${p.drive.toUpperCase()}</span>` : "",
+        p.calling ? `<span title="Calling code"><b class="g">󰏲</b>${escapeHtml(p.calling)}</span>` : ""].join("");
+      box.hidden = !box.innerHTML;
+    });
     win.querySelectorAll(".mp-cf-city").forEach((b) => b.addEventListener("click", () => {
       const lat = +b.dataset.lat, lon = +b.dataset.lon;
       closeCountry();
@@ -1100,6 +1126,11 @@
   function zoomAt(sx, sy, dz) {
     flight = fling = null;
     const base = zoomTo ? zoomTo.z : view.z;
+    // Already showing the whole world and still pulling out: up to space.
+    if (dz < 0 && base <= whole(minZ()) + 0.02 && window.UmbraGalaxy) {
+      UmbraGalaxy.pullFromMaps(-dz, unY(view.y), wrapLon(unX(view.x)), $("#maps .mp-body"));
+      return;
+    }
     zoomTo = { sx, sy, z: Math.max(minZ(), Math.min(MAXZ, base + dz)) };
     clearTimeout(snapTimer);
     snapTimer = setTimeout(() => {
@@ -1170,6 +1201,7 @@
           <button class="ctl mp-t" data-t="grid" title="Grid · G|Latitude and longitude lines, with the military (MGRS) grid zones and their names."><span class="g">󰋁</span></button>
           <button class="ctl mp-t" data-t="waypoint" title="Waypoint tool · W|Click the map to mark a spot, or right-click anywhere: objectives, friendlies, enemies, water, caches, landing zones… in eight colours. Saved on this computer."><span class="g">󰍎</span></button>
           <button class="ctl mp-t" data-t="measure" title="Measuring tool · M|Click points on the map to measure a distance along them. Right-click or Enter to finish, Esc to clear."><span class="g">󰑭</span></button>
+          <button class="ctl mp-t on" data-t="wonders" title="Wonders · L|Landmarks of the world in 3D: hover one to see it turn, click it for its file."><span class="g">󰮃</span></button>
           <button class="ctl mp-t on" data-t="safety" title="Safety layer|Colours the countries you marked safe, caution, avoid or danger. Click a country's name to mark it."><span class="g">󰞀</span></button>
           <button class="ctl mp-t" data-t="points" title="Your waypoints|Every waypoint you saved: fly to one, or remove it."><span class="g">󰈻</span></button>
           <button class="ctl mp-t mp-dl-btn" data-t="packs" title="Download maps|Get detailed offline maps of a country or of the area on screen: streets, paths, water points, shelters and relief. Also lists and removes the maps you have."><span class="g">󰇚</span><i class="mp-dot" hidden></i></button>
@@ -1179,6 +1211,7 @@
       </div>
       <div class="mp-body">
         <canvas class="mp-canvas"></canvas>
+        <div class="mp-wonders"></div>
         <div class="mp-cross" aria-hidden="true"></div>
         <div class="mp-rail">
           <div class="mp-compass" aria-hidden="true"><i></i><span>N</span></div>
@@ -1311,6 +1344,7 @@
       else if (t === "waypoint" || t === "measure") setTool(t);
       else if (t === "packs" || t === "points") togglePanel(t);
       else if (t === "full") fullscreen();
+      else if (t === "wonders") { window.UmbraWonders?.setShown(!UmbraWonders.shown); b.classList.toggle("on", UmbraWonders.shown); Sound.click(); }
       else if (t === "safety") {
         showSafety = !showSafety; b.classList.toggle("on", showSafety); showLegend(); save(); frame(); Sound.click();
         if (showSafety && !Object.keys(safety).length) hint("CLICK A COUNTRY'S NAME TO GIVE IT A SAFETY LEVEL");
@@ -1882,6 +1916,7 @@
     if (window.closeHistory) window.closeHistory();
     if (window.closeFieldKit) window.closeFieldKit();
     if (window.closeRadar) window.closeRadar();
+    window.closeGalaxy?.();
     toggleThemes(false, true);
     $("#library").hidden = true; $("#library-btn").classList.remove("on");
     el.hidden = false;
@@ -1893,11 +1928,13 @@
     startWorkers();
     el.querySelector(".mp-t[data-t=grid]").classList.toggle("on", showGrid);
     el.querySelector(".mp-t[data-t=safety]").classList.toggle("on", showSafety);
+    el.querySelector(".mp-t[data-t=wonders]").classList.toggle("on", !!window.UmbraWonders?.shown);
     loadAtlas().then(showLegend);
     await refreshStatus();
     setStyle(style);
     resize();
-    try { focusContinent((await (await fetch("/api/profile")).json()).continent); } catch {}
+    if (pendingGo) { const [lat, lon, z] = pendingGo; pendingGo = null; flight = zoomTo = fling = null; view = { x: projX(lon), y: projY(lat), z: minZ() + 0.4 }; clampView(); flyTo(lat, lon, z); }
+    else try { focusContinent((await (await fetch("/api/profile")).json()).continent); } catch {}
     Sound.click();
     try { waypoints = await (await fetch("/api/waypoints")).json(); } catch {}
     if (!countries.length) try { countries = await (await fetch("/api/maps/countries")).json(); } catch {}
@@ -1927,6 +1964,8 @@
       e.stopImmediatePropagation();
       if ($("#maps .mp-ctx") && !$("#maps .mp-ctx").hidden) $("#maps .mp-ctx").hidden = true;
       else if (draftWaypoint) { draftWaypoint = null; $("#maps .mp-card").hidden = true; frame(); }
+      else if (window.UmbraDossier?.isOpen()) window.UmbraDossier.close();
+      else if (window.UmbraWonders?.isOpen()) window.UmbraWonders.close();
       else if (!$("#maps .mp-first").hidden) { $("#maps .mp-first-x").click(); }
       else if (!$("#maps .mp-cfile").hidden) closeCountry();
       else if (!$("#maps .mp-card").hidden && !tool) { $("#maps .mp-card").hidden = true; target = null; frame(); }
@@ -1944,6 +1983,7 @@
     else if (k === "w") setTool("waypoint");
     else if (k === "m") setTool("measure");
     else if (k === "g") el.querySelector(".mp-t[data-t=grid]").click();
+    else if (k === "l") el.querySelector(".mp-t[data-t=wonders]").click();
     else if (k === "f") fullscreen();
     else if (k === "/") { e.preventDefault(); el.querySelector(".mp-search input").focus(); }
     else if (e.key.startsWith("Arrow")) {
@@ -1958,6 +1998,46 @@
   new MutationObserver(() => { if (!$("#maps").hidden && style === "tactical") { sprites.clear(); restyle(); } })
     .observe(document.documentElement, { attributes: true, attributeFilter: ["style", "class", "data-theme"] });
 
+  const askAbout = (text) => {
+    toggle(false, true);
+    const box = $("#q");
+    box.value = text;
+    box.dispatchEvent(new Event("input"));
+    box.focus();
+  };
+  // Opens the best page about a name in the offline library (the reader).
+  async function library(name) {
+    try {
+      const hits = await (await fetch(`/api/library/find?q=${encodeURIComponent(name)}`)).json();
+      if (hits.length) {
+        // The reader shows over the page: the map steps aside and comes back where it was.
+        const back = [unY(view.y), wrapLon(unX(view.x)), view.z];
+        window.UmbraDossier?.close(true); window.UmbraWonders?.close(true); toggle(false, true);
+        openedFrom(() => window.openMapsAt(...back)); openReader(hits[0]); Sound.click(); return true;
+      }
+    } catch {}
+    hint(`NOTHING ABOUT ${name.toUpperCase()} IN YOUR LIBRARY YET`); Sound.error();
+    return false;
+  }
+  // Wonders stand on the map at their places (the copy of the world nearest the centre).
+  window.UmbraWonders?.attach({
+    layer: $("#maps .mp-wonders"), zoom: () => view.z, width: () => W, height: () => H,
+    project: (lat, lon) => { let x = projX(lon); x += Math.round(view.x - x); return toScreen(x, projY(lat)); },
+    flyTo: (lat, lon, z) => flyTo(lat, lon, z), fmt: (lat, lon) => `${fmtLat(lat)} ${fmtLon(lon)}`, mgrs: (lat, lon) => toMGRS(lat, lon, 3),
+    country: (a3) => (atlas && (atlas.find((c) => c.a3 === a3) || {}).name) || "", openCountry: async (a3) => { await loadAtlas(); const c = atlas.find((x) => x.a3 === a3); if (c) openCountry(c); },
+    library: (name) => library(name),
+  });
+  window.UmbraDossier?.init({
+    unX, unY, fmtLat, fmtLon, silhouette, river, resourceChips, library,
+    inside: (c) => { const f = insideOf(c); return (lat, lon) => f(projX(lon), projY(lat)); },
+    openCountry: (name) => openCountry(name),
+    full: () => { const w = $("#maps .mp-cfile"); if (picked) window.UmbraDossier.open(picked, w.hidden ? null : w.getBoundingClientRect()); },
+    ask: (c) => askAbout(`I may have to go to ${c.name}. What should I know to stay safe there: the climate, water, health risks, dangers and what to prepare?`),
+    library: (c) => library(c.name),
+  });
+  // Arriving from the Galaxy: open over the place below the camera.
+  let pendingGo = null;
+  window.openMapsAt = (lat, lon, z = 4) => { pendingGo = [lat, lon, z]; if ($("#maps").hidden) toggle(true); else { const p = pendingGo; pendingGo = null; flyTo(p[0], p[1], p[2]); } };
   window.toggleMaps = toggle;
   window.closeMaps = () => { if (!$("#maps").hidden) toggle(false, true); };
   window.UmbraMaps = { toMGRS, fromMGRS, parseCoords, search: (q) => search(q), get view() { return view; },

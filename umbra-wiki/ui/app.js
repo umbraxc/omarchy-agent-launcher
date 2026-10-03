@@ -211,6 +211,7 @@ const Sound = (() => {
     "history-btn": ["HISTORY", "Your saved conversations"],
     "library-btn": ["LIBRARY", "Offline knowledge and manuals"],
     "maps-btn": ["MAPS", "Offline maps and waypoints"],
+    "galaxy-btn": ["GALAXY", "The solar system, live"],
     "fieldkit-btn": ["FIELD KIT", "Medic, sky, supplies and training"],
     "farming-btn": ["FARMING", "Crops, livestock and food production"],
     "outpost-btn": ["UMBRA OUTPOST", "Build a settlement and explore two stories"],
@@ -257,7 +258,7 @@ const Sound = (() => {
 // quiet minute on the main screen, one gentle signal crosses their icons.
 (() => {
   const bar = document.querySelector(".controls");
-  const panels = ["maps", "fieldkit", "farming", "outpost", "friends", "radar", "loadout", "history", "library", "themes", "settings", "core"];
+  const panels = ["maps", "galaxy", "fieldkit", "farming", "outpost", "friends", "radar", "loadout", "history", "library", "themes", "settings", "core"];
   const atHome = () => !document.hidden && !document.body.classList.contains("locked") &&
     !document.body.classList.contains("touring") && panels.every((id) => document.getElementById(id)?.hidden !== false);
   let idle = 0, wave = 0;
@@ -843,6 +844,7 @@ function goHome() {
   if (window.closeSettings) window.closeSettings();
   if (window.closeLoadout) window.closeLoadout(true);
   if (window.closeMaps) window.closeMaps();
+  window.closeGalaxy?.();
   if (window.closeFieldKit) window.closeFieldKit();
   if (window.closeFarming) window.closeFarming();
   if (window.closeRadar) window.closeRadar();

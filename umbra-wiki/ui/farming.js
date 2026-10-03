@@ -321,6 +321,7 @@
     if (window.closeLoadout) window.closeLoadout(true);
     if (window.closeHistory) window.closeHistory();
     if (window.closeMaps) window.closeMaps();
+    window.closeGalaxy?.();
     if (window.closeFieldKit) window.closeFieldKit();
     if (window.closeRadar) window.closeRadar();
     if (window.closeCore) window.closeCore();

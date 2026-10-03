@@ -474,6 +474,7 @@
     if (window.closeHistory) window.closeHistory();
     if (window.closeFieldKit) window.closeFieldKit();
     if (window.closeMaps) window.closeMaps();
+    window.closeGalaxy?.();
     toggleThemes(false, true);
     $("#library").hidden = true; $("#library-btn").classList.remove("on");
     el.hidden = false; document.body.classList.add("radar-open"); $("#radar-btn")?.classList.add("on");

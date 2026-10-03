@@ -530,6 +530,20 @@ def save_supplies(data):
 
 FARM_FILE = os.path.join(DATA_DIR, "farm.json")
 OUTPOST_FILE = os.path.join(DATA_DIR, "outpost.json")
+
+_ATLAS_MORE = None
+
+
+def atlas_more():
+    """The full country files (maps/atlas-more.json, 1.8 MB), read once."""
+    global _ATLAS_MORE
+    if _ATLAS_MORE is None:
+        try:
+            with open(os.path.join(APP_DIR, "maps", "atlas-more.json"), encoding="utf-8") as fh:
+                _ATLAS_MORE = json.load(fh)
+        except (OSError, ValueError):
+            _ATLAS_MORE = {}
+    return _ATLAS_MORE
 FARM_LOCK = threading.Lock()
 
 
@@ -3066,13 +3080,13 @@ def apply_settings(update):
             if isinstance(update.get(key), bool):
                 settings[key] = update[key]
         if isinstance(update.get("hiddenControls"), list):
-            allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "fieldkit-btn", "farming-btn", "outpost-btn", "friends-btn", "radar-btn", "theme-btn", "sound", "lock"}
+            allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "galaxy-btn", "fieldkit-btn", "farming-btn", "outpost-btn", "friends-btn", "radar-btn", "theme-btn", "sound", "lock"}
             settings["hiddenControls"] = [c for c in update["hiddenControls"] if c in allowed]
         if isinstance(update.get("pinnedControls"), list):
-            allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "fieldkit-btn", "farming-btn", "outpost-btn", "friends-btn", "radar-btn", "theme-btn", "sound", "lock", "settings-btn"}
+            allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "galaxy-btn", "fieldkit-btn", "farming-btn", "outpost-btn", "friends-btn", "radar-btn", "theme-btn", "sound", "lock", "settings-btn"}
             settings["pinnedControls"] = list(dict.fromkeys(c for c in update["pinnedControls"] if isinstance(c, str) and c in allowed))
         if isinstance(update.get("headerOrder"), list):
-            allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "fieldkit-btn", "farming-btn", "outpost-btn", "friends-btn", "radar-btn", "theme-btn", "sound", "lock"}
+            allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "galaxy-btn", "fieldkit-btn", "farming-btn", "outpost-btn", "friends-btn", "radar-btn", "theme-btn", "sound", "lock"}
             settings["headerOrder"] = list(dict.fromkeys(c for c in update["headerOrder"] if isinstance(c, str) and c in allowed))
         if update.get("background") in ("rain", "rise", "rings", "stars", "forest", "snow", "aurora",
                                          "embers", "radar", "none"):
@@ -4051,6 +4065,22 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(MAPS.search(qs.get("q", [""])[0][:60], near=near))
         if path == "/api/maps/countries":
             return self.send_json(MAPS.countries())
+        if path == "/api/library/find":
+            # The best library page for a name (a country, a landmark, a planet),
+            # the World Factbook's first when it's in the library.
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("q", [""])[0][:80]
+            try:
+                hits = search([q], count=12) if q else []
+            except Exception:
+                hits = []
+            name = q.lower()
+            hits.sort(key=lambda r: (clean_title(r["title"]).lower() != name, not clean_title(r["title"]).lower().startswith(name),
+                                     "factbook" not in r["archive"].lower(), name not in r["title"].lower()))
+            return self.send_json([{"kind": "local", "title": clean_title(r["title"]), "archive": r["archive"], "url": KIWIX + r["url"]} for r in hits[:6]])
+        if path == "/api/maps/country":
+            # One country's full file (the rest of the Factbook and practical facts).
+            a3 = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("a3", [""])[0][:3].upper()
+            return self.send_json(atlas_more().get(a3) or {})
         if path == "/api/maps/atlas":
             # Every country's outline, main cities and fact sheet (1 MB, bundled).
             try:

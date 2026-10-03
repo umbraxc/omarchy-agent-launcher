@@ -3,7 +3,7 @@
 (() => {
   const bar = document.querySelector(".controls");
   const pinned = document.querySelector("#settings-btn");
-  const ids = ["loadout-btn", "history-btn", "library-btn", "maps-btn", "fieldkit-btn", "farming-btn", "outpost-btn", "friends-btn", "radar-btn", "theme-btn", "sound", "lock"];
+  const ids = ["loadout-btn", "history-btn", "library-btn", "maps-btn", "galaxy-btn", "fieldkit-btn", "farming-btn", "outpost-btn", "friends-btn", "radar-btn", "theme-btn", "sound", "lock"];
   const movable = (el) => el && ids.includes(el.id);
   const order = () => [...bar.children].filter(movable).map((el) => el.id);
   function apply(saved) {

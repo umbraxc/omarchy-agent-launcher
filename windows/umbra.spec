@@ -16,6 +16,7 @@ datas = [
     (os.path.join(APP, "maps", "world.mbtiles"), "maps"),
     (os.path.join(APP, "maps", "countries.json"), "maps"),
     (os.path.join(APP, "maps", "atlas.json"), "maps"),
+    (os.path.join(APP, "maps", "atlas-more.json"), "maps"),
     (os.path.join(BUILD, "fonts"), os.path.join("ui", "fonts")),
     (os.path.join(BUILD, "kiwix"), "kiwix"),
     (os.path.join(ROOT, "CHANGELOG.md"), "."),

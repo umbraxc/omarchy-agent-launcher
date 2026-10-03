@@ -1037,6 +1037,7 @@
     if (window.closeLoadout) window.closeLoadout(true);
     if (window.closeHistory) window.closeHistory();
     if (window.closeMaps) window.closeMaps();
+    window.closeGalaxy?.();
     if (window.closeRadar) window.closeRadar();
     toggleThemes(false, true);
     $("#library").hidden = true; $("#library-btn").classList.remove("on");
