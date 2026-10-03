@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.2.2
+
+### Highlights
+
+- Umbra speaks: answers read aloud with a natural offline voice, while they're still being written. Umbra's own voice is female or male, and every personality has its own, from Marcus Aurelius to Nana and the Radio Operator. The speaker beside the microphone sets when, and every answer has a LISTEN button.
+- LoRa mesh in Signals: Meshtastic radios send messages, check-ins, positions and waypoints over kilometres with no phone network or internet. Umbra explains what to buy and walks you through the setup, then gives you a control board, a mesh chat and the radios on your Maps. Wi-Fi networks in the radar can now be joined.
+- Scenario drills in Field Kit › Training: 15 situations, from a dry tap on day three of a blackout to a flash flood or a Mars hull breach, told in scored decisions in 3D ASCII scenes, at Recruit, Veteran or Hardcore level, with a debrief.
+- The command line (Ctrl+Space): a terminal above the prompt to find anything in Umbra or run commands like theme, voice, map, drill or checkin.
+- Camp Network: profile cards open a dossier (check-in, Galaxy, Earth, drills, habits, look, shared waypoints); check in as OK, needing help, away or on the move; one shared supply list; friends' waypoints on your Maps and in your messages.
+- The Core opens on your AI; STATUS shows Umbra's state as a live 3D reactor.
+- Fixes: graphics cards on Arch are found however Ollama was installed, Tab always offers quick actions, and the Galaxy and card achievements can now be earned.
+
 ## 3.2.1
 
 ### Highlights
