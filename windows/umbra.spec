@@ -26,11 +26,25 @@ datas = [
 for name in ("manuals.json", "facts.json", "fieldmanual.json", "knowledge.json", "library.json", "packs.json", "achievements.json", "farming.json"):
     datas.append((os.path.join(APP, name), "."))
 
+# Umbra's voice: the speech engine ships inside the app (the model is
+# downloaded on request), with the phoneme library and its data.
+from PyInstaller.utils.hooks import collect_all
+binaries = []
+hidden_voice = []
+for pkg in ("kokoro_onnx", "espeakng_loader", "phonemizer", "onnxruntime", "language_tags", "segments", "csvw"):
+    try:
+        d, b, h = collect_all(pkg)
+        datas += d; binaries += b; hidden_voice += h
+    except Exception:
+        pass
+
 a = Analysis(
     [os.path.join(ROOT, "windows", "umbra_win.py")],
     pathex=[APP],
     datas=datas,
-    hiddenimports=["server", "maps", "pmtiles", "radar", "transfers", "linked_library", "outpost", "outpost_data", "camp", "sky", "winplat", "psutil", "pypdf", "cryptography"],
+    binaries=binaries,
+    hiddenimports=["server", "maps", "pmtiles", "radar", "transfers", "linked_library", "outpost", "outpost_data", "camp", "sky", "winplat", "psutil", "pypdf", "cryptography",
+                   "speech", "speech_worker", *hidden_voice],
     excludes=["tkinter"],
 )
 pyz = PYZ(a.pure)

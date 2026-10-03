@@ -5,3 +5,4 @@ pyinstaller==6.22.3
 pillow
 pypdf>=5,<7
 cryptography>=44
+kokoro-onnx==0.4.7

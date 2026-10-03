@@ -448,6 +448,15 @@
     persona: () => find(state.personality, "personality"),
     scenario: () => find(state.scenario, "scenario"),
     artOf, animate,
+    // Deploys a scenario or personality from elsewhere (the command line).
+    all: () => ({ scenarios: scenarios(), personalities: personalities() }),
+    deploy: async (kind, id) => {
+      if (kind === "scenario") state.scenario = id; else state.personality = id;
+      await postSettings(kind === "scenario" ? { scenario: id } : { personality: id });
+      applyLoadout();
+      if (kind === "scenario" && typeof showStarters === "function") showStarters();
+      Sound.theme();
+    },
   };
   load().then(() => {
     const view = new URLSearchParams(location.search).get("view");

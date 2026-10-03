@@ -99,6 +99,7 @@
     close(false);
     if (command === "history") window.toggleHistory?.(true);
     if (command === "export") window.exportCurrent?.();
+    if (command === "terminal") window.UmbraTerminal?.show();
   }
 
   document.addEventListener("keydown", (e) => {

@@ -2760,7 +2760,7 @@ document.addEventListener("keydown", (e) => {
 const SHORTCUTS = [
   ["Enter", "Send your question"], ["Shift + Enter", "New line"], ["Esc", "Stop an answer, or close a panel"],
   ["Tab", "Quick actions: likely replies, fitting tools, questions to start with"], ["F9", "Hold to talk (voice input)"], ["Ctrl + Z", "Undo in the prompt"], ["Ctrl + Y", "Redo in the prompt"],
-  ["Ctrl (hold)", "Conversation tools: search, history and export"], ["Ctrl + N", "New conversation"], ["Ctrl + F", "Search this conversation"],
+  ["Ctrl (hold)", "Conversation tools: search, history and export"], ["Ctrl + N", "New conversation"], ["Ctrl + Space", "Command line: find anything, run commands"], ["Ctrl + F", "Search this conversation"],
   ["Ctrl + H", "History"], ["Ctrl + Shift + H", "Search all conversations in History"],
   ["Ctrl + E", "Export this conversation"], ["Ctrl + L", "Library and field manual"], ["Ctrl + P", "Your profile"],
   ["Ctrl + O", "Loadout: scenario and personality"], ["Ctrl + G", "Maps"], ["Ctrl + Shift + G", "Galaxy: the solar system, live"], ["Ctrl + K", "Field kit: medic, sun & moon, supplies, vault, training"], ["Ctrl + J", "Signals & radar"], ["Ctrl + T", "Themes"], ["Ctrl + M", "Mute or unmute sounds"],

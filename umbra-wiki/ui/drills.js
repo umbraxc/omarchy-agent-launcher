@@ -199,5 +199,5 @@ window.UmbraDrills = (() => {
     }
   }
 
-  return { render, stop: cleanup };
+  return { render, stop: cleanup, pick: (id) => { picked = id; }, list: async () => { await load(); return data.drills; } };
 })();
