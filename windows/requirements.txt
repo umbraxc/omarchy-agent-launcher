@@ -6,3 +6,4 @@ pillow
 pypdf>=5,<7
 cryptography>=44
 kokoro-onnx==0.4.7
+meshtastic==2.7.11

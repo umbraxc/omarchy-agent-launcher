@@ -329,3 +329,37 @@ def radios(off):
             done.append("all radios (rfkill)")
     return {"off": off, "done": done, "failed": [f for f in failed if not (off and "all radios (rfkill)" in done)],
             "wifi": _blocked("wlan"), "bluetooth": _blocked("bluetooth")}
+
+
+# ---------------------------------------------------------- joining Wi-Fi
+
+def join_wifi(ssid, password=""):
+    """Connect to a Wi-Fi network the radar heard (NetworkManager or iwd).
+    The password is passed to the system's own tool and never stored by Umbra."""
+    ssid = str(ssid or "")[:64]
+    password = str(password or "")[:128]
+    if not ssid or "\n" in ssid:
+        raise ValueError("Which network?")
+    if WINDOWS:
+        r = subprocess.run(["netsh", "wlan", "connect", f"name={ssid}"], capture_output=True, text=True, timeout=30)
+        if r.returncode:
+            raise ValueError("Windows needs this network set up once in its Wi-Fi settings; after that Umbra can join it.")
+        return {"ok": True, "via": "Windows"}
+    if shutil.which("nmcli") and _run(["nmcli", "-t", "-f", "RUNNING", "general"], 4).strip() == "running":
+        cmd = ["nmcli", "--wait", "25", "dev", "wifi", "connect", ssid] + (["password", password] if password else [])
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=40)
+        if r.returncode:
+            msg = (r.stderr or r.stdout).strip().splitlines()[-1] if (r.stderr or r.stdout).strip() else "it didn't connect"
+            raise ValueError("Couldn't join: " + ("wrong password?" if "secrets" in msg.lower() or "password" in msg.lower() else msg[:120]))
+        return {"ok": True, "via": "NetworkManager"}
+    if shutil.which("iwctl"):
+        devs = [os.path.basename(p) for p in glob.glob("/sys/class/net/*") if os.path.isdir(os.path.join(p, "wireless"))]
+        if not devs:
+            raise ValueError("No Wi-Fi adapter.")
+        cmd = ["iwctl"] + (["--passphrase", password] if password else []) + ["station", devs[0], "connect", ssid]
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=40)
+        if r.returncode:
+            out = (r.stderr or r.stdout).strip()
+            raise ValueError("Couldn't join: " + ("wrong password?" if "passphrase" in out.lower() or "operation failed" in out.lower() else (out[:120] or "it didn't connect")))
+        return {"ok": True, "via": "iwd"}
+    raise ValueError("No network manager Umbra can use (NetworkManager or iwd).")

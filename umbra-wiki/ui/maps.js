@@ -40,6 +40,7 @@
   const CHECKIN = { ok: ["✓ OK", "#6fcf7f"], help: ["⚠ NEEDS HELP", "#e06a6a"], away: ["◌ AWAY", "#9a9aa0"], moving: ["➜ ON THE MOVE", "#5fb8c9"] };
   async function loadFriends() {
     try { friendLayer = (await (await fetch("/api/friends/waypoints")).json()).friends || []; } catch {}
+    try { friendLayer = friendLayer.concat(await window.loraForMap?.() || []); } catch {}   // LoRa radios with a position
     el()?.querySelector(".mp-t[data-t=friends]")?.toggleAttribute("hidden", !friendLayer.length);
     frame();
   }
@@ -2090,6 +2091,16 @@
   });
   // Arriving from the Galaxy: open over the place below the camera.
   let pendingGo = null;
+  // Opens the map on the LoRa radios that share their position.
+  window.showLoraOnMap = async () => {
+    await loadFriends();
+    const pts = friendLayer.filter((f) => f.id.startsWith("lora-")).flatMap((f) => f.waypoints.map(([la, lo]) => [la, lo]));
+    showFriends = true;
+    if (!pts.length) { window.umbraToast?.("No radio on the mesh shares its position yet."); document.getElementById("maps-btn")?.click(); return; }
+    const lats = pts.map((p) => p[0]), lons = pts.map((p) => p[1]);
+    const span = Math.max(0.02, Math.max(...lats) - Math.min(...lats), (Math.max(...lons) - Math.min(...lons)) * 0.6);
+    window.openMapsAt((Math.max(...lats) + Math.min(...lats)) / 2, (Math.max(...lons) + Math.min(...lons)) / 2, Math.max(3, Math.min(13, Math.log2(360 / span) + 0.2)));
+  };
   // Opens the map on a friend's shared waypoints and check-in.
   window.showFriendOnMap = async (id) => {
     await loadFriends();

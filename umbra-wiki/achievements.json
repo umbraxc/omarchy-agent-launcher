@@ -1309,6 +1309,61 @@
    "category": "tools"
   },
   {
+   "id": "on-the-mesh",
+   "name": "On the Mesh",
+   "description": "Connect a LoRa radio to Umbra.",
+   "icon": "\udb81\udc37",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "loraConnected",
+   "goal": 1,
+   "category": "tools"
+  },
+  {
+   "id": "first-contact",
+   "name": "First Contact",
+   "description": "Send a message over LoRa: no phone network, no internet.",
+   "icon": "\udb81\udc37",
+   "tier": "silver",
+   "points": 25,
+   "stat": "loraSent",
+   "goal": 1,
+   "category": "tools"
+  },
+  {
+   "id": "the-mesh",
+   "name": "The Mesh",
+   "description": "Hear five LoRa radios at once.",
+   "icon": "\udb81\udc37",
+   "tier": "gold",
+   "points": 50,
+   "stat": "loraNodes",
+   "goal": 5,
+   "category": "tools"
+  },
+  {
+   "id": "over-the-hill",
+   "name": "Over the Hill",
+   "description": "Receive a LoRa message relayed through at least two other radios.",
+   "icon": "\udb81\udc37",
+   "tier": "gold",
+   "points": 75,
+   "stat": "loraHops",
+   "goal": 2,
+   "category": "tools"
+  },
+  {
+   "id": "patched-in",
+   "name": "Patched In",
+   "description": "Join a Wi-Fi network from Signals.",
+   "icon": "\udb81\udda9",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "wifiJoins",
+   "goal": 1,
+   "category": "tools"
+  },
+  {
    "id": "umbra-complete",
    "name": "Umbra Complete",
    "description": "Meet all 15 deep-use milestones across chat, manuals, maps, medicine, drills, sky, Farming, radio, themes, Vault, map packs, the Galaxy, the wonders, country files and Friends.",
@@ -1527,7 +1582,7 @@
    "tier": "legendary",
    "points": 100,
    "stat": "allOthers",
-   "goal": 146,
+   "goal": 151,
    "category": "legend"
   },
   {
@@ -2390,6 +2445,15 @@
    "description": "Shown after your name in conversations and on your profile.",
    "unlock": {
     "achievement": "every-scenario"
+   }
+  },
+  {
+   "id": "meshrunner",
+   "kind": "title",
+   "name": "Meshrunner",
+   "description": "Shown after your name in conversations and on your profile.",
+   "unlock": {
+    "achievement": "over-the-hill"
    }
   },
   {

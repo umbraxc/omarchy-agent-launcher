@@ -12,6 +12,7 @@ Wikipedia.
 
 import base64
 import glob
+import getpass
 import html
 import json
 import math
@@ -35,6 +36,7 @@ import maps  # noqa: E402  (offline maps: maps.py next to this file)
 import transfers
 import camp
 import speech  # noqa: E402  (Umbra's offline voice: speech.py next to this file)
+import lora  # noqa: E402  (Meshtastic LoRa radios: lora.py next to this file)
 import linked_library
 import outpost
 import sky
@@ -2125,8 +2127,14 @@ def record(event, value=None, **info):
                        "quietScene", "pulse500", "webSaves", "friends", "campMessages", "campLinks",
                        "galaxyOpened", "leftOrbit", "landings", "timeWarp", "cardShares",
                        "sharedWaypoints", "listEdits", "waypointsSent", "friendLayer",
-                       "scenarioDrills", "drillsPerfect", "hardcorePerfect", "spokenAnswers"):
+                       "scenarioDrills", "drillsPerfect", "hardcorePerfect", "spokenAnswers",
+                       "loraConnected", "loraSent", "loraReceived", "wifiJoins"):
             counts[event] = counts.get(event, 0) + 1
+        elif event in ("loraNodes", "loraHops"):   # the most seen at once, the most hops
+            try:
+                counts[event] = max(counts.get(event, 0), int(value or 0))
+            except (TypeError, ValueError):
+                pass
         elif event in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
                        "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries", "modelsTried", "medicTools", "farmItems", "radioTracks",
                        "worlds", "moons", "wonders", "dossiers", "checkins", "drillsDone", "voicesHeard"):
@@ -4405,6 +4413,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(get_scenario_drills())
         if path == "/api/speech":
             return self.send_json(SPEECH.status())
+        if path == "/api/lora":
+            return self.send_json(LORA.status(take=True))
         if path == "/api/speech/pending":
             return self.send_json({"clips": SPEECH.take_pending(), "speaking": SPEECH.status()["speaking"]})
         if path == "/api/speech/clip":
@@ -4728,6 +4738,32 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(save_waypoints(self.read_json().get("waypoints")))
             except ValueError as e:
                 return self.send_json({"error": str(e)}, 400)
+        if self.path.startswith("/api/lora/") or self.path == "/api/wifi/join":
+            req = self.read_json()
+            try:
+                if self.path == "/api/wifi/join":
+                    out = radar.join_wifi(req.get("ssid"), req.get("password"))
+                    record("wifiJoins")
+                    return self.send_json(out)
+                action = self.path.rsplit("/", 1)[1]
+                if action == "install":
+                    return self.send_json(LORA.install())
+                if action == "connect":
+                    return self.send_json(LORA.connect(port=str(req.get("port") or ""), host=str(req.get("host") or ""), fake=bool(req.get("fake"))))
+                if action == "disconnect":
+                    LORA.disconnect()
+                    return self.send_json({"ok": True})
+                if action == "permission":
+                    return self.send_json(lora_permission())
+                if action == "send":
+                    cmd = req if isinstance(req, dict) else {}
+                    if cmd.get("cmd") not in ("text", "position", "waypoint", "owner", "region", "preset", "channel", "seturl", "traceroute", "refresh"):
+                        return self.send_json({"ok": False, "message": "unknown command"}, 400)
+                    return self.send_json(LORA.command(cmd))
+            except (ValueError, OSError, subprocess.TimeoutExpired) as exc:
+                return self.send_json({"ok": False, "message": str(exc)}, 400)
+            self.send_error(404)
+            return
         if self.path.startswith("/api/speech/"):
             req = self.read_json()
             action = self.path.rsplit("/", 1)[1]
@@ -5656,6 +5692,18 @@ def speech_player(path, volume):
 
 
 SPEECH = speech.Speech(DATA_DIR, os.path.join(DATA_DIR, "cache"), speech_settings, speech_player, WINDOWS)
+LORA = lora.Lora(DATA_DIR, lambda event, value=None: record(event, value), WINDOWS)
+
+
+def lora_permission():
+    """Lets this user use serial ports (the group uucp or dialout), with the password asked by pkexec.
+    It takes effect after logging out and in again."""
+    group = lora.serial_group()
+    user = os.environ.get("USER") or getpass.getuser()
+    r = subprocess.run(["pkexec", "usermod", "-aG", group, user], capture_output=True, text=True, timeout=300)
+    if r.returncode:
+        raise ValueError("The permission wasn't changed." if r.returncode in (126, 127) else (r.stderr.strip() or "usermod failed")[:160])
+    return {"ok": True, "group": group}
 
 
 def persona_speech(pid=None):

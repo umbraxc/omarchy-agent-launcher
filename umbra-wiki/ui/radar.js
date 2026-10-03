@@ -29,7 +29,8 @@
     const el = document.createElement("div");
     el.id = "radar"; el.className = "radar"; el.hidden = true;
     el.innerHTML = `
-      <div class="rd-head"><span class="lo-title"><span class="spin" data-spin>✻</span> SIGNALS & RADAR</span>
+      <div class="rd-head"><span class="lo-title"><span class="spin" data-spin>✻</span> SIGNALS</span>
+        <div class="pf-choice rd-modes"><button type="button" data-m="radar" class="on" title="Radar|Wi-Fi and Bluetooth around you, and the device's vitals">◉ RADAR</button><button type="button" data-m="lora" title="LoRa mesh|Meshtastic radios: messages and check-ins over kilometres, no network">⌁ LORA MESH</button></div>
         <div class="rd-chips"><span class="rd-chip" data-k="wifi"></span><span class="rd-chip" data-k="bt"></span><span class="rd-chip rd-clock"></span></div>
         <div class="rd-tools">
           <button class="ctl rd-t on" data-t="wifi" title="Wi-Fi|Show or hide the Wi-Fi networks."><span class="g">${G.wifi}</span></button>
@@ -38,6 +39,7 @@
           <button class="ctl rd-full" title="Full screen · F|Use the whole screen for the radar."><span class="g">\u{F0293}</span></button>
           <button class="ghost rd-kill" title="Kill switch|Turns Wi-Fi, mobile data and Bluetooth off at once, for when you need to go dark. Umbra keeps working offline.">\u{F0425} KILL SWITCH</button>
           <button class="ghost rd-close" title="Close · Esc|Back to where you were.">CLOSE ✕</button></div></div>
+      <div class="lr-host" hidden></div>
       <div class="rd-body">
         <aside class="rd-left"><div class="rd-h">SIGNALS <small class="rd-count"></small></div><div class="rd-list"></div></aside>
         <div class="rd-center"><canvas class="rd-canvas"></canvas><div class="rd-detail" hidden></div>
@@ -57,6 +59,7 @@
       </div>`;
     document.body.appendChild(el);
     canvas = el.querySelector(".rd-canvas"); g = canvas.getContext("2d");
+    el.querySelectorAll(".rd-modes button").forEach((b) => b.addEventListener("click", () => { Sound.click(); setMode(b.dataset.m); }));
     el.querySelector(".rd-close").addEventListener("click", () => toggle(false));
     el.querySelector(".rd-full").addEventListener("click", fullscreen);
     el.querySelector(".rd-kill").addEventListener("click", () => kill(true));
@@ -274,13 +277,55 @@
       <div class="rd-meter"><i style="width:${s.signal}%"></i></div>
       ${rows.filter(([, v]) => v).map(([k, v]) => `<div class="mp-cf-row"><span>${k}</span><p>${escapeHtml(String(v))}</p></div>`).join("")}
       <p class="rd-d-note">${s.type === "wifi" && /open/i.test(s.security || "") ? "Open network: anything sent over it can be read by others nearby. Use it only with care." :
-        s.type === "wifi" ? "Distance is a guess from signal strength: walls, bodies and weather change it." : "Many phones and earbuds use private addresses that change, so the same device can appear under a new address."}</p>`;
+        s.type === "wifi" ? "Distance is a guess from signal strength: walls, bodies and weather change it." : "Many phones and earbuds use private addresses that change, so the same device can appear under a new address."}</p>
+      ${s.type === "wifi" && s.name && !s.connected ? `<button type="button" class="solid rd-join" title="Join this network|Connects this computer to it (asks for its password if it has one)">⇢ JOIN</button>` : ""}`;
     win.querySelector("b").textContent = s.name || "(hidden network)";
     win.hidden = false;
     win.classList.remove("glitch"); void win.offsetWidth; win.classList.add("glitch");
     win.querySelector(".rd-x").addEventListener("click", closeDetail);
+    win.querySelector(".rd-join")?.addEventListener("click", () => { Sound.click(); joinWifi(s); });
     list();
     Sound.glitch();
+  }
+  // Radar or LoRa mesh: the same screen, two modes.
+  let mode = "radar";
+  function setMode(m) {
+    mode = m;
+    const el = $("#radar");
+    el.querySelectorAll(".rd-modes button").forEach((b) => b.classList.toggle("on", b.dataset.m === m));
+    el.querySelector(".rd-body").hidden = m !== "radar";
+    el.querySelector(".lr-host").hidden = m !== "lora";
+    el.querySelectorAll(".rd-chips, .rd-t, .rd-scan, .rd-full").forEach((x) => x.classList.toggle("gone", m !== "radar"));
+    el.classList.toggle("lora-mode", m === "lora");
+    if (m === "lora") { window.UmbraLora?.mount(el.querySelector(".lr-host")); window.track?.("radarOpened"); }
+    else window.UmbraLora?.unmount();
+  }
+  window.openLora = () => { toggle(true); setMode("lora"); };
+  // Joining a Wi-Fi network the radar heard (asks for the password if it has one).
+  async function joinWifi(s) {
+    let password = "";
+    if (s.security && !/open|none|^--$/i.test(s.security)) {
+      password = await askPassword(s.name || "this network");
+      if (password === null) return;
+    }
+    const b = $("#radar .rd-join");
+    if (b) { b.disabled = true; b.textContent = "JOINING…"; }
+    const r = await fetch("/api/wifi/join", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ssid: s.name, password }) }).then((x) => x.json()).catch(() => ({ ok: false, message: "No answer." }));
+    if (r.ok) { Sound.online(); window.umbraToast?.(`Connected to ${s.name}.`); setTimeout(() => scan(true), 1500); }
+    else { Sound.error(); window.umbraToast?.(r.message || "Couldn't join."); }
+    if (b) { b.disabled = false; b.textContent = "⇢ JOIN"; }
+  }
+  function askPassword(name) {
+    return new Promise((done) => {
+      const win = $("#radar .rd-detail");
+      const f = document.createElement("form");
+      f.className = "rd-pass";
+      f.innerHTML = `<label>PASSWORD FOR ${escapeHtml(name.toUpperCase())}<input type="password" autocomplete="off" maxlength="128"></label><div><button class="solid" type="submit">JOIN ▸</button><button class="ghost" type="button">CANCEL</button></div><small>Passed straight to your system's network manager; Umbra keeps nothing.</small>`;
+      win.appendChild(f);
+      const inp = f.querySelector("input"); inp.focus();
+      f.addEventListener("submit", (e) => { e.preventDefault(); const v = inp.value; f.remove(); done(v); });
+      f.querySelector("button[type=button]").addEventListener("click", () => { f.remove(); done(null); });
+    });
   }
   // Roughly how near, from the signal strength.
   const near = (s) => s.dbm >= -50 ? "very close (a few metres)" : s.dbm >= -65 ? "close (same building)" : s.dbm >= -78 ? "near (next door, down the street)" : "far (at the edge of range)";
@@ -464,6 +509,7 @@
       if (el.hidden) return;
       if (fullOn) fullscreen();
       el.hidden = true; document.body.classList.remove("radar-open"); $("#radar-btn")?.classList.remove("on");
+      window.UmbraLora?.unmount();
       clearTimeout(scanTimer); clearTimeout(vitTimer); cancelAnimationFrame(raf); raf = 0; ro.disconnect();
       if (!quiet) { Sound.click(); if (typeof goBack === "function") goBack(); }
       if (window.startRain) startRain();
@@ -482,6 +528,7 @@
     ro.observe(el.querySelector(".rd-center"));
     resize();
     list(); scan(true); vitals();
+    if (mode === "lora") window.UmbraLora?.mount(el.querySelector(".lr-host"));
     if (window.track) track("radarOpened");
     if (!raf) raf = requestAnimationFrame(draw);
     Sound.searchstart();
