@@ -28,15 +28,24 @@ for name in ("manuals.json", "facts.json", "fieldmanual.json", "knowledge.json",
 
 # Umbra's voice: the speech engine ships inside the app (the model is
 # downloaded on request), with the phoneme library and its data.
-from PyInstaller.utils.hooks import collect_all
+from PyInstaller.utils.hooks import collect_all, collect_data_files, collect_dynamic_libs, collect_submodules
 binaries = []
 hidden_voice = []
-for pkg in ("kokoro_onnx", "espeakng_loader", "phonemizer", "onnxruntime", "language_tags", "segments", "csvw", "meshtastic", "pubsub", "serial"):
+for pkg in ("kokoro_onnx", "espeakng_loader", "phonemizer", "language_tags", "segments", "csvw", "meshtastic", "pubsub", "serial"):
     try:
         d, b, h = collect_all(pkg)
         datas += d; binaries += b; hidden_voice += h
     except Exception:
         pass
+# onnxruntime: only the runtime itself (its quantization and training tools
+# crash when PyInstaller imports them, and the voice doesn't need them).
+ORT_SKIP = ("onnxruntime.quantization", "onnxruntime.transformers", "onnxruntime.tools", "onnxruntime.training", "onnxruntime.backend")
+try:
+    binaries += collect_dynamic_libs("onnxruntime")
+    datas += collect_data_files("onnxruntime")
+    hidden_voice += collect_submodules("onnxruntime", filter=lambda n: not n.startswith(ORT_SKIP))
+except Exception:
+    pass
 
 a = Analysis(
     [os.path.join(ROOT, "windows", "umbra_win.py")],
@@ -45,7 +54,7 @@ a = Analysis(
     binaries=binaries,
     hiddenimports=["server", "maps", "pmtiles", "radar", "transfers", "linked_library", "outpost", "outpost_data", "camp", "sky", "winplat", "psutil", "pypdf", "cryptography",
                    "speech", "speech_worker", "lora", "lora_worker", *hidden_voice],
-    excludes=["tkinter"],
+    excludes=["tkinter", *ORT_SKIP],
 )
 pyz = PYZ(a.pure)
 exe = EXE(
