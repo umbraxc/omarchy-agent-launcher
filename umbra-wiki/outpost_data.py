@@ -506,7 +506,9 @@ STOCKPILE_START, STOCKPILE_STEP = 48, 6
 
 
 def stockpile_price(bought):
-    return int(150 * 1.32 ** bought)
+    """More room at the Trader: +6 kinds each time, and each costs 60% more
+    (¤2,500, ¤4,000, ¤6,400 … about ¤42,000 for the seventh)."""
+    return int(2500 * 1.6 ** bought)
 
 
 # ------------------------------------------------------------- companions

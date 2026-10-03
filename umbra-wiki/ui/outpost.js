@@ -102,10 +102,13 @@
     if (key === "overview") return "valley";
     if (skill) return "skill:" + skill;
     if (key === "battle" || key === "expeditions") return "duel";
+    if (key === "trader") return "trader";
+    if (key === "bounty" || key === "bounties") return "board";
     return "";
   }
   function setHero(key) {
-    const want = heroFor(key) + (key === "battle" || key === "expeditions" ? ":" + (V.state.action?.type === "combat" ? D.enemies[V.state.action.enemy].art : "raider") : "");
+    const foe = V.state.action?.type === "combat" ? V.state.action.enemy : key === "expeditions" ? D.expeditions[0].enemies[0] : (D.areas.find((x) => x.id === area) || D.areas[0]).enemies[0];
+    const want = heroFor(key) + (key === "battle" || key === "expeditions" ? ":" + foe + ":" + JSON.stringify(V.state.equipment) : "");
     if (want === artKey) return;
     if (art) { art.stop(); art = null; }
     artKey = want;
@@ -121,7 +124,9 @@
     hero.append(canvas, label);
     if (want === "valley") art = UmbraOutpostArt.valley(canvas, () => V.state.buildings);
     else if (want.startsWith("skill:")) art = UmbraOutpostArt.skill(canvas, want.slice(6));
-    else art = UmbraOutpostArt.duel(canvas, want.split(":")[1]);
+    else if (want === "trader") art = UmbraBeings.trader(canvas);
+    else if (want === "board") art = UmbraBeings.board(canvas);
+    else art = UmbraBeings.duel(canvas, want.split(":")[1], UmbraBeings.outfit(V.state.equipment, D.items));
   }
   $o(".op-hero").addEventListener("pointermove", (e) => valleyHover(e));
   $o(".op-hero").addEventListener("pointerleave", () => { const l = $o(".op-hero-label"); if (l) l.hidden = true; });
@@ -288,7 +293,7 @@
     const s = V.state, ids = Object.keys(s.bank).filter((id) => inCat(item(id), bankTab)).sort((a, b) => item(a).cat.localeCompare(item(b).cat) || item(a).tier - item(b).tier || item(a).name.localeCompare(item(b).name));
     const used = Object.keys(s.bank).length, value = Object.entries(s.bank).reduce((n, [id, q]) => n + item(id).value * q, 0);
     if (pick && !s.bank[pick]) pick = null;
-    return `<section class="op-sec"><h2>▦ STOCKPILE <small>${used} / ${V.slots} kinds · worth ¤${fmt(value)}</small><button type="button" class="inline" data-act="slots" ${s.scrip >= V.slotPrice ? "" : "disabled"} title="More room|+${D.stockpileStep} kinds for ¤${fmt(V.slotPrice)}">+${D.stockpileStep} SLOTS · ¤${fmt(V.slotPrice)}</button></h2>
+    return `<section class="op-sec"><h2>▦ STOCKPILE <small>${used} / ${V.slots} kinds · worth ¤${fmt(value)}</small><button type="button" class="inline" data-view="trader" title="More room|The Trader sells room in the stockpile: +${D.stockpileStep} kinds for ¤${fmt(V.slotPrice)}">MORE ROOM AT THE TRADER ▸</button></h2>
       ${bar(used / V.slots, used >= V.slots ? "full" : "")}
       <div class="op-tabs">${CATS.map(([c, n]) => `<button type="button" class="${bankTab === c ? "on" : ""}" data-tab="${c}">${n}</button>`).join("")}</div>
       <div class="op-bankwrap"><div class="op-bank">${ids.map((id) => `<button type="button" class="op-cell ${pick === id ? "on" : ""}" data-pick="${id}" data-item="${id}">${icon(id, s.bank[id])}</button>`).join("") || `<p class="op-note">Nothing here yet.</p>`}</div>
@@ -315,7 +320,8 @@
       <p class="op-have">You have <b>${fmt(q)}</b> · ¤${fmt(it.value)} each</p>
       <div class="op-dact">${it.slot ? `<button type="button" data-act="equip" data-item="${id}" ${V.state.equipment[it.slot] === id || V.state.kit?.item === id ? "disabled" : ""}>${it.slot === "kit" ? "USE IN KIT" : it.slot === "ammo" ? "LOAD" : "EQUIP"}</button>` : ""}
         ${it.cat === "food" ? `<button type="button" data-act="food" data-item="${id}" ${V.state.food === id ? "disabled" : ""}>${V.state.food === id ? "IN USE AS FOOD" : "USE AS FOOD"}</button>` : ""}
-        ${it.value ? `<button type="button" data-act="sell" data-item="${id}" data-qty="1">SELL 1</button>${q > 10 ? `<button type="button" data-act="sell" data-item="${id}" data-qty="${Math.floor(q / 2)}">SELL HALF</button>` : ""}<button type="button" data-act="sell" data-item="${id}" data-qty="${q}" class="warn">SELL ALL · ¤${fmt(it.value * q)}</button>` : ""}</div>`;
+        ${it.value ? `<button type="button" data-act="sell" data-item="${id}" data-qty="1">SELL 1</button>${q > 10 ? `<button type="button" data-act="sell" data-item="${id}" data-qty="${Math.floor(q / 2)}">SELL HALF</button>` : ""}<button type="button" data-act="sell" data-item="${id}" data-qty="${q}" class="warn">SELL ALL · ¤${fmt(it.value * q)}</button>` : ""}
+        <button type="button" class="warn" data-act="discard" data-item="${id}" data-qty="${q}" ${it.value ? 'data-ask="1"' : ""} title="Throw away|${it.value ? "Gone for good, no scrip: selling is usually better." : "Worth nothing: frees its slot in the stockpile."}">✕ THROW AWAY${q > 1 ? ` ALL ${fmt(q)}` : ""}</button></div>`;
   }
 
   const SLOTS = [["head", "HEAD", "∩"], ["cloak", "CLOAK", "Ω"], ["body", "BODY", "▓"], ["legs", "LEGS", "Π"], ["feet", "FEET", "◡"], ["hands", "HANDS", "ω"], ["weapon", "WEAPON", "/"], ["offhand", "OFF-HAND", "◘"], ["ammo", "QUIVER", "→"], ["charm", "CHARM", "☉"]];
@@ -329,12 +335,7 @@
     const foods = Object.keys(s.bank).filter((id) => item(id).cat === "food");
     const choose = (cat, act, current) => `<select data-select="${act}"><option value="">—</option>${Object.keys(s.bank).filter((id) => item(id).cat === cat || (cat === "gearslot" && item(id).slot)).map((id) => `<option value="${id}" ${id === current ? "selected" : ""}>${clean(item(id).name)} (${fmt(have(id))})</option>`).join("")}</select>`;
     const triangle = { melee: "beats bows, loses to gadgets", ranged: "beats gadgets, loses to melee", tech: "beats melee, loses to bows" }[p.style];
-    return `<section class="op-sec op-gear"><div class="op-doll"><pre class="op-figure" aria-hidden="true">   ___
-  (o o)
- __|=|__
-/  |=|  \\
-   / \\
-  /   \\</pre>${slots}</div>
+    return `<section class="op-sec op-gear"><div class="op-doll"><div class="op-figure3d" data-keep="1" aria-hidden="true"></div>${slots}</div>
       <div class="op-gstats"><h2>◈ IN THE FIELD</h2>
         <dl><dt>Style</dt><dd>${p.style === "melee" ? "Melee" : p.style === "ranged" ? "Bow" : "Gadget"} · ${clean(triangle)}</dd>
           <dt>Accuracy</dt><dd>${fmt(p.acc)}</dd><dt>Max hit</dt><dd>${p.maxhit}</dd><dt>Evasion</dt><dd>${fmt(p.eva)}</dd>
@@ -360,14 +361,19 @@
     }).join("");
     const goods = D.trader.filter((o) => o.kind === "item").map((o) => `<article class="op-card op-offer"><header>${icon(o.item, o.qty)}<b>${clean(item(o.item).name)}${o.qty > 1 ? ` ×${o.qty}` : ""}</b></header><p>${clean(o.desc)}</p>
       <button type="button" data-act="buy" data-offer="${o.id}" ${s.scrip >= o.price ? "" : "disabled"}>BUY · ¤${fmt(o.price)}</button></article>`).join("");
-    return `<section class="op-sec"><h2>¤ THE TRADER <small>A caravan that stops by the Outpost. Tools make their skill faster; rations keep you fed in a fight.</small></h2><div class="op-grid">${upgrades}</div></section>
+    const room = `<article class="op-card op-offer op-tool" data-tool-card="shelves@${Math.min(4, s.slotsBought || 0)}"><header><b>Stockpile room</b><span>${V.slots} KINDS</span></header>
+        <div class="op-bart op-tart" data-live="t:shelves"><i class="op-art-r" data-art="tool:shelves@${Math.min(4, s.slotsBought || 0)}" data-size="220"></i><small>SHELVES AND CRATES</small></div>
+        <p>Room for ${D.stockpileStep} more kinds of item. Each extension costs more than the last.</p>
+        <button type="button" data-act="slots" ${s.scrip >= V.slotPrice ? "" : "disabled"}>BUY +${D.stockpileStep} · ¤${fmt(V.slotPrice)}</button></article>`;
+    return `<section class="op-sec"><h2>¤ THE TRADER <small>A caravan that stops by the Outpost. Tools make their skill faster; rations keep you fed in a fight.</small></h2><div class="op-grid">${room}${upgrades}</div></section>
       <section class="op-sec"><h2>¤ GOODS</h2><div class="op-grid">${goods}</div></section>`;
   }
 
   function enemyCard(id, fighting) {
     const e = D.enemies[id], kills = V.state.stats[`kill:${id}`] || 0, beat = D.beats;
     const vs = beat[V.player.style] === e.style ? "good" : beat[e.style] === V.player.style ? "bad" : "";
-    return `<article class="op-card op-enemy ${fighting ? "active" : ""}"><header><b>${clean(e.name)}</b><span>LV ${e.level}</span></header>
+    return `<article class="op-card op-enemy ${fighting ? "active" : ""}" data-hover-art="creature:${id}"><header><b>${clean(e.name)}</b><span>LV ${e.level}</span></header>
+      <div class="op-bart op-creature"><i class="op-art-r" data-art="creature:${id}" data-size="260"></i></div>
       <p>${clean(e.desc)}</p><div class="op-rmeta"><span>♥ ${e.hp}</span><span class="op-style ${vs}" title="Style|${e.style === "melee" ? "Melee" : e.style === "ranged" ? "Ranged" : "Tech"} attacker. ${vs === "good" ? "Your style beats it." : vs === "bad" ? "It beats your style." : ""}">${{ melee: "⚔\ufe0e", ranged: "➶\ufe0e", tech: "✶\ufe0e" }[e.style]} ${e.style.toUpperCase()}</span><span>✕ ${kills}</span></div>
       <div class="op-io"><small>DROPS</small>${e.drops.map(([k]) => icon(k)).join("")}<em>¤${e.scrip[0]}–${e.scrip[1]}</em></div>
       ${fighting ? "" : `<button type="button" class="op-go" data-act="fight" data-enemy="${id}">FIGHT ▸</button>`}</article>`;
@@ -396,7 +402,8 @@
     return (on ? fightHtml() : "") + `<section class="op-sec"><h2>⚑\ufe0e EXPEDITIONS <small>A run of fights ending with a boss. No changing gear once you leave; the rewards are unique.</small></h2><div class="op-grid">${D.expeditions.map((x) => {
       const done = V.state.completed.includes(x.id), going = on && a.expedition === x.id;
       const ok = !on && V.combatLevel >= x.level - 10 && Object.entries(x.cost).every(([k, v]) => V.state.supplies[k] >= v) && (!x.requires || V.state.equipment.charm === x.requires);
-      return `<article class="op-card op-exp ${done ? "done" : ""}"><header><b>${clean(x.name)}</b><span>${done ? "✓ CLEARED" : `REC. LV ${x.level}`}</span></header><p>${clean(x.intro)}</p>
+      return `<article class="op-card op-exp ${done ? "done" : ""}" data-hover-art="site:${x.id}"><header><b>${clean(x.name)}</b><span>${done ? "✓ CLEARED" : `REC. LV ${x.level}`}</span></header>
+        <div class="op-bart op-site"><i class="op-art-r" data-art="site:${x.id}" data-size="220"></i></div><p>${clean(x.intro)}</p>
         <div class="op-waves">${x.enemies.map((id, i) => `<span class="${going && i < a.wave ? "won" : going && i === a.wave ? "now" : ""} ${D.enemies[id].boss ? "boss" : ""}" title="${clean(D.enemies[id].name)}|Level ${D.enemies[id].level}">${D.enemies[id].boss ? "☠" : i + 1}</span>`).join("<i></i>")}</div>
         <div class="op-io"><small>REWARD</small>${Object.entries(x.reward).map(([k, n]) => icon(k, n > 1 ? n : null)).join("")}<em>¤${fmt(x.scrip)}</em></div>
         <div class="op-cost">${Object.entries(x.cost).map(([k, v]) => `<span class="${V.state.supplies[k] >= v ? "" : "short"}">${v} ${k}</span>`).join("")}${x.requires ? `<span class="${V.state.equipment.charm === x.requires ? "" : "short"}">${clean(item(x.requires).name)}</span>` : ""}</div>
@@ -405,7 +412,8 @@
   }
   function bountiesHtml() {
     const b = V.state.bounty;
-    const current = b ? `<article class="op-card op-bounty active"><header><b>WANTED · ${clean(D.enemies[b.enemy].name)}</b><span>${b.total - b.left}/${b.total}</span></header>${bar((b.total - b.left) / b.total, "xp")}
+    const current = b ? `<article class="op-card op-bounty active" data-hover-art="creature:${b.enemy}"><header><b>WANTED · ${clean(D.enemies[b.enemy].name)}</b><span>${b.total - b.left}/${b.total}</span></header>
+      <div class="op-bart op-creature op-wanted"><i class="op-art-r" data-art="creature:${b.enemy}" data-size="220"></i><small>WANTED</small></div>${bar((b.total - b.left) / b.total, "xp")}
       <p>Reward: <b>${b.reward} tokens</b> (more with bounty bonuses). Find them in ${clean(D.areas.find((ar) => ar.enemies.includes(b.enemy)).name)}.</p>
       <button type="button" data-act="fight" data-enemy="${b.enemy}" ${V.action?.type === "combat" ? "disabled" : ""}>HUNT ▸</button><button type="button" class="warn" data-act="dropbounty">DROP</button></article>`
       : `<div class="op-grid">${D.bountyTiers.map((t) => `<article class="op-card"><header><b>${t.name.toUpperCase()} BOUNTY</b><span>✪ ×${t.tokens}</span></header><p>${t.count[0]}–${t.count[1]} targets up to level ${t.max}, chosen for your level.</p><button type="button" data-act="bounty" data-tier="${t.id}">TAKE ▸</button></article>`).join("")}</div>`;
@@ -416,7 +424,7 @@
   function companionsHtml() {
     return `<section class="op-sec"><h2>❀ COMPANIONS <small>Rare finds while you work. Each one stays and helps a little.</small></h2><div class="op-grid pets">${Object.values(D.companions).map((c) => {
       const got = V.state.companions.includes(c.id);
-      return `<article class="op-card op-pet ${got ? "got" : ""}"><pre class="op-pet-art" data-pet="${c.animal}" aria-hidden="true">${got ? clean(UmbraOutpostArt.pets[c.animal][0]) : "    ???    \n   (   )   \n    ???    "}</pre>
+      return `<article class="op-card op-pet ${got ? "got" : ""}" ${got ? `data-hover-art="pet:${c.animal}"` : ""}><div class="op-bart op-petart ${got ? "" : "unknown"}"><i class="op-art-r" data-art="pet:${c.animal}" data-size="260"></i>${got ? "" : "<b>?</b>"}</div>
         <header><b>${got ? clean(c.name) : "UNKNOWN"}</b><span>${got ? clean(c.animal.toUpperCase()) : ""}</span></header><p>${got ? clean(effectText(c.effect)) : `Found while training ${c.skill === "combat" ? "combat" : skillName(c.skill)}.`}</p></article>`;
     }).join("")}</div></section>`;
   }
@@ -441,7 +449,7 @@
       <section class="op-sec"><h2>≡ MILESTONES</h2><dl class="op-stats">${[["Companions", `${s.companions.length} / ${Object.keys(D.companions).length}`], ["Expeditions cleared", `${s.completed.length} / ${D.expeditions.length}`],
         ["Recipes at mastery 99", mastered], ["Enemies defeated", fmt(st.kills || 0)], ["Items crafted", fmt(st.crafted || 0)], ["Bounties", fmt(st.bounties || 0)], ["Scrip earned", fmt(st.scripEarned || 0)]].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></section>
       <section class="op-sec op-settings"><h2>⚙ OUTPOST SETTINGS</h2>
-        ${[["start", "Getting-started guide", "First steps on the Valley page"], ["liveArt", "Live 3D art", "Turning buildings, recipes and items; off is lighter on slow computers"], ["awayPopup", "While-you-were-away summary", "A summary each time you come back"]].map(([k, name, hint]) =>
+        ${[["start", "Getting-started guide", "First steps on the Valley page"], ["liveArt", "Live 3D art", "Turning buildings, recipes and items; off is lighter on slow computers"], ["awayPopup", "While-you-were-away summary", "A summary when you open Umbra again after closing it"], ["closeNote", "Note when closing", "How the Outpost keeps going while you're away"]].map(([k, name, hint]) =>
           `<label class="op-opt"><span><b>${name}</b><small>${hint}</small></span><input type="checkbox" data-option="${k}" ${o[k] !== false ? "checked" : ""}></label>`).join("")}
         <div class="op-opt danger"><span><b>Reset the Outpost</b><small>Start over from nothing. Prestige stars and Locker rewards stay yours.</small></span><button type="button" class="warn" data-show="reset">RESET…</button></div></section>`;
   }
@@ -509,9 +517,23 @@
       UmbraOutpostModels.fill(panel);
       liveRecipe();
     }
+    figure();
     modals();
     UmbraOutpostModels.fill(panel);      // pictures in the popups too
     tick();
+  }
+  // Gear: you, in 3D, wearing what's equipped, turning on a stand. The view
+  // stays across updates and is rebuilt only when the equipment changes.
+  let figView = null, figKey = "", figEl = null;
+  function figure() {
+    const box = $o(".op-figure3d");
+    const key = box ? JSON.stringify(V.state.equipment) : "";
+    if (box === figEl && key === figKey) return;
+    figView?.stop(); figView = null; figEl = box; figKey = key;
+    if (!box) return;
+    box.innerHTML = "<canvas></canvas>";
+    if (window.offgrid || V.state.options?.liveArt === false) { const c = Ascii3D.still(UmbraBeings.mannequinScene(UmbraBeings.outfit(V.state.equipment, D.items)), 240, 300, { cell: 5 }); box.replaceChildren(c); return; }
+    figView = UmbraBeings.mannequin(box.querySelector("canvas"), UmbraBeings.outfit(V.state.equipment, D.items));
   }
   // Patch `el` to match `html`, touching only what differs. Art that is
   // already drawn (same picture) is left alone.
@@ -594,7 +616,7 @@
         ${sup ? `<h3>SUPPLIES FROM THE BUILDINGS</h3><div class="op-away-sup">${sup}</div>` : ""}
         <p class="op-away-sum">${a.scrip ? `¤ ${a.scrip > 0 ? "+" : ""}${fmt(a.scrip)} scrip` : ""}${a.kills ? ` · ${fmt(a.kills)} enemies defeated` : ""}${a.tokens ? ` · ✪ +${a.tokens}` : ""}${a.companions.length ? ` · new companion: ${a.companions.map((c) => clean(D.companions[c].name)).join(", ")}` : ""}</p>
         ${a.stopped ? `<p class="op-away-stop">⚠ ${clean(a.stopped)}</p>` : ""}
-        <p class="op-away-pace">While you're away the Outpost works at a tenth of its pace after the first two minutes, for up to a day.</p>
+        <p class="op-away-pace">While Umbra is open it works at full pace on any tab. Once Umbra is closed, it keeps going at ${a.pace >= .33 ? "a third" : a.pace >= .2 ? "a fifth" : "a tenth"} of its pace after the first two minutes, for up to a day.</p>
         <button type="button" class="op-go" data-act="ack">BACK TO WORK ▸</button></div>`);
       if (!layer.dataset.shown) { Sound.complete(); layer.dataset.shown = "1"; }
       return;
@@ -647,7 +669,7 @@
   // The building under the pointer comes alive: it turns, smoke rises.
   let bLive = null, bCard = null;
   panel.addEventListener("pointerover", (e) => {
-    const card = e.target.closest("[data-building-card], [data-tool-card]");
+    const card = e.target.closest("[data-building-card], [data-tool-card], [data-hover-art]");
     if (card === bCard) return;
     bLive?.stop(); bLive = null; panel.querySelectorAll(".op-bart canvas.live").forEach((c) => c.remove());
     panel.querySelectorAll(".op-bart.playing").forEach((b) => b.classList.remove("playing"));
@@ -655,6 +677,7 @@
     if (!card || window.offgrid || document.body.classList.contains("reduce-motion") || V?.state.options?.liveArt === false) return;
     const box = card.querySelector(".op-bart"), c = document.createElement("canvas");
     c.className = "live"; box.appendChild(c); box.classList.add("playing");
+    if (card.dataset.hoverArt) { const [kind, id] = card.dataset.hoverArt.split(":"); bLive = UmbraBeings.live(c, kind, id, { speed: kind === "site" ? .35 : .55 }); return; }
     const scene = card.dataset.toolCard ? UmbraOutpostModels.tool(card.dataset.toolCard) : UmbraOutpostModels.building(card.dataset.buildingCard, +card.dataset.level);
     bLive = Ascii3D.view(c, UmbraOutpostModels.spin(scene, card.dataset.toolCard ? .8 : .45), { cell: 5 });
   });
@@ -844,6 +867,11 @@
     if (d.stance) act.stance = d.stance;
     if (d.choice) act.choice = +d.choice;
     if (d.confirmBtn) { act.confirm = d.confirmBtn; overlay = ""; }
+    if (d.act === "discard" && d.ask && !b.dataset.armed) {   // worth something: ask once more
+      b.dataset.armed = "1"; const was = b.textContent; b.textContent = "SURE? CLICK AGAIN";
+      setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = was; } }, 3000);
+      return;
+    }
     if (d.act === "fight" && sel !== "battle" && sel !== "bounties") sel = "battle";
     if (d.act === "fight") area = D.areas.find((x) => x.enemies.includes(d.enemy)).id;
     refresh(act);
@@ -867,8 +895,35 @@
     if (art) { art.stop(); art = null; artKey = ""; }
     live?.stop(); live = null; liveId = ""; bLive?.stop(); bLive = null; bCard = null; info.hidden = true; infoView?.stop(); infoView = null; infoId = "";
   }
+  // Leaving the Outpost: a short note on how it keeps going (unless hidden).
+  function leaveNote() {
+    if (!V || V.state.options?.closeNote === false || $(".op-leave")) return;
+    const a = V.state.action, P = V.state.prestige || 0;
+    const doing = !a ? "Nothing is running right now: start an action and it keeps going while you're away."
+      : a.type === "combat" ? `You're fighting ${clean(D.enemies[a.enemy]?.name || "")}: the fight goes on (food is eaten as needed).`
+      : a.type === "scout" ? "You're running the route: it goes on." : `${clean(D.recipes[a.recipe].name)} keeps going.`;
+    const pace = P >= 4 ? "a third of" : P >= 3 ? "a fifth of" : "a tenth of";
+    const box = document.createElement("div");
+    box.className = "op-leave";
+    box.innerHTML = `<div class="op-leave-card" role="dialog" aria-label="The Outpost keeps going"><small>◆ UMBRA OUTPOST</small><h2>The Outpost keeps going</h2>
+      <p class="op-leave-now">${doing}</p>
+      <ul><li><b>While Umbra is open:</b> everything runs at full pace, on any tab.</li>
+        <li><b>When you close Umbra:</b> the first <b>2 minutes</b> still count fully, then it carries on at <b>${pace} the pace</b>${P >= 3 ? " (your prestige bonus)" : ""}.</li>
+        <li><b>For up to a day:</b> up to <b>24 hours</b> closed are counted, even with the computer off; after that it waits for you.</li>
+        <li>Next time you open Umbra, the Outpost shows a summary of what happened while it was closed.</li></ul>
+      <div class="op-leave-foot"><label><input type="checkbox"> Don't show this again</label><button type="button" class="solid">GOT IT</button></div></div>`;
+    document.body.appendChild(box);
+    const done = () => {
+      if (box.querySelector("input").checked) refresh({ type: "options", closeNote: false });
+      box.remove(); document.removeEventListener("keydown", key, true); Sound.click();
+    };
+    const key = (e) => { if (e.key === "Escape" || e.key === "Enter") { e.preventDefault(); e.stopImmediatePropagation(); done(); } };
+    box.querySelector("button").addEventListener("click", done);
+    box.addEventListener("click", (e) => { if (e.target === box) done(); });
+    document.addEventListener("keydown", key, true);
+  }
   function toggle() {
-    if (!panel.hidden) { close(); Sound.click(); return; }
+    if (!panel.hidden) { close(); Sound.click(); leaveNote(); return; }
     if (window.locked || document.body.classList.contains("locked")) return;
     ["closeSettings", "closeLoadout", "closeHistory", "closeMaps", "closeFieldKit", "closeFarming", "closeRadar", "closeCore"].forEach((key) => window[key]?.());
     toggleThemes(false, true);
@@ -879,12 +934,12 @@
     refresh(); Sound.click();
   }
   button.addEventListener("click", toggle);
-  $o(".op-close").addEventListener("click", () => { close(); Sound.click(); });
+  $o(".op-close").addEventListener("click", () => { close(); Sound.click(); leaveNote(); });
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape" || panel.hidden) return;
     if (overlay) { overlay = ""; render(true); return; }
     if (!$o(".op-layer").hidden && V?.state.away) { refresh({ type: "ack" }); return; }
-    close();
+    close(); leaveNote();
   });
   const otherPanels = ["maps", "fieldkit", "farming", "friends", "radar", "loadout", "history", "library", "themes", "settings", "core"];
   new MutationObserver(() => { if (!panel.hidden && otherPanels.some((id) => document.getElementById(id)?.hidden === false)) close(); })
@@ -894,6 +949,10 @@
     if (window.offgrid || document.body.classList.contains("reduce-motion")) tick();
     else if (!barFrame) barFrame = requestAnimationFrame(barLoop);
   }, 100);
+  // Umbra is open (whatever tab): the Outpost keeps its full pace. Only
+  // closing Umbra counts as being away, so the summary comes once a session.
+  const here = () => fetch("/api/outpost/seen", { method: "POST" }).catch(() => {});
+  here(); setInterval(here, 30000);
   window.closeOutpost = close;
   window.toggleOutpost = toggle;
 })();

@@ -75,7 +75,8 @@ window.Ascii3D = (() => {
   //   camera(t) -> {pos:[x,y,z], at:[x,y,z], fov (horizontal, degrees)}
   //   light: [x,y,z] (towards the light), ambient, shadows
   //   sky(u, v, t) -> [glyph, rgb, alpha] | null   (u, v in 0..1)
-  //   fog: {color, density}, far, live, fps
+  //   fog: {color, density}, far, live, fps, drift (with live: rows re-traced per frame)
+  //   movingShadows: false skips shadow rays for the moving parts (cheaper)
   //   particles(t, put) -> put(x, y, z, glyph, rgb, alpha, size)
   //   overlay(g, t, W, H, put2) -> 2D extras
   // }
@@ -83,7 +84,7 @@ window.Ascii3D = (() => {
     const g = canvas.getContext("2d");
     const cellPx = opts.cell || 10;
     let W = 0, H = 0, dpr = 1, cols = 0, rows = 0, cw = 6, ch = 10;
-    let buf = null, built = 0, alive = true, timer = 0, visible = true, last = 0, cost = 0, frames = 0;
+    let buf = null, built = 0, scan = 0, alive = true, timer = 0, visible = true, last = 0, cost = 0, frames = 0;
     const hit = { m: "" };
     let cam = null;
 
@@ -99,7 +100,9 @@ window.Ascii3D = (() => {
       const n = cols * rows;
       buf = { d: new Float32Array(n), nx: new Float32Array(n), ny: new Float32Array(n), nz: new Float32Array(n),
         px: new Float32Array(n), py: new Float32Array(n), pz: new Float32Array(n), sh: new Float32Array(n),
-        ao: new Float32Array(n), m: new Array(n) };
+        ao: new Float32Array(n), m: new Array(n), sd: new Float32Array(n), st: new Uint8Array(n),
+        // The still trace of each cell, kept to restore when a moving part leaves it.
+        sm: new Array(n), sn: new Float32Array(n * 3), ssh: new Float32Array(n), sao: new Float32Array(n) };
       built = 0; layer = null; shim = null;
       return true;
     }
@@ -116,8 +119,8 @@ window.Ascii3D = (() => {
     }
 
     const MAX = 160;
-    function march(ox, oy, oz, dx, dy, dz, t, far) {
-      let d = .01;
+    function march(ox, oy, oz, dx, dy, dz, t, far, d0) {
+      let d = d0 || .01;
       for (let i = 0; i < MAX; i++) {
         const s = scene.map(ox + dx * d, oy + dy * d, oz + dz * d, t, hit);
         if (s < .0015 * d + .0008) return [d, i];
@@ -147,21 +150,44 @@ window.Ascii3D = (() => {
 
     // Trace one cell into the buffer.
     let lightDir = null;
-    function traceCell(i, t) {
+    // again: a moving cell starts its ray where it enters a moving part, or just
+    // before the still surface the first trace found, whichever is nearer:
+    // nothing can lie in front of that, so far fewer steps for the same picture.
+    function traceCell(i, t, again) {
       const B = cam, far = scene.far || 60, [lx, ly, lz] = lightDir;
       const col = i % cols, row = (i - col) / cols;
       const sx = (col + .5) * cw - W / 2, sy = H / 2 - (row + .5) * ch;
       let dx = B.fx * B.focal + B.rx * sx + B.ux * sy, dy = B.fy * B.focal + B.uy * sy, dz = B.fz * B.focal + B.rz * sx + B.uz * sy;
       const dl = Math.hypot(dx, dy, dz); dx /= dl; dy /= dl; dz /= dl;
-      const [d, steps] = march(B.px, B.py, B.pz, dx, dy, dz, t, far);
+      let d0 = 0;
+      if (again) {
+        let start = buf.sd[i] > 0 ? buf.sd[i] - .08 : far;
+        for (const [mx, my, mz, mr] of scene.moving) {
+          const ox = B.px - mx, oy = B.py - my, oz = B.pz - mz, bq = ox * dx + oy * dy + oz * dz, r = mr + .1;
+          const disc = bq * bq - (ox * ox + oy * oy + oz * oz - r * r);
+          if (disc >= 0) start = Math.min(start, -bq - Math.sqrt(disc));
+        }
+        if (start >= far) { buf.d[i] = -1; buf.m[i] = ""; return; }   // sky, and no moving part on this ray
+        d0 = Math.max(.01, start);
+      }
+      const [d, n] = march(B.px, B.py, B.pz, dx, dy, dz, t, far, d0);
+      // Steps skipped count as the still trace's, so shading stays even.
+      const steps = again ? Math.min(MAX, n + (buf.sd[i] > 0 ? buf.st[i] * Math.min(1, d0 / buf.sd[i]) : 0)) : n;
+      if (!again) { buf.sd[i] = d; buf.st[i] = Math.min(255, n); }
       buf.d[i] = d;
       if (d < 0) { buf.m[i] = ""; return; }
       const x = B.px + dx * d, y = B.py + dy * d, z = B.pz + dz * d;
-      buf.m[i] = hit.m;
+      buf.m[i] = hit.m; buf.px[i] = x; buf.py[i] = y; buf.pz[i] = z;
+      if (again && hit.m === buf.sm[i] && Math.abs(d - buf.sd[i]) < .01) {   // the same still surface: no need to light it again
+        buf.nx[i] = buf.sn[i * 3]; buf.ny[i] = buf.sn[i * 3 + 1]; buf.nz[i] = buf.sn[i * 3 + 2]; buf.ao[i] = buf.sao[i]; buf.sh[i] = buf.ssh[i];
+        return;
+      }
       const [nx, ny, nz] = normal(x, y, z, t);
-      buf.nx[i] = nx; buf.ny[i] = ny; buf.nz[i] = nz; buf.px[i] = x; buf.py[i] = y; buf.pz[i] = z;
+      buf.nx[i] = nx; buf.ny[i] = ny; buf.nz[i] = nz;
       buf.ao[i] = 1 - Math.min(.6, steps / MAX * 1.6);
-      buf.sh[i] = scene.shadows === false ? 1 : shadow(x + nx * .02, y + ny * .02, z + nz * .02, lx, ly, lz, t);
+      const mat = scene.materials[hit.m];
+      buf.sh[i] = scene.shadows === false || (again && (scene.movingShadows === false || mat && mat.emissive)) ? 1 : shadow(x + nx * .02, y + ny * .02, z + nz * .02, lx, ly, lz, t);
+      if (!again) { buf.sm[i] = hit.m; buf.sn[i * 3] = nx; buf.sn[i * 3 + 1] = ny; buf.sn[i * 3 + 2] = nz; buf.sao[i] = buf.ao[i]; buf.ssh[i] = buf.sh[i]; }
     }
     // Trace rows [from, to) into the buffer.
     function trace(from, to, t) {
@@ -316,7 +342,7 @@ window.Ascii3D = (() => {
           g.drawImage(shim, 0, 0);
         }
         g.setTransform(dpr, 0, 0, dpr, 0, 0);
-        if (movingCells && built >= rows) for (const i of movingCells) { traceCell(i, t); shadeCell(i, t, dyn.put, lx, ly, lz); }
+        if (movingCells && built >= rows) for (const i of movingCells) { traceCell(i, t, true); shadeCell(i, t, dyn.put, lx, ly, lz); }
       }
       if (scene.particles && built >= rows) {
         const B = cam, fog = scene.fog;
@@ -344,14 +370,20 @@ window.Ascii3D = (() => {
       if (!alive) return;
       if (!setup()) { timer = setTimeout(frame, 400); return; }
       const now = performance.now(), t = calm() ? (scene.stillTime ?? 4) : now / 1000;
-      if (scene.live) {
+      if (scene.live && scene.drift && built >= rows) {
+        // A slow drift: the camera moves a little and a band of rows is
+        // traced again each frame, like a scanline, so a heavy scene can turn.
+        cam = camBasis(t);
+        const n = Math.min(rows, scene.drift);
+        trace(scan, Math.min(rows, scan + n), t); scan = scan + n >= rows ? 0 : scan + n;
+      } else if (scene.live && !scene.drift) {
         cam = camBasis(t);
         trace(0, rows, t); built = rows;
       } else if (built < rows) {
         // Reveal: a few rows per frame, like a scanline building the view.
-        if (!built) { cam = camBasis(scene.stillTime ?? 4); findMoving(); }
+        if (!built) { cam = camBasis(scene.drift && !calm() ? now / 1000 : scene.stillTime ?? 4); if (!scene.live) findMoving(); }
         const step = calm() || opts.size ? rows : Math.max(1, Math.ceil(rows / 26));
-        trace(built, Math.min(rows, built + step), scene.stillTime ?? 4);
+        trace(built, Math.min(rows, built + step), scene.drift && !calm() ? now / 1000 : scene.stillTime ?? 4);
         built = Math.min(rows, built + step);
       }
       paint(t);

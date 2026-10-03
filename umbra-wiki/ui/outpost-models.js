@@ -382,6 +382,13 @@ window.UmbraOutpostModels = (() => {
       U(b, sd.capsule(rx, ry, rz, -.75, 0, 0, -.18, 0, 0, .13), "handle", h);
       U(b, sd.cyl(rx + .16, ry, rz, .05, .02), "edge", h);
     }, { metal, edge, handle: HANDLE }, { cam: [.4, .8, 3] });
+    // Stockpile room: shelves that fill with crates as it grows.
+    if (kind === "shelves") return model((x, y, z, b, h) => {
+      const n = 1 + (+tier || 0);
+      for (const px of [-.7, .7]) U(b, sd.box(x - px, y - .55, z, .04, .55, .25), "frame", h);
+      for (let k = 0; k < 3; k++) U(b, sd.box(x, y - (.08 + k * .45), z, .72, .025, .25), "frame", h);
+      for (let k = 0; k < 3; k++) for (let i = 0; i < 3; i++) if (k * 3 + i < 3 + n * 1.5) U(b, sd.box(x - (-.45 + i * .45), y - (.25 + k * .45), z, .17, .14, .17), "crate", h);
+    }, { frame: M.solid("#6a4e36", RAMP.wood), crate: { color: hex("#b08a5a"), ramp: RAMP.wood, shade(c) { if (Math.abs(Math.sin(c.y * 30)) < .2) c.glyph = "="; } } }, { cam: [.8, .7, 3] });
     // Field rations: tins in a crate; more tins for higher tiers.
     const n = { i: 1, ii: 2, iii: 3 }[tier] || 1;
     return model((x, y, z, b, h) => {
@@ -563,7 +570,7 @@ window.UmbraOutpostModels = (() => {
       const [key, build, size, cell] = queue.shift();
       if (cache.has(key)) continue;
       let pic = null;
-      try { pic = A.still({ ...build(), shadows: size >= 140 }, size, size, { cell, font: font(), dpr: 1 }); } catch { pic = null; }
+      try { const sc = build(); pic = A.still({ ...sc, shadows: sc.shadows !== false && size >= 140 }, size, size, { cell, font: font(), dpr: 1 }); } catch { pic = null; }
       cache.set(key, pic);
       for (const el of waiting.get(key) || []) apply(el, pic);
       waiting.delete(key);
@@ -597,10 +604,13 @@ window.UmbraOutpostModels = (() => {
       else if (kind === "recipe" && window.UmbraOutpostModels.recipes) request(el, key, () => forRecipe(window.UmbraOutpostModels.recipes[id]), size, cell);
       else if (kind === "building") { const [b, lv] = id.split("@"); request(el, key, () => building(b, +lv), size, cell); }
       else if (kind === "tool") { const [k, tier] = id.split("@"); request(el, key, () => F.tool(k, tier), size, cell); }
+      else if (window.UmbraBeings?.has(kind)) request(el, key, () => window.UmbraBeings.scene(kind, id), size, cell);
     }
   }
 
-  return { forItem, forRecipe, building, fill, spin, recipes: null, toolKey, tool: (key) => { const [k, tier] = key.split("@"); return F.tool(k, tier); },
+  // Building blocks for outpost-beings.js (creatures, people, companions).
+  const kit = { model, fit, M, RAMP, METALS, WOODS, LEATHERS, shade, LIFT, U };
+  return { forItem, forRecipe, building, fill, spin, recipes: null, toolKey, kit, tool: (key) => { const [k, tier] = key.split("@"); return F.tool(k, tier); },
     // A live, turning view for the hover box.
     live(canvas, id) { return A.view(canvas, spin(forItem(id)), { cell: 5, font: font() }); } };
 })();

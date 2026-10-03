@@ -16,8 +16,9 @@ import outpost_data as D
 LOCK = threading.Lock()
 VERSION = 2
 OFFLINE_CAP = 24 * 3600
-# Away from the Outpost (closed, or nobody watching): the first two minutes
-# count fully, the rest at a tenth of the pace; still capped at a real day.
+# Away from Umbra (closed): the first two minutes count fully, the rest at a
+# tenth of the pace; still capped at a real day. While Umbra stays open on
+# another tab it says so (seen()), and that time counts fully.
 AWAY_FULL = 120
 AWAY_PACE = .1
 LOG_LINES = 40
@@ -41,7 +42,7 @@ def fresh(now):
             "supplies": {"food": 15, "water": 15, "wood": 12, "scrap": 10, "energy": 8, "medicine": 2, "knowledge": 4, "morale": 10},
             "upgrades": {}, "broadcasts": {}, "obstacles": [None] * 6, "warmUntil": 0, "companions": [], "completed": [],
             "storyDone": [], "pendingStory": None, "bounty": None, "tokens": 0, "stats": {}, "away": None,
-            "prestige": 0, "playtime": 0, "options": {"start": True, "liveArt": True, "awayPopup": True},
+            "prestige": 0, "playtime": 0, "options": {"start": True, "liveArt": True, "awayPopup": True, "closeNote": True},
             "log": ["The lamps come on. Umbra Outpost has a place to begin."]}
 
 
@@ -763,17 +764,26 @@ def interact(path, action=None, now=None):
         before = _snapshot(state)
         last = float(state.get("updated", now))
         gap = min(max(0, now - last), OFFLINE_CAP)
+        # Time Umbra was open on another tab counts like time on this one.
+        present = min(gap, max(0, min(now, float(state.get("seen", 0))) - last))
+        full = present + AWAY_FULL
         if gap <= AWAY_FULL:
             state["playtime"] = state.get("playtime", 0) + gap
-        if gap > AWAY_FULL:
+        if gap > full:
             state["updated"] = now - gap          # a longer absence starts the day it can count
-            until = now - gap + AWAY_FULL + (gap - AWAY_FULL) * away_pace(state)
+            until = now - gap + full + (gap - full) * away_pace(state)
             stop = _advance(state, until, events, rng)
             _shift(state, now - until, until)
             state["updated"] = now
         else:
             stop = _advance(state, now, events, rng)
-        away = gap >= AWAY_FULL
+        away = gap - present >= AWAY_FULL       # Umbra itself was closed: a new session
+        if gap > AWAY_FULL and not away:          # back from another tab: one note per skill, not one per level
+            top = {}
+            for e in events:
+                if e["type"] == "level":
+                    top[e["skill"]] = e
+            events = [e for e in events if e["type"] != "level" or top[e["skill"]] is e]
         reached = {}
         for e in events:
             if e["type"] == "level":
@@ -789,6 +799,28 @@ def interact(path, action=None, now=None):
             _act(state, action, now, events)
         _save(path, state)
         return view(state, now, events)
+
+
+def seen(path, now=None):
+    """Umbra is open (on any tab): the Outpost keeps its full pace."""
+    now = time.time() if now is None else now
+    if not os.path.exists(path):
+        return {"ok": True}
+    with LOCK:
+        state = _load(path, now)
+        back = now - max(float(state.get("updated", now)), float(state.get("seen", 0))) > AWAY_FULL
+        if not back:
+            state["seen"] = now
+            _save(path, state)
+            return {"ok": True}
+    # Umbra was closed: settle that time first (away pace, and the summary
+    # waits for the Outpost), then this session counts as present.
+    interact(path, None, now)
+    with LOCK:
+        state = _load(path, now)
+        state["seen"] = now
+        _save(path, state)
+    return {"ok": True}
 
 
 def _act(state, action, now, events):
@@ -843,6 +875,14 @@ def _act(state, action, now, events):
         _stat(state, "scripEarned", value)
         if state.get("food") == iid and iid not in state["bank"]:
             state["food"] = None
+    elif kind == "discard":
+        iid, n = action.get("item"), action.get("qty")
+        _require(iid in state["bank"] and type(n) is int and 0 < n <= state["bank"][iid], "Nothing to throw away.")
+        _require(iid not in state["equipment"].values() or state["bank"][iid] > n, "Unequip it first.")
+        _bank_take(state, iid, n)
+        if state.get("food") == iid and iid not in state["bank"]:
+            state["food"] = None
+        _log(state, f"Threw away {n} × {D.ITEMS[iid]['name'].lower()}.")
     elif kind == "buy":
         offer = _OFFERS.get(action.get("offer"))
         _require(offer, "Unknown offer.")
@@ -969,7 +1009,7 @@ def _act(state, action, now, events):
         _log(state, "The Outpost starts over. Your prestige and Locker rewards are kept.")
     elif kind == "options":
         opts = state.setdefault("options", {})
-        for key in ("start", "liveArt", "awayPopup"):
+        for key in ("start", "liveArt", "awayPopup", "closeNote"):
             if isinstance(action.get(key), bool):
                 opts[key] = action[key]
     else:

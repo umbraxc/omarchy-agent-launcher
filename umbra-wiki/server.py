@@ -4276,6 +4276,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(benchmark())
             except (OSError, ValueError) as e:
                 return self.send_json({**speed_status(), "error": str(e)}, 409 if isinstance(e, ValueError) else 503)
+        if self.path == "/api/outpost/seen":
+            return self.send_json(outpost.seen(OUTPOST_FILE))
         if self.path == "/api/outpost":
             try:
                 result = outpost.interact(OUTPOST_FILE, self.read_json())
