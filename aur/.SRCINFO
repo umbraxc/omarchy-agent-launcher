@@ -1,6 +1,6 @@
 pkgbase = umbra-wiki
 	pkgdesc = Offline survival assistant: a local AI that answers from an offline library, with sources
-	pkgver = 3.2.3
+	pkgver = 3.2.4
 	pkgrel = 1
 	url = https://github.com/umbraxc/omarchy-umbra
 	install = umbra-wiki.install
@@ -33,7 +33,7 @@ pkgbase = umbra-wiki
 	optdepends = networkmanager: Wi-Fi networks on the Signals screen, and joining them (iwd works too)
 	optdepends = bluez-utils: Bluetooth devices on the Signals screen
 	optdepends = poppler: read text from linked PDF files
-	source = umbra-wiki-3.2.3-1.tar.gz::https://github.com/umbraxc/omarchy-umbra/releases/download/v3.2.3/umbra-wiki-3.2.3-source.tar.gz
-	sha256sums = 1c9b902ca3a3e57bbd54d61d6c1e6eb9e7101e9c6b642a43d9f17a253e01a658
+	source = umbra-wiki-3.2.4-1.tar.gz::https://github.com/umbraxc/omarchy-umbra/releases/download/v3.2.4/umbra-wiki-3.2.4-source.tar.gz
+	sha256sums = e30fa437d9d87ec71a3919b53e661d5714ac63b8d8986a841f5b667923657b50
 
 pkgname = umbra-wiki
