@@ -2083,7 +2083,7 @@ async function ask(question, shownAs = "") {
   startTimer();
   setPhase("search");
 
-  let text = "", sources = [], next = "", meta = null, completed = false, failure = "", stopped = false, writing = false, contextNote = "", skyRequested = false;
+  let text = "", sources = [], next = "", meta = null, completed = false, failure = "", stopped = false, writing = false, contextNote = "", skyRequested = false, pageSent = undefined;
   const sourceByN = {};
   const typer = typewriter((shown) => paintAnswer(answerEl, shown, sourceByN, true));
 
@@ -2091,7 +2091,7 @@ async function ask(question, shownAs = "") {
     const res = await fetch("/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, history: chat, conversation: window.currentConversationId || "", online, offgrid: !!window.offgrid, folder: window.currentFolder || "", context: localContext(), attachments, page: window.UmbraWeb?.pageFor?.() }),
+      body: JSON.stringify({ question, history: chat, conversation: window.currentConversationId || "", online, offgrid: !!window.offgrid, folder: window.currentFolder || "", context: localContext(), attachments, page: (pageSent = window.UmbraWeb?.pageFor?.()) }),
       signal: controller.signal,
     });
     const reader = res.body.getReader();
@@ -2161,7 +2161,7 @@ async function ask(question, shownAs = "") {
     question, shown: shownAs, answer: shown, rawAnswer: text || shown,
     offer: stopped || !completed || failure ? "" : next, sources, online, contextNote,
     userAt, answerAt: Date.now(), clockOffsetMinutes, sky: skyRequested,
-    scene: !stopped && window.UmbraChill ? UmbraChill.select(question, chat.length / 2, { answer: shown, sky: skyRequested, failed: !completed || failure, history: chat }) : "",
+    scene: !stopped && window.UmbraChill ? UmbraChill.select(question, chat.length / 2, { answer: shown, sky: skyRequested, failed: !completed || failure, history: chat, page: !!pageSent }) : "",
     persona: window.loadoutPersona || "",
     meta: stopped ? "" : !completed || failure ? "INTERRUPTED · " + (online ? "ONLINE" : "OFFLINE")
       : meta ? `${meta.tokens} TOKENS · ${meta.seconds}s · ${sources.length} SOURCES · ${online ? "ONLINE" : "OFFLINE"}` : "",

@@ -563,7 +563,8 @@ window.UmbraGalaxy = (() => {
   }
   function ask(b) {
     close(true);
-    const box = $("#q"); box.value = `Tell me about ${b.name}: what is it like, what is it made of, and could people ever live there?`;
+    const what = b.kind === "Moon" ? `${b.name}, the moon of ${BY[b.parent].name}` : b.kind === "Star" ? "the Sun, our star" : `the ${b.kind.toLowerCase()} ${b.name}`;
+    const box = $("#q"); box.value = `Tell me about ${what}: what is it like, what is it made of, and could people ever live there?`;
     box.dispatchEvent(new Event("input")); box.focus();
   }
 

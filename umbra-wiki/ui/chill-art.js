@@ -12,6 +12,8 @@
   const URGENT = /\b(bleed\w*|blood|cpr|chok\w*|unconscious|not breathing|poison\w*|overdose|heart attack|stroke|seizure|burns?|fractur\w*|broken (bone|leg|arm)|anaphyla\w*|allerg\w* reaction|suicid\w*|self[- ]harm|chest pain|emergency|ambulance|911|999|112|wound\w*|injur\w*|hypotherm\w*|frostbite|heat ?stroke|drown\w*|snake ?bite|bitten|sting|tourniquet|shock|fever|pregnan\w*|labou?r|medic\w*|dose|symptom\w*|pain|hurt\w*|lost and|trapped|attack\w*|danger\w*)\b/i;
   const RELAXED = /\b(fun fact|interesting fact|random fact|tell me (a |another |some )?(story|stories)|how are you|what'?s up|quiet|stillness|relax\w*|chill|vibe|beautiful day|daydream|peaceful|calm me)\b/i;
   const CALM = ["dawn", "lake", "meadow", "stars", "valley", "forest", "orchard", "aurora"];
+  // Space: planets, moons and orbits have their own oceans and ice; the sky scene fits, not the sea.
+  const SPACE = /\b(planets?|moons? of|saturn|jupiter|neptune|uranus|pluto|enceladus|europa|ganymede|callisto|titan|io|triton|orbit\w*|solar system|outer space|spacecraft|spaceships?|space station|astronauts?|nasa|cosmos|universe|nebulae?|comets?|asteroids?|exoplanets?)\b/i;
   let last = { at: 0, id: "", turn: -99 };
 
   const matches = (text) => lib ? lib.ids.filter((id) => lib.scenes[id].tags.test(text || "")) : [];
@@ -23,14 +25,15 @@
 
   // ctx: { answer, sky, failed, history: [{role, content}] (before this turn) }
   function select(question, turn, ctx = {}) {
-    if (!lib || window.offgrid || ctx.sky || ctx.failed) return "";
+    // Never under answers about a web page (the page is the subject) or a failed one.
+    if (!lib || window.offgrid || ctx.sky || ctx.failed || ctx.page) return "";
     const q = String(question || "");
     if (URGENT.test(q) || URGENT.test(String(ctx.answer || "").slice(0, 400))) return "";
     const prev = remembered(), now = Date.now();
-    let found = matches(q);
+    let found = SPACE.test(q) ? ["stars"] : matches(q);
     // Nothing in the question: the answer may still be clearly about one place.
     if (!found.length && q.split(/\s+/).length >= 4) {
-      const inAnswer = matches(String(ctx.answer || "").slice(0, 700));
+      const head = String(ctx.answer || "").slice(0, 700), inAnswer = SPACE.test(head) ? ["stars"] : matches(head);
       if (inAnswer.length === 1) found = inAnswer;
     }
     let pick = found.find((id) => id !== prev.id) || found[0] || "";

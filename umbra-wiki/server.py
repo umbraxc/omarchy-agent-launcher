@@ -215,7 +215,7 @@ a an the and or but if then so of to in on at by for from with without about int
 is are was were be been being am do does did doing have has had having can could should would
 will shall may might must i me my we our you your he she it they them their this that these those
 what which who whom whose when where why how there here any some all no not very just also too
-please tell explain give show want need know make get use using way ways best good
+please tell explain give show want need know make made get use using way ways best good like ever
 looking other another more again okay ok fun fact facts indeed curious thing things
 """.split())
 
@@ -794,7 +794,18 @@ def search(terms, count=10):
     return results
 
 
-def local_sources(terms, limit):
+def proper_names(question):
+    """Names in a question (capitalised, not opening a sentence): Enceladus,
+    France, Kilimanjaro. A source about the question should mention them."""
+    names = []
+    for m in re.finditer(r"(?<![.!?:]\s)(?<!^)\b([A-Z][a-zà-ÿ]{3,}(?:[ -][A-Z][a-zà-ÿ]+)*)", question.strip()):
+        w = m.group(1).lower()
+        if w not in STOPWORDS and w not in GENERIC and w not in ("umbra", "please"):
+            names.append(w)
+    return names
+
+
+def local_sources(terms, limit, names=()):
     """Best archive pages for the question's terms.
 
     Full-text search needs every term to match, which often finds nothing
@@ -806,6 +817,9 @@ def local_sources(terms, limit):
 
     topical = [t for t in terms if t not in GENERIC] or terms
     queries = [terms]
+    # What the question names is searched on its own early, before common
+    # words fill the list ("people", "live" around "Enceladus").
+    queries += [[n] for n in names if [n] != terms]
     if len(topical) > 1:
         queries += [list(c) for c in combinations(topical, 2)]
     queries += [[t] for t in topical]
@@ -823,6 +837,12 @@ def local_sources(terms, limit):
             break  # plenty of strong matches already
 
     ranked = sorted(candidates.values(), key=lambda r: r["score"], reverse=True)
+    # Pages that never mention what the question names step aside, when
+    # some do ("people live" questions don't answer one about Enceladus).
+    if names:
+        named = [r for r in ranked if r["score"] >= 2 and any(n in (r["title"] + " " + r["snippet"]).lower() for n in names)]
+        if named:
+            ranked = named
     picked, per_archive, seen = [], {}, set()
     for r in ranked:
         if r["score"] < 2:
@@ -1109,7 +1129,7 @@ def find_sources(question, online):
     terms = keywords(question) or question.split()
     sources = manual_sources(terms)
     try:
-        sources += local_sources(terms, ONLINE_LOCAL_SOURCES if online else LOCAL_SOURCES) if kiwix_proc else []
+        sources += local_sources(terms, ONLINE_LOCAL_SOURCES if online else LOCAL_SOURCES, proper_names(question)) if kiwix_proc else []
     except Exception:
         pass
     sources += LINKS.search(terms, limit=2)
@@ -3259,7 +3279,8 @@ def manual_sources(terms, limit=2):
         title, text = page["title"].lower(), (page["summary"] + " " + page["body"]).lower()
         title_words = set(re.findall(r"[a-z]{3,}", title))
         text_words = set(re.findall(r"[a-z]{3,}", text))
-        hits = [t for t in topical if t in title_words or (t.endswith("s") and t[:-1] in title_words)]
+        # Singular or plural: "a burn" finds "Burns", "burns" finds "Burn".
+        hits = [t for t in topical if t in title_words or (t.endswith("s") and t[:-1] in title_words) or t + "s" in title_words]
         score = 3 * len(hits) + sum(1 for t in topical if t in text_words)
         if hits and score >= 3:
             scored.append((score, page))
@@ -5385,7 +5406,8 @@ def answer(req, emit):
         return
 
     answer_model = MODEL
-    chatting = is_small_talk(question) and not sky_request
+    # A web page or a file to work on is a task, never small talk.
+    chatting = is_small_talk(question) and not sky_request and not isinstance(req.get("page"), dict) and not req.get("attachments")
     parts = message_parts(question)
     wants_fun_fact = bool(re.search(r"\b(?:fun|interesting|random) facts?\b|\banother fact\b|\bdid you know\b", question, re.I))
     topic_fact = re.search(r"\b(?:(?:fun|interesting|random) facts?|another fact) (?:about|on)\b", question, re.I)
@@ -5499,7 +5521,12 @@ def answer(req, emit):
         content = str(turn.get("content", ""))
         latest_assistant = role == "assistant" and i == len(recent) - 1
         if chatting and role == "assistant" and not ((follows_offer or repair_request) and latest_assistant) and (len(content) > 300 or re.search(r"(?m)^\s*(?:\d+[.)]|[-*])\s", content)):
-            continue  # a previous long or list-like answer should not steer a new chat topic
+            # A previous long or list-like answer should not steer a new chat
+            # topic. Its question goes too: a question left without its answer
+            # reads as still open, and a small model answers it again.
+            if len(messages) > 1 and messages[-1]["role"] == "user":
+                messages.pop()
+            continue
         keep = 1200 if repair_request and latest_assistant else 900 if follows_offer and latest_assistant else 320 if chatting else 900 if i >= len(recent) - 2 else 250
         messages.append({"role": role, "content": content[-keep:] if repair_request and latest_assistant else content[:keep]})
     if chatting:
