@@ -11,20 +11,37 @@
   // **bold** in the changelog becomes the item's title.
   const fmt = (t) => escapeHtml(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>");
 
+  // A small, warm scene from Umbra's scenery library above the notes, a different one each time.
+  const WARM = ["campfire", "lighthouse", "aurora", "mountains", "lake", "meadow", "dawn", "valley", "waterfall", "orchard", "shore", "forest", "farm", "stars"];
+  function scenery(box, want) {
+    const lib = window.UmbraScenery, canvas = box.querySelector(".news-scene canvas");
+    if (!lib || !window.Ascii3D || !canvas) return () => {};
+    const ids = WARM.filter((id) => lib.scenes[id]);
+    const id = lib.scenes[want] ? want : ids[Math.floor(Math.random() * ids.length)];
+    try {
+      const v = Ascii3D.view(canvas, lib.scenes[id].build(), { cell: 6 });
+      box.querySelector(".news-scene span").textContent = (lib.scenes[id].name || id).toUpperCase();
+      return () => v.stop();
+    } catch { box.querySelector(".news-scene").remove(); return () => {}; }
+  }
+
   function show(info) {
     const box = document.createElement("div");
     box.className = "news";
     box.innerHTML = `<div class="news-card" role="dialog" aria-label="What's new">
       <div class="news-head"><span>UPDATE INSTALLED · v${escapeHtml(info.version)}</span><button class="ghost news-x" title="Close">✕</button></div>
+      <div class="news-scene" aria-hidden="true"><canvas></canvas><span></span></div>
       <div class="news-title">WHAT'S NEW</div>
-      <p class="news-lead">Umbra was updated. Everything you had is still here: conversations, maps, waypoints, settings and achievements.</p>
+      <p class="news-lead">Welcome back. Umbra was updated, and everything you had is still here: conversations, maps, waypoints, settings and achievements.</p>
       <ul class="news-list">${info.items.slice(0, 12).map((t, i) => `<li style="animation-delay:${120 + i * 45}ms">${fmt(t)}</li>`).join("")}</ul>
       <div class="news-foot"><small>Every detail is in the changelog on GitHub.</small>
         <span class="news-btns"><button class="ghost news-tour" title="Take the tour again|A guided look at everything, including what's new. Your profile and settings are kept: skip any question to keep your answer.">↻ TAKE THE TOUR</button>
         <button class="solid news-ok">CONTINUE ▸</button></span></div></div>`;
     document.body.appendChild(box);
     Sound.glitch();
+    const stopScene = scenery(box, info.scene);
     const close = () => {
+      stopScene();
       postSettings({ seenVersion: info.version });
       box.classList.add("leaving");
       setTimeout(() => box.remove(), 300);
@@ -107,5 +124,5 @@
   }
   window.UmbraUpdate = { install, offer };
   setTimeout(wait, 1500);
-  window.UmbraNews = { show: async () => { const i = await (await fetch("/api/whatsnew")).json(); if (i.items.length) show(i); } };
+  window.UmbraNews = { show: async (scene) => { const i = await (await fetch("/api/whatsnew")).json(); if (i.items.length) show({ ...i, scene }); } };
 })();

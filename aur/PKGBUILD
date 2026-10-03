@@ -1,6 +1,6 @@
 # Maintainer: umbraxc <334050264+umbraxc@users.noreply.github.com>
 pkgname=umbra-wiki
-pkgver=3.2.3
+pkgver=3.2.4
 pkgrel=1
 _commit=553035619241dcd4d2bb261cd8619c16e0a577f3   # exact 3.2.3 release source
 pkgdesc="Offline survival assistant: a local AI that answers from an offline library, with sources"

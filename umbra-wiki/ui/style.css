@@ -2016,6 +2016,12 @@ body.reduce-motion .news-card { animation: fade .2s ease-out both; }
 .news-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px 8px 18px; background: var(--signal); color: var(--bg);
   font: 700 9.5px var(--font); letter-spacing: .3em; }
 .news-head .ghost { padding: 2px 8px; color: var(--bg); border-color: color-mix(in srgb, var(--bg) 40%, transparent); }
+.news-scene { position: relative; height: 150px; flex: none; overflow: hidden; border-bottom: 1px solid var(--line); background: var(--bg-1); }
+/* A taller render, cropped to its middle: the horizon and the scene's subject fill the strip. */
+.news-scene canvas { position: absolute; left: 0; top: -70px; width: 100%; height: 290px; animation: fade .9s .15s ease-out both; }
+.news-scene::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to bottom, transparent 78%, var(--bg-1) 100%); }
+.news-scene span { position: absolute; right: 12px; bottom: 7px; z-index: 1; color: var(--dim); font-size: 9px; letter-spacing: .25em; text-shadow: 0 0 6px var(--bg-1), 0 0 2px var(--bg-1); }
+@media (max-height: 640px) { .news-scene { height: 84px; } .news-scene canvas { top: -100px; } }
 .news-title { padding: 18px 20px 0; font-size: 22px; font-weight: 800; letter-spacing: .3em; color: var(--fg-bright); }
 .news-lead { margin: 6px 20px 10px; color: var(--dim); font-size: 11.5px; line-height: 1.55; }
 .news-list { flex: 1; min-height: 0; overflow-y: auto; margin: 0; padding: 4px 20px 10px 20px; list-style: none; }

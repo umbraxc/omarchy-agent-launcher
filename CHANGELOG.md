@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.2.4
+
+### Highlights
+
+- **Talk with Umbra**: hold F9 or click the microphone and just talk, and hear the answers read aloud with a natural voice while they're still being written. Both work offline, on Linux and Windows alike, and every personality has a voice of its own, from Marcus Aurelius to Nana.
+- **The Galaxy**: the solar system in 3D ASCII, live. Every planet and moon is where it is right now, the Earth turns under the real Sun with its city lights at night, among the true stars. Keep zooming out of the Maps to leave orbit, and dive back down to land.
+- **LoRa mesh in Signals**: Meshtastic radios carry messages, check-ins, positions and waypoints over kilometres, with no phone network or internet. Umbra tells you what to buy, walks you through the setup and puts the radios on your Maps. Wi-Fi networks can be joined from the radar.
+- **Friends and the Camp Network**: share your profile card as a QR code and meet other Umbras on the same Wi-Fi, encrypted, with no internet. Open a friend's dossier, check in as OK or needing help, keep one shared supply list, and see each other's waypoints.
+- **Scenario drills** in Field Kit › Training: 15 situations, from a dry tap on day three of a blackout to a flash flood or a Mars hull breach, told in scored decisions in 3D ASCII scenes, with a debrief.
+- **The command line** (Ctrl+Space): find anything in Umbra, or run commands like theme, voice, map, drill or checkin.
+- **Full country files and Wonders of the world**: a turning globe and everything about a country, offline, and 28 landmarks standing on the map as animated 3D dioramas, each with its story.
+- **Umbra Outpost comes alive**: 3D creatures, companions, a trader's stall and your character in the gear you wear.
+- **Rare rewards**: new start-screen backgrounds and transitions in the Locker, some of them dark and hard-won, earned through the toughest achievements.
+- **The Core**: your AI first, and a live 3D reactor that shows how Umbra is doing.
+
 ## 3.2.3
 
 ### Highlights
