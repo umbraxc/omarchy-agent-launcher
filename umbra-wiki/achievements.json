@@ -1012,6 +1012,39 @@
    "category": "style"
   },
   {
+   "id": "first-words",
+   "name": "First Words",
+   "description": "Hear Umbra read an answer aloud.",
+   "icon": "\udb81\udd7e",
+   "tier": "bronze",
+   "points": 10,
+   "stat": "spokenAnswers",
+   "goal": 1,
+   "category": "style"
+  },
+  {
+   "id": "chorus",
+   "name": "Chorus",
+   "description": "Hear ten different personalities' voices.",
+   "icon": "\udb81\udd7e",
+   "tier": "silver",
+   "points": 25,
+   "stat": "voicesHeard",
+   "goal": 10,
+   "category": "style"
+  },
+  {
+   "id": "old-friends-talk",
+   "name": "Long Talks",
+   "description": "Hear 100 answers read aloud.",
+   "icon": "\udb81\udd7e",
+   "tier": "gold",
+   "points": 50,
+   "stat": "spokenAnswers",
+   "goal": 100,
+   "category": "style"
+  },
+  {
    "id": "model-explorer",
    "name": "Model Explorer",
    "description": "Use 4 distinct local AI models.",
@@ -1494,7 +1527,7 @@
    "tier": "legendary",
    "points": 100,
    "stat": "allOthers",
-   "goal": 143,
+   "goal": 146,
    "category": "legend"
   },
   {

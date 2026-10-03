@@ -275,12 +275,13 @@
     ["#settings-btn", "SETTINGS", "Settings has sounds, the start-screen background and transition, which tabs to pin, AI models, text, backups, updates and this tour."],
     ["#q", "ASK", "Type here. Enter sends, Shift+Enter adds a line, Ctrl+Z undoes. Tab opens quick actions; hold Ctrl for conversation tools. Ctrl+F searches this conversation, while Ctrl+Shift+H searches all saved conversations."],
     ["#mic", "VOICE", "Hold F9 (or click) and just talk. Speech is turned into text offline."],
+    ["#speech-btn", "UMBRA'S VOICE", "I can read my answers aloud, offline, each personality in its own voice: always, or only when you spoke the question. Click here for the options; while I speak, click to stop. Every answer also has a LISTEN button."],
     ["#send", "TRANSMIT", "Sends your question. While I'm answering it becomes STOP (or press Esc)."],
   ];
 
   // Both visual tours introduce every main tab. The short tour keeps fewer
   // explanatory steps outside the header.
-  const QUICK_SPOTS = [".cell.status", "#loadout-btn", "#history-btn", "#library-btn", "#maps-btn", "#galaxy-btn", "#fieldkit-btn", "#farming-btn", "#outpost-btn", "#friends-btn", "#radar-btn", "#dl-btn", "#theme-btn", "#sound", "#lock", "#settings-btn", "#q"];
+  const QUICK_SPOTS = [".cell.status", "#loadout-btn", "#history-btn", "#library-btn", "#maps-btn", "#galaxy-btn", "#fieldkit-btn", "#farming-btn", "#outpost-btn", "#friends-btn", "#radar-btn", "#dl-btn", "#theme-btn", "#sound", "#lock", "#settings-btn", "#q", "#speech-btn"];
 
   function spotlight(quick = false, outpostOnly = false) {
     return new Promise((resolve, reject) => {
@@ -303,7 +304,7 @@
         .filter(row => menuSpots.has(row.dataset.for))
         .map(row => [`#nav-overflow [data-for="${row.dataset.for}"]`, ...menuSpots.get(row.dataset.for).slice(1)]);
       const shown = source.filter(([sel]) => !document.querySelector(".controls")?.contains($(sel)));
-      const promptStart = shown.findIndex(([sel]) => ["#q", "#mic", "#send"].includes(sel));
+      const promptStart = shown.findIndex(([sel]) => ["#q", "#mic", "#speech-btn", "#send"].includes(sel));
       const menuStart = promptStart < 0 ? shown.length : promptStart;
       shown.splice(menuStart, 0, ["#nav-more", "ALL TABS", "Open the tab menu. The next hints follow each item in the same order it appears here."], ...menuSteps);
       const steps = shown.filter(([sel]) => {
@@ -450,6 +451,21 @@
       await say(`**${chosen.name}** is already on this computer. Well stocked.`);
     } else {
       await say("No problem. You can stock the library any time from the **Library** button.");
+    }
+
+    // My voice: a natural offline voice that reads answers aloud.
+    const sp = await fetch("/api/speech").then((r) => r.json()).catch(() => null);
+    if (sp && !AUTO) {
+      a = await say(sp.installed ? "I can also **speak**: I read my answers aloud, offline. Would you like that, and in which voice?"
+        : `I can also **speak**: I read my answers aloud with a natural voice, entirely offline, and each personality has its own. ` +
+          `It's one download of about ${sp.downloadMB || 354} MB. Would you like that, and in which voice?`);
+      const pick = await choose(a, [["♀ FEMALE VOICE ▸", "f", true], ["♂ MALE VOICE ▸", "m"], ["NOT NOW", "no"]]);
+      if (pick !== "no") {
+        await postSettings({ speechGender: pick, speechMode: "always" });
+        if (!sp.installed) { await post("/api/speech/install", {}); window.UmbraSpeech?.refresh(); }
+        await say(sp.installed ? "Done. You'll hear me from now on. The speaker next to the microphone turns it off or changes when I speak."
+          : "Downloading my voice in the background. When it's ready I'll start speaking. The **speaker** next to the microphone sets when I read aloud.");
+      } else await say("Fine. The **speaker** next to the microphone can turn my voice on later.");
     }
   }
 

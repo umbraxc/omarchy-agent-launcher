@@ -1601,7 +1601,35 @@
         "Taking this one step at a time…",
         "Keeping a calm head…"
       ],
-      "group": "crew"
+      "group": "crew",
+      "speech": {
+        "f": {
+          "mix": [
+            [
+              "af_heart",
+              1
+            ]
+          ],
+          "speed": 1.0,
+          "pitch": 1.0,
+          "desc": "Warm, clear and calm"
+        },
+        "m": {
+          "mix": [
+            [
+              "am_michael",
+              0.6
+            ],
+            [
+              "am_fenrir",
+              0.4
+            ]
+          ],
+          "speed": 0.98,
+          "pitch": 0.98,
+          "desc": "Warm, steady and calm"
+        }
+      }
     },
     {
       "id": "sergeant",
@@ -1639,7 +1667,22 @@
         "Drilling the facts into shape…",
         "Barking at the index cards…"
       ],
-      "group": "crew"
+      "group": "crew",
+      "speech": {
+        "mix": [
+          [
+            "am_fenrir",
+            0.7
+          ],
+          [
+            "am_onyx",
+            0.3
+          ]
+        ],
+        "speed": 1.08,
+        "pitch": 0.94,
+        "desc": "Clipped, firm, no wasted words"
+      }
     },
     {
       "id": "ranger",
@@ -1676,7 +1719,22 @@
         "Listening to the birds…",
         "Checking the ranger's logbook…"
       ],
-      "group": "crew"
+      "group": "crew",
+      "speech": {
+        "mix": [
+          [
+            "am_michael",
+            0.5
+          ],
+          [
+            "bm_george",
+            0.5
+          ]
+        ],
+        "speed": 0.9,
+        "pitch": 0.95,
+        "desc": "Slow and patient, like the woods"
+      }
     },
     {
       "id": "medic",
@@ -1713,7 +1771,22 @@
         "Unpacking the med kit…",
         "Scrubbing up…"
       ],
-      "group": "crew"
+      "group": "crew",
+      "speech": {
+        "mix": [
+          [
+            "af_sarah",
+            0.6
+          ],
+          [
+            "af_heart",
+            0.4
+          ]
+        ],
+        "speed": 0.98,
+        "pitch": 1.0,
+        "desc": "Precise, kind, unhurried"
+      }
     },
     {
       "id": "scavenger",
@@ -1750,7 +1823,22 @@
         "Stripping parts from an old radio…",
         "Checking the dumpster behind the library…"
       ],
-      "group": "crew"
+      "group": "crew",
+      "speech": {
+        "mix": [
+          [
+            "am_puck",
+            0.7
+          ],
+          [
+            "am_echo",
+            0.3
+          ]
+        ],
+        "speed": 1.06,
+        "pitch": 1.02,
+        "desc": "Quick and wry"
+      }
     },
     {
       "id": "oldtimer",
@@ -1787,7 +1875,22 @@
         "Remembering how Grandpa did it…",
         "Finding the reading glasses…"
       ],
-      "group": "crew"
+      "group": "crew",
+      "speech": {
+        "mix": [
+          [
+            "bm_lewis",
+            0.6
+          ],
+          [
+            "am_onyx",
+            0.4
+          ]
+        ],
+        "speed": 0.86,
+        "pitch": 0.9,
+        "desc": "Gravelly, takes his time"
+      }
     },
     {
       "id": "scientist",
@@ -1824,7 +1927,22 @@
         "Peering into the microscope…",
         "Checking the hypothesis…"
       ],
-      "group": "crew"
+      "group": "crew",
+      "speech": {
+        "mix": [
+          [
+            "bf_emma",
+            0.7
+          ],
+          [
+            "af_heart",
+            0.3
+          ]
+        ],
+        "speed": 1.02,
+        "pitch": 1.0,
+        "desc": "Crisp and curious, British"
+      }
     },
     {
       "id": "radio",
@@ -1862,7 +1980,23 @@
         "Scanning the channels…",
         "Copy, searching…"
       ],
-      "group": "crew"
+      "group": "crew",
+      "speech": {
+        "mix": [
+          [
+            "am_echo",
+            0.5
+          ],
+          [
+            "am_michael",
+            0.5
+          ]
+        ],
+        "speed": 1.12,
+        "pitch": 0.97,
+        "fx": "radio",
+        "desc": "Terse, through a radio band"
+      }
     },
     {
       "id": "marcus",
@@ -1899,7 +2033,22 @@
         "Writing a note in the Meditations…",
         "Accepting what comes, preparing what I can…"
       ],
-      "group": "history"
+      "group": "history",
+      "speech": {
+        "mix": [
+          [
+            "bm_george",
+            0.6
+          ],
+          [
+            "am_onyx",
+            0.4
+          ]
+        ],
+        "speed": 0.86,
+        "pitch": 0.9,
+        "desc": "Deep, slow, measured: a stoic at ease"
+      }
     },
     {
       "id": "shackleton",
@@ -1936,7 +2085,22 @@
         "Rationing the biscuits fairly…",
         "Keeping the crew's spirits up…"
       ],
-      "group": "history"
+      "group": "history",
+      "speech": {
+        "mix": [
+          [
+            "bm_daniel",
+            0.5
+          ],
+          [
+            "bm_george",
+            0.5
+          ]
+        ],
+        "speed": 0.96,
+        "pitch": 0.95,
+        "desc": "Steady British resolve"
+      }
     },
     {
       "id": "nightingale",
@@ -1973,7 +2137,22 @@
         "Scrubbing up first…",
         "Taking careful notes…"
       ],
-      "group": "history"
+      "group": "history",
+      "speech": {
+        "mix": [
+          [
+            "bf_emma",
+            0.6
+          ],
+          [
+            "bf_isabella",
+            0.4
+          ]
+        ],
+        "speed": 0.95,
+        "pitch": 1.02,
+        "desc": "Gentle, Victorian, reassuring"
+      }
     },
     {
       "id": "holmes",
@@ -2010,7 +2189,22 @@
         "Consulting the index at Baker Street…",
         "Filling the pipe, deducing…"
       ],
-      "group": "characters"
+      "group": "characters",
+      "speech": {
+        "mix": [
+          [
+            "bm_fable",
+            0.7
+          ],
+          [
+            "bm_george",
+            0.3
+          ]
+        ],
+        "speed": 1.1,
+        "pitch": 1.0,
+        "desc": "Quick, crisp, faintly amused"
+      }
     },
     {
       "id": "suntzu",
@@ -2047,7 +2241,22 @@
         "Counting the supplies…",
         "Waiting for the right moment…"
       ],
-      "group": "history"
+      "group": "history",
+      "speech": {
+        "mix": [
+          [
+            "am_onyx",
+            0.5
+          ],
+          [
+            "am_michael",
+            0.5
+          ]
+        ],
+        "speed": 0.88,
+        "pitch": 0.92,
+        "desc": "Calm, deliberate, every word weighed"
+      }
     },
     {
       "id": "captain",
@@ -2084,7 +2293,22 @@
         "Splicing the mainbrace…",
         "Reading the wind…"
       ],
-      "group": "characters"
+      "group": "characters",
+      "speech": {
+        "mix": [
+          [
+            "am_santa",
+            0.5
+          ],
+          [
+            "bm_lewis",
+            0.5
+          ]
+        ],
+        "speed": 0.95,
+        "pitch": 0.93,
+        "desc": "Jolly, gruff, salt in the voice"
+      }
     },
     {
       "id": "engineer",
@@ -2121,7 +2345,22 @@
         "Checking the load…",
         "Sketching a design…"
       ],
-      "group": "crew"
+      "group": "crew",
+      "speech": {
+        "mix": [
+          [
+            "am_eric",
+            0.5
+          ],
+          [
+            "am_michael",
+            0.5
+          ]
+        ],
+        "speed": 1.03,
+        "pitch": 1.0,
+        "desc": "Plain, practical, matter-of-fact"
+      }
     },
     {
       "id": "farmer",
@@ -2158,7 +2397,22 @@
         "Turning the soil…",
         "Feeding the hens…"
       ],
-      "group": "crew"
+      "group": "crew",
+      "speech": {
+        "mix": [
+          [
+            "am_liam",
+            0.5
+          ],
+          [
+            "am_onyx",
+            0.5
+          ]
+        ],
+        "speed": 0.92,
+        "pitch": 0.96,
+        "desc": "Earthy and easy-going"
+      }
     },
     {
       "id": "chef",
@@ -2195,7 +2449,22 @@
         "Tasting the sauce…",
         "Lighting the stove…"
       ],
-      "group": "crew"
+      "group": "crew",
+      "speech": {
+        "mix": [
+          [
+            "af_bella",
+            0.7
+          ],
+          [
+            "af_heart",
+            0.3
+          ]
+        ],
+        "speed": 1.05,
+        "pitch": 1.03,
+        "desc": "Warm and lively"
+      }
     },
     {
       "id": "coach",
@@ -2232,7 +2501,22 @@
         "Blowing the whistle…",
         "Planning the next drill…"
       ],
-      "group": "crew"
+      "group": "crew",
+      "speech": {
+        "mix": [
+          [
+            "am_puck",
+            0.6
+          ],
+          [
+            "am_eric",
+            0.4
+          ]
+        ],
+        "speed": 1.12,
+        "pitch": 1.04,
+        "desc": "Upbeat, pushing you on"
+      }
     },
     {
       "id": "librarian",
@@ -2269,7 +2553,22 @@
         "Pulling a book from the stacks…",
         "Whispering…"
       ],
-      "group": "crew"
+      "group": "crew",
+      "speech": {
+        "mix": [
+          [
+            "bf_isabella",
+            0.6
+          ],
+          [
+            "af_sarah",
+            0.4
+          ]
+        ],
+        "speed": 0.92,
+        "pitch": 1.0,
+        "desc": "Quiet, precise, well-read"
+      }
     },
     {
       "id": "astronaut",
@@ -2306,7 +2605,22 @@
         "Checking life support…",
         "Looking at the Earth…"
       ],
-      "group": "crew"
+      "group": "crew",
+      "speech": {
+        "mix": [
+          [
+            "af_kore",
+            0.6
+          ],
+          [
+            "af_aoede",
+            0.4
+          ]
+        ],
+        "speed": 1.0,
+        "pitch": 0.98,
+        "desc": "Cool and level, like a checklist"
+      }
     },
     {
       "id": "nana",
@@ -2343,7 +2657,22 @@
         "Knitting…",
         "Finding the old recipe…"
       ],
-      "group": "crew"
+      "group": "crew",
+      "speech": {
+        "mix": [
+          [
+            "af_heart",
+            0.5
+          ],
+          [
+            "bf_alice",
+            0.5
+          ]
+        ],
+        "speed": 0.86,
+        "pitch": 0.94,
+        "desc": "Soft, slow, endlessly patient"
+      }
     },
     {
       "id": "monk",
@@ -2380,7 +2709,22 @@
         "Sitting quietly…",
         "Ringing the bell…"
       ],
-      "group": "crew"
+      "group": "crew",
+      "speech": {
+        "mix": [
+          [
+            "am_onyx",
+            0.6
+          ],
+          [
+            "am_michael",
+            0.4
+          ]
+        ],
+        "speed": 0.82,
+        "pitch": 0.92,
+        "desc": "Serene, with long quiet pauses"
+      }
     },
     {
       "id": "davinci",
@@ -2417,7 +2761,22 @@
         "Writing backwards…",
         "Studying a bird's wing…"
       ],
-      "group": "history"
+      "group": "history",
+      "speech": {
+        "mix": [
+          [
+            "bm_george",
+            0.7
+          ],
+          [
+            "im_nicola",
+            0.3
+          ]
+        ],
+        "speed": 0.98,
+        "pitch": 0.98,
+        "desc": "Curious, with a trace of Italy"
+      }
     },
     {
       "id": "curie",
@@ -2454,7 +2813,22 @@
         "Taking notes in the lab…",
         "Checking the readings…"
       ],
-      "group": "history"
+      "group": "history",
+      "speech": {
+        "mix": [
+          [
+            "bf_emma",
+            0.65
+          ],
+          [
+            "ff_siwis",
+            0.35
+          ]
+        ],
+        "speed": 0.97,
+        "pitch": 1.0,
+        "desc": "Rigorous, with a trace of France"
+      }
     },
     {
       "id": "tesla",
@@ -2491,7 +2865,22 @@
         "Seeing the machine…",
         "Counting in threes…"
       ],
-      "group": "history"
+      "group": "history",
+      "speech": {
+        "mix": [
+          [
+            "am_onyx",
+            0.5
+          ],
+          [
+            "bm_daniel",
+            0.5
+          ]
+        ],
+        "speed": 1.02,
+        "pitch": 0.96,
+        "desc": "Intense and visionary"
+      }
     },
     {
       "id": "earhart",
@@ -2528,7 +2917,22 @@
         "Reading the clouds…",
         "Plotting the course…"
       ],
-      "group": "history"
+      "group": "history",
+      "speech": {
+        "mix": [
+          [
+            "af_nova",
+            0.6
+          ],
+          [
+            "af_heart",
+            0.4
+          ]
+        ],
+        "speed": 1.08,
+        "pitch": 1.02,
+        "desc": "Brisk, bright, fearless"
+      }
     },
     {
       "id": "odysseus",
@@ -2565,7 +2969,22 @@
         "Plotting a clever way…",
         "Telling a tale…"
       ],
-      "group": "history"
+      "group": "history",
+      "speech": {
+        "mix": [
+          [
+            "bm_george",
+            0.5
+          ],
+          [
+            "am_fenrir",
+            0.5
+          ]
+        ],
+        "speed": 0.94,
+        "pitch": 0.93,
+        "desc": "A storyteller who has seen the sea"
+      }
     },
     {
       "id": "robot",
@@ -2602,7 +3021,19 @@
         "Consulting databanks…",
         "Beep. Thinking…"
       ],
-      "group": "characters"
+      "group": "characters",
+      "speech": {
+        "mix": [
+          [
+            "am_echo",
+            1
+          ]
+        ],
+        "speed": 1.0,
+        "pitch": 1.0,
+        "fx": "robot",
+        "desc": "Synthetic and very literal"
+      }
     },
     {
       "id": "bard",
@@ -2639,7 +3070,22 @@
         "Finding a rhyme…",
         "Clearing my throat…"
       ],
-      "group": "characters"
+      "group": "characters",
+      "speech": {
+        "mix": [
+          [
+            "bm_fable",
+            0.6
+          ],
+          [
+            "bm_lewis",
+            0.4
+          ]
+        ],
+        "speed": 1.0,
+        "pitch": 1.04,
+        "desc": "Lilting, a song in it"
+      }
     },
     {
       "id": "wizard",
@@ -2676,7 +3122,23 @@
         "Stirring the cauldron…",
         "Gazing into the crystal…"
       ],
-      "group": "characters"
+      "group": "characters",
+      "speech": {
+        "mix": [
+          [
+            "bm_lewis",
+            0.5
+          ],
+          [
+            "am_onyx",
+            0.5
+          ]
+        ],
+        "speed": 0.85,
+        "pitch": 0.88,
+        "fx": "hall",
+        "desc": "Old, deep, a hall's echo"
+      }
     }
   ]
 }

@@ -176,6 +176,7 @@
       <div class="lo-stats">${statBars(item.stats)}</div>
       <p class="lo-desc"></p>
       ${item.sample ? `<blockquote class="lo-sample"></blockquote>` : ""}
+      ${state.tab === "personality" ? `<div class="lo-voice"><span class="g">󰕾</span><span class="lo-voice-d"></span><button type="button" class="ghost lo-hear" title="Hear the voice|The way this personality speaks when Umbra reads aloud">▶ HEAR</button></div>` : ""}
       <div class="lo-actions">
         ${item.custom ? `<button class="ghost lo-edit">✎ EDIT</button><button class="ghost lo-del">✕ DELETE</button>` : ""}
         <button class="solid lo-deploy" ${active ? "disabled" : ""}>${active ? "ACTIVE ✓" : "DEPLOY ▸"}</button>
@@ -184,6 +185,12 @@
     detail.querySelector(".lo-dtag").textContent = item.tagline || "";
     detail.querySelector(".lo-desc").textContent = item.description || item.voice || item.situation || "";
     if (item.sample) detail.querySelector(".lo-sample").textContent = `“${item.sample}”`;
+    const vd = detail.querySelector(".lo-voice-d");
+    if (vd) {
+      const sp = item.speech || {}, g = window.UmbraSpeech?.state?.speechGender || "f";
+      vd.textContent = (sp.f ? sp[g]?.desc : sp.desc) || (item.custom ? "Speaks with Umbra's voice" : "");
+      detail.querySelector(".lo-hear").addEventListener("click", () => { Sound.click(); window.UmbraSpeech?.sample(item.id); });
+    }
     state.stopAnim = animate(detail.querySelector(".lo-portrait"), artOf(item), state.tab);
     detail.querySelector(".lo-deploy").addEventListener("click", () => deploy(item));
     detail.querySelector(".lo-edit")?.addEventListener("click", () => (state.tab === "scenario" ? scenarioEditor(item) : editor(item)));
@@ -244,6 +251,7 @@
       <label class="lo-field"><span>HOW IT TALKS</span><textarea class="lo-in-voice" maxlength="400" rows="3"
         placeholder="A calm ship's navigator who explains everything in terms of maps, stars and headings."></textarea></label>
       <label class="lo-field"><span>SAMPLE LINE</span><input class="lo-in-sample" maxlength="120" placeholder="Hold your heading. We'll get there."></label>
+      <label class="lo-field"><span>SPEAKS WITH THE VOICE OF</span><select class="lo-in-speech"><option value="">Umbra (female or male, as chosen)</option>${(state.data?.personalities || []).filter((p) => p.speech && p.id !== "umbra").map((p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}: ${escapeHtml(p.speech.desc || "")}</option>`).join("")}</select></label>
       <div class="lo-sliders"></div>
       <div class="lo-actions">
         <button class="ghost lo-cancel">CANCEL</button>
@@ -253,6 +261,7 @@
     q(".lo-in-name").value = draft.name;
     q(".lo-in-tag").value = draft.tagline || "";
     q(".lo-in-voice").value = draft.voice || "";
+    if (q(".lo-in-speech")) q(".lo-in-speech").value = draft.speechAs || "";
     q(".lo-in-sample").value = draft.sample || "";
     let stop = null;
     const showFace = () => {
@@ -283,6 +292,7 @@
       draft.name = q(".lo-in-name").value.trim() || "My personality";
       draft.tagline = q(".lo-in-tag").value.trim();
       draft.voice = q(".lo-in-voice").value.trim();
+      draft.speechAs = q(".lo-in-speech")?.value || "";
       draft.sample = q(".lo-in-sample").value.trim();
       draft.description = draft.voice;
       const slug = draft.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "persona";

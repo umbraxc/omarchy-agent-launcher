@@ -34,6 +34,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import maps  # noqa: E402  (offline maps: maps.py next to this file)
 import transfers
 import camp
+import speech  # noqa: E402  (Umbra's offline voice: speech.py next to this file)
 import linked_library
 import outpost
 import sky
@@ -1747,6 +1748,7 @@ def save_personality(item):
         "description": str(item.get("description", ""))[:400],
         "sample": str(item.get("sample", ""))[:120],
         "voice": str(item.get("voice", ""))[:400],
+        "speechAs": str(item.get("speechAs", ""))[:24] if re.fullmatch(r"[a-z0-9-]{1,24}", str(item.get("speechAs", ""))) else "",
         "face": int(item.get("face", 0)) if str(item.get("face", "0")).isdigit() else 0,
         "stats": {t: max(1, min(5, int((item.get("stats") or {}).get(t, 3)))) for t in TRAITS},
     }
@@ -2031,7 +2033,7 @@ def _stat(st, stat):
         return max(_streak(st["days"]), counts.get("bestStreak", 0))
     if stat in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
                 "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries", "modelsTried", "medicTools", "radioTracks",
-                "worlds", "moons", "wonders", "dossiers", "checkins", "drillsDone"):
+                "worlds", "moons", "wonders", "dossiers", "checkins", "drillsDone", "voicesHeard"):
         return len(sets.get(stat, []))
     if stat == "friends":   # the friends you have (importing the same card twice counts once)
         try:
@@ -2123,11 +2125,11 @@ def record(event, value=None, **info):
                        "quietScene", "pulse500", "webSaves", "friends", "campMessages", "campLinks",
                        "galaxyOpened", "leftOrbit", "landings", "timeWarp", "cardShares",
                        "sharedWaypoints", "listEdits", "waypointsSent", "friendLayer",
-                       "scenarioDrills", "drillsPerfect", "hardcorePerfect"):
+                       "scenarioDrills", "drillsPerfect", "hardcorePerfect", "spokenAnswers"):
             counts[event] = counts.get(event, 0) + 1
         elif event in ("manualPages", "themes", "backgrounds", "personalities", "scenarios", "creations",
                        "mapPacks", "waypoints", "mapSearches", "manuals", "manualsRead", "countries", "modelsTried", "medicTools", "farmItems", "radioTracks",
-                       "worlds", "moons", "wonders", "dossiers", "checkins", "drillsDone"):
+                       "worlds", "moons", "wonders", "dossiers", "checkins", "drillsDone", "voicesHeard"):
             values = value if event == "farmItems" and isinstance(value, list) else [value]
             known = set(sets.get(event, []))
             for raw in values[:80]:
@@ -3313,6 +3315,12 @@ def apply_settings(update):
                     "confirmExit", "autoUpdate", "adaptive"):
             if isinstance(update.get(key), bool):
                 settings[key] = update[key]
+        if update.get("speechMode") in SPEECH_MODES:
+            settings["speechMode"] = update["speechMode"]
+        if update.get("speechGender") in ("f", "m"):
+            settings["speechGender"] = update["speechGender"]
+        if isinstance(update.get("speechVolume"), (int, float)) and not isinstance(update["speechVolume"], bool) and math.isfinite(update["speechVolume"]):
+            settings["speechVolume"] = round(max(0.0, min(1.0, float(update["speechVolume"]))), 2)
         if isinstance(update.get("hiddenControls"), list):
             allowed = {"loadout-btn", "history-btn", "library-btn", "maps-btn", "galaxy-btn", "fieldkit-btn", "farming-btn", "outpost-btn", "friends-btn", "radar-btn", "theme-btn", "sound", "lock"}
             settings["hiddenControls"] = [c for c in update["hiddenControls"] if c in allowed]
@@ -4395,6 +4403,22 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"items": CAMP.shared_list()})
         if path == "/api/drills":
             return self.send_json(get_scenario_drills())
+        if path == "/api/speech":
+            return self.send_json(SPEECH.status())
+        if path == "/api/speech/pending":
+            return self.send_json({"clips": SPEECH.take_pending(), "speaking": SPEECH.status()["speaking"]})
+        if path == "/api/speech/clip":
+            clip = SPEECH.clip_path(urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("id", [""])[0])
+            if not clip:
+                self.send_error(404)
+                return
+            body = open(clip, "rb").read()
+            self.send_response(200)
+            self.send_header("Content-Type", "audio/wav")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if path == "/api/friends/waypoints":
             return self.send_json({"friends": friend_waypoints()})
         if path == "/api/friends":
@@ -4704,6 +4728,35 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(save_waypoints(self.read_json().get("waypoints")))
             except ValueError as e:
                 return self.send_json({"error": str(e)}, 400)
+        if self.path.startswith("/api/speech/"):
+            req = self.read_json()
+            action = self.path.rsplit("/", 1)[1]
+            if action == "install":
+                return self.send_json(SPEECH.install())
+            if action == "remove":
+                return self.send_json(SPEECH.remove())
+            if action == "stop":
+                SPEECH.stop()
+                return self.send_json({"ok": True})
+            if action in ("say", "sample"):
+                if not SPEECH.installed():
+                    return self.send_json({"ok": False, "message": "The voice isn't installed yet."}, 400)
+                pid = str(req.get("persona") or "")[:40] or None
+                if action == "sample":
+                    try:
+                        people = json.load(open(LOADOUT_FILE))["personalities"]
+                    except (OSError, ValueError):
+                        people = []
+                    person = next((x for x in people if x["id"] == pid), None) or next((x for x in custom_personalities() if x["id"] == pid), {"name": "Umbra"})
+                    text = person.get("sample") or f"Hello. I'm {person.get('name', 'Umbra')}."
+                    record("voicesHeard", pid or "umbra")
+                else:
+                    text = str(req.get("text") or "")[:20000]
+                    record("spokenAnswers")
+                SPEECH.say(text, persona_speech(pid))
+                return self.send_json({"ok": True})
+            self.send_error(404)
+            return
         if self.path == "/api/drills/result":
             try:
                 return self.send_json({"ok": True, **drill_result(self.read_json())})
@@ -5569,6 +5622,83 @@ def drill_result(req):
     return get_scenario_drills()
 
 
+# ---------------------------------------------------------------- speech
+SPEECH_MODES = ("off", "always", "mic")
+
+
+def speech_settings():
+    s = read_json(SETTINGS_FILE, {})
+    try:
+        vol = max(0.0, min(1.0, float(s.get("speechVolume", 0.85))))
+    except (TypeError, ValueError):
+        vol = 0.85
+    return {"speechMode": s.get("speechMode") if s.get("speechMode") in SPEECH_MODES else "off",
+            "speechGender": "m" if s.get("speechGender") == "m" else "f", "speechVolume": vol, "muted": bool(s.get("muted"))}
+
+
+def speech_player(path, volume):
+    """How a voice clip is played: the backend on Linux (like Umbra's sounds), the window on Windows."""
+    if WINDOWS:
+        return None
+    if not path:
+        return []
+    if speech_settings()["muted"]:
+        return ["true"]
+    runtime = os.environ.get("XDG_RUNTIME_DIR") or "/tmp"
+    if shutil.which("pw-play") and os.path.exists(os.path.join(runtime, "pipewire-0")):
+        return ["pw-play", *audio_target("audioOut"), "--volume", f"{float(volume):.2f}",
+                "-P", "{ application.name = \"Umbra Wiki\" media.role = \"Communication\" }", path]
+    if shutil.which("paplay"):
+        return ["paplay", f"--volume={int(float(volume) * 65536)}", path]
+    if shutil.which("aplay"):
+        return ["aplay", "-q", path]
+    return ["true"]
+
+
+SPEECH = speech.Speech(DATA_DIR, os.path.join(DATA_DIR, "cache"), speech_settings, speech_player, WINDOWS)
+
+
+def persona_speech(pid=None):
+    """The voice of a personality: its own, or Umbra's (female or male, as chosen)."""
+    st = speech_settings()
+    pid = pid or read_json(SETTINGS_FILE, {}).get("personality") or "umbra"
+    try:
+        people = json.load(open(LOADOUT_FILE))["personalities"]
+    except (OSError, ValueError):
+        people = []
+    person = next((x for x in people if x["id"] == pid), None)
+    if person is None:   # a personality the user made: its chosen voice, or Umbra's
+        own = next((x for x in custom_personalities() if x["id"] == pid), {})
+        person = next((x for x in people if x["id"] == own.get("speechAs")), None) or next((x for x in people if x["id"] == "umbra"), {})
+    sp = person.get("speech") or {}
+    if "f" in sp:
+        sp = sp[st["speechGender"]]
+    return {k: sp[k] for k in ("mix", "speed", "pitch", "fx") if k in sp} or {"mix": [["af_heart", 1.0]]}
+
+
+def speak_answer(emit, gen):
+    """Wraps an answer's stream: finished sentences are spoken as they come."""
+    spec = persona_speech()
+    buf = {"text": ""}
+
+    def wrapped(ev):
+        emit(ev)
+        if ev.get("type") == "token":
+            buf["text"] += ev.get("text", "")
+            m = None
+            for m in re.finditer(r"[.!?](?:[\"”’)]*)\s+|\n\s*\n", buf["text"]):
+                pass
+            if m and m.end() > 40:
+                SPEECH.feed(buf["text"][:m.end()], spec, gen)
+                buf["text"] = buf["text"][m.end():]
+
+    def flush():
+        if buf["text"].strip():
+            SPEECH.feed(buf["text"], spec, gen)
+            buf["text"] = ""
+    return wrapped, flush
+
+
 CHECKIN_EVERY = (0, 2, 4, 6, 8, 12, 24, 48)
 
 
@@ -5760,6 +5890,19 @@ def search_text(question, history):
 
 
 def answer(req, emit):
+    """An answer, spoken too when asked (and the voice is installed)."""
+    if req.get("speak") and SPEECH.installed():
+        gen = SPEECH.say("", None)   # stops anything still being said
+        emit, flush = speak_answer(emit, gen)
+        try:
+            return _answer(req, emit)
+        finally:
+            flush()
+            record("spokenAnswers")
+    return _answer(req, emit)
+
+
+def _answer(req, emit):
     started = time.time()
     question = str(req.get("question", "")).strip()
     history = req.get("history") or []

@@ -235,8 +235,8 @@
       sections: ["PERFORMANCE", "AI MODEL", "POWER", "UMBRA ONLINE"] },
     { id: "look", name: "LOOK & FEEL", icon: "󰏘", color: "color-mix(in oklab, #a77ce8 78%, var(--fg))", line: "Motion, buttons, conversation, text size",
       sections: ["MOTION", "TABS", "CONVERSATION"] },
-    { id: "sound", name: "SOUND & VOICE", icon: "󰕾", color: "color-mix(in oklab, #36aec8 78%, var(--fg))", line: "Effects, volume, speakers, microphone, dictation",
-      sections: ["SOUND", "VOICE"] },
+    { id: "sound", name: "SOUND & VOICE", icon: "󰕾", color: "color-mix(in oklab, #36aec8 78%, var(--fg))", line: "Effects, volume, speakers, microphone, dictation, Umbra's voice",
+      sections: ["SOUND", "VOICE INPUT", "UMBRA'S VOICE"] },
     { id: "data", name: "YOUR DATA", icon: "󰆼", color: "color-mix(in oklab, #4fb86a 78%, var(--fg))", line: "Backups, maps and places, where things are kept",
       sections: ["BACKUP", "MAPS & PLACES", "STORAGE"] },
     { id: "help", name: "HELP & UPDATES", icon: "󰘥", color: "color-mix(in oklab, #d9b235 78%, var(--fg))", line: "Shortcuts, the tour, what's new, updates",
@@ -448,8 +448,11 @@
           <button class="ghost set-core">OPEN CORE ▸</button></div>
         <div class="set-pulls" hidden></div>
       </section>
-      <section class="set-section"><div class="lib-head">VOICE</div>
+      <section class="set-section"><div class="lib-head">VOICE INPUT</div>
         <p class="lib-note set-voice"></p>
+      </section>
+      <section class="set-section"><div class="lib-head">UMBRA'S VOICE</div>
+        <div class="set-speech"><p class="lib-note">Reading…</p></div>
       </section>
       <section class="set-section set-places"><div class="lib-head"><span>MAPS & PLACES</span><b class="set-places-size"></b></div>
         <div class="set-places-list"><p class="lib-note">Reading…</p></div>
@@ -725,6 +728,7 @@
     setupCpu();
     applySearch();
 
+    window.UmbraSpeech?.settingsPanel(body.querySelector(".set-speech"));
     body.querySelector(".set-voice").innerHTML = voice.unsupported
       ? "Voice input isn't available in the Windows app yet. Type your questions; everything else works the same."
       : !voice.available

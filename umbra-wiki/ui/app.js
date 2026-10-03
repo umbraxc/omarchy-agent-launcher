@@ -2089,6 +2089,7 @@ function finishAnswer(msg, rec) {
   renderSources(card, rec.sources);
   if (rec.offer) renderNext(answerEl, rec.offer);
   if (window.UmbraTools && rec.question) UmbraTools.renderTools(answerEl, rec);
+  window.UmbraSpeech?.addListen(msg, rec);
   if (rec.meta) {
     const m = document.createElement("div");
     m.className = "meta";
@@ -2185,7 +2186,7 @@ async function ask(question, shownAs = "") {
     const res = await fetch("/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, history: chat, conversation: window.currentConversationId || "", online, offgrid: !!window.offgrid, folder: window.currentFolder || "", context: localContext(), attachments, page: (pageSent = window.UmbraWeb?.pageFor?.()) }),
+      body: JSON.stringify({ question, history: chat, conversation: window.currentConversationId || "", online, offgrid: !!window.offgrid, folder: window.currentFolder || "", context: localContext(), attachments, page: (pageSent = window.UmbraWeb?.pageFor?.()), speak: !!window.UmbraSpeech?.wants() }),
       signal: controller.signal,
     });
     const reader = res.body.getReader();
@@ -2540,7 +2541,7 @@ $("#reader-close").addEventListener("click", closeReader);
 const mic = $("#mic");
 let voice = { available: false, daemon: false, state: "idle" };
 function showVoice(v) {
-  if (voice.state === "transcribing" && v.state === "idle" && window.track) track("voice");   // words came in by voice
+  if (voice.state === "transcribing" && v.state === "idle") { window.track?.("voice"); window.UmbraSpeech?.heardVoice(); }   // words came in by voice
   voice = { ...voice, ...v };
   mic.classList.toggle("rec", voice.state === "recording");
   mic.classList.toggle("busy", voice.state === "transcribing");
@@ -2683,7 +2684,7 @@ async function suggestFor(rec) {
 
 form.addEventListener("submit", (e) => {
   e.preventDefault();
-  if (controller) { controller.abort(); if (window.track) track("stops"); return; }
+  if (controller) { controller.abort(); window.UmbraSpeech?.stop(); if (window.track) track("stops"); return; }
   let q = input.value;
   if (!q.trim() && window.UmbraAttach && UmbraAttach.count()) q = "Look at what I've attached and tell me what's in it.";
   input.value = "";
@@ -2750,7 +2751,7 @@ document.addEventListener("keydown", (e) => {
   if (!$("#reader").hidden) closeReader();
   else if (!$("#themes").hidden) toggleThemes(false);
   else if (!$("#library").hidden) toggleLibrary(false);
-  else if (controller) { controller.abort(); if (window.track) track("stops"); }
+  else if (controller) { controller.abort(); window.UmbraSpeech?.stop(); if (window.track) track("stops"); }
 });
 
 
